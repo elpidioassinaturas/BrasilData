@@ -291,7 +291,7 @@ def manifesto(linhas: list[dict]) -> str:
         "version": VERSAO,
         "description": "Dados públicos do Brasil para a área do usuário (IBGE, MMA, ICMBio, INPE, ANA, ANEEL, ANP, SFB/CAR, INCRA, FUNAI, IBAMA, ANM, DNIT, Copernicus): só o que cruza a área, recortado por ela, com a fonte e a licença de cada camada.",
         "author": "Elpídio Filho",
-        "homepage": "https://github.com/elpidioassinaturas/rustgis-brasildata",
+        "homepage": "https://github.com/elpidioassinaturas/BrasilData",
         "license": "MIT",
         "entry": "plugin.wasm",
         "abi": 1,

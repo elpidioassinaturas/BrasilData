@@ -35,7 +35,7 @@ Algumas camadas só abrem num dos aplicativos, e a ajuda de cada botão diz quan
 ## Instalar
 
 - **Pelo registro:** *Plugins › Plugin Manager*, procure BrasilData.
-- **Por arquivo:** baixe o `.rgplugin` da [última versão](https://github.com/elpidioassinaturas/rustgis-brasildata/releases)
+- **Por arquivo:** baixe o `.rgplugin` da [última versão](https://github.com/elpidioassinaturas/BrasilData/releases)
   e use *Plugins › Plugin Manager › Settings › Install From File…*, ou
   `rustgis-cli plugins install brasildata-<versão>.rgplugin`.
 
