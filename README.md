@@ -39,8 +39,8 @@ Algumas camadas só abrem num dos aplicativos, e a ajuda de cada botão diz quan
   e use *Plugins › Plugin Manager › Settings › Install From File…*, ou
   `rustgis-cli plugins install brasildata-<versão>.rgplugin`.
 
-Precisa do RustGIS com o `bbox` dos serviços de feições (opengeos/RustGIS#924) e os eixos do
-WFS corrigidos (opengeos/RustGIS#1071): a primeira versão publicada depois da v0.4.0.
+Precisa do RustGIS 0.5.0 ou mais novo: o `bbox` dos serviços de feições (opengeos/RustGIS#924),
+os eixos do WFS corrigidos (opengeos/RustGIS#1071) e o `raster.project` da elevação entraram nela.
 
 ## Desenvolver
 

@@ -1,14 +1,14 @@
 {
   "id": "brasildata",
   "name": "BrasilData",
-  "version": "0.0.5",
+  "version": "0.1.0",
   "description": "Dados públicos do Brasil para a área do usuário (IBGE, MMA, ICMBio, INPE, ANA, ANEEL, ANP, SFB/CAR, INCRA, FUNAI, IBAMA, ANM, DNIT, Copernicus): só o que cruza a área, recortado por ela, com a fonte e a licença de cada camada.",
   "author": "Elpídio Filho",
   "homepage": "https://github.com/elpidioassinaturas/rustgis-brasildata",
   "license": "MIT",
   "entry": "plugin.wasm",
   "abi": 1,
-  "minRustgisVersion": "0.4.0",
+  "minRustgisVersion": "0.5.0",
   "permissions": [
     "edit",
     "files",

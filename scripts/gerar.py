@@ -25,7 +25,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.0.5"
+VERSAO = "0.1.0"
 
 # Os comandos que não vêm da tabela, com o grupo da aba em que ficam. Na aba, o grupo Área
 # tem o painel (a escolha do município pelo nome) e a área pela seleção; o comando
@@ -295,7 +295,7 @@ def manifesto(linhas: list[dict]) -> str:
         "license": "MIT",
         "entry": "plugin.wasm",
         "abi": 1,
-        "minRustgisVersion": "0.4.0",
+        "minRustgisVersion": "0.5.0",
         "permissions": ["edit", "files", "network"],
         "commands": comandos,
         "panel": PAINEL,
