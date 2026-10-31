@@ -1,0 +1,24 @@
+[package]
+name = "brasildata"
+version = "0.0.5"
+edition = "2024"
+license = "MIT"
+publish = false
+
+# Plugin BrasilData (ver ../PLANO.md, etapa 2: o MVP vetorial).
+#   cargo build --release --target wasm32-unknown-unknown
+#   python scripts/gerar.py && python scripts/package.py
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+rustgis-plugin = { git = "https://github.com/opengeos/rustgis-plugins" }
+# O que não fala com o RustGIS (censo.rs) usa o serde_json direto, para os testes fora do wasm.
+serde_json = "1"
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
