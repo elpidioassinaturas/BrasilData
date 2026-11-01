@@ -554,17 +554,37 @@ fn elevacao(celula: f64) -> Result<Value, String> {
     }
     let nome = "BrasilData: Elevação (Copernicus GLO-30)";
     remover(&[nome])?;
+    // Os tiles já baixados, de um clique anterior: rasters no mapa com o nome do tile.
+    let rasters: Vec<String> = host::layers()?
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter(|l| l["raster"].as_bool() == Some(true))
+        .filter_map(|l| l["name"].as_str().map(str::to_string))
+        .collect();
     let mut partes: Vec<String> = Vec::new();
+    let mut baixando = 0;
     for (i, url) in urls.iter().enumerate() {
         let p = format!("BrasilData: tile {i}");
+        if rasters.contains(&p) {
+            partes.push(p);
+            continue;
+        }
         match host::run("layer.addUrl", json!({"url": url, "name": p, "whole": true, "zoom": false})) {
-            Ok(r) if r.get("pending").and_then(Value::as_bool) == Some(true) => {
-                return Err("o app web ainda não junta rasters baixados: rode Elevação no desktop".into());
-            }
+            // A janela do RustGIS (e o app web) não espera o download: o tile chega depois, como
+            // camada com este nome, e o próximo clique o encontra.
+            Ok(r) if r.get("pending").and_then(Value::as_bool) == Some(true) => baixando += 1,
             Ok(_) => partes.push(p),
             // Mar: o Copernicus não tem tile ali.
             Err(e) => host::log(&format!("sem tile em {url}: {e}")),
         }
+    }
+    if baixando > 0 {
+        let tiles = if baixando == 1 { "1 tile".to_string() } else { format!("{baixando} tiles") };
+        host::notify(&format!(
+            "Elevação: baixando {tiles} do Copernicus (47 MB cada). Quando aparecerem no mapa como \"BrasilData: tile\", clique em Elevação de novo"
+        ));
+        return Ok(json!({"pending": baixando, "tiles": urls.len()}));
     }
     if partes.is_empty() {
         return Err("o Copernicus não tem dados na área".into());
