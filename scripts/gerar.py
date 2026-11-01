@@ -1,6 +1,6 @@
-"""Gera o plugin.json e o src/catalogo.rs a partir do fontes.csv.
+"""Gera o plugin.json, o src/catalogo.rs e a tabela de fontes do README a partir do fontes.csv.
 
-    python scripts/gerar.py           # escreve os dois arquivos
+    python scripts/gerar.py           # escreve os três
     python scripts/gerar.py --check   # só confere que estão em dia (para o CI)
 
 O fontes.csv tem uma linha por camada vetorial: id, grupo (o grupo da aba), menu (vazio, ou o
@@ -25,7 +25,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.1"
+VERSAO = "0.1.2"
 
 # Os comandos que não vêm da tabela, com o grupo da aba em que ficam. Na aba, o grupo Área
 # tem o painel (a escolha do município pelo nome) e a área pela seleção; o comando
@@ -337,14 +337,53 @@ def catalogo(linhas: list[dict]) -> str:
     return "\n".join(out) + "\n"
 
 
+# Os marcadores da tabela de fontes no README: o que fica entre eles é refeito a cada vez.
+README_INICIO = "<!-- fontes: início (gerado por scripts/gerar.py a partir do fontes.csv; não edite à mão) -->"
+README_FIM = "<!-- fontes: fim -->"
+
+
+def readme(linhas: list[dict]) -> str:
+    """O README com a tabela do fontes.csv entre os marcadores."""
+    atual = (ROOT / "README.md").read_text(encoding="utf-8")
+    if atual.count(README_INICIO) != 1 or atual.count(README_FIM) != 1:
+        sys.exit(f"README.md: falta o par de marcadores {README_INICIO} ... {README_FIM}")
+    cel = lambda s: s.replace("|", "\\|").replace("\\n", " ").strip()
+    web = {"sim": "sim", "nao": "não (sem CORS)", "so-web": "só no app web"}
+    tipo = {"wfs": "WFS", "arcgis": "ArcGIS REST"}
+    orgaos = {l["fonte"].split(",")[0].strip() for l in linhas}
+    tabela = [
+        README_INICIO,
+        f"{len(linhas)} camadas de {len(orgaos)} fontes, na ordem do `fontes.csv`. *App web*: se o servidor "
+        "permite pedidos do navegador (CORS); *Recorte*: se a camada é recortada pela área.",
+        "",
+        "| Grupo | Camada | Fonte | Serviço | Licença | App web | Recorte |",
+        "|---|---|---|---|---|---|---|",
+    ]
+    for l in linhas:
+        grupo = cel(l["grupo"]) + (f" › {cel(l['menu'])}" if l["menu"] else "")
+        servico = f"[{tipo.get(l['tipo'], l['tipo'])}]({l['servico']}) `{cel(l['camada'])}`"
+        tabela.append(
+            f"| {grupo} | {cel(l['nome'])} | {cel(l['fonte'])} | {servico} | {cel(l['licenca'])} "
+            f"| {web.get(l['web'], l['web'])} | {'sim' if l['recorta'] == 'sim' else 'não'} |"
+        )
+    tabela.append(README_FIM)
+    antes, resto = atual.split(README_INICIO)
+    depois = resto.split(README_FIM, 1)[1]
+    return antes + "\n".join(tabela) + depois
+
+
 def main() -> None:
     linhas = ler()
-    arquivos = {ROOT / "plugin.json": manifesto(linhas), ROOT / "src" / "catalogo.rs": catalogo(linhas)}
+    arquivos = {
+        ROOT / "plugin.json": manifesto(linhas),
+        ROOT / "src" / "catalogo.rs": catalogo(linhas),
+        ROOT / "README.md": readme(linhas),
+    }
     if "--check" in sys.argv:
         velhos = [p.name for p, t in arquivos.items() if not p.exists() or p.read_text(encoding="utf-8") != t]
         if velhos:
             sys.exit(f"desatualizados: {', '.join(velhos)}; rode python scripts/gerar.py")
-        print("plugin.json e catalogo.rs em dia")
+        print("plugin.json, catalogo.rs e README.md em dia")
         return
     for p, t in arquivos.items():
         p.write_text(t, encoding="utf-8", newline="\n")

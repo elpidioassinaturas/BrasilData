@@ -243,8 +243,10 @@ pub fn sistema(c: [f64; 4]) -> u32 {
     if fuso(c[0]) == fuso(c[2]) { 31960 + fuso((c[0] + c[2]) / 2.0) as u32 } else { 5880 }
 }
 
-/// Os tiles de 1° do Copernicus GLO-30 que cobrem `c`.
-pub fn tiles(c: [f64; 4]) -> Vec<String> {
+/// Os tiles de 1° do Copernicus GLO-30 que cobrem `c`: o endereço no espelho da OpenTopography,
+/// que manda o cabeçalho CORS e por isso abre também no app web, e o do bucket da AWS, que não
+/// manda, para quando o primeiro falha e o RustGIS espera o download.
+pub fn tiles(c: [f64; 4]) -> Vec<(String, String)> {
     let mut out = Vec::new();
     // Uma borda exatamente num grau inteiro não puxa o tile vizinho.
     let (s, n) = (c[1].floor() as i32, (c[3] - 1e-9).floor() as i32);
@@ -253,8 +255,9 @@ pub fn tiles(c: [f64; 4]) -> Vec<String> {
         for lon in w..=e {
             let ns = if lat < 0 { format!("S{:02}", -lat) } else { format!("N{lat:02}") };
             let ew = if lon < 0 { format!("W{:03}", -lon) } else { format!("E{lon:03}") };
+            let ot = format!("https://opentopography.s3.sdsc.edu/raster/COP30/COP30_hh/Copernicus_DSM_10_{ns}_00_{ew}_00_DEM.tif");
             let id = format!("Copernicus_DSM_COG_10_{ns}_00_{ew}_00_DEM");
-            out.push(format!("https://copernicus-dem-30m.s3.amazonaws.com/{id}/{id}.tif"));
+            out.push((ot, format!("https://copernicus-dem-30m.s3.amazonaws.com/{id}/{id}.tif")));
         }
     }
     out
@@ -270,7 +273,8 @@ mod tests {
         assert_eq!(sistema(teresina), 31983);
         let t = tiles(teresina);
         assert_eq!(t.len(), 2);
-        assert!(t[0].contains("S06_00_W043") && t[1].contains("S05_00_W043"), "{t:?}");
+        assert!(t[0].0.contains("S06_00_W043") && t[1].0.contains("S05_00_W043"), "{t:?}");
+        assert!(t[0].0.starts_with("https://opentopography.s3.sdsc.edu/") && t[0].1.contains("copernicus-dem-30m"), "{t:?}");
         // Duas zonas: a Policônica.
         assert_eq!(sistema([-46.0, -10.0, -40.0, -3.0]), 5880);
         // Um grau inteiro como borda não puxa o vizinho.

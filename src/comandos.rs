@@ -14,7 +14,7 @@ const CENSO_SETORES: &str = "Setores censitários 2022";
 /// O título do painel do plugin (o do `plugin.json`).
 const PAINEL: &str = "Área e fontes";
 
-/// Mais tiles do Copernicus que isto (47 MB cada) é área grande demais para baixá-los inteiros.
+/// Mais tiles do Copernicus que isto (cerca de 59 MB cada) é área grande demais para baixá-los inteiros.
 const MAX_TILES: usize = 4;
 
 fn handle(req: Request) -> Result<Value, String> {
@@ -502,12 +502,14 @@ fn citacoes() -> Result<(Vec<Value>, String), String> {
                     lista.push(json!({"layer": n, "source": f.citacao(), "license": f.licenca()}));
                 }
             }
+        } else if n == ELEVACAO {
+            lista.push(json!({"layer": n, "source": CITACAO_ELEVACAO, "license": "licença do Copernicus DEM: uso livre e gratuito, com esta citação"}));
         } else if n.starts_with(&format!("{PREFIXO}{CENSO_SETORES}")) {
             lista.push(json!({"layer": n, "source": format!("IBGE, Censo Demográfico 2022, agregados por setores censitários (malha com atributos). {}", censo::CAMPOS_DOS_SETORES), "license": "uso livre com citação da fonte"}));
         }
     }
     let texto = if lista.is_empty() {
-        "Nenhuma camada vetorial do BrasilData no mapa.".to_string()
+        "Nenhuma camada do BrasilData no mapa.".to_string()
     } else {
         lista
             .iter()
@@ -531,13 +533,20 @@ fn fontes() -> Result<Value, String> {
     let mut camadas: Vec<&str> = lista.iter().filter_map(|f| f["layer"].as_str()).collect();
     camadas.dedup();
     host::notify(&match (camadas.len(), lista.len()) {
-        (0, _) => "Nenhuma camada vetorial do BrasilData no mapa".to_string(),
+        (0, _) => "Nenhuma camada do BrasilData no mapa".to_string(),
         (1, 1) => format!("A fonte da camada está no painel {PAINEL}"),
         (1, n) => format!("As {n} fontes da camada estão no painel {PAINEL}"),
         (c, _) => format!("As fontes das {c} camadas estão no painel {PAINEL}"),
     });
     Ok(json!({"layers": lista, "panel": {"items": {"citacao": {"text": texto}}}}))
 }
+
+/// O nome da camada de elevação.
+const ELEVACAO: &str = "BrasilData: Elevação (Copernicus GLO-30)";
+
+/// A citação da elevação: a do Copernicus DEM, que a licença dele pede, e a da OpenTopography,
+/// de onde vêm os tiles (os termos dela pedem que seja citada junto com a fonte).
+const CITACAO_ELEVACAO: &str = "Copernicus DEM GLO-30, produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved. Tiles do espelho da OpenTopography (opentopography.org), com apoio da National Science Foundation";
 
 /// O Copernicus GLO-30 na área, na grade do fuso, com células de `celula` metros.
 fn elevacao(celula: f64) -> Result<Value, String> {
@@ -550,9 +559,9 @@ fn elevacao(celula: f64) -> Result<Value, String> {
     }
     let urls = tiles(c);
     if urls.len() > MAX_TILES {
-        return Err(format!("a área pede {} tiles do Copernicus (47 MB cada); o limite desta prova é {MAX_TILES}", urls.len()));
+        return Err(format!("a área pede {} tiles do Copernicus (cerca de 59 MB cada); o limite desta prova é {MAX_TILES}", urls.len()));
     }
-    let nome = "BrasilData: Elevação (Copernicus GLO-30)";
+    let nome = ELEVACAO;
     remover(&[nome])?;
     // Os tiles já baixados, de um clique anterior: rasters no mapa com o nome do tile.
     let rasters: Vec<String> = host::layers()?
@@ -564,13 +573,16 @@ fn elevacao(celula: f64) -> Result<Value, String> {
         .collect();
     let mut partes: Vec<String> = Vec::new();
     let mut baixando = 0;
-    for (i, url) in urls.iter().enumerate() {
+    for (i, (url, aws)) in urls.iter().enumerate() {
         let p = format!("BrasilData: tile {i}");
         if rasters.contains(&p) {
             partes.push(p);
             continue;
         }
-        match host::run("layer.addUrl", json!({"url": url, "name": p, "whole": true, "zoom": false})) {
+        let pedir = |u: &str| host::run("layer.addUrl", json!({"url": u, "name": p, "whole": true, "zoom": false}));
+        // O espelho da OpenTopography; se ele falhar onde o RustGIS espera o download (o
+        // `rustgis-cli`), o bucket da AWS. Onde não espera, a falha só se vê depois.
+        match pedir(url).or_else(|e| pedir(aws).map_err(|e2| format!("{e}; {e2}"))) {
             // A janela do RustGIS (e o app web) não espera o download: o tile chega depois, como
             // camada com este nome, e o próximo clique o encontra.
             Ok(r) if r.get("pending").and_then(Value::as_bool) == Some(true) => baixando += 1,
@@ -582,7 +594,7 @@ fn elevacao(celula: f64) -> Result<Value, String> {
     if baixando > 0 {
         let tiles = if baixando == 1 { "1 tile".to_string() } else { format!("{baixando} tiles") };
         host::notify(&format!(
-            "Elevação: baixando {tiles} do Copernicus (47 MB cada). Quando aparecerem no mapa como \"BrasilData: tile\", clique em Elevação de novo"
+            "Elevação: baixando {tiles} do Copernicus (cerca de 59 MB cada). Quando aparecerem no mapa como \"BrasilData: tile\", clique em Elevação de novo"
         ));
         return Ok(json!({"pending": baixando, "tiles": urls.len()}));
     }
@@ -621,34 +633,23 @@ fn area_no_mapa() -> Result<String, String> {
     Ok(descrever(&host::features(AREA, false)?))
 }
 
-/// A árvore de estados do painel, com os municípios do estado `aberto`.
-fn arvore(aberto: Option<&str>) -> Value {
+/// A árvore de estados do painel, com os municípios de todos (fechados até o usuário abrir um):
+/// a busca do painel só procura nos nós que recebeu.
+fn arvore() -> Value {
     let nos: Vec<Value> = municipios::ufs()
         .into_iter()
         .map(|(uf, nome)| {
-            let mut no = json!({"id": format!("uf:{uf}"), "label": nome, "count": municipios::da_uf(uf).count()});
-            if aberto == Some(uf) {
-                no["children"] = municipios::da_uf(uf).map(|m| json!({"id": format!("mun:{}", m.codigo), "label": m.nome})).collect();
-            }
-            no
+            let filhos: Vec<Value> = municipios::da_uf(uf).map(|m| json!({"id": format!("mun:{}", m.codigo), "label": m.nome})).collect();
+            json!({"id": format!("uf:{uf}"), "label": nome, "count": filhos.len(), "children": filhos})
         })
         .collect();
     Value::Array(nos)
 }
 
-/// A sigla do estado do nó escolhido na árvore (o do estado, ou o do estado do município).
-fn uf_do_no(no: &str) -> Option<&'static str> {
-    if let Some(uf) = no.strip_prefix("uf:") {
-        return municipios::ufs().into_iter().map(|(u, _)| u).find(|u| *u == uf);
-    }
-    municipios::por_codigo(no.strip_prefix("mun:")?).map(|m| m.uf)
-}
-
 /// O estado do painel, quando ele abre.
-fn painel(req: &Request) -> Result<Value, String> {
-    let escolhido = req.panel.get("municipio").and_then(Value::as_str);
+fn painel(_req: &Request) -> Result<Value, String> {
     Ok(json!({"panel": {"items": {
-        "municipio": {"nodes": arvore(escolhido.and_then(uf_do_no))},
+        "municipio": {"nodes": arvore()},
         "area": {"text": area_no_mapa()?},
         "citacao": {"text": citacoes()?.1},
     }}}))
@@ -659,7 +660,7 @@ fn escolher_municipio(req: &Request) -> Result<Value, String> {
     let Some(no) = req.panel.get("municipio").and_then(Value::as_str) else {
         return Ok(json!({}));
     };
-    let nos = arvore(uf_do_no(no));
+    let nos = arvore();
     let Some(m) = no.strip_prefix("mun:").and_then(municipios::por_codigo) else {
         // Um estado: os municípios aparecem debaixo dele; a busca acha o nome.
         return Ok(json!({"panel": {"items": {"municipio": {"nodes": nos}}, "values": {"municipio": no}}}));
