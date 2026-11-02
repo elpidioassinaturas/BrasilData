@@ -20,6 +20,7 @@ mod comandos;
 pub mod mapbiomas;
 pub mod municipios;
 pub mod saude;
+pub mod versao;
 pub mod vista;
 
 pub use catalogo::TEMAS;

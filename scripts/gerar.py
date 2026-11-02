@@ -30,7 +30,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.7"
+VERSAO = "0.1.8"
 
 # Os comandos que não vêm da tabela, com o grupo da aba em que ficam. Na aba, o grupo Área
 # tem o painel (a escolha do município pelo nome) e a área pela seleção; o comando
@@ -52,6 +52,7 @@ AREA = [
     },
 ]
 NA_ABA_AREA = ["panel", "area-selecao"]
+# A verificação de atualização fica no fim do grupo Área, depois das fontes.
 # Os comandos do painel, que não vão para a aba.
 DO_PAINEL = [
     {
@@ -87,6 +88,8 @@ PAINEL = {
         {"kind": "button", "command": "area-selecao"},
         {"kind": "button", "command": "fontes"},
         {"kind": "text", "id": "citacao", "label": "Fontes das camadas no mapa"},
+        {"kind": "button", "command": "atualizacao"},
+        {"kind": "text", "id": "versao", "label": "Versão"},
     ],
 }
 # Os comandos que vão no fim de um grupo da aba: as fontes, com a área.
@@ -98,6 +101,16 @@ FIM = [
             "label": "Fontes",
             "help": "Lista a fonte e a licença de cada camada do BrasilData que está no mapa, para a citação.",
             "icon": "table",
+            "params": "{}",
+        },
+    ),
+    (
+        "Área",
+        {
+            "id": "atualizacao",
+            "label": "Verificar\natualização",
+            "help": "Compara esta versão do BrasilData com a última publicada no GitHub e diz como atualizar: pelo Gerenciador de plugins, se ele veio do registro, ou pelo arquivo .rgplugin da release.",
+            "icon": "update",
             "params": "{}",
         },
     ),

@@ -7,6 +7,7 @@ use crate::indicadores::{self, Fonte};
 use crate::mapbiomas;
 use crate::municipios::{self, Municipio};
 use crate::saude;
+use crate::versao;
 use crate::{AREA, PREFIXO, TEMAS, Tema, falha_passageira, pedido_de_feicoes, sistema, tema_da_camada, tiles};
 
 /// Os nomes das camadas dos censos, depois de [`PREFIXO`].
@@ -30,6 +31,7 @@ fn handle(req: Request) -> Result<Value, String> {
         "escolher-municipio" => escolher_municipio(&req),
         "elevacao" => elevacao(req.f64("celula").unwrap_or(30.0)),
         "fontes" => fontes(),
+        "atualizacao" => atualizacao(),
         "indicadores" => indicadores(&fontes_de(&req)?),
         "indicadores-todos" => indicadores(&indicadores::TODAS),
         "censo-municipios" => indicadores(&[Fonte::Censo]),
@@ -661,6 +663,7 @@ fn painel(_req: &Request) -> Result<Value, String> {
         "municipio": {"nodes": arvore()},
         "area": {"text": area_no_mapa()?},
         "citacao": {"text": citacoes()?.1},
+        "versao": {"text": format!("BrasilData {}. O botão compara com a última versão publicada.", versao::ESTA)},
     }}}))
 }
 
@@ -1097,4 +1100,17 @@ fn cobertura_mapbiomas(ano: i64) -> Result<Value, String> {
         "{nome}: mapa para ver, com as cores da legenda oficial (brasil.mapbiomas.org); não é recortado pela área e vale por algumas horas"
     ));
     Ok(json!({"tiles": nome, "year": ano}))
+}
+
+/// Compara esta versão com a última release no GitHub e diz como atualizar.
+fn atualizacao() -> Result<Value, String> {
+    let r = host::call("host.fetch", json!({"url": versao::URL_ULTIMA}))?;
+    if r.get("pending").and_then(Value::as_bool) == Some(true) {
+        // No app web, o RustGIS roda o comando de novo quando a resposta chegar.
+        return Ok(r);
+    }
+    let nova = versao::mais_nova(r.get("json").unwrap_or(&Value::Null))?;
+    let texto = versao::mensagem(nova.as_deref());
+    host::notify(&texto);
+    Ok(json!({"version": versao::ESTA, "latest": nova, "panel": {"items": {"versao": {"text": texto}}}}))
 }

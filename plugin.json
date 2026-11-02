@@ -1,7 +1,7 @@
 {
   "id": "brasildata",
   "name": "BrasilData",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Dados públicos do Brasil para a área do usuário (IBGE, MMA, ICMBio, INPE, ANA, ANEEL, ANP, SFB/CAR, INCRA, FUNAI, IBAMA, ANM, DNIT, Ministério da Saúde, Copernicus): só o que cruza a área, recortado por ela, com a fonte e a licença de cada camada.",
   "author": "Elpídio Filho",
   "homepage": "https://github.com/elpidioassinaturas/BrasilData",
@@ -679,6 +679,13 @@
       "help": "Lista a fonte e a licença de cada camada do BrasilData que está no mapa, para a citação.",
       "icon": "table",
       "params": "{}"
+    },
+    {
+      "id": "atualizacao",
+      "label": "Verificar\natualização",
+      "help": "Compara esta versão do BrasilData com a última publicada no GitHub e diz como atualizar: pelo Gerenciador de plugins, se ele veio do registro, ou pelo arquivo .rgplugin da release.",
+      "icon": "update",
+      "params": "{}"
     }
   ],
   "panel": {
@@ -712,6 +719,15 @@
         "kind": "text",
         "id": "citacao",
         "label": "Fontes das camadas no mapa"
+      },
+      {
+        "kind": "button",
+        "command": "atualizacao"
+      },
+      {
+        "kind": "text",
+        "id": "versao",
+        "label": "Versão"
       }
     ]
   },
@@ -723,7 +739,8 @@
         "items": [
           "panel",
           "area-selecao",
-          "fontes"
+          "fontes",
+          "atualizacao"
         ]
       },
       {

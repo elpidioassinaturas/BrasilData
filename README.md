@@ -147,6 +147,11 @@ Fora da tabela, com a citação no comando **Fontes**:
 - **Por arquivo:** baixe o `.rgplugin` da [última versão](https://github.com/elpidioassinaturas/BrasilData/releases)
   e use *Plugins › Plugin Manager › Settings › Install From File…*, ou
   `rustgis-cli plugins install brasildata-<versão>.rgplugin`.
+- **Atualizar:** o botão **Verificar atualização** (grupo Área e painel Área e fontes) compara a
+  versão instalada com a última release e diz como atualizar. Instalado pelo registro, o plugin
+  se atualiza em *Gerenciador de plugins › Instalado › Atualizar*; instalado por arquivo, baixe o
+  `.rgplugin` novo e instale-o de novo. Um plugin não pode se atualizar sozinho: o RustGIS não
+  deixa um plugin rodar os comandos de instalação.
 
 Precisa do RustGIS 0.5.0 ou mais novo: o `bbox` dos serviços de feições (opengeos/RustGIS#924),
 os eixos do WFS corrigidos (opengeos/RustGIS#1071) e o `raster.project` da elevação entraram nela.
