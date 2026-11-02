@@ -30,7 +30,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.5"
+VERSAO = "0.1.6"
 
 # Os comandos que não vêm da tabela, com o grupo da aba em que ficam. Na aba, o grupo Área
 # tem o painel (a escolha do município pelo nome) e a área pela seleção; o comando
@@ -195,6 +195,17 @@ EM_MENUS = [
         },
     ),
     (
+        "Vegetação e meio ambiente",
+        "Uso e cobertura",
+        {
+            "id": "mapbiomas-cobertura",
+            "label": "Uso e cobertura 2025 (MapBiomas)",
+            "help": "O uso e a cobertura da terra do MapBiomas (Coleção 11, 30 m), com as cores da legenda oficial: um mapa para ver, do Brasil inteiro, não recortado pela área. Por script, outro ano de 1985 a 2025. O mapa vale por algumas horas; um novo clique pede outro.",
+            "icon": "raster_layer",
+            "params": "{\"ano\"?: de 1985 a 2025 (padrão 2025)}",
+        },
+    ),
+    (
         "Meio físico",
         "Relevo",
         {
@@ -265,7 +276,7 @@ TOPICOS = {
     "Saúde": ["Estabelecimentos"],
     "Meio físico": ["Geologia e recursos minerais", "Relevo", "Solos"],
     "Água": ["Hidrografia", "Bacias", "Recursos hídricos"],
-    "Vegetação e meio ambiente": ["Vegetação", "Desmatamento", "Áreas protegidas", "Fiscalização"],
+    "Vegetação e meio ambiente": ["Vegetação", "Uso e cobertura", "Desmatamento", "Áreas protegidas", "Fiscalização"],
     "Infraestrutura": ["Energia", "Petróleo e gás", "Transportes"],
 }
 GRUPOS = list(TOPICOS)

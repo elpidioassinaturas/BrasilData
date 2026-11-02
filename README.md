@@ -21,9 +21,9 @@ e o comando Fontes.
 | Território | Limites (IBGE), Cadastro fundiário (SFB, INCRA), Terras indígenas (FUNAI) |
 | Sociedade e economia | População (IBGE), Economia (Banco Central, Novo CAGED), Agricultura (Banco Central, IBGE), Eleições (TSE) e Todos os indicadores |
 | Saúde | Estabelecimentos (CNES, DATASUS) |
-| Meio físico | Geologia e recursos minerais (IBGE, ANM), Relevo (IBGE, Copernicus), Solos (IBGE) |
+| Meio físico | Geologia e recursos minerais (IBGE, ANM, MapBiomas), Relevo (IBGE, Copernicus), Solos (IBGE) |
 | Água | Hidrografia (IBGE, ANA), Bacias (IBGE, ANA), Recursos hídricos (ANA) |
-| Vegetação e meio ambiente | Vegetação (IBGE), Desmatamento (INPE: PRODES e DETER), Áreas protegidas (MMA, ICMBio), Fiscalização (IBAMA) |
+| Vegetação e meio ambiente | Vegetação (IBGE), Uso e cobertura (MapBiomas), Desmatamento (INPE: PRODES e DETER), Áreas protegidas (MMA, ICMBio), Fiscalização (IBAMA) |
 | Infraestrutura | Energia (ANEEL), Petróleo e gás (ANP), Transportes (DNIT) |
 
 As camadas vetoriais estão listadas em [`fontes.csv`](fontes.csv) e na tabela [Fontes](#fontes),
@@ -38,7 +38,7 @@ Algumas camadas só abrem num dos aplicativos, e a ajuda de cada botão diz quan
 ## Fontes
 
 <!-- fontes: início (gerado por scripts/gerar.py a partir do fontes.csv; não edite à mão) -->
-55 camadas de 13 fontes, na ordem do `fontes.csv`. *App web*: se o servidor permite pedidos do navegador (CORS); *Recorte*: se a camada é recortada pela área.
+56 camadas de 14 fontes, na ordem do `fontes.csv`. *App web*: se o servidor permite pedidos do navegador (CORS); *Recorte*: se a camada é recortada pela área.
 
 | Grupo | Camada | Fonte | Serviço | Licença | App web | Recorte |
 |---|---|---|---|---|---|---|
@@ -97,6 +97,7 @@ Algumas camadas só abrem num dos aplicativos, e a ajuda de cada botão diz quan
 | Meio físico › Geologia e recursos minerais | Reservas garimpeiras (ANM) | ANM, SIGMINE, reservas garimpeiras | [ArcGIS REST](https://geo.anm.gov.br/arcgis/rest/services/SIGMINE/dados_anm/MapServer) `4` | dados abertos, com crédito à ANM | sim | sim |
 | Meio físico › Geologia e recursos minerais | Barragens de mineração (ANM, SIGBM) | ANM, Sistema Integrado de Gestão de Barragens de Mineração (SIGBM), painel público | [ArcGIS REST](https://geo.anm.gov.br/arcgis/rest/services/Producao/Barragens_Dashboard_Publico/FeatureServer) `0` | dados abertos, com crédito à ANM | sim | sim |
 | Infraestrutura › Transportes | Rodovias federais (SNV vigente, DNIT) | DNIT, Sistema Nacional de Viação (SNV), versão vigente | [WFS](https://servicos.dnit.gov.br/dnitgeo/geoserver/ows) `vgeo:vw_snv_rod` | sem restrições declaradas | sim | sim |
+| Meio físico › Geologia e recursos minerais | Área minerada por ano (MapBiomas, 1985–2024) | MapBiomas, Monitor da Mineração, área minerada, 1985 a 2024 (campos: ano, substância, se está num processo do SIGMINE, se está em área restrita e área) | [WFS](https://plataforma.geoserver.mapbiomas.org/geoserver/pto/ows) `pto:mining_age` | CC BY 4.0, pelos termos do MapBiomas; não declarada no serviço | sim | sim |
 <!-- fontes: fim -->
 
 Fora da tabela, com a citação no comando **Fontes**:
@@ -106,6 +107,11 @@ Fora da tabela, com a citação no comando **Fontes**:
 - **Indicadores por município:** IBGE (Censo Demográfico 2022, Censo Agropecuário 2017), Banco
   Central (Pix, crédito rural), TSE e Novo CAGED;
 - **Setores censitários:** IBGE, Censo Demográfico 2022, agregados por setores;
+- **Uso e cobertura:** Projeto MapBiomas, Coleção 11 (1985 a 2025, 30 m), pela API da plataforma
+  MapBiomas, como mapa de mosaicos com as cores da legenda oficial. É um mapa para ver, do Brasil
+  inteiro: não é recortado pela área nem traz os valores das classes, porque o RustGIS 0.5.0 não
+  lê só a janela da área de um COG remoto (opengeos/RustGIS#1204). O endereço do Earth Engine
+  vale por algumas horas; um novo clique pede outro. Abre também no app web;
 - **Estabelecimentos de saúde:** Ministério da Saúde, CNES, competência 04/2026, pelo
   [geobr](https://github.com/ipea/geobr) do Ipea (GeoParquet do Brasil, 98 MB, lido aos pedaços).
   Ficam os ativos, sem os de pessoa física e de empresário individual, cujo nome é o de uma

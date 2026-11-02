@@ -4,6 +4,7 @@ use rustgis_plugin::{Request, Value, geojson, host, json};
 
 use crate::censo;
 use crate::indicadores::{self, Fonte};
+use crate::mapbiomas;
 use crate::municipios::{self, Municipio};
 use crate::saude;
 use crate::{AREA, PREFIXO, TEMAS, Tema, falha_passageira, pedido_de_feicoes, sistema, tema_da_camada, tiles};
@@ -38,6 +39,7 @@ fn handle(req: Request) -> Result<Value, String> {
         "indicadores-caged" => indicadores(&[Fonte::Caged]),
         "censo-setores" => censo_setores(),
         "saude-estabelecimentos" => estabelecimentos_de_saude(),
+        "mapbiomas-cobertura" => cobertura_mapbiomas(req.f64("ano").map_or(mapbiomas::ULTIMO_ANO, |a| a as i64)),
         other => Err(format!("o BrasilData não tem o comando '{other}'")),
     }
 }
@@ -492,7 +494,8 @@ fn ufs_da_area(c: [f64; 4]) -> Result<Result<Vec<String>, Value>, String> {
 /// A fonte e a licença de cada camada do BrasilData no mapa, e o texto delas para o painel.
 fn citacoes() -> Result<(Vec<Value>, String), String> {
     let mut lista: Vec<Value> = Vec::new();
-    for n in nomes()? {
+    // As camadas e os mapas de mosaicos (o do MapBiomas).
+    for n in nomes()?.into_iter().chain(mosaicos_no_mapa().unwrap_or_default()) {
         if let Some(t) = tema_da_camada(&n) {
             lista.push(json!({"layer": n, "source": t.fonte, "license": t.licenca, "service": t.servico, "featureType": t.camada}));
         } else if n == format!("{PREFIXO}{INDICADORES}") {
@@ -504,6 +507,8 @@ fn citacoes() -> Result<(Vec<Value>, String), String> {
                     lista.push(json!({"layer": n, "source": f.citacao(), "license": f.licenca()}));
                 }
             }
+        } else if n.starts_with(&format!("{PREFIXO}Uso e cobertura ")) && n.ends_with(" (MapBiomas)") {
+            lista.push(json!({"layer": n, "source": mapbiomas::CITACAO, "license": mapbiomas::LICENCA}));
         } else if n == camada_de_saude() {
             lista.push(json!({"layer": n, "source": saude::CITACAO, "license": saude::LICENCA}));
         } else if n == ELEVACAO {
@@ -1056,4 +1061,40 @@ fn estabelecimentos_de_saude() -> Result<Value, String> {
     }
     host::notify(&format!("{nome}: {ficaram} de {lidos} na área ({fora}; Ministério da Saúde, pelo geobr)"));
     Ok(json!({"layer": nome, "read": lidos, "features": ficaram, "inactive": desativados, "personal": de_pessoa}))
+}
+
+/// O nome do mapa de uso e cobertura de `ano`.
+fn camada_de_cobertura(ano: i64) -> String {
+    format!("{PREFIXO}Uso e cobertura {ano} (MapBiomas)")
+}
+
+/// Os nomes das camadas de mosaicos do mapa (o `host.layers` não as lista).
+fn mosaicos_no_mapa() -> Result<Vec<String>, String> {
+    Ok(host::run("map.tiles", json!({}))?.as_array().into_iter().flatten().filter_map(|t| t["name"].as_str().map(str::to_string)).collect())
+}
+
+/// O uso e a cobertura do MapBiomas em `ano`, como mapa de mosaicos com as cores da legenda.
+fn cobertura_mapbiomas(ano: i64) -> Result<Value, String> {
+    if !(mapbiomas::PRIMEIRO_ANO..=mapbiomas::ULTIMO_ANO).contains(&ano) {
+        return Err(format!("ano é de {} a {}", mapbiomas::PRIMEIRO_ANO, mapbiomas::ULTIMO_ANO));
+    }
+    let r = host::call("host.fetch", json!({"url": mapbiomas::url_do_mapa(ano)}))?;
+    if r.get("pending").and_then(Value::as_bool) == Some(true) {
+        // No app web, o RustGIS roda o comando de novo quando a resposta chegar.
+        return Ok(r);
+    }
+    let url = r.get("json").and_then(mapbiomas::mosaicos).ok_or_else(|| format!("a API do MapBiomas não deu o mapa de {ano}"))?;
+    let nome = camada_de_cobertura(ano);
+    // O endereço do Earth Engine vence em algumas horas: um novo clique troca o mapa.
+    if mosaicos_no_mapa()?.contains(&nome) {
+        host::run("map.removeTiles", json!({"name": nome}))?;
+    }
+    host::run(
+        "map.addTiles",
+        json!({"url": url, "kind": "raster", "name": nome, "attribution": "MapBiomas, Coleção 11 (CC BY 4.0)", "maxZoom": 14}),
+    )?;
+    host::notify(&format!(
+        "{nome}: mapa para ver, com as cores da legenda oficial (brasil.mapbiomas.org); não é recortado pela área e vale por algumas horas"
+    ));
+    Ok(json!({"tiles": nome, "year": ano}))
 }
