@@ -258,6 +258,19 @@ def ler() -> list[dict]:
 # Os grupos da aba, na ordem: os tópicos (o RustGIS aceita até 8).
 GRUPOS = ["Área", "Território", "Sociedade e economia", "Saúde", "Meio físico", "Água", "Vegetação e meio ambiente", "Infraestrutura"]
 
+# O ícone de um subtópico, quando um dos ícones do RustGIS diz mais que a geometria da primeira
+# camada (o plugin só pode usar os ícones do RustGIS, pelo nome).
+MENU_ICONES = {
+    "Áreas protegidas": "lock",
+    "Cadastro fundiário": "table",
+    "População": "stats",
+    "Economia": "chart",
+    "Eleições": "count",
+    "Relevo": "relief",
+    "Desmatamento": "time_slider",
+    "Transportes": "directions",
+}
+
 # O ícone do RustGIS de cada geometria.
 ICONES = {"poligono": "polygon_layer", "linha": "line_layer", "ponto": "point_layer"}
 
@@ -287,7 +300,7 @@ def manifesto(linhas: list[dict]) -> str:
         if not l["menu"]:
             itens.append(l["id"])
         elif m is None:
-            itens.append({"menu": l["menu"], "icon": ICONES[l["geometria"]], "items": [l["id"]]})
+            itens.append({"menu": l["menu"], "icon": MENU_ICONES.get(l["menu"], ICONES[l["geometria"]]), "items": [l["id"]]})
         else:
             m["items"].append(l["id"])
     for grupo, menu, c in EM_MENUS:
@@ -298,7 +311,7 @@ def manifesto(linhas: list[dict]) -> str:
             continue
         m = next((i for i in itens if isinstance(i, dict) and i["menu"] == menu), None)
         if m is None:
-            itens.append({"menu": menu, "icon": c["icon"], "items": [c["id"]]})
+            itens.append({"menu": menu, "icon": MENU_ICONES.get(menu, c["icon"]), "items": [c["id"]]})
         else:
             m["items"].append(c["id"])
     for grupo, c in FIM:

@@ -564,7 +564,7 @@
           },
           {
             "menu": "Áreas protegidas",
-            "icon": "polygon_layer",
+            "icon": "lock",
             "items": [
               "ucs",
               "ucs-federais",
@@ -573,7 +573,7 @@
           },
           {
             "menu": "Cadastro fundiário",
-            "icon": "polygon_layer",
+            "icon": "table",
             "items": [
               "car-imoveis",
               "sigef-parcelas",
@@ -589,7 +589,7 @@
         "items": [
           {
             "menu": "População",
-            "icon": "polygon_layer",
+            "icon": "stats",
             "items": [
               "censo-setores",
               "censo-municipios"
@@ -597,7 +597,7 @@
           },
           {
             "menu": "Economia",
-            "icon": "polygon_layer",
+            "icon": "chart",
             "items": [
               "indicadores-pix",
               "indicadores-credito",
@@ -606,7 +606,7 @@
           },
           {
             "menu": "Eleições",
-            "icon": "polygon_layer",
+            "icon": "count",
             "items": [
               "indicadores-tse"
             ]
@@ -642,7 +642,7 @@
           },
           {
             "menu": "Relevo",
-            "icon": "polygon_layer",
+            "icon": "relief",
             "items": [
               "geomorfologia",
               "elevacao"
@@ -706,7 +706,7 @@
           },
           {
             "menu": "Desmatamento",
-            "icon": "polygon_layer",
+            "icon": "time_slider",
             "items": [
               "prodes-cerrado",
               "prodes-caatinga",
@@ -757,7 +757,7 @@
           },
           {
             "menu": "Transportes",
-            "icon": "line_layer",
+            "icon": "directions",
             "items": [
               "dnit-snv"
             ]
