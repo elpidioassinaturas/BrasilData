@@ -5,7 +5,7 @@ use crate::Tema;
 pub const TEMAS: &[Tema] = &[
     Tema {
         id: "municipios",
-        grupo: "Limites e indicadores",
+        grupo: "Limites e população",
         nome: "Municípios (IBGE 2025)",
         servico: "https://geoservicos.ibge.gov.br/geoserver/wfs",
         tipo: "wfs",
@@ -22,7 +22,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "estados",
-        grupo: "Limites e indicadores",
+        grupo: "Limites e população",
         nome: "Estados (IBGE 2025)",
         servico: "https://geoservicos.ibge.gov.br/geoserver/wfs",
         tipo: "wfs",
@@ -90,7 +90,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "vegetacao",
-        grupo: "Meio físico",
+        grupo: "Meio ambiente",
         nome: "Vegetação (BDiA 1:250.000)",
         servico: "https://geoservicos.ibge.gov.br/geoserver/wfs",
         tipo: "wfs",
@@ -345,7 +345,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "ucs",
-        grupo: "Áreas protegidas",
+        grupo: "Meio ambiente",
         nome: "Unidades de conservação (CNUC 07/2026)",
         servico: "https://geoservicos.inde.gov.br/geoserver/MMA/ows",
         tipo: "wfs",
@@ -362,7 +362,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "ucs-federais",
-        grupo: "Áreas protegidas",
+        grupo: "Meio ambiente",
         nome: "Unidades de conservação federais (ICMBio)",
         servico: "https://geoservicos.inde.gov.br/geoserver/ICMBio/ows",
         tipo: "wfs",
@@ -379,7 +379,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "terras-indigenas",
-        grupo: "Áreas protegidas",
+        grupo: "Meio ambiente",
         nome: "Terras indígenas (FUNAI, via Infra S.A.)",
         servico: "https://geo.infrasa.gov.br/server/rest/services/Terras_Ind%C3%ADgenas/MapServer",
         tipo: "arcgis",
@@ -481,7 +481,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "prodes-cerrado",
-        grupo: "Desmatamento e embargos",
+        grupo: "Meio ambiente",
         nome: "Desmatamento anual (PRODES Cerrado)",
         servico: "https://terrabrasilis.dpi.inpe.br/geoserver/ows",
         tipo: "wfs",
@@ -498,7 +498,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "prodes-caatinga",
-        grupo: "Desmatamento e embargos",
+        grupo: "Meio ambiente",
         nome: "Desmatamento anual (PRODES Caatinga)",
         servico: "https://terrabrasilis.dpi.inpe.br/geoserver/ows",
         tipo: "wfs",
@@ -515,7 +515,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "prodes-amazonia",
-        grupo: "Desmatamento e embargos",
+        grupo: "Meio ambiente",
         nome: "Desmatamento anual (PRODES Amazônia Legal)",
         servico: "https://terrabrasilis.dpi.inpe.br/geoserver/ows",
         tipo: "wfs",
@@ -532,7 +532,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "prodes-mata-atlantica",
-        grupo: "Desmatamento e embargos",
+        grupo: "Meio ambiente",
         nome: "Desmatamento anual (PRODES Mata Atlântica)",
         servico: "https://terrabrasilis.dpi.inpe.br/geoserver/ows",
         tipo: "wfs",
@@ -549,7 +549,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "prodes-pantanal",
-        grupo: "Desmatamento e embargos",
+        grupo: "Meio ambiente",
         nome: "Desmatamento anual (PRODES Pantanal)",
         servico: "https://terrabrasilis.dpi.inpe.br/geoserver/ows",
         tipo: "wfs",
@@ -566,7 +566,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "prodes-pampa",
-        grupo: "Desmatamento e embargos",
+        grupo: "Meio ambiente",
         nome: "Desmatamento anual (PRODES Pampa)",
         servico: "https://terrabrasilis.dpi.inpe.br/geoserver/ows",
         tipo: "wfs",
@@ -583,7 +583,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "deter-cerrado",
-        grupo: "Desmatamento e embargos",
+        grupo: "Meio ambiente",
         nome: "Alertas de desmatamento (DETER Cerrado)",
         servico: "https://terrabrasilis.dpi.inpe.br/geoserver/ows",
         tipo: "wfs",
@@ -600,7 +600,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "deter-amazonia",
-        grupo: "Desmatamento e embargos",
+        grupo: "Meio ambiente",
         nome: "Alertas de desmatamento (DETER Amazônia)",
         servico: "https://terrabrasilis.dpi.inpe.br/geoserver/ows",
         tipo: "wfs",
@@ -617,7 +617,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "ibama-embargos",
-        grupo: "Desmatamento e embargos",
+        grupo: "Meio ambiente",
         nome: "Áreas embargadas (IBAMA)",
         servico: "https://pamgia.ibama.gov.br/server/rest/services/SISCOM/publico/MapServer",
         tipo: "arcgis",
@@ -634,7 +634,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "aneel-uhe",
-        grupo: "Energia, minas e transportes",
+        grupo: "Infraestrutura",
         nome: "Usinas hidrelétricas (ANEEL)",
         servico: "https://sigel.aneel.gov.br/arcgis/rest/services/PORTAL/Camadas_Downloads/FeatureServer",
         tipo: "arcgis",
@@ -651,7 +651,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "aneel-pch",
-        grupo: "Energia, minas e transportes",
+        grupo: "Infraestrutura",
         nome: "Pequenas centrais hidrelétricas (ANEEL)",
         servico: "https://sigel.aneel.gov.br/arcgis/rest/services/PORTAL/Camadas_Downloads/FeatureServer",
         tipo: "arcgis",
@@ -668,7 +668,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "aneel-cgh",
-        grupo: "Energia, minas e transportes",
+        grupo: "Infraestrutura",
         nome: "Centrais geradoras hidrelétricas (ANEEL)",
         servico: "https://sigel.aneel.gov.br/arcgis/rest/services/PORTAL/Camadas_Downloads/FeatureServer",
         tipo: "arcgis",
@@ -685,7 +685,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "aneel-eol",
-        grupo: "Energia, minas e transportes",
+        grupo: "Infraestrutura",
         nome: "Centrais geradoras eólicas (ANEEL)",
         servico: "https://sigel.aneel.gov.br/arcgis/rest/services/PORTAL/Camadas_Downloads/FeatureServer",
         tipo: "arcgis",
@@ -702,7 +702,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "aneel-ufv",
-        grupo: "Energia, minas e transportes",
+        grupo: "Infraestrutura",
         nome: "Centrais solares fotovoltaicas (ANEEL)",
         servico: "https://sigel.aneel.gov.br/arcgis/rest/services/PORTAL/Camadas_Downloads/FeatureServer",
         tipo: "arcgis",
@@ -719,7 +719,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "aneel-ute",
-        grupo: "Energia, minas e transportes",
+        grupo: "Infraestrutura",
         nome: "Usinas termelétricas (ANEEL)",
         servico: "https://sigel.aneel.gov.br/arcgis/rest/services/PORTAL/Camadas_Downloads/FeatureServer",
         tipo: "arcgis",
@@ -736,7 +736,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "anp-bacias",
-        grupo: "Energia, minas e transportes",
+        grupo: "Infraestrutura",
         nome: "Bacias sedimentares (ANP)",
         servico: "https://geomaps.anp.gov.br/geoserver/ows",
         tipo: "wfs",
@@ -753,7 +753,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "anp-blocos",
-        grupo: "Energia, minas e transportes",
+        grupo: "Infraestrutura",
         nome: "Blocos exploratórios (ANP)",
         servico: "https://geomaps.anp.gov.br/geoserver/ows",
         tipo: "wfs",
@@ -770,7 +770,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "anp-campos",
-        grupo: "Energia, minas e transportes",
+        grupo: "Infraestrutura",
         nome: "Campos de produção (ANP)",
         servico: "https://geomaps.anp.gov.br/geoserver/ows",
         tipo: "wfs",
@@ -787,7 +787,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "anp-pocos",
-        grupo: "Energia, minas e transportes",
+        grupo: "Infraestrutura",
         nome: "Poços de petróleo e gás (ANP)",
         servico: "https://geomaps.anp.gov.br/geoserver/ows",
         tipo: "wfs",
@@ -804,7 +804,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "anp-gasodutos",
-        grupo: "Energia, minas e transportes",
+        grupo: "Infraestrutura",
         nome: "Gasodutos de transporte (ANP)",
         servico: "https://geomaps.anp.gov.br/geoserver/ows",
         tipo: "wfs",
@@ -821,7 +821,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "anp-oleodutos",
-        grupo: "Energia, minas e transportes",
+        grupo: "Infraestrutura",
         nome: "Oleodutos de transporte (ANP)",
         servico: "https://geomaps.anp.gov.br/geoserver/ows",
         tipo: "wfs",
@@ -838,7 +838,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "anp-postos",
-        grupo: "Energia, minas e transportes",
+        grupo: "Infraestrutura",
         nome: "Postos de combustível (ANP)",
         servico: "https://geomaps.anp.gov.br/geoserver/ows",
         tipo: "wfs",
@@ -855,7 +855,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "anm-processos",
-        grupo: "Energia, minas e transportes",
+        grupo: "Infraestrutura",
         nome: "Processos minerários ativos (ANM)",
         servico: "https://geo.anm.gov.br/arcgis/rest/services/SIGMINE/dados_anm/MapServer",
         tipo: "arcgis",
@@ -872,7 +872,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "anm-bloqueios",
-        grupo: "Energia, minas e transportes",
+        grupo: "Infraestrutura",
         nome: "Áreas de bloqueio (ANM)",
         servico: "https://geo.anm.gov.br/arcgis/rest/services/SIGMINE/dados_anm/MapServer",
         tipo: "arcgis",
@@ -889,7 +889,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "anm-reservas",
-        grupo: "Energia, minas e transportes",
+        grupo: "Infraestrutura",
         nome: "Reservas garimpeiras (ANM)",
         servico: "https://geo.anm.gov.br/arcgis/rest/services/SIGMINE/dados_anm/MapServer",
         tipo: "arcgis",
@@ -906,7 +906,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "anm-barragens",
-        grupo: "Energia, minas e transportes",
+        grupo: "Infraestrutura",
         nome: "Barragens de mineração (ANM, SIGBM)",
         servico: "https://geo.anm.gov.br/arcgis/rest/services/Producao/Barragens_Dashboard_Publico/FeatureServer",
         tipo: "arcgis",
@@ -923,7 +923,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "dnit-snv",
-        grupo: "Energia, minas e transportes",
+        grupo: "Infraestrutura",
         nome: "Rodovias federais (SNV vigente, DNIT)",
         servico: "https://servicos.dnit.gov.br/dnitgeo/geoserver/ows",
         tipo: "wfs",

@@ -101,7 +101,7 @@
     },
     {
       "id": "massas-dagua",
-      "label": "Massas\nd'água",
+      "label": "Massas d'água",
       "help": "Massas d'água (BC250 2025): IBGE, Base Cartográfica Contínua 1:250.000 (BC250), 2025. Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
@@ -129,21 +129,21 @@
     },
     {
       "id": "ibge-dhn-macro",
-      "label": "Macrorregiões hidrográficas (IBGE 2021)",
+      "label": "Macrorregiões hidrográficas (2021)",
       "help": "Macrorregiões hidrográficas (DHN 2021, IBGE): IBGE, Divisão Hidrográfica Nacional (DHN), 2021. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "ibge-dhn-meso",
-      "label": "Mesorregiões hidrográficas (IBGE 2021)",
+      "label": "Mesorregiões hidrográficas (2021)",
       "help": "Mesorregiões hidrográficas (DHN 2021, IBGE): IBGE, Divisão Hidrográfica Nacional (DHN), 2021. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "ibge-dhn-micro",
-      "label": "Microrregiões hidrográficas (IBGE 2021)",
+      "label": "Microrregiões hidrográficas (2021)",
       "help": "Microrregiões hidrográficas (DHN 2021, IBGE): IBGE, Divisão Hidrográfica Nacional (DHN), 2021. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
@@ -192,28 +192,28 @@
     },
     {
       "id": "ucs",
-      "label": "Unidades de\nconservação",
+      "label": "Unidades de conservação (CNUC)",
       "help": "Unidades de conservação (CNUC 07/2026): MMA, Cadastro Nacional de Unidades de Conservação (CNUC), 07/2026. Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "ucs-federais",
-      "label": "UCs\nfederais",
+      "label": "UCs federais",
       "help": "Unidades de conservação federais (ICMBio): ICMBio, Limites das Unidades de Conservação Federais, 08/2026. Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "terras-indigenas",
-      "label": "Terras\nindígenas",
+      "label": "Terras indígenas",
       "help": "Terras indígenas (FUNAI, via Infra S.A.): FUNAI, Terras Indígenas (cópia publicada pela Infra S.A.). Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "car-imoveis",
-      "label": "Imóveis\nrurais (CAR)",
+      "label": "Imóveis rurais (CAR)",
       "help": "Imóveis rurais (CAR): Serviço Florestal Brasileiro, Cadastro Ambiental Rural (SICAR); dados autodeclarados, sem os cancelados. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app web: o servidor só aceita cifras TLS antigas, que o app desktop não aceita.",
       "icon": "polygon_layer",
       "params": "{}"
@@ -248,63 +248,63 @@
     },
     {
       "id": "prodes-cerrado",
-      "label": "Cerrado",
+      "label": "PRODES Cerrado",
       "help": "Desmatamento anual (PRODES Cerrado): INPE, PRODES Cerrado (TerraBrasilis). Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "prodes-caatinga",
-      "label": "Caatinga",
+      "label": "PRODES Caatinga",
       "help": "Desmatamento anual (PRODES Caatinga): INPE, PRODES Caatinga (TerraBrasilis). Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "prodes-amazonia",
-      "label": "Amazônia Legal",
+      "label": "PRODES Amazônia Legal",
       "help": "Desmatamento anual (PRODES Amazônia Legal): INPE, PRODES Amazônia Legal (TerraBrasilis). Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "prodes-mata-atlantica",
-      "label": "Mata Atlântica",
+      "label": "PRODES Mata Atlântica",
       "help": "Desmatamento anual (PRODES Mata Atlântica): INPE, PRODES Mata Atlântica (TerraBrasilis). Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "prodes-pantanal",
-      "label": "Pantanal",
+      "label": "PRODES Pantanal",
       "help": "Desmatamento anual (PRODES Pantanal): INPE, PRODES Pantanal (TerraBrasilis). Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "prodes-pampa",
-      "label": "Pampa",
+      "label": "PRODES Pampa",
       "help": "Desmatamento anual (PRODES Pampa): INPE, PRODES Pampa (TerraBrasilis). Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "deter-cerrado",
-      "label": "Cerrado",
+      "label": "DETER Cerrado",
       "help": "Alertas de desmatamento (DETER Cerrado): INPE, DETER Cerrado (TerraBrasilis). Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "deter-amazonia",
-      "label": "Amazônia",
+      "label": "DETER Amazônia",
       "help": "Alertas de desmatamento (DETER Amazônia): INPE, DETER Amazônia (TerraBrasilis). Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "ibama-embargos",
-      "label": "Embargos\ndo IBAMA",
+      "label": "Embargos",
       "help": "Áreas embargadas (IBAMA): IBAMA, Termos de embargo (SISCOM, PAMGIA). Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
@@ -430,42 +430,42 @@
     },
     {
       "id": "dnit-snv",
-      "label": "Rodovias\nfederais (SNV)",
+      "label": "Rodovias federais (SNV)",
       "help": "Rodovias federais (SNV vigente, DNIT): DNIT, Sistema Nacional de Viação (SNV), versão vigente. Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
       "icon": "line_layer",
       "params": "{}"
     },
     {
-      "id": "indicadores-todos",
-      "label": "Todos os indicadores",
-      "help": "Censos, Pix, crédito rural, eleições e emprego formal, de uma vez. Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem. No desktop, se o tempo de uma chamada acabar, o aviso pede um novo clique, que continua de onde parou.",
+      "id": "censo-setores",
+      "label": "Setores censitários",
+      "help": "Os setores censitários de 2022 da área, com pessoas e domicílios (IBGE, agregados por setores): o GeoPackage de cada UF, recortado pela área. No app web, um segundo clique recorta.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "censo-municipios",
-      "label": "Censos (IBGE)",
+      "label": "Censos por município",
       "help": "População, área e densidade de 2022 (Censo Demográfico) e estabelecimentos agropecuários e agricultura familiar de 2017 (Censo Agropecuário), do IBGE. Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "indicadores-pix",
-      "label": "Pix (Banco Central)",
+      "label": "Pix",
       "help": "O Pix do último mês completo: valor pago e recebido (R$), transações pagas e pessoas físicas pagadoras. Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "indicadores-credito",
-      "label": "Crédito rural de custeio (BCB)",
+      "label": "Crédito rural de custeio",
       "help": "O custeio do último ano completo, do SICOR: total, Pronaf, agrícola e pecuário (R$) e área (ha). O SICOR é lento: cerca de 10 s para cada 6 municípios. Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "indicadores-tse",
-      "label": "Eleições (TSE)",
+      "label": "Eleições",
       "help": "Eleitorado, comparecimento e abstenção (%) no 1º turno de 2026 e de 2024, da divulgação oficial do TSE. Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem.",
       "icon": "polygon_layer",
       "params": "{}"
@@ -478,6 +478,13 @@
       "params": "{}"
     },
     {
+      "id": "indicadores-todos",
+      "label": "Todos os indicadores",
+      "help": "Censos, Pix, crédito rural, eleições e emprego formal, de uma vez. Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem. No desktop, se o tempo de uma chamada acabar, o aviso pede um novo clique, que continua de onde parou.",
+      "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
       "id": "saude-estabelecimentos",
       "label": "Estabelecimentos de saúde (CNES)",
       "help": "Os estabelecimentos de saúde ativos na área, do CNES do Ministério da Saúde (competência 04/2026, pelo geobr do Ipea), com nome, tipo, natureza jurídica, gestão e bairro. Os de pessoa física e de empresário individual, cujo nome é o de uma pessoa, ficam de fora. Só no desktop: o primeiro clique abre o arquivo do Brasil (98 MB, lido aos pedaços), o segundo recorta pela área.",
@@ -485,15 +492,8 @@
       "params": "{}"
     },
     {
-      "id": "censo-setores",
-      "label": "Setores\ncensitários",
-      "help": "Os setores censitários de 2022 da área, com pessoas e domicílios (IBGE, agregados por setores): o GeoPackage de cada UF, recortado pela área. No app web, um segundo clique recorta.",
-      "icon": "polygon_layer",
-      "params": "{}"
-    },
-    {
       "id": "elevacao",
-      "label": "Elevação",
+      "label": "Elevação (GLO-30)",
       "help": "Copernicus GLO-30 recortado pela área e posto na grade UTM SIRGAS 2000 do fuso da área (ou na Policônica, quando a área passa de um fuso).",
       "icon": "raster_layer",
       "params": "{\"celula\"?: tamanho da célula em metros (padrão 30)}"
@@ -552,54 +552,85 @@
         ]
       },
       {
-        "label": "Limites e indicadores",
+        "label": "Limites e população",
         "items": [
-          "municipios",
-          "estados",
           {
-            "menu": "Indicadores",
+            "menu": "IBGE",
             "icon": "polygon_layer",
             "items": [
-              "indicadores-todos",
-              "censo-municipios",
-              "indicadores-pix",
-              "indicadores-credito",
-              "indicadores-tse",
-              "indicadores-caged"
+              "municipios",
+              "estados",
+              "censo-setores",
+              "censo-municipios"
             ]
           },
           {
-            "menu": "Saúde",
+            "menu": "Banco Central",
+            "icon": "polygon_layer",
+            "items": [
+              "indicadores-pix",
+              "indicadores-credito"
+            ]
+          },
+          {
+            "menu": "TSE",
+            "icon": "polygon_layer",
+            "items": [
+              "indicadores-tse"
+            ]
+          },
+          {
+            "menu": "Ministério do Trabalho",
+            "icon": "polygon_layer",
+            "items": [
+              "indicadores-caged"
+            ]
+          },
+          "indicadores-todos"
+        ]
+      },
+      {
+        "label": "Saúde",
+        "items": [
+          {
+            "menu": "Ministério da Saúde",
             "icon": "point_layer",
             "items": [
               "saude-estabelecimentos"
             ]
-          },
-          "censo-setores"
+          }
         ]
       },
       {
         "label": "Meio físico",
         "items": [
-          "geologia",
-          "geomorfologia",
-          "solos",
-          "vegetacao",
-          "elevacao"
+          {
+            "menu": "IBGE",
+            "icon": "polygon_layer",
+            "items": [
+              "geologia",
+              "geomorfologia",
+              "solos"
+            ]
+          },
+          {
+            "menu": "Copernicus",
+            "icon": "raster_layer",
+            "items": [
+              "elevacao"
+            ]
+          }
         ]
       },
       {
         "label": "Água",
         "items": [
-          "drenagem",
-          "massas-dagua",
           {
-            "menu": "Bacias",
-            "icon": "polygon_layer",
+            "menu": "IBGE",
+            "icon": "line_layer",
             "items": [
-              "ana-ottobacias",
-              "ana-bho",
-              "ana-uph",
+              "drenagem",
+              "massas-dagua",
               "ibge-dhn-macro",
               "ibge-dhn-meso",
               "ibge-dhn-micro"
@@ -607,8 +638,11 @@
           },
           {
             "menu": "ANA",
-            "icon": "line_layer",
+            "icon": "polygon_layer",
             "items": [
+              "ana-ottobacias",
+              "ana-bho",
+              "ana-uph",
               "ana-disponibilidade",
               "ana-balanco",
               "ana-estacoes",
@@ -620,17 +654,69 @@
         ]
       },
       {
-        "label": "Áreas protegidas",
+        "label": "Meio ambiente",
         "items": [
-          "ucs",
-          "ucs-federais",
-          "terras-indigenas"
+          {
+            "menu": "IBGE",
+            "icon": "polygon_layer",
+            "items": [
+              "vegetacao"
+            ]
+          },
+          {
+            "menu": "MMA",
+            "icon": "polygon_layer",
+            "items": [
+              "ucs"
+            ]
+          },
+          {
+            "menu": "ICMBio",
+            "icon": "polygon_layer",
+            "items": [
+              "ucs-federais"
+            ]
+          },
+          {
+            "menu": "FUNAI",
+            "icon": "polygon_layer",
+            "items": [
+              "terras-indigenas"
+            ]
+          },
+          {
+            "menu": "INPE",
+            "icon": "polygon_layer",
+            "items": [
+              "prodes-cerrado",
+              "prodes-caatinga",
+              "prodes-amazonia",
+              "prodes-mata-atlantica",
+              "prodes-pantanal",
+              "prodes-pampa",
+              "deter-cerrado",
+              "deter-amazonia"
+            ]
+          },
+          {
+            "menu": "IBAMA",
+            "icon": "polygon_layer",
+            "items": [
+              "ibama-embargos"
+            ]
+          }
         ]
       },
       {
         "label": "Fundiário",
         "items": [
-          "car-imoveis",
+          {
+            "menu": "SFB",
+            "icon": "polygon_layer",
+            "items": [
+              "car-imoveis"
+            ]
+          },
           {
             "menu": "INCRA",
             "icon": "polygon_layer",
@@ -644,33 +730,7 @@
         ]
       },
       {
-        "label": "Desmatamento e embargos",
-        "items": [
-          {
-            "menu": "PRODES",
-            "icon": "polygon_layer",
-            "items": [
-              "prodes-cerrado",
-              "prodes-caatinga",
-              "prodes-amazonia",
-              "prodes-mata-atlantica",
-              "prodes-pantanal",
-              "prodes-pampa"
-            ]
-          },
-          {
-            "menu": "DETER",
-            "icon": "polygon_layer",
-            "items": [
-              "deter-cerrado",
-              "deter-amazonia"
-            ]
-          },
-          "ibama-embargos"
-        ]
-      },
-      {
-        "label": "Energia, minas e transportes",
+        "label": "Infraestrutura",
         "items": [
           {
             "menu": "ANEEL",
@@ -707,7 +767,13 @@
               "anm-barragens"
             ]
           },
-          "dnit-snv"
+          {
+            "menu": "DNIT",
+            "icon": "line_layer",
+            "items": [
+              "dnit-snv"
+            ]
+          }
         ]
       }
     ]

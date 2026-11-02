@@ -3,8 +3,11 @@
     python scripts/gerar.py           # escreve os três
     python scripts/gerar.py --check   # só confere que estão em dia (para o CI)
 
-O fontes.csv tem uma linha por camada vetorial: id, grupo (o grupo da aba), menu (vazio, ou o
-menu do grupo em que o botão fica), rotulo (o botão; \\n quebra a linha), nome (o da camada no
+A aba vai de grandes áreas a fontes e camadas: o grupo é a área (Água, Meio ambiente…), o menu
+é a fonte (IBGE, ANA, INPE…) e os itens do menu são as camadas.
+
+O fontes.csv tem uma linha por camada vetorial: id, grupo (o grupo da aba), menu (a fonte: o
+menu do grupo em que o botão fica; vazio, um botão solto), rotulo (o botão; \\n quebra a linha), nome (o da camada no
 mapa, depois de "BrasilData: "), servico (o endereço), tipo (wfs ou arcgis), camada (o tipo de
 feição do WFS, ou o número da camada do ArcGIS), geometria (poligono, linha ou ponto: o ícone),
 recorta (sim/nao: se é recortada pelo polígono da área), web (sim/nao: se o servidor permite
@@ -84,19 +87,8 @@ PAINEL = {
         {"kind": "text", "id": "citacao", "label": "Fontes das camadas no mapa"},
     ],
 }
-# Os comandos que vão no fim de um grupo da tabela: a elevação no meio físico, e as fontes com a
-# área (a aba tem só 8 grupos).
+# Os comandos que vão no fim de um grupo da aba: as fontes, com a área.
 FIM = [
-    (
-        "Meio físico",
-        {
-            "id": "elevacao",
-            "label": "Elevação",
-            "help": "Copernicus GLO-30 recortado pela área e posto na grade UTM SIRGAS 2000 do fuso da área (ou na Policônica, quando a área passa de um fuso).",
-            "icon": "raster_layer",
-            "params": "{\"celula\"?: tamanho da célula em metros (padrão 30)}",
-        },
-    ),
     (
         "Área",
         {
@@ -110,66 +102,66 @@ FIM = [
 ]
 
 
-# Comandos que não vêm da tabela e ficam num grupo dela: (grupo, menu ou None, comando).
+# Comandos que não vêm da tabela e ficam num grupo da aba: (grupo, menu da fonte ou None, comando).
 EM_MENUS = [
     (
-        "Limites e indicadores",
-        "Indicadores",
+        "Limites e população",
+        "IBGE",
         {
-            "id": "indicadores-todos",
-            "label": "Todos os indicadores",
-            "help": "Censos, Pix, crédito rural, eleições e emprego formal, de uma vez. Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem. No desktop, se o tempo de uma chamada acabar, o aviso pede um novo clique, que continua de onde parou.",
+            "id": "censo-setores",
+            "label": "Setores censitários",
+            "help": "Os setores censitários de 2022 da área, com pessoas e domicílios (IBGE, agregados por setores): o GeoPackage de cada UF, recortado pela área. No app web, um segundo clique recorta.",
             "icon": "polygon_layer",
             "params": "{}",
         },
     ),
     (
-        "Limites e indicadores",
-        "Indicadores",
+        "Limites e população",
+        "IBGE",
         {
             "id": "censo-municipios",
-            "label": "Censos (IBGE)",
+            "label": "Censos por município",
             "help": "População, área e densidade de 2022 (Censo Demográfico) e estabelecimentos agropecuários e agricultura familiar de 2017 (Censo Agropecuário), do IBGE. Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem.",
             "icon": "polygon_layer",
             "params": "{}",
         },
     ),
     (
-        "Limites e indicadores",
-        "Indicadores",
+        "Limites e população",
+        "Banco Central",
         {
             "id": "indicadores-pix",
-            "label": "Pix (Banco Central)",
+            "label": "Pix",
             "help": "O Pix do último mês completo: valor pago e recebido (R$), transações pagas e pessoas físicas pagadoras. Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem.",
             "icon": "polygon_layer",
             "params": "{}",
         },
     ),
     (
-        "Limites e indicadores",
-        "Indicadores",
+        "Limites e população",
+        "Banco Central",
         {
             "id": "indicadores-credito",
-            "label": "Crédito rural de custeio (BCB)",
+            "label": "Crédito rural de custeio",
             "help": "O custeio do último ano completo, do SICOR: total, Pronaf, agrícola e pecuário (R$) e área (ha). O SICOR é lento: cerca de 10 s para cada 6 municípios. Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem.",
             "icon": "polygon_layer",
             "params": "{}",
         },
     ),
     (
-        "Limites e indicadores",
-        "Indicadores",
+        "Limites e população",
+        "TSE",
         {
             "id": "indicadores-tse",
-            "label": "Eleições (TSE)",
+            "label": "Eleições",
             "help": "Eleitorado, comparecimento e abstenção (%) no 1º turno de 2026 e de 2024, da divulgação oficial do TSE. Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem.",
             "icon": "polygon_layer",
             "params": "{}",
         },
     ),
     (
-        "Limites e indicadores",
-        "Indicadores",
+        "Limites e população",
+        "Ministério do Trabalho",
         {
             "id": "indicadores-caged",
             "label": "Emprego formal (Novo CAGED)",
@@ -179,8 +171,19 @@ EM_MENUS = [
         },
     ),
     (
-        "Limites e indicadores",
+        "Limites e população",
+        None,
+        {
+            "id": "indicadores-todos",
+            "label": "Todos os indicadores",
+            "help": "Censos, Pix, crédito rural, eleições e emprego formal, de uma vez. Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem. No desktop, se o tempo de uma chamada acabar, o aviso pede um novo clique, que continua de onde parou.",
+            "icon": "polygon_layer",
+            "params": "{}",
+        },
+    ),
+    (
         "Saúde",
+        "Ministério da Saúde",
         {
             "id": "saude-estabelecimentos",
             "label": "Estabelecimentos de saúde (CNES)",
@@ -190,14 +193,14 @@ EM_MENUS = [
         },
     ),
     (
-        "Limites e indicadores",
-        None,
+        "Meio físico",
+        "Copernicus",
         {
-            "id": "censo-setores",
-            "label": "Setores\ncensitários",
-            "help": "Os setores censitários de 2022 da área, com pessoas e domicílios (IBGE, agregados por setores): o GeoPackage de cada UF, recortado pela área. No app web, um segundo clique recorta.",
-            "icon": "polygon_layer",
-            "params": "{}",
+            "id": "elevacao",
+            "label": "Elevação (GLO-30)",
+            "help": "Copernicus GLO-30 recortado pela área e posto na grade UTM SIRGAS 2000 do fuso da área (ou na Policônica, quando a área passa de um fuso).",
+            "icon": "raster_layer",
+            "params": "{\"celula\"?: tamanho da célula em metros (padrão 30)}",
         },
     ),
 ]
@@ -250,6 +253,9 @@ def ler() -> list[dict]:
     return linhas
 
 
+# Os grupos da aba, na ordem: as grandes áreas (o RustGIS aceita até 8).
+GRUPOS = ["Área", "Limites e população", "Saúde", "Meio físico", "Água", "Meio ambiente", "Fundiário", "Infraestrutura"]
+
 # O ícone do RustGIS de cada geometria.
 ICONES = {"poligono": "polygon_layer", "linha": "line_layer", "ponto": "point_layer"}
 
@@ -274,12 +280,14 @@ def manifesto(linhas: list[dict]) -> str:
             }
         )
         itens = grupos.setdefault(l["grupo"], [])
+        # A camada vai para o menu da fonte, onde quer que ele esteja no grupo.
+        m = next((i for i in itens if isinstance(i, dict) and i["menu"] == l["menu"]), None)
         if not l["menu"]:
             itens.append(l["id"])
-        elif itens and isinstance(itens[-1], dict) and itens[-1]["menu"] == l["menu"]:
-            itens[-1]["items"].append(l["id"])
-        else:
+        elif m is None:
             itens.append({"menu": l["menu"], "icon": ICONES[l["geometria"]], "items": [l["id"]]})
+        else:
+            m["items"].append(l["id"])
     for grupo, menu, c in EM_MENUS:
         comandos.append(c)
         itens = grupos.setdefault(grupo, [])
@@ -294,6 +302,10 @@ def manifesto(linhas: list[dict]) -> str:
     for grupo, c in FIM:
         comandos.append(c)
         grupos.setdefault(grupo, []).append(c["id"])
+    fora = [g for g in grupos if g not in GRUPOS]
+    if fora:
+        sys.exit(f"grupos fora de GRUPOS: {', '.join(fora)}")
+    grupos = {g: grupos[g] for g in GRUPOS if g in grupos}
     if len(grupos) > 8:
         sys.exit(f"a aba tem {len(grupos)} grupos; o RustGIS aceita até 8")
     m = {
