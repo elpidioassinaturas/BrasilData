@@ -329,6 +329,9 @@ fn feicoes(n: u64) -> String {
 
 /// Um tema vetorial: só o que cruza a área, recortado por ela; sem área, o que está na vista.
 fn tema(t: &Tema) -> Result<Value, String> {
+    if let Some(r) = ja_no_mapa(&t.camada_no_mapa(), t.recorta)? {
+        return Ok(r);
+    }
     if t.pedido_proprio() {
         return tema_proprio(t);
     }
@@ -358,6 +361,29 @@ fn tema(t: &Tema) -> Result<Value, String> {
         return Ok(r);
     }
     concluir(t, r["features"].as_u64().unwrap_or(0), area, na_area)
+}
+
+/// Se a camada `nome`, recortada pela área (`recorta`), já está no mapa para a área de agora: o
+/// retângulo dela cabe no da área. Na janela, um comando de plugin congela a tela enquanto baixa,
+/// sem sinal de que começou, e quem clica de novo baixaria tudo outra vez. Com a área trocada, o
+/// retângulo não cabe, e o tema vem de novo.
+fn ja_no_mapa(nome: &str, recorta: bool) -> Result<Option<Value>, String> {
+    if !recorta || !nomes()?.iter().any(|n| n == AREA) {
+        return Ok(None);
+    }
+    let (Some(camada), Some(area)) = (extensao(nome)?, extensao(AREA)?) else { return Ok(None) };
+    if !retangulo_cabe(camada, area) {
+        return Ok(None);
+    }
+    let curto = nome.trim_start_matches(PREFIXO);
+    host::notify(&format!("{curto} já está no mapa, recortada por esta área; para trazer de novo, remova a camada"));
+    Ok(Some(json!({"layer": nome, "already": true})))
+}
+
+/// Se o retângulo `dentro` cabe em `fora` (com folga de arredondamento).
+fn retangulo_cabe(dentro: [f64; 4], fora: [f64; 4]) -> bool {
+    let f = 1e-6;
+    dentro[0] >= fora[0] - f && dentro[1] >= fora[1] - f && dentro[2] <= fora[2] + f && dentro[3] <= fora[3] + f
 }
 
 /// O fim de um tema, com as `lidas` feições no mapa: a camada `nome` do tema, ou a `(sem recorte)`
@@ -1069,6 +1095,9 @@ fn estabelecimentos_de_saude() -> Result<Value, String> {
         return Err("escolha a área primeiro (Área: seleção ou Área: município)".into());
     }
     let nome = camada_de_saude();
+    if let Some(r) = ja_no_mapa(&nome, true)? {
+        return Ok(r);
+    }
     remover(&[&nome])?;
     if feicoes_da_camada(SAUDE_BRUTO)?.is_none() {
         let r = host::run("layer.addUrl", json!({"url": saude::URL, "name": SAUDE_BRUTO, "zoom": false}))?;
