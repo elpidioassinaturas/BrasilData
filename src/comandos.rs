@@ -78,32 +78,75 @@ fn por_area(fc: Value) -> Result<Value, String> {
 /// O que a área é, pelos nomes nas feições (os do painel, ou os da malha do IBGE em
 /// `nm_mun` e `sigla_uf`), e o retângulo.
 fn descrever(fc: &Value) -> String {
-    let feicoes = fc["features"].as_array().map_or(&[][..], Vec::as_slice);
-    let nomes: Vec<String> = feicoes
-        .iter()
+    let n = fc["features"].as_array().map_or(0, Vec::len);
+    texto_da_area(&nomes_nas_feicoes(fc), n, caixa_de(fc))
+}
+
+/// Os nomes das feições de `fc`: o do BrasilData (`nome`, `uf`) ou o de uma camada do IBGE
+/// (`nm_mun`, `nm_meso`, `nm_uf`…, com `sigla_uf`).
+fn nomes_nas_feicoes(fc: &Value) -> Vec<String> {
+    fc["features"]
+        .as_array()
+        .into_iter()
+        .flatten()
         .filter_map(|f| {
             let p = &f["properties"];
-            let nome = p["nome"].as_str().or(p["nm_mun"].as_str())?;
+            let nome = p["nome"]
+                .as_str()
+                .or_else(|| p.as_object()?.iter().find(|(k, v)| k.starts_with("nm_") && v.is_string()).and_then(|(_, v)| v.as_str()))?;
             Some(match p["uf"].as_str().or(p["sigla_uf"].as_str()) {
                 Some(uf) => format!("{nome} ({uf})"),
                 None => nome.to_string(),
             })
         })
-        .collect();
+        .collect()
+}
+
+/// O texto do painel sobre a área: os nomes (ou quantos polígonos são) e o retângulo.
+fn texto_da_area(nomes: &[String], poligonos: usize, caixa: Option<[f64; 4]>) -> String {
     let quais = match nomes.len() {
-        0 if feicoes.len() == 1 => "1 polígono".to_string(),
-        0 => format!("{} polígonos", feicoes.len()),
+        0 if poligonos == 1 => "1 polígono".to_string(),
+        0 => format!("{poligonos} polígonos"),
         1..=4 => nomes.join(", "),
         n => format!("{} e mais {}", nomes[..3].join(", "), n - 3),
     };
-    match caixa_de(fc) {
-        Some(c) => format!(
-            "{quais}
-{:.3}, {:.3} a {:.3}, {:.3}",
-            c[0], c[1], c[2], c[3]
-        ),
+    match caixa {
+        Some(c) => format!("{quais}\n{:.3}, {:.3} a {:.3}, {:.3}", c[0], c[1], c[2], c[3]),
         None => quais,
     }
+}
+
+/// A camada `nome` como o RustGIS a descreve (`info.project`): o retângulo, quantas feições e os
+/// campos, sem o plugin ler as feições, que podem ser muitas e detalhadas.
+fn camada_no_projeto(nome: &str) -> Result<Option<Value>, String> {
+    let info = host::run("info.project", json!({"nameFilter": nome}))?;
+    Ok(info["layers"].as_array().into_iter().flatten().find(|l| l["name"].as_str() == Some(nome)).cloned())
+}
+
+/// Os nomes da área (o que o painel mostra), lidos de uma cópia dela com o contorno bem
+/// simplificado (1/50 da diagonal do retângulo `c`), que é apagada em seguida: só os atributos
+/// interessam, e a cópia é leve em qualquer tamanho de área.
+fn nomes_da_area(c: [f64; 4]) -> Result<Vec<String>, String> {
+    let lat = ((c[1] + c[3]) / 2.0).to_radians();
+    let diagonal_km = ((c[2] - c[0]) * 111.32 * lat.cos()).hypot((c[3] - c[1]) * 110.57);
+    let copia = format!("{AREA} (nomes)");
+    remover(&[&copia])?;
+    let r = host::run("gp.run", json!({"tool": "simplify", "params": {"input": AREA, "tolerance": (diagonal_km / 50.0).max(0.1)}}))?;
+    host::run(
+        "layer.rename",
+        json!({"layer": r.get("layer").cloned().ok_or("a simplificação não disse a camada que fez")?, "name": copia}),
+    )?;
+    let fc = host::features(&copia, false);
+    remover(&[&copia])?;
+    Ok(nomes_nas_feicoes(&fc?))
+}
+
+/// O retângulo `[oeste, sul, leste, norte]` da camada `nome`, pelo RustGIS.
+fn extensao(nome: &str) -> Result<Option<[f64; 4]>, String> {
+    Ok(camada_no_projeto(nome)?.and_then(|l| {
+        let e = l["extent"].as_array()?;
+        Some([e.first()?.as_f64()?, e.get(1)?.as_f64()?, e.get(2)?.as_f64()?, e.get(3)?.as_f64()?])
+    }))
 }
 
 /// O retângulo `[oeste, sul, leste, norte]` das feições de `fc`.
@@ -166,25 +209,27 @@ fn area_selecao() -> Result<Value, String> {
     if ativa["selected"].as_u64().unwrap_or(0) == 0 {
         return Err(format!("nada selecionado em '{nome}': selecione o polígono da área"));
     }
-    let fc = host::features(&nome, true)?;
-    let poligonos = fc["features"]
-        .as_array()
-        .into_iter()
-        .flatten()
-        .filter(|f| f["geometry"]["type"].as_str().is_some_and(|t| t.ends_with("Polygon")))
-        .map(|f| geojson::feature(f["geometry"].clone(), f["properties"].clone()))
-        .collect::<Vec<_>>();
-    if poligonos.is_empty() {
-        return Err(format!("a seleção de '{nome}' não tem polígonos"));
+    if !ativa["geometry"].as_str().is_some_and(|g| g.contains("Polygon")) {
+        return Err(format!("'{nome}' não é uma camada de polígonos: selecione o polígono da área numa camada de polígonos"));
     }
-    por_area(geojson::collection(poligonos))
+    // A área é a seleção com o contorno exato: o RustGIS recorta por ela. O plugin não lê o
+    // polígono, que pode ter dezenas de milhares de vértices (uma mesorregião do IBGE) e passaria
+    // da cota de instruções do plugin; os comandos pedem os dados pelo retângulo da área.
+    remover(&[AREA])?;
+    let r = host::run("select.layerFromSelection", json!({"layer": nome}))?;
+    host::run("layer.rename", json!({"layer": r.get("layer").cloned().ok_or("a seleção não virou camada")?, "name": AREA}))?;
+    let caixa = extensao(AREA)?.ok_or("a seleção não tem geometria")?;
+    let nomes = nomes_da_area(caixa)?;
+    host::run("layer.zoomTo", json!({"layer": AREA}))?;
+    let texto = texto_da_area(&nomes, ativa["selected"].as_u64().unwrap_or(0) as usize, Some(caixa));
+    host::notify(&format!("Área do BrasilData: {texto}"));
+    Ok(json!({"area": AREA, "bbox": caixa, "panel": {"items": {"area": {"text": texto}}}}))
 }
 
 /// O retângulo da área, se houver; senão o da vista. E se é a área.
 fn retangulo() -> Result<([f64; 4], bool), String> {
     if nomes()?.iter().any(|n| n == AREA) {
-        let fc = host::features(AREA, false)?;
-        return Ok((caixa_de(&fc).ok_or("a camada da área está vazia")?, true));
+        return Ok((extensao(AREA)?.ok_or("a camada da área está vazia")?, true));
     }
     let v = host::view()?;
     let (lon, lat) = (v["center"][0].as_f64().ok_or("vista sem centro")?, v["center"][1].as_f64().ok_or("vista sem centro")?);
@@ -641,7 +686,15 @@ fn area_no_mapa() -> Result<String, String> {
     if !nomes()?.iter().any(|n| n == AREA) {
         return Ok("Nenhuma ainda: escolha o município abaixo, ou selecione polígonos no mapa e use Área: seleção.".into());
     }
-    Ok(descrever(&host::features(AREA, false)?))
+    let camada = camada_no_projeto(AREA)?.ok_or("a camada da área sumiu")?;
+    let n = camada["features"].as_u64().unwrap_or(0) as usize;
+    // Um município escolhido no painel vem leve, com o nome; uma área de seleção pode ser
+    // detalhada demais para o plugin ler, e fica com o retângulo e quantos polígonos são.
+    let do_painel = camada["fields"].as_array().is_some_and(|f| f.iter().any(|c| c.as_str().is_some_and(|c| c.starts_with("nome "))));
+    if do_painel && n <= 50 {
+        return Ok(descrever(&host::features(AREA, false)?));
+    }
+    Ok(texto_da_area(&[], n, extensao(AREA)?))
 }
 
 /// A árvore de estados do painel, com os municípios de todos (fechados até o usuário abrir um):

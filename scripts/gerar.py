@@ -30,7 +30,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.8"
+VERSAO = "0.1.9"
 
 # Os comandos que não vêm da tabela, com o grupo da aba em que ficam. Na aba, o grupo Área
 # tem o painel (a escolha do município pelo nome) e a área pela seleção; o comando
