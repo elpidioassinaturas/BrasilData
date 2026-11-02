@@ -30,7 +30,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.6"
+VERSAO = "0.1.7"
 
 # Os comandos que não vêm da tabela, com o grupo da aba em que ficam. Na aba, o grupo Área
 # tem o painel (a escolha do município pelo nome) e a área pela seleção; o comando
@@ -271,7 +271,7 @@ def ler() -> list[dict]:
 # aqui, ou que ficou vazio, para o gerar.py.
 TOPICOS = {
     "Área": [],
-    "Território": ["Limites", "Cadastro fundiário", "Terras indígenas"],
+    "Território": ["Limites", "Recortes especiais", "Cadastro fundiário", "Terras indígenas"],
     "Sociedade e economia": ["População", "Economia", "Agricultura", "Eleições"],
     "Saúde": ["Estabelecimentos"],
     "Meio físico": ["Geologia e recursos minerais", "Relevo", "Solos"],

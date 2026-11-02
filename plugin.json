@@ -1,7 +1,7 @@
 {
   "id": "brasildata",
   "name": "BrasilData",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Dados públicos do Brasil para a área do usuário (IBGE, MMA, ICMBio, INPE, ANA, ANEEL, ANP, SFB/CAR, INCRA, FUNAI, IBAMA, ANM, DNIT, Ministério da Saúde, Copernicus): só o que cruza a área, recortado por ela, com a fonte e a licença de cada camada.",
   "author": "Elpídio Filho",
   "homepage": "https://github.com/elpidioassinaturas/BrasilData",
@@ -51,9 +51,16 @@
       "params": "{\"fontes\"?: lista entre censo, pix, credito, tse e caged (padrão: todas)}"
     },
     {
-      "id": "municipios",
-      "label": "Municípios (IBGE)",
-      "help": "Municípios (IBGE 2025): IBGE, Malha Municipal 2025. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "id": "brasil",
+      "label": "Brasil (IBGE)",
+      "help": "Brasil (IBGE 2025): IBGE, Malha Municipal 2025. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
+      "id": "grandes-regioes",
+      "label": "Grandes Regiões (IBGE)",
+      "help": "Grandes Regiões (IBGE 2025): IBGE, Malha Municipal 2025. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
     },
@@ -61,6 +68,62 @@
       "id": "estados",
       "label": "Estados (IBGE)",
       "help": "Estados (IBGE 2025): IBGE, Malha Municipal 2025. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
+      "id": "regioes-intermediarias",
+      "label": "Regiões geográficas intermediárias (IBGE)",
+      "help": "Regiões geográficas intermediárias (IBGE 2025): IBGE, Divisão Regional do Brasil em Regiões Geográficas (2017), na Malha Municipal 2025. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
+      "id": "regioes-imediatas",
+      "label": "Regiões geográficas imediatas (IBGE)",
+      "help": "Regiões geográficas imediatas (IBGE 2025): IBGE, Divisão Regional do Brasil em Regiões Geográficas (2017), na Malha Municipal 2025. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
+      "id": "mesorregioes",
+      "label": "Mesorregiões (IBGE, 1989)",
+      "help": "Mesorregiões geográficas (IBGE, divisão de 1989): IBGE, Divisão do Brasil em Mesorregiões e Microrregiões Geográficas (1989-1990), na Malha Municipal 2025. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
+      "id": "microrregioes",
+      "label": "Microrregiões (IBGE, 1989)",
+      "help": "Microrregiões geográficas (IBGE, divisão de 1989): IBGE, Divisão do Brasil em Mesorregiões e Microrregiões Geográficas (1989-1990), na Malha Municipal 2025. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
+      "id": "municipios",
+      "label": "Municípios (IBGE)",
+      "help": "Municípios (IBGE 2025): IBGE, Malha Municipal 2025. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
+      "id": "distritos",
+      "label": "Distritos (IBGE, 2022)",
+      "help": "Distritos (IBGE, Censo 2022): IBGE, Censo Demográfico 2022, malha de setores e agregados. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
+      "id": "subdistritos",
+      "label": "Subdistritos (IBGE, 2022)",
+      "help": "Subdistritos (IBGE, Censo 2022): IBGE, Censo Demográfico 2022, malha de setores e agregados. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
+      "id": "bairros",
+      "label": "Bairros (IBGE, 2022)",
+      "help": "Bairros (IBGE, Censo 2022): IBGE, Censo Demográfico 2022, malha de setores e agregados. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
     },
@@ -443,6 +506,104 @@
       "params": "{}"
     },
     {
+      "id": "amazonia-legal",
+      "label": "Amazônia Legal (IBGE)",
+      "help": "Amazônia Legal (IBGE 2024): IBGE, Amazônia Legal, Malha Municipal 2024. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
+      "id": "semiarido",
+      "label": "Semiárido (IBGE)",
+      "help": "Semiárido (IBGE 2025): IBGE, Semiárido, Malha Municipal 2025. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
+      "id": "matopiba",
+      "label": "MATOPIBA (IBGE)",
+      "help": "MATOPIBA (IBGE 2025): IBGE, MATOPIBA, Malha Municipal 2025. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
+      "id": "area-sudene",
+      "label": "Área de atuação da SUDENE (IBGE)",
+      "help": "Área de atuação da SUDENE (IBGE 2025): IBGE, Área de atuação da SUDENE, Malha Municipal 2025. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
+      "id": "municipios-costeiros",
+      "label": "Municípios costeiros (IBGE)",
+      "help": "Municípios costeiros (IBGE 2025): IBGE, Municípios costeiros, Malha Municipal 2025. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
+      "id": "recorte-metropolitano",
+      "label": "Regiões metropolitanas e RIDEs (IBGE)",
+      "help": "Recorte metropolitano (IBGE 2025): IBGE, Recorte metropolitano, Malha Municipal 2025. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
+      "id": "aglomeracoes-urbanas",
+      "label": "Aglomerações urbanas (IBGE)",
+      "help": "Aglomerações urbanas (IBGE 2025): IBGE, Aglomerações urbanas, Malha Municipal 2025. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
+      "id": "concentracoes-urbanas",
+      "label": "Concentrações urbanas (IBGE)",
+      "help": "Concentrações urbanas (IBGE 2025): IBGE, Concentrações urbanas, Malha Municipal 2025. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
+      "id": "arranjos-populacionais",
+      "label": "Arranjos populacionais (IBGE)",
+      "help": "Arranjos populacionais (IBGE 2025): IBGE, Arranjos populacionais, Malha Municipal 2025. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
+      "id": "hierarquia-urbana",
+      "label": "Hierarquia urbana (IBGE)",
+      "help": "Hierarquia urbana das cidades (IBGE 2025): IBGE, Hierarquia urbana das cidades, Malha Municipal 2025. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
+      "id": "areas-ponderacao",
+      "label": "Áreas de ponderação (IBGE, 2022)",
+      "help": "Áreas de ponderação (IBGE, Censo 2022): IBGE, Censo Demográfico 2022, malha de setores e agregados. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
+      "id": "area-urbana",
+      "label": "Área urbana por município (IBGE, 2022)",
+      "help": "Área urbana para fins censitários (IBGE, Censo 2022): IBGE, Censo Demográfico 2022, malha de setores e agregados. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
+      "id": "area-rural",
+      "label": "Área rural por município (IBGE, 2022)",
+      "help": "Área rural para fins censitários (IBGE, Censo 2022): IBGE, Censo Demográfico 2022, malha de setores e agregados. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
+      "id": "favelas",
+      "label": "Favelas e comunidades urbanas (IBGE, 2022)",
+      "help": "Favelas e comunidades urbanas (IBGE, Censo 2022): IBGE, Censo Demográfico 2022, malha de setores e agregados. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
       "id": "censo-setores",
       "label": "Setores censitários (IBGE)",
       "help": "Os setores censitários de 2022 da área, com pessoas e domicílios (IBGE, agregados por setores): o GeoPackage de cada UF, recortado pela área. No app web, um segundo clique recorta.",
@@ -572,8 +733,33 @@
             "menu": "Limites",
             "icon": "polygon_layer",
             "items": [
+              "brasil",
+              "grandes-regioes",
+              "estados",
+              "regioes-intermediarias",
+              "regioes-imediatas",
+              "mesorregioes",
+              "microrregioes",
               "municipios",
-              "estados"
+              "distritos",
+              "subdistritos",
+              "bairros"
+            ]
+          },
+          {
+            "menu": "Recortes especiais",
+            "icon": "polygon_layer",
+            "items": [
+              "amazonia-legal",
+              "semiarido",
+              "matopiba",
+              "area-sudene",
+              "municipios-costeiros",
+              "recorte-metropolitano",
+              "aglomeracoes-urbanas",
+              "concentracoes-urbanas",
+              "arranjos-populacionais",
+              "hierarquia-urbana"
             ]
           },
           {
@@ -603,6 +789,10 @@
             "menu": "População",
             "icon": "stats",
             "items": [
+              "areas-ponderacao",
+              "area-urbana",
+              "area-rural",
+              "favelas",
               "censo-setores",
               "censo-municipios"
             ]

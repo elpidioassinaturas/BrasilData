@@ -18,8 +18,8 @@ e o comando Fontes.
 
 | Tópico | Subtópicos |
 |---|---|
-| Território | Limites (IBGE), Cadastro fundiário (SFB, INCRA), Terras indígenas (FUNAI) |
-| Sociedade e economia | População (IBGE), Economia (Banco Central, Novo CAGED), Agricultura (Banco Central, IBGE), Eleições (TSE) e Todos os indicadores |
+| Território | Limites (IBGE: Brasil, Grandes Regiões, estados, regiões intermediárias e imediatas, meso e microrregiões, municípios, distritos, subdistritos e bairros), Recortes especiais (IBGE: Amazônia Legal, Semiárido, MATOPIBA, SUDENE, municípios costeiros, regiões metropolitanas, aglomerações, concentrações e arranjos urbanos, hierarquia urbana), Cadastro fundiário (SFB, INCRA), Terras indígenas (FUNAI) |
+| Sociedade e economia | População (IBGE: setores censitários, censos, áreas de ponderação, área urbana e rural, favelas e comunidades urbanas), Economia (Banco Central, Novo CAGED), Agricultura (Banco Central, IBGE), Eleições (TSE) e Todos os indicadores |
 | Saúde | Estabelecimentos (CNES, DATASUS) |
 | Meio físico | Geologia e recursos minerais (IBGE, ANM, MapBiomas), Relevo (IBGE, Copernicus), Solos (IBGE) |
 | Água | Hidrografia (IBGE, ANA), Bacias (IBGE, ANA), Recursos hídricos (ANA) |
@@ -32,18 +32,27 @@ mostra a citação e a licença de cada camada trazida. Os indicadores são agre
 nomes de pessoas.
 
 Algumas camadas só abrem num dos aplicativos, e a ajuda de cada botão diz quando é o caso:
-- 19 das 55 só abrem no app desktop, porque o servidor não manda os cabeçalhos CORS que o navegador exige;
+- 19 das 79 só abrem no app desktop, porque o servidor não manda os cabeçalhos CORS que o navegador exige;
 - os imóveis do CAR só abrem no app web, porque o servidor só aceita cifras TLS antigas, que o app desktop não aceita.
 
 ## Fontes
 
 <!-- fontes: início (gerado por scripts/gerar.py a partir do fontes.csv; não edite à mão) -->
-56 camadas de 14 fontes, na ordem do `fontes.csv`. *App web*: se o servidor permite pedidos do navegador (CORS); *Recorte*: se a camada é recortada pela área.
+79 camadas de 14 fontes, na ordem do `fontes.csv`. *App web*: se o servidor permite pedidos do navegador (CORS); *Recorte*: se a camada é recortada pela área.
 
 | Grupo | Camada | Fonte | Serviço | Licença | App web | Recorte |
 |---|---|---|---|---|---|---|
-| Território › Limites | Municípios (IBGE 2025) | IBGE, Malha Municipal 2025 | [WFS](https://geoservicos.ibge.gov.br/geoserver/wfs) `CGMAT:qg_2025_030_munic` | uso livre com citação da fonte | sim | não |
+| Território › Limites | Brasil (IBGE 2025) | IBGE, Malha Municipal 2025 | [WFS](https://geoservicos.ibge.gov.br/geoserver/wfs) `CGMAT:qg_2025_000_brasil_agreg` | uso livre com citação da fonte | sim | não |
+| Território › Limites | Grandes Regiões (IBGE 2025) | IBGE, Malha Municipal 2025 | [WFS](https://geoservicos.ibge.gov.br/geoserver/wfs) `CGMAT:qg_2025_010_grandreg_agreg` | uso livre com citação da fonte | sim | não |
 | Território › Limites | Estados (IBGE 2025) | IBGE, Malha Municipal 2025 | [WFS](https://geoservicos.ibge.gov.br/geoserver/wfs) `CGMAT:qg_2025_020_uf_agreg` | uso livre com citação da fonte | sim | não |
+| Território › Limites | Regiões geográficas intermediárias (IBGE 2025) | IBGE, Divisão Regional do Brasil em Regiões Geográficas (2017), na Malha Municipal 2025 | [WFS](https://geoservicos.ibge.gov.br/geoserver/wfs) `CGMAT:qg_2025_120_reggeoginterm_agreg` | uso livre com citação da fonte | sim | não |
+| Território › Limites | Regiões geográficas imediatas (IBGE 2025) | IBGE, Divisão Regional do Brasil em Regiões Geográficas (2017), na Malha Municipal 2025 | [WFS](https://geoservicos.ibge.gov.br/geoserver/wfs) `CGMAT:qg_2025_110_reggeogimed_agreg` | uso livre com citação da fonte | sim | não |
+| Território › Limites | Mesorregiões geográficas (IBGE, divisão de 1989) | IBGE, Divisão do Brasil em Mesorregiões e Microrregiões Geográficas (1989-1990), na Malha Municipal 2025 | [WFS](https://geoservicos.ibge.gov.br/geoserver/wfs) `CGMAT:qg_2025_170_mesoreg_agreg` | uso livre com citação da fonte | sim | não |
+| Território › Limites | Microrregiões geográficas (IBGE, divisão de 1989) | IBGE, Divisão do Brasil em Mesorregiões e Microrregiões Geográficas (1989-1990), na Malha Municipal 2025 | [WFS](https://geoservicos.ibge.gov.br/geoserver/wfs) `CGMAT:qg_2025_180_microreg_agreg` | uso livre com citação da fonte | sim | não |
+| Território › Limites | Municípios (IBGE 2025) | IBGE, Malha Municipal 2025 | [WFS](https://geoservicos.ibge.gov.br/geoserver/wfs) `CGMAT:qg_2025_030_munic` | uso livre com citação da fonte | sim | não |
+| Território › Limites | Distritos (IBGE, Censo 2022) | IBGE, Censo Demográfico 2022, malha de setores e agregados | [WFS](https://geoservicos.ibge.gov.br/geoserver/wfs) `CGMAT:qg_2022_630_distrito_agreg` | uso livre com citação da fonte | sim | não |
+| Território › Limites | Subdistritos (IBGE, Censo 2022) | IBGE, Censo Demográfico 2022, malha de setores e agregados | [WFS](https://geoservicos.ibge.gov.br/geoserver/wfs) `CGMAT:qg_2022_640_subdistrito_agreg` | uso livre com citação da fonte | sim | não |
+| Território › Limites | Bairros (IBGE, Censo 2022) | IBGE, Censo Demográfico 2022, malha de setores e agregados | [WFS](https://geoservicos.ibge.gov.br/geoserver/wfs) `CGMAT:qg_2022_650_bairro_agreg` | uso livre com citação da fonte | sim | não |
 | Meio físico › Geologia e recursos minerais | Geologia (BDiA 1:250.000) | IBGE, Banco de Dados de Informações Ambientais (BDiA) | [WFS](https://geoservicos.ibge.gov.br/geoserver/wfs) `BDIA:geol_area` | uso livre com citação da fonte | sim | sim |
 | Meio físico › Relevo | Geomorfologia (BDiA 1:250.000) | IBGE, Banco de Dados de Informações Ambientais (BDiA) | [WFS](https://geoservicos.ibge.gov.br/geoserver/wfs) `BDIA:geom_area` | uso livre com citação da fonte | sim | sim |
 | Meio físico › Solos | Solos (BDiA 1:250.000) | IBGE, Banco de Dados de Informações Ambientais (BDiA) | [WFS](https://geoservicos.ibge.gov.br/geoserver/wfs) `BDIA:pedo_area` | uso livre com citação da fonte | sim | sim |
@@ -98,6 +107,20 @@ Algumas camadas só abrem num dos aplicativos, e a ajuda de cada botão diz quan
 | Meio físico › Geologia e recursos minerais | Barragens de mineração (ANM, SIGBM) | ANM, Sistema Integrado de Gestão de Barragens de Mineração (SIGBM), painel público | [ArcGIS REST](https://geo.anm.gov.br/arcgis/rest/services/Producao/Barragens_Dashboard_Publico/FeatureServer) `0` | dados abertos, com crédito à ANM | sim | sim |
 | Infraestrutura › Transportes | Rodovias federais (SNV vigente, DNIT) | DNIT, Sistema Nacional de Viação (SNV), versão vigente | [WFS](https://servicos.dnit.gov.br/dnitgeo/geoserver/ows) `vgeo:vw_snv_rod` | sem restrições declaradas | sim | sim |
 | Meio físico › Geologia e recursos minerais | Área minerada por ano (MapBiomas, 1985–2024) | MapBiomas, Monitor da Mineração, área minerada, 1985 a 2024 (campos: ano, substância, se está num processo do SIGMINE, se está em área restrita e área) | [WFS](https://plataforma.geoserver.mapbiomas.org/geoserver/pto/ows) `pto:mining_age` | CC BY 4.0, pelos termos do MapBiomas; não declarada no serviço | sim | sim |
+| Território › Recortes especiais | Amazônia Legal (IBGE 2024) | IBGE, Amazônia Legal, Malha Municipal 2024 | [WFS](https://geoservicos.ibge.gov.br/geoserver/wfs) `CGMAT:qg_2024_040_amazleg_agreg` | uso livre com citação da fonte | sim | não |
+| Território › Recortes especiais | Semiárido (IBGE 2025) | IBGE, Semiárido, Malha Municipal 2025 | [WFS](https://geoservicos.ibge.gov.br/geoserver/wfs) `CGMAT:qg_2025_080_semiarido_agreg` | uso livre com citação da fonte | sim | não |
+| Território › Recortes especiais | MATOPIBA (IBGE 2025) | IBGE, MATOPIBA, Malha Municipal 2025 | [WFS](https://geoservicos.ibge.gov.br/geoserver/wfs) `CGMAT:qg_2025_190_matopiba_agreg` | uso livre com citação da fonte | sim | não |
+| Território › Recortes especiais | Área de atuação da SUDENE (IBGE 2025) | IBGE, Área de atuação da SUDENE, Malha Municipal 2025 | [WFS](https://geoservicos.ibge.gov.br/geoserver/wfs) `CGMAT:qg_2025_070_areasudene_agreg` | uso livre com citação da fonte | sim | não |
+| Território › Recortes especiais | Municípios costeiros (IBGE 2025) | IBGE, Municípios costeiros, Malha Municipal 2025 | [WFS](https://geoservicos.ibge.gov.br/geoserver/wfs) `CGMAT:qg_2025_280_municipioscosteiros_agreg` | uso livre com citação da fonte | sim | não |
+| Território › Recortes especiais | Recorte metropolitano (IBGE 2025) | IBGE, Recorte metropolitano, Malha Municipal 2025 | [WFS](https://geoservicos.ibge.gov.br/geoserver/wfs) `CGMAT:qg_2025_211_recortemetrop_agreg` | uso livre com citação da fonte | sim | não |
+| Território › Recortes especiais | Aglomerações urbanas (IBGE 2025) | IBGE, Aglomerações urbanas, Malha Municipal 2025 | [WFS](https://geoservicos.ibge.gov.br/geoserver/wfs) `CGMAT:qg_2025_230_aglomurb_agreg` | uso livre com citação da fonte | sim | não |
+| Território › Recortes especiais | Concentrações urbanas (IBGE 2025) | IBGE, Concentrações urbanas, Malha Municipal 2025 | [WFS](https://geoservicos.ibge.gov.br/geoserver/wfs) `CGMAT:qg_2025_090_concurb_agreg` | uso livre com citação da fonte | sim | não |
+| Território › Recortes especiais | Arranjos populacionais (IBGE 2025) | IBGE, Arranjos populacionais, Malha Municipal 2025 | [WFS](https://geoservicos.ibge.gov.br/geoserver/wfs) `CGMAT:qg_2025_100_arranjpop_agreg` | uso livre com citação da fonte | sim | não |
+| Território › Recortes especiais | Hierarquia urbana das cidades (IBGE 2025) | IBGE, Hierarquia urbana das cidades, Malha Municipal 2025 | [WFS](https://geoservicos.ibge.gov.br/geoserver/wfs) `CGMAT:qg_2025_200_hierarqurb_agreg` | uso livre com citação da fonte | sim | não |
+| Sociedade e economia › População | Áreas de ponderação (IBGE, Censo 2022) | IBGE, Censo Demográfico 2022, malha de setores e agregados | [WFS](https://geoservicos.ibge.gov.br/geoserver/wfs) `CGMAT:qg_2022_710_apond_agreg` | uso livre com citação da fonte | sim | não |
+| Sociedade e economia › População | Área urbana para fins censitários (IBGE, Censo 2022) | IBGE, Censo Demográfico 2022, malha de setores e agregados | [WFS](https://geoservicos.ibge.gov.br/geoserver/wfs) `CGMAT:qg_2022_705_areaurbanapormunicipiopfc_agreg` | uso livre com citação da fonte | sim | não |
+| Sociedade e economia › População | Área rural para fins censitários (IBGE, Censo 2022) | IBGE, Censo Demográfico 2022, malha de setores e agregados | [WFS](https://geoservicos.ibge.gov.br/geoserver/wfs) `CGMAT:qg_2022_700_arearuralpormunicipiopfc_agreg` | uso livre com citação da fonte | sim | não |
+| Sociedade e economia › População | Favelas e comunidades urbanas (IBGE, Censo 2022) | IBGE, Censo Demográfico 2022, malha de setores e agregados | [WFS](https://geoservicos.ibge.gov.br/geoserver/wfs) `CGMAT:qg_2022_670_fcu_agreg` | uso livre com citação da fonte | sim | não |
 <!-- fontes: fim -->
 
 Fora da tabela, com a citação no comando **Fontes**:
