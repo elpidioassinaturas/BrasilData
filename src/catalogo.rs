@@ -5,7 +5,7 @@ use crate::Tema;
 pub const TEMAS: &[Tema] = &[
     Tema {
         id: "municipios",
-        grupo: "Limites e população",
+        grupo: "Território",
         nome: "Municípios (IBGE 2025)",
         servico: "https://geoservicos.ibge.gov.br/geoserver/wfs",
         tipo: "wfs",
@@ -22,7 +22,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "estados",
-        grupo: "Limites e população",
+        grupo: "Território",
         nome: "Estados (IBGE 2025)",
         servico: "https://geoservicos.ibge.gov.br/geoserver/wfs",
         tipo: "wfs",
@@ -90,7 +90,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "vegetacao",
-        grupo: "Meio ambiente",
+        grupo: "Vegetação e meio ambiente",
         nome: "Vegetação (BDiA 1:250.000)",
         servico: "https://geoservicos.ibge.gov.br/geoserver/wfs",
         tipo: "wfs",
@@ -345,7 +345,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "ucs",
-        grupo: "Meio ambiente",
+        grupo: "Território",
         nome: "Unidades de conservação (CNUC 07/2026)",
         servico: "https://geoservicos.inde.gov.br/geoserver/MMA/ows",
         tipo: "wfs",
@@ -362,7 +362,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "ucs-federais",
-        grupo: "Meio ambiente",
+        grupo: "Território",
         nome: "Unidades de conservação federais (ICMBio)",
         servico: "https://geoservicos.inde.gov.br/geoserver/ICMBio/ows",
         tipo: "wfs",
@@ -379,7 +379,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "terras-indigenas",
-        grupo: "Meio ambiente",
+        grupo: "Território",
         nome: "Terras indígenas (FUNAI, via Infra S.A.)",
         servico: "https://geo.infrasa.gov.br/server/rest/services/Terras_Ind%C3%ADgenas/MapServer",
         tipo: "arcgis",
@@ -396,7 +396,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "car-imoveis",
-        grupo: "Fundiário",
+        grupo: "Território",
         nome: "Imóveis rurais (CAR)",
         servico: "https://geoserver.car.gov.br/geoserver/sicar/wfs",
         tipo: "wfs",
@@ -413,7 +413,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "sigef-parcelas",
-        grupo: "Fundiário",
+        grupo: "Território",
         nome: "Parcelas certificadas (SIGEF)",
         servico: "https://geoportal.incra.gov.br/geoserver/ows",
         tipo: "wfs",
@@ -430,7 +430,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "sigef-particulares",
-        grupo: "Fundiário",
+        grupo: "Território",
         nome: "Parcelas particulares (SIGEF)",
         servico: "https://geoportal.incra.gov.br/geoserver/ows",
         tipo: "wfs",
@@ -447,7 +447,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "sigef-assentamentos",
-        grupo: "Fundiário",
+        grupo: "Território",
         nome: "Assentamentos e lotes (SIGEF)",
         servico: "https://geoportal.incra.gov.br/geoserver/ows",
         tipo: "wfs",
@@ -464,7 +464,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "sigef-glebas",
-        grupo: "Fundiário",
+        grupo: "Território",
         nome: "Glebas públicas (SIGEF)",
         servico: "https://geoportal.incra.gov.br/geoserver/ows",
         tipo: "wfs",
@@ -481,7 +481,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "prodes-cerrado",
-        grupo: "Meio ambiente",
+        grupo: "Vegetação e meio ambiente",
         nome: "Desmatamento anual (PRODES Cerrado)",
         servico: "https://terrabrasilis.dpi.inpe.br/geoserver/ows",
         tipo: "wfs",
@@ -498,7 +498,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "prodes-caatinga",
-        grupo: "Meio ambiente",
+        grupo: "Vegetação e meio ambiente",
         nome: "Desmatamento anual (PRODES Caatinga)",
         servico: "https://terrabrasilis.dpi.inpe.br/geoserver/ows",
         tipo: "wfs",
@@ -515,7 +515,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "prodes-amazonia",
-        grupo: "Meio ambiente",
+        grupo: "Vegetação e meio ambiente",
         nome: "Desmatamento anual (PRODES Amazônia Legal)",
         servico: "https://terrabrasilis.dpi.inpe.br/geoserver/ows",
         tipo: "wfs",
@@ -532,7 +532,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "prodes-mata-atlantica",
-        grupo: "Meio ambiente",
+        grupo: "Vegetação e meio ambiente",
         nome: "Desmatamento anual (PRODES Mata Atlântica)",
         servico: "https://terrabrasilis.dpi.inpe.br/geoserver/ows",
         tipo: "wfs",
@@ -549,7 +549,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "prodes-pantanal",
-        grupo: "Meio ambiente",
+        grupo: "Vegetação e meio ambiente",
         nome: "Desmatamento anual (PRODES Pantanal)",
         servico: "https://terrabrasilis.dpi.inpe.br/geoserver/ows",
         tipo: "wfs",
@@ -566,7 +566,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "prodes-pampa",
-        grupo: "Meio ambiente",
+        grupo: "Vegetação e meio ambiente",
         nome: "Desmatamento anual (PRODES Pampa)",
         servico: "https://terrabrasilis.dpi.inpe.br/geoserver/ows",
         tipo: "wfs",
@@ -583,7 +583,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "deter-cerrado",
-        grupo: "Meio ambiente",
+        grupo: "Vegetação e meio ambiente",
         nome: "Alertas de desmatamento (DETER Cerrado)",
         servico: "https://terrabrasilis.dpi.inpe.br/geoserver/ows",
         tipo: "wfs",
@@ -600,7 +600,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "deter-amazonia",
-        grupo: "Meio ambiente",
+        grupo: "Vegetação e meio ambiente",
         nome: "Alertas de desmatamento (DETER Amazônia)",
         servico: "https://terrabrasilis.dpi.inpe.br/geoserver/ows",
         tipo: "wfs",
@@ -617,7 +617,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "ibama-embargos",
-        grupo: "Meio ambiente",
+        grupo: "Vegetação e meio ambiente",
         nome: "Áreas embargadas (IBAMA)",
         servico: "https://pamgia.ibama.gov.br/server/rest/services/SISCOM/publico/MapServer",
         tipo: "arcgis",
@@ -855,7 +855,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "anm-processos",
-        grupo: "Infraestrutura",
+        grupo: "Meio físico",
         nome: "Processos minerários ativos (ANM)",
         servico: "https://geo.anm.gov.br/arcgis/rest/services/SIGMINE/dados_anm/MapServer",
         tipo: "arcgis",
@@ -872,7 +872,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "anm-bloqueios",
-        grupo: "Infraestrutura",
+        grupo: "Meio físico",
         nome: "Áreas de bloqueio (ANM)",
         servico: "https://geo.anm.gov.br/arcgis/rest/services/SIGMINE/dados_anm/MapServer",
         tipo: "arcgis",
@@ -889,7 +889,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "anm-reservas",
-        grupo: "Infraestrutura",
+        grupo: "Meio físico",
         nome: "Reservas garimpeiras (ANM)",
         servico: "https://geo.anm.gov.br/arcgis/rest/services/SIGMINE/dados_anm/MapServer",
         tipo: "arcgis",
@@ -906,7 +906,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "anm-barragens",
-        grupo: "Infraestrutura",
+        grupo: "Meio físico",
         nome: "Barragens de mineração (ANM, SIGBM)",
         servico: "https://geo.anm.gov.br/arcgis/rest/services/Producao/Barragens_Dashboard_Publico/FeatureServer",
         tipo: "arcgis",

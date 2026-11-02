@@ -1,7 +1,7 @@
 {
   "id": "brasildata",
   "name": "BrasilData",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Dados públicos do Brasil para a área do usuário (IBGE, MMA, ICMBio, INPE, ANA, ANEEL, ANP, SFB/CAR, INCRA, FUNAI, IBAMA, ANM, DNIT, Ministério da Saúde, Copernicus): só o que cruza a área, recortado por ela, com a fonte e a licença de cada camada.",
   "author": "Elpídio Filho",
   "homepage": "https://github.com/elpidioassinaturas/BrasilData",
@@ -52,420 +52,420 @@
     },
     {
       "id": "municipios",
-      "label": "Municípios",
+      "label": "Municípios (IBGE)",
       "help": "Municípios (IBGE 2025): IBGE, Malha Municipal 2025. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "estados",
-      "label": "Estados",
+      "label": "Estados (IBGE)",
       "help": "Estados (IBGE 2025): IBGE, Malha Municipal 2025. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "geologia",
-      "label": "Geologia",
+      "label": "Geologia (IBGE)",
       "help": "Geologia (BDiA 1:250.000): IBGE, Banco de Dados de Informações Ambientais (BDiA). Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "geomorfologia",
-      "label": "Geomorfologia",
+      "label": "Geomorfologia (IBGE)",
       "help": "Geomorfologia (BDiA 1:250.000): IBGE, Banco de Dados de Informações Ambientais (BDiA). Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "solos",
-      "label": "Solos",
+      "label": "Solos (IBGE)",
       "help": "Solos (BDiA 1:250.000): IBGE, Banco de Dados de Informações Ambientais (BDiA). Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "vegetacao",
-      "label": "Vegetação",
+      "label": "Vegetação (IBGE)",
       "help": "Vegetação (BDiA 1:250.000): IBGE, Banco de Dados de Informações Ambientais (BDiA). Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "drenagem",
-      "label": "Drenagem",
+      "label": "Drenagem (IBGE)",
       "help": "Drenagem (BC250 2025): IBGE, Base Cartográfica Contínua 1:250.000 (BC250), 2025. Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
       "icon": "line_layer",
       "params": "{}"
     },
     {
       "id": "massas-dagua",
-      "label": "Massas d'água",
+      "label": "Massas d'água (IBGE)",
       "help": "Massas d'água (BC250 2025): IBGE, Base Cartográfica Contínua 1:250.000 (BC250), 2025. Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "ana-ottobacias",
-      "label": "Ottobacias (BHO 2017)",
+      "label": "Ottobacias (BHO 2017, ANA)",
       "help": "Ottobacias (BHO 2017 1:50.000, ANA): ANA, Base Hidrográfica Ottocodificada (BHO 2017 1:50.000), SNIRH. Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "ana-bho",
-      "label": "Trechos de drenagem (BHO 2017)",
+      "label": "Trechos de drenagem (BHO 2017, ANA)",
       "help": "Trechos de drenagem (BHO 2017, ANA): ANA, Base Hidrográfica Ottocodificada (BHO 2017), SNIRH. Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
       "icon": "line_layer",
       "params": "{}"
     },
     {
       "id": "ana-uph",
-      "label": "Unidades de planejamento hídrico (UPH)",
+      "label": "Unidades de planejamento hídrico (UPH, ANA)",
       "help": "Unidades de planejamento hídrico (UPH, ANA): ANA, Unidades de Planejamento Hídrico (UPH), SNIRH. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "ibge-dhn-macro",
-      "label": "Macrorregiões hidrográficas (2021)",
+      "label": "Macrorregiões hidrográficas (2021, IBGE)",
       "help": "Macrorregiões hidrográficas (DHN 2021, IBGE): IBGE, Divisão Hidrográfica Nacional (DHN), 2021. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "ibge-dhn-meso",
-      "label": "Mesorregiões hidrográficas (2021)",
+      "label": "Mesorregiões hidrográficas (2021, IBGE)",
       "help": "Mesorregiões hidrográficas (DHN 2021, IBGE): IBGE, Divisão Hidrográfica Nacional (DHN), 2021. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "ibge-dhn-micro",
-      "label": "Microrregiões hidrográficas (2021)",
+      "label": "Microrregiões hidrográficas (2021, IBGE)",
       "help": "Microrregiões hidrográficas (DHN 2021, IBGE): IBGE, Divisão Hidrográfica Nacional (DHN), 2021. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "ana-disponibilidade",
-      "label": "Disponibilidade hídrica",
+      "label": "Disponibilidade hídrica (ANA)",
       "help": "Disponibilidade hídrica superficial (ANA): ANA, Disponibilidade Hídrica Superficial, SNIRH. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web.",
       "icon": "line_layer",
       "params": "{}"
     },
     {
       "id": "ana-balanco",
-      "label": "Balanço hídrico",
+      "label": "Balanço hídrico (ANA)",
       "help": "Balanço hídrico quantitativo por curso d'água (ANA): ANA, Balanço Hídrico Quantitativo por Curso de Água, SNIRH. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web.",
       "icon": "line_layer",
       "params": "{}"
     },
     {
       "id": "ana-estacoes",
-      "label": "Estações hidrometeorológicas",
+      "label": "Estações hidrometeorológicas (ANA)",
       "help": "Estações da Rede Hidrometeorológica Nacional (ANA): ANA, Rede Hidrometeorológica Nacional, SNIRH. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web.",
       "icon": "point_layer",
       "params": "{}"
     },
     {
       "id": "ana-captacoes",
-      "label": "Captações superficiais",
+      "label": "Captações superficiais (ANA)",
       "help": "Captações superficiais (ANA): ANA, Captações Superficiais, SNIRH. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web.",
       "icon": "point_layer",
       "params": "{}"
     },
     {
       "id": "ana-pivos",
-      "label": "Pivôs centrais",
+      "label": "Pivôs centrais (ANA)",
       "help": "Pivôs centrais mapeados (ANA): ANA, Pivôs Mapeados, SNIRH. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "ana-seca-2015",
-      "label": "Municípios com seca (2015)",
+      "label": "Municípios com seca (2015, ANA)",
       "help": "Municípios atingidos por seca em 2015 (ANA): ANA, Municípios Atingidos por Eventos de Seca em 2015, SNIRH. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "ucs",
-      "label": "Unidades de conservação (CNUC)",
+      "label": "Unidades de conservação (MMA)",
       "help": "Unidades de conservação (CNUC 07/2026): MMA, Cadastro Nacional de Unidades de Conservação (CNUC), 07/2026. Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "ucs-federais",
-      "label": "UCs federais",
+      "label": "UCs federais (ICMBio)",
       "help": "Unidades de conservação federais (ICMBio): ICMBio, Limites das Unidades de Conservação Federais, 08/2026. Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "terras-indigenas",
-      "label": "Terras indígenas",
+      "label": "Terras indígenas (FUNAI)",
       "help": "Terras indígenas (FUNAI, via Infra S.A.): FUNAI, Terras Indígenas (cópia publicada pela Infra S.A.). Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "car-imoveis",
-      "label": "Imóveis rurais (CAR)",
+      "label": "Imóveis rurais do CAR (SFB)",
       "help": "Imóveis rurais (CAR): Serviço Florestal Brasileiro, Cadastro Ambiental Rural (SICAR); dados autodeclarados, sem os cancelados. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app web: o servidor só aceita cifras TLS antigas, que o app desktop não aceita.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "sigef-parcelas",
-      "label": "Parcelas do SIGEF (todas)",
+      "label": "Parcelas do SIGEF (todas, INCRA)",
       "help": "Parcelas certificadas (SIGEF): INCRA, Sistema de Gestão Fundiária (SIGEF), Geoportal INCRA. Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "sigef-particulares",
-      "label": "Particulares",
+      "label": "Parcelas particulares (SIGEF, INCRA)",
       "help": "Parcelas particulares (SIGEF): INCRA, Sistema de Gestão Fundiária (SIGEF), Geoportal INCRA. Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "sigef-assentamentos",
-      "label": "Assentamentos e lotes",
+      "label": "Assentamentos e lotes (SIGEF, INCRA)",
       "help": "Assentamentos e lotes (SIGEF): INCRA, Sistema de Gestão Fundiária (SIGEF), Geoportal INCRA. Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "sigef-glebas",
-      "label": "Glebas públicas",
+      "label": "Glebas públicas (SIGEF, INCRA)",
       "help": "Glebas públicas (SIGEF): INCRA, Sistema de Gestão Fundiária (SIGEF), Geoportal INCRA. Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "prodes-cerrado",
-      "label": "PRODES Cerrado",
+      "label": "PRODES Cerrado (INPE)",
       "help": "Desmatamento anual (PRODES Cerrado): INPE, PRODES Cerrado (TerraBrasilis). Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "prodes-caatinga",
-      "label": "PRODES Caatinga",
+      "label": "PRODES Caatinga (INPE)",
       "help": "Desmatamento anual (PRODES Caatinga): INPE, PRODES Caatinga (TerraBrasilis). Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "prodes-amazonia",
-      "label": "PRODES Amazônia Legal",
+      "label": "PRODES Amazônia Legal (INPE)",
       "help": "Desmatamento anual (PRODES Amazônia Legal): INPE, PRODES Amazônia Legal (TerraBrasilis). Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "prodes-mata-atlantica",
-      "label": "PRODES Mata Atlântica",
+      "label": "PRODES Mata Atlântica (INPE)",
       "help": "Desmatamento anual (PRODES Mata Atlântica): INPE, PRODES Mata Atlântica (TerraBrasilis). Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "prodes-pantanal",
-      "label": "PRODES Pantanal",
+      "label": "PRODES Pantanal (INPE)",
       "help": "Desmatamento anual (PRODES Pantanal): INPE, PRODES Pantanal (TerraBrasilis). Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "prodes-pampa",
-      "label": "PRODES Pampa",
+      "label": "PRODES Pampa (INPE)",
       "help": "Desmatamento anual (PRODES Pampa): INPE, PRODES Pampa (TerraBrasilis). Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "deter-cerrado",
-      "label": "DETER Cerrado",
+      "label": "DETER Cerrado (INPE)",
       "help": "Alertas de desmatamento (DETER Cerrado): INPE, DETER Cerrado (TerraBrasilis). Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "deter-amazonia",
-      "label": "DETER Amazônia",
+      "label": "DETER Amazônia (INPE)",
       "help": "Alertas de desmatamento (DETER Amazônia): INPE, DETER Amazônia (TerraBrasilis). Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "ibama-embargos",
-      "label": "Embargos",
+      "label": "Áreas embargadas (IBAMA)",
       "help": "Áreas embargadas (IBAMA): IBAMA, Termos de embargo (SISCOM, PAMGIA). Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "aneel-uhe",
-      "label": "Usinas hidrelétricas (UHE)",
+      "label": "Usinas hidrelétricas (UHE, ANEEL)",
       "help": "Usinas hidrelétricas (ANEEL): ANEEL, SIGEL, Usinas Hidrelétricas - UHE. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web.",
       "icon": "point_layer",
       "params": "{}"
     },
     {
       "id": "aneel-pch",
-      "label": "Pequenas centrais hidrelétricas (PCH)",
+      "label": "Pequenas centrais hidrelétricas (PCH, ANEEL)",
       "help": "Pequenas centrais hidrelétricas (ANEEL): ANEEL, SIGEL, Pequenas Centrais Hidrelétricas - PCH. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web.",
       "icon": "point_layer",
       "params": "{}"
     },
     {
       "id": "aneel-cgh",
-      "label": "Centrais geradoras hidrelétricas (CGH)",
+      "label": "Centrais geradoras hidrelétricas (CGH, ANEEL)",
       "help": "Centrais geradoras hidrelétricas (ANEEL): ANEEL, SIGEL, Centrais Geradoras Hidrelétricas - CGH. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web.",
       "icon": "point_layer",
       "params": "{}"
     },
     {
       "id": "aneel-eol",
-      "label": "Centrais eólicas (EOL)",
+      "label": "Centrais eólicas (EOL, ANEEL)",
       "help": "Centrais geradoras eólicas (ANEEL): ANEEL, SIGEL, Central Geradora Eólica - EOL. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web.",
       "icon": "point_layer",
       "params": "{}"
     },
     {
       "id": "aneel-ufv",
-      "label": "Usinas solares (UFV)",
+      "label": "Usinas solares (UFV, ANEEL)",
       "help": "Centrais solares fotovoltaicas (ANEEL): ANEEL, SIGEL, Centrais Geradoras Solares Fotovoltaicas - UFV. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web.",
       "icon": "point_layer",
       "params": "{}"
     },
     {
       "id": "aneel-ute",
-      "label": "Usinas termelétricas (UTE)",
+      "label": "Usinas termelétricas (UTE, ANEEL)",
       "help": "Usinas termelétricas (ANEEL): ANEEL, SIGEL, Usinas Termelétricas - UTE. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web.",
       "icon": "point_layer",
       "params": "{}"
     },
     {
       "id": "anp-bacias",
-      "label": "Bacias sedimentares",
+      "label": "Bacias sedimentares (ANP)",
       "help": "Bacias sedimentares (ANP): ANP, GeoMaps, Bacias Sedimentares. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "anp-blocos",
-      "label": "Blocos exploratórios",
+      "label": "Blocos exploratórios (ANP)",
       "help": "Blocos exploratórios (ANP): ANP, GeoMaps, Blocos Exploratórios. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "anp-campos",
-      "label": "Campos de produção",
+      "label": "Campos de produção (ANP)",
       "help": "Campos de produção (ANP): ANP, GeoMaps, Campos de Produção. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "anp-pocos",
-      "label": "Poços",
+      "label": "Poços de petróleo e gás (ANP)",
       "help": "Poços de petróleo e gás (ANP): ANP, GeoMaps, Poços. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web.",
       "icon": "point_layer",
       "params": "{}"
     },
     {
       "id": "anp-gasodutos",
-      "label": "Gasodutos de transporte",
+      "label": "Gasodutos de transporte (ANP)",
       "help": "Gasodutos de transporte (ANP): ANP, GeoMaps, Gasodutos de Transporte. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web.",
       "icon": "line_layer",
       "params": "{}"
     },
     {
       "id": "anp-oleodutos",
-      "label": "Oleodutos de transporte",
+      "label": "Oleodutos de transporte (ANP)",
       "help": "Oleodutos de transporte (ANP): ANP, GeoMaps, Oleodutos de Transporte. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web.",
       "icon": "line_layer",
       "params": "{}"
     },
     {
       "id": "anp-postos",
-      "label": "Postos de combustível",
+      "label": "Postos de combustível (ANP)",
       "help": "Postos de combustível (ANP): ANP, GeoMaps, Postos de Combustível. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web.",
       "icon": "point_layer",
       "params": "{}"
     },
     {
       "id": "anm-processos",
-      "label": "Processos minerários ativos",
+      "label": "Processos minerários ativos (ANM)",
       "help": "Processos minerários ativos (ANM): ANM, SIGMINE, processos minerários ativos. Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "anm-bloqueios",
-      "label": "Áreas de bloqueio",
+      "label": "Áreas de bloqueio (ANM)",
       "help": "Áreas de bloqueio (ANM): ANM, SIGMINE, áreas de bloqueio. Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "anm-reservas",
-      "label": "Reservas garimpeiras",
+      "label": "Reservas garimpeiras (ANM)",
       "help": "Reservas garimpeiras (ANM): ANM, SIGMINE, reservas garimpeiras. Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "anm-barragens",
-      "label": "Barragens de mineração",
+      "label": "Barragens de mineração (ANM)",
       "help": "Barragens de mineração (ANM, SIGBM): ANM, Sistema Integrado de Gestão de Barragens de Mineração (SIGBM), painel público. Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
       "icon": "point_layer",
       "params": "{}"
     },
     {
       "id": "dnit-snv",
-      "label": "Rodovias federais (SNV)",
+      "label": "Rodovias federais (SNV, DNIT)",
       "help": "Rodovias federais (SNV vigente, DNIT): DNIT, Sistema Nacional de Viação (SNV), versão vigente. Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
       "icon": "line_layer",
       "params": "{}"
     },
     {
       "id": "censo-setores",
-      "label": "Setores censitários",
+      "label": "Setores censitários (IBGE)",
       "help": "Os setores censitários de 2022 da área, com pessoas e domicílios (IBGE, agregados por setores): o GeoPackage de cada UF, recortado pela área. No app web, um segundo clique recorta.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "censo-municipios",
-      "label": "Censos por município",
+      "label": "Censos por município (IBGE)",
       "help": "População, área e densidade de 2022 (Censo Demográfico) e estabelecimentos agropecuários e agricultura familiar de 2017 (Censo Agropecuário), do IBGE. Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "indicadores-pix",
-      "label": "Pix",
+      "label": "Pix (Banco Central)",
       "help": "O Pix do último mês completo: valor pago e recebido (R$), transações pagas e pessoas físicas pagadoras. Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "indicadores-credito",
-      "label": "Crédito rural de custeio",
+      "label": "Crédito rural de custeio (Banco Central)",
       "help": "O custeio do último ano completo, do SICOR: total, Pronaf, agrícola e pecuário (R$) e área (ha). O SICOR é lento: cerca de 10 s para cada 6 municípios. Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "indicadores-tse",
-      "label": "Eleições",
+      "label": "Eleitorado e comparecimento (TSE)",
       "help": "Eleitorado, comparecimento e abstenção (%) no 1º turno de 2026 e de 2024, da divulgação oficial do TSE. Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem.",
       "icon": "polygon_layer",
       "params": "{}"
@@ -486,14 +486,14 @@
     },
     {
       "id": "saude-estabelecimentos",
-      "label": "Estabelecimentos de saúde (CNES)",
+      "label": "Estabelecimentos de saúde (CNES, DATASUS)",
       "help": "Os estabelecimentos de saúde ativos na área, do CNES do Ministério da Saúde (competência 04/2026, pelo geobr do Ipea), com nome, tipo, natureza jurídica, gestão e bairro. Os de pessoa física e de empresário individual, cujo nome é o de uma pessoa, ficam de fora. Só no desktop: o primeiro clique abre o arquivo do Brasil (98 MB, lido aos pedaços), o segundo recorta pela área.",
       "icon": "point_layer",
       "params": "{}"
     },
     {
       "id": "elevacao",
-      "label": "Elevação (GLO-30)",
+      "label": "Elevação (Copernicus GLO-30)",
       "help": "Copernicus GLO-30 recortado pela área e posto na grade UTM SIRGAS 2000 do fuso da área (ou na Policônica, quando a área passa de um fuso).",
       "icon": "raster_layer",
       "params": "{\"celula\"?: tamanho da célula em metros (padrão 30)}"
@@ -552,38 +552,63 @@
         ]
       },
       {
-        "label": "Limites e população",
+        "label": "Território",
         "items": [
           {
-            "menu": "IBGE",
+            "menu": "Limites",
             "icon": "polygon_layer",
             "items": [
               "municipios",
-              "estados",
+              "estados"
+            ]
+          },
+          {
+            "menu": "Áreas protegidas",
+            "icon": "polygon_layer",
+            "items": [
+              "ucs",
+              "ucs-federais",
+              "terras-indigenas"
+            ]
+          },
+          {
+            "menu": "Cadastro fundiário",
+            "icon": "polygon_layer",
+            "items": [
+              "car-imoveis",
+              "sigef-parcelas",
+              "sigef-particulares",
+              "sigef-assentamentos",
+              "sigef-glebas"
+            ]
+          }
+        ]
+      },
+      {
+        "label": "Sociedade e economia",
+        "items": [
+          {
+            "menu": "População",
+            "icon": "polygon_layer",
+            "items": [
               "censo-setores",
               "censo-municipios"
             ]
           },
           {
-            "menu": "Banco Central",
+            "menu": "Economia",
             "icon": "polygon_layer",
             "items": [
               "indicadores-pix",
-              "indicadores-credito"
+              "indicadores-credito",
+              "indicadores-caged"
             ]
           },
           {
-            "menu": "TSE",
+            "menu": "Eleições",
             "icon": "polygon_layer",
             "items": [
               "indicadores-tse"
-            ]
-          },
-          {
-            "menu": "Ministério do Trabalho",
-            "icon": "polygon_layer",
-            "items": [
-              "indicadores-caged"
             ]
           },
           "indicadores-todos"
@@ -593,7 +618,7 @@
         "label": "Saúde",
         "items": [
           {
-            "menu": "Ministério da Saúde",
+            "menu": "Estabelecimentos",
             "icon": "point_layer",
             "items": [
               "saude-estabelecimentos"
@@ -605,19 +630,29 @@
         "label": "Meio físico",
         "items": [
           {
-            "menu": "IBGE",
+            "menu": "Geologia e recursos minerais",
             "icon": "polygon_layer",
             "items": [
               "geologia",
-              "geomorfologia",
-              "solos"
+              "anm-processos",
+              "anm-bloqueios",
+              "anm-reservas",
+              "anm-barragens"
             ]
           },
           {
-            "menu": "Copernicus",
-            "icon": "raster_layer",
+            "menu": "Relevo",
+            "icon": "polygon_layer",
             "items": [
+              "geomorfologia",
               "elevacao"
+            ]
+          },
+          {
+            "menu": "Solos",
+            "icon": "polygon_layer",
+            "items": [
+              "solos"
             ]
           }
         ]
@@ -626,23 +661,29 @@
         "label": "Água",
         "items": [
           {
-            "menu": "IBGE",
+            "menu": "Hidrografia",
             "icon": "line_layer",
             "items": [
               "drenagem",
               "massas-dagua",
+              "ana-bho"
+            ]
+          },
+          {
+            "menu": "Bacias",
+            "icon": "polygon_layer",
+            "items": [
+              "ana-ottobacias",
+              "ana-uph",
               "ibge-dhn-macro",
               "ibge-dhn-meso",
               "ibge-dhn-micro"
             ]
           },
           {
-            "menu": "ANA",
-            "icon": "polygon_layer",
+            "menu": "Recursos hídricos",
+            "icon": "line_layer",
             "items": [
-              "ana-ottobacias",
-              "ana-bho",
-              "ana-uph",
               "ana-disponibilidade",
               "ana-balanco",
               "ana-estacoes",
@@ -654,38 +695,17 @@
         ]
       },
       {
-        "label": "Meio ambiente",
+        "label": "Vegetação e meio ambiente",
         "items": [
           {
-            "menu": "IBGE",
+            "menu": "Vegetação",
             "icon": "polygon_layer",
             "items": [
               "vegetacao"
             ]
           },
           {
-            "menu": "MMA",
-            "icon": "polygon_layer",
-            "items": [
-              "ucs"
-            ]
-          },
-          {
-            "menu": "ICMBio",
-            "icon": "polygon_layer",
-            "items": [
-              "ucs-federais"
-            ]
-          },
-          {
-            "menu": "FUNAI",
-            "icon": "polygon_layer",
-            "items": [
-              "terras-indigenas"
-            ]
-          },
-          {
-            "menu": "INPE",
+            "menu": "Desmatamento",
             "icon": "polygon_layer",
             "items": [
               "prodes-cerrado",
@@ -699,7 +719,7 @@
             ]
           },
           {
-            "menu": "IBAMA",
+            "menu": "Fiscalização",
             "icon": "polygon_layer",
             "items": [
               "ibama-embargos"
@@ -708,32 +728,10 @@
         ]
       },
       {
-        "label": "Fundiário",
-        "items": [
-          {
-            "menu": "SFB",
-            "icon": "polygon_layer",
-            "items": [
-              "car-imoveis"
-            ]
-          },
-          {
-            "menu": "INCRA",
-            "icon": "polygon_layer",
-            "items": [
-              "sigef-parcelas",
-              "sigef-particulares",
-              "sigef-assentamentos",
-              "sigef-glebas"
-            ]
-          }
-        ]
-      },
-      {
         "label": "Infraestrutura",
         "items": [
           {
-            "menu": "ANEEL",
+            "menu": "Energia",
             "icon": "point_layer",
             "items": [
               "aneel-uhe",
@@ -745,7 +743,7 @@
             ]
           },
           {
-            "menu": "ANP",
+            "menu": "Petróleo e gás",
             "icon": "polygon_layer",
             "items": [
               "anp-bacias",
@@ -758,17 +756,7 @@
             ]
           },
           {
-            "menu": "ANM",
-            "icon": "polygon_layer",
-            "items": [
-              "anm-processos",
-              "anm-bloqueios",
-              "anm-reservas",
-              "anm-barragens"
-            ]
-          },
-          {
-            "menu": "DNIT",
+            "menu": "Transportes",
             "icon": "line_layer",
             "items": [
               "dnit-snv"

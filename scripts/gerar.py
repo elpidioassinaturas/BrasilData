@@ -3,11 +3,13 @@
     python scripts/gerar.py           # escreve os três
     python scripts/gerar.py --check   # só confere que estão em dia (para o CI)
 
-A aba vai de grandes áreas a fontes e camadas: o grupo é a área (Água, Meio ambiente…), o menu
-é a fonte (IBGE, ANA, INPE…) e os itens do menu são as camadas.
+A aba vai de tópicos a subtópicos e camadas: o grupo é o tópico (Água, Meio físico, Saúde…), o
+menu é o subtópico (Bacias, Relevo…) e os itens do menu são as camadas, com a fonte entre
+parênteses ("Geologia (IBGE)"). Os tópicos seguem as categorias temáticas da ISO 19115 e do Perfil
+MGB da INDE, juntadas para caber nos 8 grupos que o RustGIS aceita.
 
-O fontes.csv tem uma linha por camada vetorial: id, grupo (o grupo da aba), menu (a fonte: o
-menu do grupo em que o botão fica; vazio, um botão solto), rotulo (o botão; \\n quebra a linha), nome (o da camada no
+O fontes.csv tem uma linha por camada vetorial: id, grupo (o tópico), menu (o subtópico: o menu
+do grupo em que o botão fica; vazio, um botão solto), rotulo (o botão; \\n quebra a linha), nome (o da camada no
 mapa, depois de "BrasilData: "), servico (o endereço), tipo (wfs ou arcgis), camada (o tipo de
 feição do WFS, ou o número da camada do ArcGIS), geometria (poligono, linha ou ponto: o ícone),
 recorta (sim/nao: se é recortada pelo polígono da área), web (sim/nao: se o servidor permite
@@ -28,7 +30,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.3"
+VERSAO = "0.1.4"
 
 # Os comandos que não vêm da tabela, com o grupo da aba em que ficam. Na aba, o grupo Área
 # tem o painel (a escolha do município pelo nome) e a área pela seleção; o comando
@@ -102,66 +104,66 @@ FIM = [
 ]
 
 
-# Comandos que não vêm da tabela e ficam num grupo da aba: (grupo, menu da fonte ou None, comando).
+# Comandos que não vêm da tabela e ficam num grupo da aba: (tópico, subtópico ou None, comando).
 EM_MENUS = [
     (
-        "Limites e população",
-        "IBGE",
+        "Sociedade e economia",
+        "População",
         {
             "id": "censo-setores",
-            "label": "Setores censitários",
+            "label": "Setores censitários (IBGE)",
             "help": "Os setores censitários de 2022 da área, com pessoas e domicílios (IBGE, agregados por setores): o GeoPackage de cada UF, recortado pela área. No app web, um segundo clique recorta.",
             "icon": "polygon_layer",
             "params": "{}",
         },
     ),
     (
-        "Limites e população",
-        "IBGE",
+        "Sociedade e economia",
+        "População",
         {
             "id": "censo-municipios",
-            "label": "Censos por município",
+            "label": "Censos por município (IBGE)",
             "help": "População, área e densidade de 2022 (Censo Demográfico) e estabelecimentos agropecuários e agricultura familiar de 2017 (Censo Agropecuário), do IBGE. Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem.",
             "icon": "polygon_layer",
             "params": "{}",
         },
     ),
     (
-        "Limites e população",
-        "Banco Central",
+        "Sociedade e economia",
+        "Economia",
         {
             "id": "indicadores-pix",
-            "label": "Pix",
+            "label": "Pix (Banco Central)",
             "help": "O Pix do último mês completo: valor pago e recebido (R$), transações pagas e pessoas físicas pagadoras. Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem.",
             "icon": "polygon_layer",
             "params": "{}",
         },
     ),
     (
-        "Limites e população",
-        "Banco Central",
+        "Sociedade e economia",
+        "Economia",
         {
             "id": "indicadores-credito",
-            "label": "Crédito rural de custeio",
+            "label": "Crédito rural de custeio (Banco Central)",
             "help": "O custeio do último ano completo, do SICOR: total, Pronaf, agrícola e pecuário (R$) e área (ha). O SICOR é lento: cerca de 10 s para cada 6 municípios. Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem.",
             "icon": "polygon_layer",
             "params": "{}",
         },
     ),
     (
-        "Limites e população",
-        "TSE",
+        "Sociedade e economia",
+        "Eleições",
         {
             "id": "indicadores-tse",
-            "label": "Eleições",
+            "label": "Eleitorado e comparecimento (TSE)",
             "help": "Eleitorado, comparecimento e abstenção (%) no 1º turno de 2026 e de 2024, da divulgação oficial do TSE. Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem.",
             "icon": "polygon_layer",
             "params": "{}",
         },
     ),
     (
-        "Limites e população",
-        "Ministério do Trabalho",
+        "Sociedade e economia",
+        "Economia",
         {
             "id": "indicadores-caged",
             "label": "Emprego formal (Novo CAGED)",
@@ -171,7 +173,7 @@ EM_MENUS = [
         },
     ),
     (
-        "Limites e população",
+        "Sociedade e economia",
         None,
         {
             "id": "indicadores-todos",
@@ -183,10 +185,10 @@ EM_MENUS = [
     ),
     (
         "Saúde",
-        "Ministério da Saúde",
+        "Estabelecimentos",
         {
             "id": "saude-estabelecimentos",
-            "label": "Estabelecimentos de saúde (CNES)",
+            "label": "Estabelecimentos de saúde (CNES, DATASUS)",
             "help": "Os estabelecimentos de saúde ativos na área, do CNES do Ministério da Saúde (competência 04/2026, pelo geobr do Ipea), com nome, tipo, natureza jurídica, gestão e bairro. Os de pessoa física e de empresário individual, cujo nome é o de uma pessoa, ficam de fora. Só no desktop: o primeiro clique abre o arquivo do Brasil (98 MB, lido aos pedaços), o segundo recorta pela área.",
             "icon": "point_layer",
             "params": "{}",
@@ -194,10 +196,10 @@ EM_MENUS = [
     ),
     (
         "Meio físico",
-        "Copernicus",
+        "Relevo",
         {
             "id": "elevacao",
-            "label": "Elevação (GLO-30)",
+            "label": "Elevação (Copernicus GLO-30)",
             "help": "Copernicus GLO-30 recortado pela área e posto na grade UTM SIRGAS 2000 do fuso da área (ou na Policônica, quando a área passa de um fuso).",
             "icon": "raster_layer",
             "params": "{\"celula\"?: tamanho da célula em metros (padrão 30)}",
@@ -253,8 +255,8 @@ def ler() -> list[dict]:
     return linhas
 
 
-# Os grupos da aba, na ordem: as grandes áreas (o RustGIS aceita até 8).
-GRUPOS = ["Área", "Limites e população", "Saúde", "Meio físico", "Água", "Meio ambiente", "Fundiário", "Infraestrutura"]
+# Os grupos da aba, na ordem: os tópicos (o RustGIS aceita até 8).
+GRUPOS = ["Área", "Território", "Sociedade e economia", "Saúde", "Meio físico", "Água", "Vegetação e meio ambiente", "Infraestrutura"]
 
 # O ícone do RustGIS de cada geometria.
 ICONES = {"poligono": "polygon_layer", "linha": "line_layer", "ponto": "point_layer"}
