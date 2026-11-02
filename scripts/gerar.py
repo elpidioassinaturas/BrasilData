@@ -25,7 +25,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.2"
+VERSAO = "0.1.3"
 
 # Os comandos que não vêm da tabela, com o grupo da aba em que ficam. Na aba, o grupo Área
 # tem o painel (a escolha do município pelo nome) e a área pela seleção; o comando
@@ -180,6 +180,17 @@ EM_MENUS = [
     ),
     (
         "Limites e indicadores",
+        "Saúde",
+        {
+            "id": "saude-estabelecimentos",
+            "label": "Estabelecimentos de saúde (CNES)",
+            "help": "Os estabelecimentos de saúde ativos na área, do CNES do Ministério da Saúde (competência 04/2026, pelo geobr do Ipea), com nome, tipo, natureza jurídica, gestão e bairro. Os de pessoa física e de empresário individual, cujo nome é o de uma pessoa, ficam de fora. Só no desktop: o primeiro clique abre o arquivo do Brasil (98 MB, lido aos pedaços), o segundo recorta pela área.",
+            "icon": "point_layer",
+            "params": "{}",
+        },
+    ),
+    (
+        "Limites e indicadores",
         None,
         {
             "id": "censo-setores",
@@ -289,7 +300,7 @@ def manifesto(linhas: list[dict]) -> str:
         "id": "brasildata",
         "name": "BrasilData",
         "version": VERSAO,
-        "description": "Dados públicos do Brasil para a área do usuário (IBGE, MMA, ICMBio, INPE, ANA, ANEEL, ANP, SFB/CAR, INCRA, FUNAI, IBAMA, ANM, DNIT, Copernicus): só o que cruza a área, recortado por ela, com a fonte e a licença de cada camada.",
+        "description": "Dados públicos do Brasil para a área do usuário (IBGE, MMA, ICMBio, INPE, ANA, ANEEL, ANP, SFB/CAR, INCRA, FUNAI, IBAMA, ANM, DNIT, Ministério da Saúde, Copernicus): só o que cruza a área, recortado por ela, com a fonte e a licença de cada camada.",
         "author": "Elpídio Filho",
         "homepage": "https://github.com/elpidioassinaturas/BrasilData",
         "license": "MIT",

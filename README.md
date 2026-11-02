@@ -15,7 +15,7 @@ grupos:
 
 | Grupo | Menus |
 |---|---|
-| Limites e indicadores | Municípios, Estados, Indicadores por município (Censos, Pix, crédito rural, eleições, emprego formal) |
+| Limites e indicadores | Municípios, Estados, Indicadores por município (Censos, Pix, crédito rural, eleições, emprego formal), Saúde (estabelecimentos do CNES) |
 | Meio físico | Geologia, Geomorfologia, Solos, Vegetação (BDiA, IBGE), Elevação (Copernicus GLO-30) |
 | Água | Drenagem, Massas d'água, ANA, Bacias (BHO 2017, UPH, divisão hidrográfica do IBGE) |
 | Áreas protegidas | Unidades de conservação, UCs federais, Terras indígenas |
@@ -102,7 +102,12 @@ Fora da tabela, com a citação no comando **Fontes**:
   [OpenTopography](https://opentopography.org), que abre também no app web;
 - **Indicadores por município:** IBGE (Censo Demográfico 2022, Censo Agropecuário 2017), Banco
   Central (Pix, crédito rural), TSE e Novo CAGED;
-- **Setores censitários:** IBGE, Censo Demográfico 2022, agregados por setores.
+- **Setores censitários:** IBGE, Censo Demográfico 2022, agregados por setores;
+- **Estabelecimentos de saúde:** Ministério da Saúde, CNES, competência 04/2026, pelo
+  [geobr](https://github.com/ipea/geobr) do Ipea (GeoParquet do Brasil, 98 MB, lido aos pedaços).
+  Ficam os ativos, sem os de pessoa física e de empresário individual, cujo nome é o de uma
+  pessoa, e sem CPF, CNPJ ou nome de diretor. Só no app desktop: o GitHub não manda CORS. O
+  zip do próprio Ministério (OpenDataSUS) vem em Latin-1, que o RustGIS 0.5.0 não lê.
 
 ## Instalar
 

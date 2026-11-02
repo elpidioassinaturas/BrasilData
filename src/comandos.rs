@@ -5,6 +5,7 @@ use rustgis_plugin::{Request, Value, geojson, host, json};
 use crate::censo;
 use crate::indicadores::{self, Fonte};
 use crate::municipios::{self, Municipio};
+use crate::saude;
 use crate::{AREA, PREFIXO, TEMAS, Tema, falha_passageira, pedido_de_feicoes, sistema, tema_da_camada, tiles};
 
 /// Os nomes das camadas dos censos, depois de [`PREFIXO`].
@@ -36,6 +37,7 @@ fn handle(req: Request) -> Result<Value, String> {
         "indicadores-tse" => indicadores(&[Fonte::Tse]),
         "indicadores-caged" => indicadores(&[Fonte::Caged]),
         "censo-setores" => censo_setores(),
+        "saude-estabelecimentos" => estabelecimentos_de_saude(),
         other => Err(format!("o BrasilData não tem o comando '{other}'")),
     }
 }
@@ -502,6 +504,8 @@ fn citacoes() -> Result<(Vec<Value>, String), String> {
                     lista.push(json!({"layer": n, "source": f.citacao(), "license": f.licenca()}));
                 }
             }
+        } else if n == camada_de_saude() {
+            lista.push(json!({"layer": n, "source": saude::CITACAO, "license": saude::LICENCA}));
         } else if n == ELEVACAO {
             lista.push(json!({"layer": n, "source": CITACAO_ELEVACAO, "license": "licença do Copernicus DEM: uso livre e gratuito, com esta citação"}));
         } else if n.starts_with(&format!("{PREFIXO}{CENSO_SETORES}")) {
@@ -982,4 +986,74 @@ fn censo_setores() -> Result<Value, String> {
         ));
     }
     Ok(json!({"layers": feitas, "downloading": baixando}))
+}
+
+/// O nome da camada dos estabelecimentos de saúde.
+fn camada_de_saude() -> String {
+    format!("{PREFIXO}Estabelecimentos de saúde (CNES {})", saude::COMPETENCIA)
+}
+
+/// O CNES do Brasil inteiro, lido aos pedaços, antes do recorte.
+const SAUDE_BRUTO: &str = "BrasilData: CNES do Brasil (sem recorte)";
+
+/// Mais estabelecimentos que isto na área é área grande demais (o mesmo teto dos temas; a
+/// cidade de São Paulo tem cerca de 43 mil, contando os desativados).
+const MAX_SAUDE: u64 = MAX_FEICOES;
+
+/// Os estabelecimentos de saúde ativos na área, do CNES pelo GeoParquet do geobr. Na janela, o
+/// RustGIS não espera o arquivo: o primeiro clique o abre e o segundo recorta.
+fn estabelecimentos_de_saude() -> Result<Value, String> {
+    let (_, na_area) = retangulo()?;
+    if !na_area {
+        return Err("escolha a área primeiro (Área: seleção ou Área: município)".into());
+    }
+    let nome = camada_de_saude();
+    remover(&[&nome])?;
+    if feicoes_da_camada(SAUDE_BRUTO)?.is_none() {
+        let r = host::run("layer.addUrl", json!({"url": saude::URL, "name": SAUDE_BRUTO, "zoom": false}))?;
+        if r.get("pending").and_then(Value::as_bool) == Some(true) || r.get("downloading").is_some() {
+            host::notify(&format!(
+                "Estabelecimentos de saúde: abrindo o CNES do Brasil (geobr, 98 MB, lido aos pedaços). Quando \"{SAUDE_BRUTO}\" aparecer no mapa, clique de novo"
+            ));
+            return Ok(json!({"pending": true}));
+        }
+    }
+    let r = host::run("gp.run", json!({"tool": "clip", "params": {"input": SAUDE_BRUTO, "clip": AREA}}))?;
+    let recortada = r.get("layer").cloned().ok_or("o clip não disse a camada que fez")?;
+    let temporaria = format!("{nome} (todos)");
+    host::run("layer.rename", json!({"layer": recortada, "name": temporaria}))?;
+    let lidos = feicoes_da_camada(&temporaria)?.unwrap_or(0);
+    if lidos > MAX_SAUDE {
+        remover(&[&temporaria, SAUDE_BRUTO])?;
+        return Err(format!("a área tem {lidos} estabelecimentos de saúde; o limite é {MAX_SAUDE}: escolha uma área menor"));
+    }
+    let contar = |onde: &str| -> Result<u64, String> {
+        Ok(host::run("select.byAttributes", json!({"layer": temporaria, "where": onde}))?["selected"].as_u64().unwrap_or(0))
+    };
+    let desativados = contar(saude::DESATIVADO)?;
+    let de_pessoa = contar(&saude::de_pessoa_ativos())?;
+    let ficaram = contar(&saude::ficam())?;
+    let fora = format!("{desativados} desativados e {de_pessoa} de pessoa física ou empresário individual deixados de fora");
+    if ficaram == 0 {
+        remover(&[&temporaria, SAUDE_BRUTO])?;
+        host::notify(&format!("{nome}: nenhum estabelecimento ativo na área ({lidos} lidos; {fora})"));
+        return Ok(json!({"layer": null, "read": lidos, "features": 0}));
+    }
+    let r = host::run("select.layerFromSelection", json!({"layer": temporaria}))?;
+    let camada = r.get("layer").cloned().ok_or("a seleção não virou camada")?;
+    host::run("layer.rename", json!({"layer": camada, "name": nome}))?;
+    remover(&[&temporaria, SAUDE_BRUTO])?;
+    // O RustGIS calcula os campos novos e apaga os outros: o plugin não lê os estabelecimentos.
+    for (campo, tipo, expressao) in saude::campos() {
+        host::run("edit.addField", json!({"layer": nome, "name": campo, "type": tipo}))?;
+        host::run("edit.calculateField", json!({"layer": nome, "field": campo, "expression": expressao}))?;
+    }
+    let campos = host::run("layer.fields", json!({"layer": nome}))?;
+    for c in campos.as_array().into_iter().flatten().filter_map(|c| c["name"].as_str()) {
+        if !saude::fica_o_campo(c) {
+            host::run("edit.deleteField", json!({"layer": nome, "field": c}))?;
+        }
+    }
+    host::notify(&format!("{nome}: {ficaram} de {lidos} na área ({fora}; Ministério da Saúde, pelo geobr)"));
+    Ok(json!({"layer": nome, "read": lidos, "features": ficaram, "inactive": desativados, "personal": de_pessoa}))
 }

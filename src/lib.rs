@@ -18,6 +18,7 @@ pub mod indicadores;
 #[cfg(target_arch = "wasm32")]
 mod comandos;
 pub mod municipios;
+pub mod saude;
 pub mod vista;
 
 pub use catalogo::TEMAS;
