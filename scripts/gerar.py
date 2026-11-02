@@ -30,7 +30,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.4"
+VERSAO = "0.1.5"
 
 # Os comandos que não vêm da tabela, com o grupo da aba em que ficam. Na aba, o grupo Área
 # tem o painel (a escolha do município pelo nome) e a área pela seleção; o comando
@@ -141,7 +141,7 @@ EM_MENUS = [
     ),
     (
         "Sociedade e economia",
-        "Economia",
+        "Agricultura",
         {
             "id": "indicadores-credito",
             "label": "Crédito rural de custeio (Banco Central)",
@@ -255,8 +255,23 @@ def ler() -> list[dict]:
     return linhas
 
 
-# Os grupos da aba, na ordem: os tópicos (o RustGIS aceita até 8).
-GRUPOS = ["Área", "Território", "Sociedade e economia", "Saúde", "Meio físico", "Água", "Vegetação e meio ambiente", "Infraestrutura"]
+# Os tópicos da aba e os subtópicos de cada um, na ordem em que aparecem (o RustGIS aceita até 8
+# grupos e 16 itens por grupo). A aba é conferida contra esta lista: um subtópico que não está
+# aqui, ou que ficou vazio, para o gerar.py.
+TOPICOS = {
+    "Área": [],
+    "Território": ["Limites", "Cadastro fundiário", "Terras indígenas"],
+    "Sociedade e economia": ["População", "Economia", "Agricultura", "Eleições"],
+    "Saúde": ["Estabelecimentos"],
+    "Meio físico": ["Geologia e recursos minerais", "Relevo", "Solos"],
+    "Água": ["Hidrografia", "Bacias", "Recursos hídricos"],
+    "Vegetação e meio ambiente": ["Vegetação", "Desmatamento", "Áreas protegidas", "Fiscalização"],
+    "Infraestrutura": ["Energia", "Petróleo e gás", "Transportes"],
+}
+GRUPOS = list(TOPICOS)
+# Comandos que também aparecem num segundo subtópico: (tópico, subtópico, id). Os censos por
+# município trazem a população e o Censo Agropecuário.
+TAMBEM = [("Sociedade e economia", "Agricultura", "censo-municipios")]
 
 # O ícone de um subtópico, quando um dos ícones do RustGIS diz mais que a geometria da primeira
 # camada (o plugin só pode usar os ícones do RustGIS, pelo nome).
@@ -317,10 +332,21 @@ def manifesto(linhas: list[dict]) -> str:
     for grupo, c in FIM:
         comandos.append(c)
         grupos.setdefault(grupo, []).append(c["id"])
+    for grupo, menu, cid in TAMBEM:
+        m = next((i for i in grupos.get(grupo, []) if isinstance(i, dict) and i["menu"] == menu), None)
+        if m is None:
+            sys.exit(f"TAMBEM: o subtópico {grupo} › {menu} não existe")
+        m["items"].append(cid)
     fora = [g for g in grupos if g not in GRUPOS]
     if fora:
-        sys.exit(f"grupos fora de GRUPOS: {', '.join(fora)}")
+        sys.exit(f"grupos fora de TOPICOS: {', '.join(fora)}")
     grupos = {g: grupos[g] for g in GRUPOS if g in grupos}
+    # Os subtópicos na ordem de TOPICOS, e os botões soltos depois deles.
+    for g, itens in grupos.items():
+        menus = [i["menu"] for i in itens if isinstance(i, dict)]
+        if sorted(menus) != sorted(TOPICOS[g]):
+            sys.exit(f"{g}: a aba tem os subtópicos {menus}, e TOPICOS diz {TOPICOS[g]}")
+        itens.sort(key=lambda i: TOPICOS[g].index(i["menu"]) if isinstance(i, dict) else len(TOPICOS[g]))
     if len(grupos) > 8:
         sys.exit(f"a aba tem {len(grupos)} grupos; o RustGIS aceita até 8")
     m = {

@@ -345,7 +345,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "ucs",
-        grupo: "Território",
+        grupo: "Vegetação e meio ambiente",
         nome: "Unidades de conservação (CNUC 07/2026)",
         servico: "https://geoservicos.inde.gov.br/geoserver/MMA/ows",
         tipo: "wfs",
@@ -362,7 +362,7 @@ pub const TEMAS: &[Tema] = &[
     },
     Tema {
         id: "ucs-federais",
-        grupo: "Território",
+        grupo: "Vegetação e meio ambiente",
         nome: "Unidades de conservação federais (ICMBio)",
         servico: "https://geoservicos.inde.gov.br/geoserver/ICMBio/ows",
         tipo: "wfs",

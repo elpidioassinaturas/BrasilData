@@ -18,12 +18,12 @@ e o comando Fontes.
 
 | Tópico | Subtópicos |
 |---|---|
-| Território | Limites (IBGE), Áreas protegidas (MMA, ICMBio, FUNAI), Cadastro fundiário (SFB, INCRA) |
-| Sociedade e economia | População (IBGE), Economia (Banco Central, Novo CAGED), Eleições (TSE) e Todos os indicadores |
+| Território | Limites (IBGE), Cadastro fundiário (SFB, INCRA), Terras indígenas (FUNAI) |
+| Sociedade e economia | População (IBGE), Economia (Banco Central, Novo CAGED), Agricultura (Banco Central, IBGE), Eleições (TSE) e Todos os indicadores |
 | Saúde | Estabelecimentos (CNES, DATASUS) |
 | Meio físico | Geologia e recursos minerais (IBGE, ANM), Relevo (IBGE, Copernicus), Solos (IBGE) |
 | Água | Hidrografia (IBGE, ANA), Bacias (IBGE, ANA), Recursos hídricos (ANA) |
-| Vegetação e meio ambiente | Vegetação (IBGE), Desmatamento (INPE: PRODES e DETER), Fiscalização (IBAMA) |
+| Vegetação e meio ambiente | Vegetação (IBGE), Desmatamento (INPE: PRODES e DETER), Áreas protegidas (MMA, ICMBio), Fiscalização (IBAMA) |
 | Infraestrutura | Energia (ANEEL), Petróleo e gás (ANP), Transportes (DNIT) |
 
 As camadas vetoriais estão listadas em [`fontes.csv`](fontes.csv) e na tabela [Fontes](#fontes),
@@ -62,9 +62,9 @@ Algumas camadas só abrem num dos aplicativos, e a ajuda de cada botão diz quan
 | Água › Recursos hídricos | Captações superficiais (ANA) | ANA, Captações Superficiais, SNIRH | [ArcGIS REST](https://portal1.snirh.gov.br/server/rest/services/dados_abertos/Captacoes_Superficiais/FeatureServer) `0` | dados abertos; licença não declarada no serviço | não (sem CORS) | sim |
 | Água › Recursos hídricos | Pivôs centrais mapeados (ANA) | ANA, Pivôs Mapeados, SNIRH | [ArcGIS REST](https://portal1.snirh.gov.br/server/rest/services/dados_abertos/Pivos_Mapeados/FeatureServer) `0` | dados abertos; licença não declarada no serviço | não (sem CORS) | sim |
 | Água › Recursos hídricos | Municípios atingidos por seca em 2015 (ANA) | ANA, Municípios Atingidos por Eventos de Seca em 2015, SNIRH | [ArcGIS REST](https://portal1.snirh.gov.br/server/rest/services/dados_abertos/Municipios_Atingidos_por_Eventos_de_Seca_em_2015/FeatureServer) `0` | dados abertos; licença não declarada no serviço | não (sem CORS) | sim |
-| Território › Áreas protegidas | Unidades de conservação (CNUC 07/2026) | MMA, Cadastro Nacional de Unidades de Conservação (CNUC), 07/2026 | [WFS](https://geoservicos.inde.gov.br/geoserver/MMA/ows) `MMA:cnuc_26_07_31` | não declarada no serviço | sim | sim |
-| Território › Áreas protegidas | Unidades de conservação federais (ICMBio) | ICMBio, Limites das Unidades de Conservação Federais, 08/2026 | [WFS](https://geoservicos.inde.gov.br/geoserver/ICMBio/ows) `ICMBio:limiteucsfederais_a` | não declarada no serviço | sim | sim |
-| Território › Áreas protegidas | Terras indígenas (FUNAI, via Infra S.A.) | FUNAI, Terras Indígenas (cópia publicada pela Infra S.A.) | [ArcGIS REST](https://geo.infrasa.gov.br/server/rest/services/Terras_Ind%C3%ADgenas/MapServer) `0` | reprodução permitida citando a fonte (FUNAI) | sim | sim |
+| Vegetação e meio ambiente › Áreas protegidas | Unidades de conservação (CNUC 07/2026) | MMA, Cadastro Nacional de Unidades de Conservação (CNUC), 07/2026 | [WFS](https://geoservicos.inde.gov.br/geoserver/MMA/ows) `MMA:cnuc_26_07_31` | não declarada no serviço | sim | sim |
+| Vegetação e meio ambiente › Áreas protegidas | Unidades de conservação federais (ICMBio) | ICMBio, Limites das Unidades de Conservação Federais, 08/2026 | [WFS](https://geoservicos.inde.gov.br/geoserver/ICMBio/ows) `ICMBio:limiteucsfederais_a` | não declarada no serviço | sim | sim |
+| Território › Terras indígenas | Terras indígenas (FUNAI, via Infra S.A.) | FUNAI, Terras Indígenas (cópia publicada pela Infra S.A.) | [ArcGIS REST](https://geo.infrasa.gov.br/server/rest/services/Terras_Ind%C3%ADgenas/MapServer) `0` | reprodução permitida citando a fonte (FUNAI) | sim | sim |
 | Território › Cadastro fundiário | Imóveis rurais (CAR) | Serviço Florestal Brasileiro, Cadastro Ambiental Rural (SICAR); dados autodeclarados, sem os cancelados | [WFS](https://geoserver.car.gov.br/geoserver/sicar/wfs) `sicar:sicar_imoveis_{uf}` | licença não declarada no serviço | só no app web | sim |
 | Território › Cadastro fundiário | Parcelas certificadas (SIGEF) | INCRA, Sistema de Gestão Fundiária (SIGEF), Geoportal INCRA | [WFS](https://geoportal.incra.gov.br/geoserver/ows) `geonode:sigef_geo` | licença não declarada no serviço | sim | sim |
 | Território › Cadastro fundiário | Parcelas particulares (SIGEF) | INCRA, Sistema de Gestão Fundiária (SIGEF), Geoportal INCRA | [WFS](https://geoportal.incra.gov.br/geoserver/ows) `geonode:sigef_geo` | licença não declarada no serviço | sim | sim |

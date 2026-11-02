@@ -1,7 +1,7 @@
 {
   "id": "brasildata",
   "name": "BrasilData",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Dados públicos do Brasil para a área do usuário (IBGE, MMA, ICMBio, INPE, ANA, ANEEL, ANP, SFB/CAR, INCRA, FUNAI, IBAMA, ANM, DNIT, Ministério da Saúde, Copernicus): só o que cruza a área, recortado por ela, com a fonte e a licença de cada camada.",
   "author": "Elpídio Filho",
   "homepage": "https://github.com/elpidioassinaturas/BrasilData",
@@ -563,15 +563,6 @@
             ]
           },
           {
-            "menu": "Áreas protegidas",
-            "icon": "lock",
-            "items": [
-              "ucs",
-              "ucs-federais",
-              "terras-indigenas"
-            ]
-          },
-          {
             "menu": "Cadastro fundiário",
             "icon": "table",
             "items": [
@@ -580,6 +571,13 @@
               "sigef-particulares",
               "sigef-assentamentos",
               "sigef-glebas"
+            ]
+          },
+          {
+            "menu": "Terras indígenas",
+            "icon": "polygon_layer",
+            "items": [
+              "terras-indigenas"
             ]
           }
         ]
@@ -600,8 +598,15 @@
             "icon": "chart",
             "items": [
               "indicadores-pix",
-              "indicadores-credito",
               "indicadores-caged"
+            ]
+          },
+          {
+            "menu": "Agricultura",
+            "icon": "polygon_layer",
+            "items": [
+              "indicadores-credito",
+              "censo-municipios"
             ]
           },
           {
@@ -716,6 +721,14 @@
               "prodes-pampa",
               "deter-cerrado",
               "deter-amazonia"
+            ]
+          },
+          {
+            "menu": "Áreas protegidas",
+            "icon": "lock",
+            "items": [
+              "ucs",
+              "ucs-federais"
             ]
           },
           {
