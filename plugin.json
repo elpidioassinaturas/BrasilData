@@ -1,7 +1,7 @@
 {
   "id": "brasildata",
   "name": "BrasilData",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "description": "Dados públicos do Brasil para a área do usuário (IBGE, MMA, ICMBio, INPE, ANA, ANEEL, ANP, SFB/CAR, INCRA, FUNAI, IBAMA, ANM, DNIT, Ministério da Saúde, Copernicus): só o que cruza a área, recortado por ela, com a fonte e a licença de cada camada.",
   "author": "Elpídio Filho",
   "homepage": "https://github.com/elpidioassinaturas/BrasilData",
@@ -632,6 +632,13 @@
       "params": "{}"
     },
     {
+      "id": "censo-agro",
+      "label": "Censo Agropecuário 2017 (IBGE)",
+      "help": "Do Censo Agropecuário de 2017 (IBGE): estabelecimentos e agricultura familiar, utilização das terras (lavouras, pastagens e matas, ha), bovinos, pessoal ocupado, tratores, irrigação, uso de agrotóxicos, energia elétrica, orientação técnica e valor da produção (mil R$). Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem; o painel Fontes diz o que é cada campo.",
+      "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
       "id": "indicadores-tse",
       "label": "Eleitorado e comparecimento (TSE)",
       "help": "Eleitorado, comparecimento e abstenção (%) no 1º turno de 2026 e de 2024, da divulgação oficial do TSE. Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem.",
@@ -648,7 +655,7 @@
     {
       "id": "indicadores-todos",
       "label": "Todos os indicadores",
-      "help": "Censos, Pix, crédito rural, eleições e emprego formal, de uma vez. Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem. No desktop, se o tempo de uma chamada acabar, o aviso pede um novo clique, que continua de onde parou.",
+      "help": "Censos, Censo Agropecuário, Pix, crédito rural, eleições e emprego formal, de uma vez. Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem. No desktop, se o tempo de uma chamada acabar, o aviso pede um novo clique, que continua de onde parou.",
       "icon": "polygon_layer",
       "params": "{}"
     },
@@ -827,7 +834,7 @@
             "icon": "polygon_layer",
             "items": [
               "indicadores-credito",
-              "censo-municipios"
+              "censo-agro"
             ]
           },
           {

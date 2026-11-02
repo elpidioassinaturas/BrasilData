@@ -4,6 +4,9 @@
 //! "Indicadores por município":
 //! - **Censos** do IBGE ([`crate::censo`]): população, área e densidade de 2022, estabelecimentos
 //!   e agricultura familiar de 2017.
+//! - **Censo Agropecuário** de 2017 (IBGE, [`crate::censo::AGRO`]): utilização das terras,
+//!   rebanho bovino, pessoal ocupado, tratores, irrigação, agrotóxicos, energia, orientação
+//!   técnica e valor da produção.
 //! - **Pix** (Banco Central, Olinda): o último mês completo, todos os municípios num pedido só.
 //! - **Crédito rural de custeio** (Banco Central, SICOR): o último ano completo, em pedidos de
 //!   [`POR_PEDIDO_SICOR`] municípios (o SICOR leva de 9 a 19 s por pedido).
@@ -22,19 +25,21 @@ pub type PorMunicipio = HashMap<String, Map<String, Value>>;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Fonte {
     Censo,
+    Agro,
     Pix,
     Credito,
     Tse,
     Caged,
 }
 
-pub const TODAS: [Fonte; 5] = [Fonte::Censo, Fonte::Pix, Fonte::Credito, Fonte::Tse, Fonte::Caged];
+pub const TODAS: [Fonte; 6] = [Fonte::Censo, Fonte::Agro, Fonte::Pix, Fonte::Credito, Fonte::Tse, Fonte::Caged];
 
 impl Fonte {
     /// O nome nos parâmetros (`{"fontes": ["pix", …]}`).
     pub fn id(self) -> &'static str {
         match self {
             Fonte::Censo => "censo",
+            Fonte::Agro => "agro",
             Fonte::Pix => "pix",
             Fonte::Credito => "credito",
             Fonte::Tse => "tse",
@@ -49,7 +54,12 @@ impl Fonte {
     /// O começo dos nomes dos campos da fonte (os censos têm os nomes das variáveis).
     pub fn eh_campo(self, campo: &str) -> bool {
         match self {
-            Fonte::Censo => crate::censo::VARIAVEIS.iter().any(|v| v.campo == campo),
+            // Os campos que as duas trazem (estabelecimentos e agricultura familiar, da tabela 6753,
+            // que as duas citações nomeiam) não dizem qual delas está na camada.
+            Fonte::Censo => {
+                crate::censo::VARIAVEIS.iter().any(|v| v.campo == campo) && !crate::censo::AGRO.iter().any(|v| v.campo == campo)
+            }
+            Fonte::Agro => crate::censo::AGRO.iter().any(|v| v.campo == campo) && !crate::censo::VARIAVEIS.iter().any(|c| c.campo == campo),
             Fonte::Pix => campo.starts_with("pix_"),
             Fonte::Credito => campo.starts_with("credito_"),
             Fonte::Tse => ["eleitores_", "comparec_", "abstencao_"].iter().any(|p| campo.starts_with(p)),
@@ -61,6 +71,13 @@ impl Fonte {
     pub fn citacao(self) -> String {
         match self {
             Fonte::Censo => "IBGE, Censo Demográfico 2022 (tabela 4714) e Censo Agropecuário 2017 (tabela 6753), API de agregados; contornos da API de malhas".into(),
+            Fonte::Agro => {
+                let campos: Vec<String> = crate::censo::AGRO.iter().map(|v| format!("{}: {}", v.campo, v.descricao)).collect();
+                format!(
+                    "IBGE, Censo Agropecuário 2017, resultados definitivos (tabelas 6753, 6778, 6780, 6852, 6858, 6870, 6881, 6884, 6897 e 6907), API de agregados; contornos da API de malhas. Campos: {}",
+                    campos.join("; ")
+                )
+            }
             Fonte::Pix => "Banco Central do Brasil, Estatísticas do Pix por município (Olinda, Pix_DadosAbertos); valores em R$".into(),
             Fonte::Credito => "Banco Central do Brasil, Matriz de Dados do Crédito Rural (SICOR), custeio por município e produto; valores em R$, Pronaf = programa 0001".into(),
             Fonte::Tse => "Tribunal Superior Eleitoral, divulgação oficial dos resultados, 1º turno de 2026 (eleição 6257) e de 2024 (619)".into(),
@@ -71,7 +88,7 @@ impl Fonte {
     /// A licença.
     pub fn licenca(self) -> &'static str {
         match self {
-            Fonte::Censo => "uso livre com citação da fonte",
+            Fonte::Censo | Fonte::Agro => "uso livre com citação da fonte",
             Fonte::Pix | Fonte::Credito => "ODbL (dados abertos do Banco Central)",
             Fonte::Tse => "CC BY (dados abertos do TSE)",
             Fonte::Caged => "dados abertos; licença do IPEA Data não declarada",
@@ -345,6 +362,8 @@ mod tests {
     fn cada_campo_tem_uma_fonte() {
         assert_eq!(Fonte::de("pix"), Some(Fonte::Pix));
         assert!(Fonte::Censo.eh_campo("pop_2022") && !Fonte::Censo.eh_campo("pix_pago"));
+        // Os campos que o Censo e o Censo Agropecuário trazem não contam para nenhum dos dois.
+        assert!(Fonte::Agro.eh_campo("bovinos") && !Fonte::Agro.eh_campo("estab_2017") && !Fonte::Censo.eh_campo("estab_2017"));
         assert!(Fonte::Tse.eh_campo("comparec_2024") && Fonte::Caged.eh_campo("caged_mes"));
         assert!(Fonte::Caged.citacao().contains(caged_ate()));
     }

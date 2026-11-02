@@ -35,6 +35,7 @@ fn handle(req: Request) -> Result<Value, String> {
         "indicadores" => indicadores(&fontes_de(&req)?),
         "indicadores-todos" => indicadores(&indicadores::TODAS),
         "censo-municipios" => indicadores(&[Fonte::Censo]),
+        "censo-agro" => indicadores(&[Fonte::Agro]),
         "indicadores-pix" => indicadores(&[Fonte::Pix]),
         "indicadores-credito" => indicadores(&[Fonte::Credito]),
         "indicadores-tse" => indicadores(&[Fonte::Tse]),
@@ -968,6 +969,30 @@ fn mes_corrente() -> Result<Result<u32, Value>, String> {
     indicadores::ultimo_mes(&r[0]).map(Ok).ok_or_else(|| "o Banco Central não disse o mês mais recente do Pix".to_string())
 }
 
+/// Os campos das variáveis `lista` do SIDRA nos municípios `codigos`: um pedido por tabela e
+/// classificação.
+fn campos_sidra(lista: &[censo::Variavel], codigos: &[String]) -> Result<Result<indicadores::PorMunicipio, Value>, String> {
+    let pedidos = censo::pedidos_sidra(lista, codigos);
+    let urls: Vec<String> = pedidos.iter().map(|p| p.0.clone()).collect();
+    let respostas = match buscar_varios(&urls)? {
+        Ok(r) => r,
+        Err(p) => return Ok(Err(p)),
+    };
+    let mut out = indicadores::PorMunicipio::new();
+    for ((_, idx, cls), resposta) in pedidos.iter().zip(&respostas) {
+        for (cd, vars) in &censo::valores(resposta, *cls) {
+            let m = out.entry(cd.clone()).or_default();
+            for &i in idx {
+                let v = &lista[i];
+                if let Some(x) = vars.get(&(v.variavel, censo::categoria_de(v))) {
+                    m.insert(v.campo.into(), json!(x));
+                }
+            }
+        }
+    }
+    Ok(Ok(out))
+}
+
 /// Os campos de uma fonte nos municípios `codigos`.
 fn campos_de(f: Fonte, codigos: &[String]) -> Result<Campos, String> {
     use indicadores::*;
@@ -980,23 +1005,8 @@ fn campos_de(f: Fonte, codigos: &[String]) -> Result<Campos, String> {
         };
     }
     Ok(Ok(match f {
-        Fonte::Censo => {
-            let pedidos = censo::pedidos_sidra(codigos);
-            let urls: Vec<String> = pedidos.iter().map(|p| p.0.clone()).collect();
-            let respostas = esperar!(buscar_varios(&urls));
-            let mut out = PorMunicipio::new();
-            for ((_, idx), resposta) in pedidos.iter().zip(&respostas) {
-                for (cd, vars) in &censo::valores(resposta) {
-                    let m = out.entry(cd.clone()).or_default();
-                    for &i in idx {
-                        if let Some(x) = vars.get(&censo::VARIAVEIS[i].variavel) {
-                            m.insert(censo::VARIAVEIS[i].campo.into(), json!(x));
-                        }
-                    }
-                }
-            }
-            out
-        }
+        Fonte::Censo => esperar!(campos_sidra(censo::VARIAVEIS, codigos)),
+        Fonte::Agro => esperar!(campos_sidra(censo::AGRO, codigos)),
         Fonte::Pix => {
             let mes = mes_anterior(esperar!(mes_corrente()));
             let r = esperar!(buscar_varios(&[url_pix(mes, codigos)]));

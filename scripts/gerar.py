@@ -30,7 +30,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.10"
+VERSAO = "0.1.11"
 
 # Os comandos que não vêm da tabela, com o grupo da aba em que ficam. Na aba, o grupo Área
 # tem o painel (a escolha do município pelo nome) e a área pela seleção; o comando
@@ -165,6 +165,17 @@ EM_MENUS = [
     ),
     (
         "Sociedade e economia",
+        "Agricultura",
+        {
+            "id": "censo-agro",
+            "label": "Censo Agropecuário 2017 (IBGE)",
+            "help": "Do Censo Agropecuário de 2017 (IBGE): estabelecimentos e agricultura familiar, utilização das terras (lavouras, pastagens e matas, ha), bovinos, pessoal ocupado, tratores, irrigação, uso de agrotóxicos, energia elétrica, orientação técnica e valor da produção (mil R$). Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem; o painel Fontes diz o que é cada campo.",
+            "icon": "polygon_layer",
+            "params": "{}",
+        },
+    ),
+    (
+        "Sociedade e economia",
         "Eleições",
         {
             "id": "indicadores-tse",
@@ -191,7 +202,7 @@ EM_MENUS = [
         {
             "id": "indicadores-todos",
             "label": "Todos os indicadores",
-            "help": "Censos, Pix, crédito rural, eleições e emprego formal, de uma vez. Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem. No desktop, se o tempo de uma chamada acabar, o aviso pede um novo clique, que continua de onde parou.",
+            "help": "Censos, Censo Agropecuário, Pix, crédito rural, eleições e emprego formal, de uma vez. Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem. No desktop, se o tempo de uma chamada acabar, o aviso pede um novo clique, que continua de onde parou.",
             "icon": "polygon_layer",
             "params": "{}",
         },
@@ -293,9 +304,9 @@ TOPICOS = {
     "Infraestrutura": ["Energia", "Petróleo e gás", "Transportes"],
 }
 GRUPOS = list(TOPICOS)
-# Comandos que também aparecem num segundo subtópico: (tópico, subtópico, id). Os censos por
-# município trazem a população e o Censo Agropecuário.
-TAMBEM = [("Sociedade e economia", "Agricultura", "censo-municipios")]
+# Comandos que também aparecem num segundo subtópico: (tópico, subtópico, id). A Agricultura
+# tem o Censo Agropecuário próprio (censo-agro); os censos por município ficam na População.
+TAMBEM = []
 
 # O ícone de um subtópico, quando um dos ícones do RustGIS diz mais que a geometria da primeira
 # camada (o plugin só pode usar os ícones do RustGIS, pelo nome).

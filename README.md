@@ -128,7 +128,11 @@ Fora da tabela, com a citação no comando **Fontes**:
   programa Copernicus da União Europeia e da ESA), baixado do espelho da
   [OpenTopography](https://opentopography.org), que abre também no app web;
 - **Indicadores por município:** IBGE (Censo Demográfico 2022, Censo Agropecuário 2017), Banco
-  Central (Pix, crédito rural), TSE e Novo CAGED;
+  Central (Pix, crédito rural), TSE e Novo CAGED. O **Censo Agropecuário 2017** (Agricultura) traz
+  os estabelecimentos e a agricultura familiar, a utilização das terras (lavouras, pastagens e
+  matas, em ha), os bovinos, o pessoal ocupado, os tratores, a irrigação, o uso de agrotóxicos, a
+  energia elétrica, a orientação técnica e o valor da produção (mil R$); o painel Fontes diz o que é
+  cada campo;
 - **Setores censitários:** IBGE, Censo Demográfico 2022, agregados por setores;
 - **Uso e cobertura:** Projeto MapBiomas, Coleção 11 (1985 a 2025, 30 m), pela API da plataforma
   MapBiomas, como mapa de mosaicos com as cores da legenda oficial. É um mapa para ver, do Brasil
