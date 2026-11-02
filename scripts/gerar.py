@@ -30,7 +30,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.11"
+VERSAO = "0.1.12"
 
 # Os comandos que não vêm da tabela, com o grupo da aba em que ficam. Na aba, o grupo Área
 # tem o painel (a escolha do município pelo nome) e a área pela seleção; o comando
@@ -176,6 +176,17 @@ EM_MENUS = [
     ),
     (
         "Sociedade e economia",
+        "Agricultura",
+        {
+            "id": "censo-agroecologia",
+            "label": "Agroecologia (Censo Agropecuário 2017)",
+            "help": "Práticas agroecológicas do Censo Agropecuário de 2017 (IBGE), em número de estabelecimentos: agricultura ou pecuária orgânica, associação a cooperativa ou entidade, práticas de conservação (plantio em nível, rotação de culturas, pousio, proteção de encostas, recuperação de mata ciliar, reflorestamento de nascentes, manejo florestal), plantio direto (e sua área), cultivo mínimo, adubação orgânica ou química, quem não usou agrotóxicos e a área de sistemas agroflorestais (ha). Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem; o painel Fontes diz o que é cada campo.",
+            "icon": "polygon_layer",
+            "params": "{}",
+        },
+    ),
+    (
+        "Sociedade e economia",
         "Eleições",
         {
             "id": "indicadores-tse",
@@ -202,7 +213,7 @@ EM_MENUS = [
         {
             "id": "indicadores-todos",
             "label": "Todos os indicadores",
-            "help": "Censos, Censo Agropecuário, Pix, crédito rural, eleições e emprego formal, de uma vez. Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem. No desktop, se o tempo de uma chamada acabar, o aviso pede um novo clique, que continua de onde parou.",
+            "help": "Censos, Censo Agropecuário, agroecologia, Pix, crédito rural, eleições e emprego formal, de uma vez. Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem. No desktop, se o tempo de uma chamada acabar, o aviso pede um novo clique, que continua de onde parou.",
             "icon": "polygon_layer",
             "params": "{}",
         },

@@ -7,6 +7,9 @@
 //! - **Censo Agropecuário** de 2017 (IBGE, [`crate::censo::AGRO`]): utilização das terras,
 //!   rebanho bovino, pessoal ocupado, tratores, irrigação, agrotóxicos, energia, orientação
 //!   técnica e valor da produção.
+//! - **Agroecologia**, do mesmo censo ([`crate::censo::AGROECO`]): produção orgânica, associação,
+//!   práticas de conservação, plantio direto, adubação orgânica, sem agrotóxicos e sistemas
+//!   agroflorestais.
 //! - **Pix** (Banco Central, Olinda): o último mês completo, todos os municípios num pedido só.
 //! - **Crédito rural de custeio** (Banco Central, SICOR): o último ano completo, em pedidos de
 //!   [`POR_PEDIDO_SICOR`] municípios (o SICOR leva de 9 a 19 s por pedido).
@@ -26,13 +29,14 @@ pub type PorMunicipio = HashMap<String, Map<String, Value>>;
 pub enum Fonte {
     Censo,
     Agro,
+    Agroeco,
     Pix,
     Credito,
     Tse,
     Caged,
 }
 
-pub const TODAS: [Fonte; 6] = [Fonte::Censo, Fonte::Agro, Fonte::Pix, Fonte::Credito, Fonte::Tse, Fonte::Caged];
+pub const TODAS: [Fonte; 7] = [Fonte::Censo, Fonte::Agro, Fonte::Agroeco, Fonte::Pix, Fonte::Credito, Fonte::Tse, Fonte::Caged];
 
 impl Fonte {
     /// O nome nos parâmetros (`{"fontes": ["pix", …]}`).
@@ -40,6 +44,7 @@ impl Fonte {
         match self {
             Fonte::Censo => "censo",
             Fonte::Agro => "agro",
+            Fonte::Agroeco => "agroeco",
             Fonte::Pix => "pix",
             Fonte::Credito => "credito",
             Fonte::Tse => "tse",
@@ -60,6 +65,7 @@ impl Fonte {
                 crate::censo::VARIAVEIS.iter().any(|v| v.campo == campo) && !crate::censo::AGRO.iter().any(|v| v.campo == campo)
             }
             Fonte::Agro => crate::censo::AGRO.iter().any(|v| v.campo == campo) && !crate::censo::VARIAVEIS.iter().any(|c| c.campo == campo),
+            Fonte::Agroeco => crate::censo::AGROECO.iter().any(|v| v.campo == campo),
             Fonte::Pix => campo.starts_with("pix_"),
             Fonte::Credito => campo.starts_with("credito_"),
             Fonte::Tse => ["eleitores_", "comparec_", "abstencao_"].iter().any(|p| campo.starts_with(p)),
@@ -78,6 +84,13 @@ impl Fonte {
                     campos.join("; ")
                 )
             }
+            Fonte::Agroeco => {
+                let campos: Vec<String> = crate::censo::AGROECO.iter().map(|v| format!("{}: {}", v.campo, v.descricao)).collect();
+                format!(
+                    "IBGE, Censo Agropecuário 2017, resultados definitivos, práticas agroecológicas (tabelas 6846, 6848, 6852, 6854, 6856 e 6881), API de agregados; contornos da API de malhas. Campos: {}",
+                    campos.join("; ")
+                )
+            }
             Fonte::Pix => "Banco Central do Brasil, Estatísticas do Pix por município (Olinda, Pix_DadosAbertos); valores em R$".into(),
             Fonte::Credito => "Banco Central do Brasil, Matriz de Dados do Crédito Rural (SICOR), custeio por município e produto; valores em R$, Pronaf = programa 0001".into(),
             Fonte::Tse => "Tribunal Superior Eleitoral, divulgação oficial dos resultados, 1º turno de 2026 (eleição 6257) e de 2024 (619)".into(),
@@ -88,7 +101,7 @@ impl Fonte {
     /// A licença.
     pub fn licenca(self) -> &'static str {
         match self {
-            Fonte::Censo | Fonte::Agro => "uso livre com citação da fonte",
+            Fonte::Censo | Fonte::Agro | Fonte::Agroeco => "uso livre com citação da fonte",
             Fonte::Pix | Fonte::Credito => "ODbL (dados abertos do Banco Central)",
             Fonte::Tse => "CC BY (dados abertos do TSE)",
             Fonte::Caged => "dados abertos; licença do IPEA Data não declarada",
@@ -364,6 +377,7 @@ mod tests {
         assert!(Fonte::Censo.eh_campo("pop_2022") && !Fonte::Censo.eh_campo("pix_pago"));
         // Os campos que o Censo e o Censo Agropecuário trazem não contam para nenhum dos dois.
         assert!(Fonte::Agro.eh_campo("bovinos") && !Fonte::Agro.eh_campo("estab_2017") && !Fonte::Censo.eh_campo("estab_2017"));
+        assert!(Fonte::Agroeco.eh_campo("saf_ha") && !Fonte::Agro.eh_campo("saf_ha") && Fonte::de("agroeco") == Some(Fonte::Agroeco));
         assert!(Fonte::Tse.eh_campo("comparec_2024") && Fonte::Caged.eh_campo("caged_mes"));
         assert!(Fonte::Caged.citacao().contains(caged_ate()));
     }

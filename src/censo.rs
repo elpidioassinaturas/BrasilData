@@ -294,6 +294,173 @@ pub const AGRO: &[Variavel] = &[
     },
 ];
 
+/// Os campos da fonte de agroecologia, do Censo Agropecuário de 2017: a agricultura e a pecuária
+/// orgânicas, a associação a cooperativas e entidades, as práticas de conservação (6846), o
+/// preparo do solo e o plantio direto (6856), a adubação orgânica ou química (6848), quem não usou
+/// agrotóxicos (6852) e a área de sistemas agroflorestais (6881).
+pub const AGROECO: &[Variavel] = &[
+    Variavel {
+        tabela: 6854,
+        periodo: "2017",
+        variavel: 183,
+        classificacao: Some("838[47123]"),
+        campo: "estab_organico",
+        descricao: "estabelecimentos com agricultura ou pecuária orgânica",
+    },
+    Variavel {
+        tabela: 6854,
+        periodo: "2017",
+        variavel: 183,
+        classificacao: Some("12598[114543]"),
+        campo: "estab_associado",
+        descricao: "estabelecimentos cujo produtor é associado a cooperativa, sindicato ou associação",
+    },
+    Variavel {
+        tabela: 6846,
+        periodo: "2017",
+        variavel: 183,
+        classificacao: Some("12568[112654]"),
+        campo: "estab_nivel",
+        descricao: "estabelecimentos com plantio em nível",
+    },
+    Variavel {
+        tabela: 6846,
+        periodo: "2017",
+        variavel: 183,
+        classificacao: Some("12568[112677]"),
+        campo: "estab_rotacao",
+        descricao: "estabelecimentos com rotação de culturas",
+    },
+    Variavel {
+        tabela: 6846,
+        periodo: "2017",
+        variavel: 183,
+        classificacao: Some("12568[112764]"),
+        campo: "estab_pousio",
+        descricao: "estabelecimentos com pousio ou descanso de solos",
+    },
+    Variavel {
+        tabela: 6846,
+        periodo: "2017",
+        variavel: 183,
+        classificacao: Some("12568[112766]"),
+        campo: "estab_encostas",
+        descricao: "estabelecimentos com proteção ou conservação de encostas",
+    },
+    Variavel {
+        tabela: 6846,
+        periodo: "2017",
+        variavel: 183,
+        classificacao: Some("12568[40999]"),
+        campo: "estab_mata_ciliar",
+        descricao: "estabelecimentos com recuperação de mata ciliar",
+    },
+    Variavel {
+        tabela: 6846,
+        periodo: "2017",
+        variavel: 183,
+        classificacao: Some("12568[41000]"),
+        campo: "estab_nascentes",
+        descricao: "estabelecimentos com reflorestamento para proteção de nascentes",
+    },
+    Variavel {
+        tabela: 6846,
+        periodo: "2017",
+        variavel: 183,
+        classificacao: Some("12568[41002]"),
+        campo: "estab_manejo_flor",
+        descricao: "estabelecimentos com manejo florestal",
+    },
+    Variavel {
+        tabela: 6846,
+        periodo: "2017",
+        variavel: 183,
+        classificacao: Some("12568[112767]"),
+        campo: "estab_sem_pratica",
+        descricao: "estabelecimentos sem nenhuma dessas práticas",
+    },
+    Variavel {
+        tabela: 6856,
+        periodo: "2017",
+        variavel: 2016,
+        classificacao: None,
+        campo: "estab_plant_direto",
+        descricao: "estabelecimentos com plantio direto na palha",
+    },
+    Variavel {
+        tabela: 6856,
+        periodo: "2017",
+        variavel: 2018,
+        classificacao: None,
+        campo: "area_plant_direto_ha",
+        descricao: "área com plantio direto na palha (ha)",
+    },
+    Variavel {
+        tabela: 6856,
+        periodo: "2017",
+        variavel: 9565,
+        classificacao: None,
+        campo: "estab_cult_minimo",
+        descricao: "estabelecimentos com cultivo mínimo",
+    },
+    Variavel {
+        tabela: 6856,
+        periodo: "2017",
+        variavel: 9564,
+        classificacao: None,
+        campo: "estab_convencional",
+        descricao: "estabelecimentos com cultivo convencional",
+    },
+    Variavel {
+        tabela: 6848,
+        periodo: "2017",
+        variavel: 183,
+        classificacao: Some("12522[46548]"),
+        campo: "estab_adub_org",
+        descricao: "estabelecimentos com adubação só orgânica",
+    },
+    Variavel {
+        tabela: 6848,
+        periodo: "2017",
+        variavel: 183,
+        classificacao: Some("12522[46549]"),
+        campo: "estab_adub_quim_org",
+        descricao: "estabelecimentos com adubação química e orgânica",
+    },
+    Variavel {
+        tabela: 6848,
+        periodo: "2017",
+        variavel: 183,
+        classificacao: Some("12522[46547]"),
+        campo: "estab_adub_quim",
+        descricao: "estabelecimentos com adubação só química",
+    },
+    Variavel {
+        tabela: 6848,
+        periodo: "2017",
+        variavel: 183,
+        classificacao: Some("12522[46550]"),
+        campo: "estab_sem_adub",
+        descricao: "estabelecimentos que não fizeram adubação",
+    },
+    Variavel {
+        tabela: 6852,
+        periodo: "2017",
+        variavel: 183,
+        classificacao: Some("12521[111612]"),
+        campo: "estab_sem_agrotox",
+        descricao: "estabelecimentos que não usaram agrotóxicos",
+    },
+    Variavel {
+        tabela: 6881,
+        periodo: "2017",
+        variavel: 184,
+        classificacao: Some("222[113476]"),
+        campo: "saf_ha",
+        descricao: "sistemas agroflorestais (ha)",
+    },
+];
+
 /// A classificação e a categoria de `"222[113471]"`.
 fn categoria(c: &str) -> Option<(u32, u32)> {
     let (cls, resto) = c.split_once('[')?;
@@ -348,8 +515,9 @@ pub fn categoria_de(v: &Variavel) -> Option<u32> {
 }
 
 /// Os valores de uma resposta do SIDRA: por código de município, por id de variável e categoria
-/// da classificação `cls` pedida (`None` sem classificação). Os sinais do IBGE para "sem dado"
-/// (`-`, `...`, `X` de sigilo) ficam de fora.
+/// da classificação `cls` pedida (`None` sem classificação). `-` é zero (para o IBGE, "dado
+/// numérico igual a zero não resultante de arredondamento"); os sinais de falta (`..` não se
+/// aplica, `...` não disponível, `X` sigilo) ficam de fora.
 pub fn valores(resposta: &Value, cls: Option<u32>) -> HashMap<String, HashMap<(u32, Option<u32>), f64>> {
     let mut out: HashMap<String, HashMap<(u32, Option<u32>), f64>> = HashMap::new();
     for v in resposta.as_array().into_iter().flatten() {
@@ -378,7 +546,8 @@ pub fn valores(resposta: &Value, cls: Option<u32>) -> HashMap<String, HashMap<(u
                 let Some(valor) = s["serie"].as_object().and_then(|o| o.values().next()).and_then(Value::as_str) else {
                     continue;
                 };
-                if let Ok(x) = valor.trim().parse::<f64>() {
+                let valor = valor.trim();
+                if let Some(x) = if valor == "-" { Some(0.0) } else { valor.parse::<f64>().ok() } {
                     out.entry(cd.to_string()).or_default().insert((id, cat), x);
                 }
             }
@@ -420,11 +589,16 @@ mod tests {
         assert_eq!(terras.1.len(), 8);
         let producao = p.iter().filter(|p| p.0.contains("/agregados/6897/")).count();
         assert_eq!(producao, 2, "o total e a classificação por tipo de produção");
-        // Os campos não se repetem.
-        let mut campos: Vec<&str> = AGRO.iter().map(|v| v.campo).collect();
+        // Os campos não se repetem, nem entre o Censo Agropecuário e a agroecologia.
+        let mut campos: Vec<&str> = AGRO.iter().chain(AGROECO).map(|v| v.campo).collect();
         campos.sort_unstable();
         campos.dedup();
-        assert_eq!(campos.len(), AGRO.len());
+        assert_eq!(campos.len(), AGRO.len() + AGROECO.len());
+        // A agroecologia: um pedido por tabela e classificação (6854 tem duas).
+        let p = pedidos_sidra(AGROECO, &["2211001".into()]);
+        assert_eq!(p.len(), 7, "{p:?}");
+        assert!(p.iter().any(|p| p.0.ends_with("&classificacao=12568[112654,112677,112764,112766,40999,41000,41002,112767]")));
+        assert!(p.iter().any(|p| p.0.contains("/agregados/6856/periodos/2017/variaveis/2016|2018|9564|9565?")));
     }
 
     #[test]
@@ -440,18 +614,22 @@ mod tests {
     }
 
     #[test]
-    fn os_valores_vem_por_municipio_e_variavel_sem_os_sinais_de_falta() {
+    fn os_valores_vem_por_municipio_e_variavel_com_o_traco_como_zero() {
         let r = json!([
             {"id": "93", "resultados": [{"series": [
                 {"localidade": {"id": "2211001"}, "serie": {"2022": "866300"}},
-                {"localidade": {"id": "2112209"}, "serie": {"2022": "-"}}
+                {"localidade": {"id": "2112209"}, "serie": {"2022": "-"}},
+                {"localidade": {"id": "2200400"}, "serie": {"2022": "X"}},
+                {"localidade": {"id": "2200509"}, "serie": {"2022": "..."}}
             ]}]},
             {"id": "614", "resultados": [{"series": [{"localidade": {"id": "2211001"}, "serie": {"2022": "622.66"}}]}]}
         ]);
         let v = valores(&r, None);
         assert_eq!(v["2211001"][&(93, None)], 866300.0);
         assert_eq!(v["2211001"][&(614, None)], 622.66);
-        assert!(!v.contains_key("2112209"));
+        // `-` é zero; o sigilo e o não disponível ficam de fora.
+        assert_eq!(v["2112209"][&(93, None)], 0.0);
+        assert!(!v.contains_key("2200400") && !v.contains_key("2200509"));
     }
 
     #[test]

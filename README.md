@@ -131,8 +131,10 @@ Fora da tabela, com a citação no comando **Fontes**:
   Central (Pix, crédito rural), TSE e Novo CAGED. O **Censo Agropecuário 2017** (Agricultura) traz
   os estabelecimentos e a agricultura familiar, a utilização das terras (lavouras, pastagens e
   matas, em ha), os bovinos, o pessoal ocupado, os tratores, a irrigação, o uso de agrotóxicos, a
-  energia elétrica, a orientação técnica e o valor da produção (mil R$); o painel Fontes diz o que é
-  cada campo;
+  energia elétrica, a orientação técnica e o valor da produção (mil R$). A **Agroecologia**, do
+  mesmo censo, traz a produção orgânica, a associação a cooperativas e entidades, as práticas de
+  conservação, o plantio direto, a adubação orgânica ou química, quem não usou agrotóxicos e a área
+  de sistemas agroflorestais. O painel Fontes diz o que é cada campo;
 - **Setores censitários:** IBGE, Censo Demográfico 2022, agregados por setores;
 - **Uso e cobertura:** Projeto MapBiomas, Coleção 11 (1985 a 2025, 30 m), pela API da plataforma
   MapBiomas, como mapa de mosaicos com as cores da legenda oficial. É um mapa para ver, do Brasil

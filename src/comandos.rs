@@ -36,6 +36,7 @@ fn handle(req: Request) -> Result<Value, String> {
         "indicadores-todos" => indicadores(&indicadores::TODAS),
         "censo-municipios" => indicadores(&[Fonte::Censo]),
         "censo-agro" => indicadores(&[Fonte::Agro]),
+        "censo-agroecologia" => indicadores(&[Fonte::Agroeco]),
         "indicadores-pix" => indicadores(&[Fonte::Pix]),
         "indicadores-credito" => indicadores(&[Fonte::Credito]),
         "indicadores-tse" => indicadores(&[Fonte::Tse]),
@@ -1007,6 +1008,7 @@ fn campos_de(f: Fonte, codigos: &[String]) -> Result<Campos, String> {
     Ok(Ok(match f {
         Fonte::Censo => esperar!(campos_sidra(censo::VARIAVEIS, codigos)),
         Fonte::Agro => esperar!(campos_sidra(censo::AGRO, codigos)),
+        Fonte::Agroeco => esperar!(campos_sidra(censo::AGROECO, codigos)),
         Fonte::Pix => {
             let mes = mes_anterior(esperar!(mes_corrente()));
             let r = esperar!(buscar_varios(&[url_pix(mes, codigos)]));
