@@ -30,7 +30,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.12"
+VERSAO = "0.1.13"
 
 # Os comandos que não vêm da tabela, com o grupo da aba em que ficam. Na aba, o grupo Área
 # tem o painel (a escolha do município pelo nome) e a área pela seleção; o comando
@@ -87,6 +87,27 @@ PAINEL = {
         },
         {"kind": "button", "command": "area-selecao"},
         {"kind": "button", "command": "fontes"},
+        {
+            "kind": "slider",
+            "id": "focos-de",
+            "label": "Focos de calor: do dia",
+            "help": "O primeiro dia do período, dia/mês/ano, no mês corrente (UTC): o serviço do IBAMA só guarda o mês corrente. As datas aparecem quando o mês é conhecido (no app web, depois do primeiro período).",
+            "min": 1,
+            "max": 31,
+            "default": 1,
+            "steps": True,
+        },
+        {
+            "kind": "slider",
+            "id": "focos-ate",
+            "label": "Focos de calor: até o dia",
+            "help": "O último dia do período, dia/mês/ano, no mês corrente (UTC), incluído.",
+            "min": 1,
+            "max": 31,
+            "default": 31,
+            "steps": True,
+        },
+        {"kind": "button", "command": "inpe-focos-periodo"},
         {"kind": "text", "id": "citacao", "label": "Fontes das camadas no mapa"},
         {"kind": "button", "command": "atualizacao"},
         {"kind": "text", "id": "versao", "label": "Versão"},
@@ -119,6 +140,17 @@ FIM = [
 
 # Comandos que não vêm da tabela e ficam num grupo da aba: (tópico, subtópico ou None, comando).
 EM_MENUS = [
+    (
+        "Vegetação e meio ambiente",
+        "Queimadas",
+        {
+            "id": "inpe-focos-periodo",
+            "label": "Focos de calor: período (INPE)",
+            "help": "Os focos de calor do INPE de uma data a outra (dia/mês/ano) do mês corrente (UTC), escolhidas nos controles do painel Área e fontes (sem eles, o mês inteiro): INPE, Programa Queimadas (Sisfogo, IBAMA/PAMGIA). Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
+            "icon": "point_layer",
+            "params": "{\"de\"?: \"dd/mm/aaaa\" ou o dia do mês (1 a 31), \"ate\"?: \"dd/mm/aaaa\" ou o dia do mês (padrão: os do painel; o mês é o corrente)}",
+        },
+    ),
     (
         "Sociedade e economia",
         "População",
@@ -311,7 +343,7 @@ TOPICOS = {
     "Saúde": ["Estabelecimentos"],
     "Meio físico": ["Geologia e recursos minerais", "Relevo", "Solos"],
     "Água": ["Hidrografia", "Bacias", "Recursos hídricos"],
-    "Vegetação e meio ambiente": ["Vegetação", "Uso e cobertura", "Desmatamento", "Áreas protegidas", "Fiscalização"],
+    "Vegetação e meio ambiente": ["Vegetação", "Uso e cobertura", "Desmatamento", "Queimadas", "Áreas protegidas", "Fiscalização"],
     "Infraestrutura": ["Energia", "Petróleo e gás", "Transportes"],
 }
 GRUPOS = list(TOPICOS)

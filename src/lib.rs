@@ -12,6 +12,7 @@
 
 mod catalogo;
 pub mod censo;
+pub mod datas;
 pub mod indicadores;
 // O que fala com o RustGIS só compila no wasm: fora dele (nos testes), as importações do
 // RustGIS ficariam sem resolver no linker do Windows.

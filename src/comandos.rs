@@ -3,6 +3,7 @@
 use rustgis_plugin::{Request, Value, geojson, host, json};
 
 use crate::censo;
+use crate::datas::{self, Data};
 use crate::indicadores::{self, Fonte};
 use crate::mapbiomas;
 use crate::municipios::{self, Municipio};
@@ -44,6 +45,7 @@ fn handle(req: Request) -> Result<Value, String> {
         "censo-setores" => censo_setores(),
         "saude-estabelecimentos" => estabelecimentos_de_saude(),
         "mapbiomas-cobertura" => cobertura_mapbiomas(req.f64("ano").map_or(mapbiomas::ULTIMO_ANO, |a| a as i64)),
+        "inpe-focos-periodo" => focos_no_periodo(&req),
         other => Err(format!("o BrasilData não tem o comando '{other}'")),
     }
 }
@@ -406,6 +408,7 @@ fn concluir(t: &Tema, lidas: u64, area: bool, na_area: bool) -> Result<Value, St
     if !na_area {
         let onde = if area { "no retângulo da área" } else { onde };
         host::notify(&format!("{nome}: {} {onde} ({})", feicoes(lidas), t.fonte));
+        data_legivel(t, &nome);
         return Ok(json!({"layer": nome, "features": lidas, "clipped": false}));
     }
     // Sem "output": para um plugin, o RustGIS conta essa chave como um arquivo e pede a
@@ -435,8 +438,151 @@ fn concluir(t: &Tema, lidas: u64, area: bool, na_area: bool) -> Result<Value, St
                 if ficaram == Some(1) { "recortada" } else { "recortadas" },
                 t.fonte
             ));
+            data_legivel(t, &nome);
             Ok(json!({"layer": nome, "read": lidas, "features": ficaram, "clipped": true}))
         }
+    }
+}
+
+/// O endereço que pede ao serviço dos focos o instante do último foco (o maior `datetime_gmt`).
+fn url_do_ultimo_foco(t: &Tema) -> String {
+    let estatistica = r#"[{"statisticType":"max","onStatisticField":"datetime_gmt","outStatisticFieldName":"ultimo"}]"#;
+    format!("{}/{}/query?where=1%3D1&outStatistics={}&f=json", t.servico, t.camada, crate::escapar(estatistica))
+}
+
+/// O mês corrente dos focos: o do último foco que o serviço guarda (o plugin não tem relógio).
+/// `Ok(None)` quando o serviço não tem foco nenhum (o começo de um mês); `Err` com o pedido
+/// pendente no app web, onde a resposta chega depois.
+fn mes_dos_focos(t: &Tema) -> Result<Result<Option<Data>, Value>, String> {
+    let r = match buscar(&[url_do_ultimo_foco(t)])? {
+        Ok(r) => r,
+        Err(p) => return Ok(Err(p)),
+    };
+    let json = r.first().and_then(|r| r.get("json"));
+    if let Some(e) = json.and_then(|j| j.get("error")) {
+        return Err(format!("{}: {}", t.fonte, e["message"].as_str().unwrap_or("o serviço respondeu com um erro")));
+    }
+    Ok(Ok(json.and_then(|j| j["features"][0]["attributes"]["ultimo"].as_i64()).map(Data::de_milissegundos)))
+}
+
+/// Os controles do período no painel, com os dias do mês de `ultimo` escritos dd/mm/aaaa.
+fn controles_do_periodo(ultimo: Data) -> Value {
+    let n = datas::dias_no_mes(ultimo.ano, ultimo.mes);
+    let rotulos: Vec<String> = (1..=n).map(|dia| Data { dia, ..ultimo }.texto()).collect();
+    json!({"focos-de": {"max": n, "labels": rotulos}, "focos-ate": {"max": n, "labels": rotulos}})
+}
+
+/// Os focos de calor do INPE de um período do mês corrente (UTC, os dois dias incluídos): `de` e
+/// `ate` como "dd/mm/aaaa" ou como o dia do mês (1 a 31), ou, sem eles, os controles do painel
+/// (`focos-de`, `focos-ate`), que mostram as datas; sem nada, o mês inteiro. O serviço do IBAMA só
+/// guarda o mês corrente, o do último foco. É o tema do mês corrente com outro filtro e outro
+/// nome, um por período, para que dois períodos fiquem lado a lado no mapa.
+fn focos_no_periodo(req: &Request) -> Result<Value, String> {
+    let mes = TEMAS.iter().find(|t| t.id == "inpe-focos-mes").ok_or("o catálogo não tem os focos do mês corrente")?;
+    let ultimo = match mes_dos_focos(mes)? {
+        Ok(u) => u,
+        Err(p) => return Ok(p),
+    };
+    // Um dia do período: uma data dd/mm/aaaa (do mês corrente) ou o dia do mês.
+    let dia = |param: &str, controle: &str, padrao: u32| -> Result<u32, String> {
+        if let Some(texto) = req.params.get(param).and_then(Value::as_str) {
+            let d =
+                Data::ler(texto).ok_or_else(|| format!("\"{param}\": \"{texto}\" não é uma data dia/mês/ano válida (como 01/11/2026)"))?;
+            return match ultimo {
+                Some(u) if (d.ano, d.mes) == (u.ano, u.mes) => Ok(d.dia),
+                Some(u) => Err(format!(
+                    "{}: o serviço só guarda os focos do mês corrente ({:02}/{}); escolha uma data de {} a {}",
+                    d.texto(),
+                    u.mes,
+                    u.ano,
+                    Data { dia: 1, ..u }.texto(),
+                    u.texto()
+                )),
+                None => Err("o serviço ainda não tem focos neste mês".into()),
+            };
+        }
+        let d = req.f64(param).or_else(|| req.panel.get(controle).and_then(Value::as_f64)).unwrap_or(f64::from(padrao));
+        if d.fract() != 0.0 || !(1.0..=31.0).contains(&d) {
+            return Err(format!("o dia do período é dia/mês/ano ou um número inteiro de 1 a 31, não {d}"));
+        }
+        Ok(d as u32)
+    };
+    let fim_do_mes = ultimo.map_or(31, |u| datas::dias_no_mes(u.ano, u.mes));
+    let (de, ate) = (dia("de", "focos-de", 1)?, dia("ate", "focos-ate", fim_do_mes)?.min(fim_do_mes));
+    if de > ate {
+        let (a, b) = match ultimo {
+            Some(u) => (Data { dia: de, ..u }.texto(), Data { dia: ate, ..u }.texto()),
+            None => (format!("dia {de}"), format!("dia {ate}")),
+        };
+        return Err(format!("o período começa em {a} e termina em {b}; escolha um início antes do fim"));
+    }
+    // Com o mês conhecido, o filtro e o nome levam as datas; sem ele, o dia do mês.
+    let (filtro, nome) = match ultimo {
+        Some(u) => {
+            let (a, b) = (Data { dia: de, ..u }, Data { dia: ate, ..u });
+            let filtro = format!("datetime_gmt >= DATE '{}' AND datetime_gmt < DATE '{}'", a.iso(), b.seguinte().iso());
+            let nome = if de == ate {
+                format!("Focos de calor de {} (INPE)", a.texto())
+            } else {
+                format!("Focos de calor de {} a {} (INPE)", a.texto(), b.texto())
+            };
+            (filtro, nome)
+        }
+        None => (
+            format!("EXTRACT(DAY FROM datetime_gmt) BETWEEN {de} AND {ate}"),
+            format!("Focos de calor dos dias {de} a {ate} do mês corrente (INPE)"),
+        ),
+    };
+    // Os textos de um tema são estáticos; os deste período ficam na memória do plugin, que é
+    // pequena e é refeita com ele.
+    let (filtro, nome): (&'static str, &'static str) = (Box::leak(filtro.into_boxed_str()), Box::leak(nome.into_boxed_str()));
+    let mut r = tema(&Tema { id: "inpe-focos-periodo", nome, filtro, ..*mes })?;
+    if let (Some(u), Some(o)) = (ultimo, r.as_object_mut()) {
+        o.insert("panel".into(), json!({"items": controles_do_periodo(u)}));
+    }
+    Ok(r)
+}
+
+/// Os temas cuja data o ArcGIS manda em milissegundos desde 1970 (UTC), pelo começo do id, e o
+/// campo dela: a camada ganha `data_hora_utc`, a data e a hora em texto ("2026-11-01 20:00").
+const DATAS: &[(&str, &str)] = &[("inpe-focos-", "datetime_gmt")];
+
+/// A expressão do RustGIS que escreve os milissegundos de `campo` como "AAAA-MM-DD HH:MM" (UTC).
+/// As expressões não têm datas: o dia vem do número de dias desde 1º de março de 2000, pelo
+/// algoritmo `civil_from_days` de Howard Hinnant, que sem séculos fica simples (certo de março
+/// de 2000 ao fim de 2099, conferido dia a dia).
+pub fn expressao_data(campo: &str) -> String {
+    let dias = format!("(floor({campo} / 86400000) - 11017)");
+    let ano = format!("floor(({dias} - floor({dias} / 1460)) / 365)");
+    let no_ano = format!("({dias} - 365 * {ano} - floor({ano} / 4))");
+    let mp = format!("floor((5 * {no_ano} + 2) / 153)");
+    let dia = format!("({no_ano} - floor((153 * {mp} + 2) / 5) + 1)");
+    let mes = format!("({mp} + 3 - 12 * floor({mp} / 10))");
+    let ano = format!("(2000 + {ano} + floor({mp} / 10))");
+    let resto = format!("({campo} % 86400000)");
+    let hora = format!("floor({resto} / 3600000)");
+    let minuto = format!("floor(({resto} % 3600000) / 60000)");
+    let dois = |x: &str| format!("right('0' || to_string(to_int({x})), 2)");
+    format!(
+        "if({campo} IS NULL, NULL, to_string(to_int({ano})) || '-' || {} || '-' || {} || ' ' || {} || ':' || {})",
+        dois(&mes),
+        dois(&dia),
+        dois(&hora),
+        dois(&minuto)
+    )
+}
+
+/// Acrescenta `data_hora_utc` à camada `nome` de um tema de [`DATAS`]. Uma falha não desfaz o
+/// tema: é avisada, e a data fica só em milissegundos.
+fn data_legivel(t: &Tema, nome: &str) {
+    let Some((_, campo)) = DATAS.iter().find(|(id, _)| t.id.starts_with(id)) else { return };
+    let feito = host::run("edit.addField", json!({"layer": nome, "name": "data_hora_utc", "type": "text"})).and_then(|_| {
+        host::run("edit.calculateField", json!({"layer": nome, "field": "data_hora_utc", "expression": expressao_data(campo)}))
+    });
+    if let Err(e) = feito {
+        host::notify(&format!(
+            "{nome}: a data em texto (data_hora_utc) não foi calculada ({e}); {campo} está em milissegundos desde 1970, UTC"
+        ));
     }
 }
 
@@ -582,6 +728,12 @@ fn citacoes() -> Result<(Vec<Value>, String), String> {
                     lista.push(json!({"layer": n, "source": f.citacao(), "license": f.licenca()}));
                 }
             }
+        } else if n.starts_with(&format!("{PREFIXO}Focos de calor d"))
+            && n.ends_with(" (INPE)")
+            && let Some(t) = TEMAS.iter().find(|t| t.id == "inpe-focos-mes")
+        {
+            // Um período do mês corrente (`focos_no_periodo`): a fonte dos focos do mês.
+            lista.push(json!({"layer": n, "source": t.fonte, "license": t.licenca, "service": t.servico, "featureType": t.camada}));
         } else if n.starts_with(&format!("{PREFIXO}Uso e cobertura ")) && n.ends_with(" (MapBiomas)") {
             lista.push(json!({"layer": n, "source": mapbiomas::CITACAO, "license": mapbiomas::LICENCA}));
         } else if n == camada_de_saude() {
@@ -740,12 +892,21 @@ fn arvore() -> Value {
 
 /// O estado do painel, quando ele abre.
 fn painel(_req: &Request) -> Result<Value, String> {
-    Ok(json!({"panel": {"items": {
+    let mut r = json!({"panel": {"items": {
         "municipio": {"nodes": arvore()},
         "area": {"text": area_no_mapa()?},
         "citacao": {"text": citacoes()?.1},
         "versao": {"text": format!("BrasilData {}. O botão compara com a última versão publicada.", versao::ESTA)},
-    }}}))
+    }}});
+    // Os controles do período com as datas do mês dos focos. No app web a resposta chega depois:
+    // o painel mostra as datas quando for aberto de novo, ou depois do primeiro período.
+    if let Some(mes) = TEMAS.iter().find(|t| t.id == "inpe-focos-mes")
+        && let Ok(Ok(Some(u))) = mes_dos_focos(mes)
+        && let (Some(itens), Some(controles)) = (r["panel"]["items"].as_object_mut(), controles_do_periodo(u).as_object())
+    {
+        itens.extend(controles.clone());
+    }
+    Ok(r)
 }
 
 /// Um nó escolhido na árvore: um estado mostra os seus municípios; um município vira a área.

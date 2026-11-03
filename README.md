@@ -8,6 +8,17 @@ camada. Funciona no aplicativo desktop e no app web (WebAssembly), sem instalar 
 ANM, IBAMA, DNIT and others) into the user's area, clipped to it, with each layer's source and
 licence. It runs on the desktop and in the web app. The interface is in Portuguese.*
 
+> **Sentiu falta de algum dado?** O BrasilData cresce com as sugestões de quem usa. Para pedir uma
+> fonte nova, [abra uma issue](https://github.com/elpidioassinaturas/BrasilData/issues/new) com o
+> nome do dado, o órgão que o publica, o endereço do serviço (WFS, ArcGIS REST, API ou arquivo)
+> e para que você o usaria. Se quiser contribuir com a fonte, acrescente uma linha ao
+> [`fontes.csv`](fontes.csv), rode `python scripts/gerar.py` e abra um pull request: cada linha
+> vira um botão na aba. Correções, avisos de serviço fora do ar e relatos de uso também são
+> bem-vindos.
+>
+> *Missing a dataset? Open an issue with the data, its publisher and its service address, or add a
+> line to `fontes.csv` and send a pull request.*
+
 ## O que traz
 
 A aba **BrasilData** vai de tópicos a subtópicos e camadas: cada grupo é um tópico, cada menu é
@@ -23,7 +34,7 @@ e o comando Fontes.
 | Saúde | Estabelecimentos (CNES, DATASUS) |
 | Meio físico | Geologia e recursos minerais (IBGE, ANM, MapBiomas), Relevo (IBGE, Copernicus), Solos (IBGE) |
 | Água | Hidrografia (IBGE, ANA), Bacias (IBGE, ANA), Recursos hídricos (ANA) |
-| Vegetação e meio ambiente | Vegetação (IBGE), Uso e cobertura (MapBiomas), Desmatamento (INPE: PRODES e DETER), Áreas protegidas (MMA, ICMBio), Fiscalização (IBAMA) |
+| Vegetação e meio ambiente | Vegetação (IBGE), Uso e cobertura (MapBiomas), Desmatamento (INPE: PRODES e DETER), Queimadas (INPE: focos de calor), Áreas protegidas (MMA, ICMBio), Fiscalização (IBAMA) |
 | Infraestrutura | Energia (ANEEL), Petróleo e gás (ANP), Transportes (DNIT) |
 
 As camadas vetoriais estão listadas em [`fontes.csv`](fontes.csv) e na tabela [Fontes](#fontes),
@@ -32,13 +43,13 @@ mostra a citação e a licença de cada camada trazida. Os indicadores são agre
 nomes de pessoas.
 
 Algumas camadas só abrem num dos aplicativos, e a ajuda de cada botão diz quando é o caso:
-- 19 das 79 só abrem no app desktop, porque o servidor não manda os cabeçalhos CORS que o navegador exige;
+- 19 das 82 só abrem no app desktop, porque o servidor não manda os cabeçalhos CORS que o navegador exige;
 - os imóveis do CAR só abrem no app web, porque o servidor só aceita cifras TLS antigas, que o app desktop não aceita.
 
 ## Fontes
 
 <!-- fontes: início (gerado por scripts/gerar.py a partir do fontes.csv; não edite à mão) -->
-79 camadas de 14 fontes, na ordem do `fontes.csv`. *App web*: se o servidor permite pedidos do navegador (CORS); *Recorte*: se a camada é recortada pela área.
+82 camadas de 14 fontes, na ordem do `fontes.csv`. *App web*: se o servidor permite pedidos do navegador (CORS); *Recorte*: se a camada é recortada pela área.
 
 | Grupo | Camada | Fonte | Serviço | Licença | App web | Recorte |
 |---|---|---|---|---|---|---|
@@ -88,6 +99,9 @@ Algumas camadas só abrem num dos aplicativos, e a ajuda de cada botão diz quan
 | Vegetação e meio ambiente › Desmatamento | Alertas de desmatamento (DETER Cerrado) | INPE, DETER Cerrado (TerraBrasilis) | [WFS](https://terrabrasilis.dpi.inpe.br/geoserver/ows) `deter-cerrado-nb:deter_cerrado` | CC BY-SA 4.0 | sim | sim |
 | Vegetação e meio ambiente › Desmatamento | Alertas de desmatamento (DETER Amazônia) | INPE, DETER Amazônia (TerraBrasilis) | [WFS](https://terrabrasilis.dpi.inpe.br/geoserver/ows) `deter-amz:deter_amz` | CC BY-SA 4.0 | sim | sim |
 | Vegetação e meio ambiente › Fiscalização | Áreas embargadas (IBAMA) | IBAMA, Termos de embargo (SISCOM, PAMGIA) | [ArcGIS REST](https://pamgia.ibama.gov.br/server/rest/services/SISCOM/publico/MapServer) `3` | dados abertos; licença não declarada no serviço | sim | sim |
+| Vegetação e meio ambiente › Queimadas | Focos de calor das últimas 48 horas (INPE) | INPE, Programa Queimadas, focos de calor do mês corrente (Sisfogo, IBAMA/PAMGIA) | [ArcGIS REST](https://pamgia.ibama.gov.br/server/rest/services/sisfogo_focos/focos_inpe_br_municipios_ibge_2022_focos_datetime_mes_atual/FeatureServer) `0` | dados abertos; licença não declarada no serviço | sim | sim |
+| Vegetação e meio ambiente › Queimadas | Focos de calor dos últimos 7 dias do mês (INPE) | INPE, Programa Queimadas, focos de calor do mês corrente (Sisfogo, IBAMA/PAMGIA) | [ArcGIS REST](https://pamgia.ibama.gov.br/server/rest/services/sisfogo_focos/focos_inpe_br_municipios_ibge_2022_focos_datetime_mes_atual/FeatureServer) `0` | dados abertos; licença não declarada no serviço | sim | sim |
+| Vegetação e meio ambiente › Queimadas | Focos de calor do mês corrente (INPE) | INPE, Programa Queimadas, focos de calor do mês corrente (Sisfogo, IBAMA/PAMGIA) | [ArcGIS REST](https://pamgia.ibama.gov.br/server/rest/services/sisfogo_focos/focos_inpe_br_municipios_ibge_2022_focos_datetime_mes_atual/FeatureServer) `0` | dados abertos; licença não declarada no serviço | sim | sim |
 | Infraestrutura › Energia | Usinas hidrelétricas (ANEEL) | ANEEL, SIGEL, Usinas Hidrelétricas - UHE | [ArcGIS REST](https://sigel.aneel.gov.br/arcgis/rest/services/PORTAL/Camadas_Downloads/FeatureServer) `2` | dados abertos; licença não declarada no serviço | não (sem CORS) | sim |
 | Infraestrutura › Energia | Pequenas centrais hidrelétricas (ANEEL) | ANEEL, SIGEL, Pequenas Centrais Hidrelétricas - PCH | [ArcGIS REST](https://sigel.aneel.gov.br/arcgis/rest/services/PORTAL/Camadas_Downloads/FeatureServer) `3` | dados abertos; licença não declarada no serviço | não (sem CORS) | sim |
 | Infraestrutura › Energia | Centrais geradoras hidrelétricas (ANEEL) | ANEEL, SIGEL, Centrais Geradoras Hidrelétricas - CGH | [ArcGIS REST](https://sigel.aneel.gov.br/arcgis/rest/services/PORTAL/Camadas_Downloads/FeatureServer) `4` | dados abertos; licença não declarada no serviço | não (sem CORS) | sim |
