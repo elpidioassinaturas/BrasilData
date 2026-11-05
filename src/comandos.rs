@@ -5,8 +5,9 @@ use rustgis_plugin::{Request, Value, geojson, host, json};
 use crate::censo;
 use crate::datas::{self, Data};
 use crate::indicadores::{self, Fonte};
+use crate::malhas;
 use crate::mapbiomas;
-use crate::municipios::{self, Municipio};
+use crate::municipios::{self, Territorio};
 use crate::saude;
 use crate::versao;
 use crate::{AREA, PREFIXO, TEMAS, Tema, falha_passageira, pedido_de_feicoes, sistema, tema_da_camada, tiles};
@@ -18,6 +19,13 @@ const CENSO_SETORES: &str = "Setores censitários 2022";
 /// O título do painel do plugin (o do `plugin.json`).
 const PAINEL: &str = "Área e fontes";
 
+/// As árvores do painel e as grandes regiões de cada uma (o primeiro dígito do código do IBGE):
+/// com tudo numa só, o RustGIS cortaria o que passa de 5.000 nós.
+const ARVORES: [(&str, &str); 2] = [("norte-nordeste-co", "125"), ("sudeste-sul", "34")];
+
+/// A camada em que o usuário desenha a área, até usar o desenho.
+const DESENHO: &str = "BrasilData: área (desenho)";
+
 /// Mais tiles do Copernicus que isto (cerca de 59 MB cada) é área grande demais para baixá-los inteiros.
 const MAX_TILES: usize = 4;
 
@@ -28,8 +36,9 @@ fn handle(req: Request) -> Result<Value, String> {
     match req.id.as_str() {
         "area-municipio" => area_municipio(&req),
         "area-selecao" => area_selecao(),
+        "area-desenho" => area_desenho(),
         "painel" => painel(&req),
-        "escolher-municipio" => escolher_municipio(&req),
+        "escolher-area" => escolher_area(&req),
         "elevacao" => elevacao(req.f64("celula").unwrap_or(30.0)),
         "fontes" => fontes(),
         "atualizacao" => atualizacao(),
@@ -178,26 +187,89 @@ fn area_municipio(req: &Request) -> Result<Value, String> {
             ));
         }
     };
-    area_de(m)
+    area_de(&m.into())
 }
 
-/// O limite de `m` pela API de malhas do IBGE, como área.
-fn area_de(m: &Municipio) -> Result<Value, String> {
-    let url = format!(
-        "https://servicodados.ibge.gov.br/api/v4/malhas/municipios/{}?formato=application/vnd.geo%2Bjson&qualidade=intermediaria",
-        m.codigo
-    );
-    let r = host::call("host.fetch", json!({"url": url}))?;
-    if r.get("pending").and_then(Value::as_bool) == Some(true) {
-        // No app web, o RustGIS roda o comando de novo quando a resposta chegar.
-        return Ok(r);
-    }
-    let mut fc = r.get("json").cloned().ok_or("a API de malhas do IBGE não respondeu GeoJSON")?;
-    // O nome vai nas feições, para o painel dizer qual é a área.
-    for f in fc["features"].as_array_mut().into_iter().flatten() {
-        f["properties"] = json!({"nome": m.nome, "uf": m.uf, "codigo": m.codigo});
-    }
+/// O limite de `t`, que vem embutido no plugin, como área. O nome vai na feição, para o painel
+/// dizer qual é a área.
+fn area_de(t: &Territorio) -> Result<Value, String> {
+    let geometria = malhas::geometria(t.codigo).ok_or_else(|| format!("o plugin não tem o limite de {} ({})", t.nome, t.codigo))?;
+    let mut feicao = json!({"type": "Feature", "properties": {"nome": t.nome, "uf": t.uf, "codigo": t.codigo}});
+    feicao["geometry"] = geometria;
+    let mut fc = json!({"type": "FeatureCollection"});
+    fc["features"] = Value::Array(vec![feicao]);
     por_area(fc)
+}
+
+/// `r` com o painel depois de uma nova área: a escolhida na árvore `arvore` fica marcada, e a outra
+/// (ou as duas, se a área veio de outro lugar) sem marca, para um clique nela escolher de novo.
+fn marcar_nas_arvores(r: &mut Value, arvore: Option<&str>) {
+    for (id, _) in ARVORES {
+        if arvore != Some(id) {
+            r["panel"]["values"][id] = Value::Null;
+        }
+    }
+}
+
+/// Se há um desenho em andamento, desiste dele: a área veio de outro lugar.
+fn desistir_do_desenho(r: &mut Value) -> Result<(), String> {
+    if feicoes_da_camada(DESENHO)?.is_some() {
+        remover(&[DESENHO])?;
+        host::run("tool.set", json!({"tool": "explore"}))?;
+        r["panel"]["items"]["area-desenho"] = json!({"label": null});
+    }
+    Ok(())
+}
+
+/// O botão Área: desenho. Na primeira vez, põe o usuário a desenhar: uma camada vazia, ativa, e a
+/// ferramenta de criar polígono do RustGIS. O RustGIS não avisa o plugin quando um polígono fica
+/// pronto; por isso, o botão passa a dizer Usar o desenho, e o segundo clique faz dele a área.
+fn area_desenho() -> Result<Value, String> {
+    let ja = feicoes_da_camada(DESENHO)?;
+    if ja.is_some_and(|n| n > 0) {
+        return usar_desenho();
+    }
+    if ja.is_none() {
+        host::run("layer.template", json!({"template": "polygons", "name": DESENHO}))?;
+    }
+    host::run("layer.select", json!({"layer": DESENHO}))?;
+    // A ferramenta só grava com a edição ligada, e sem ela o polígono se perderia sem aviso.
+    host::run("edit.enable", json!({"on": true}))?;
+    host::run("tool.set", json!({"tool": "createPolygon"}))?;
+    host::notify(&format!("{}. A área só muda quando você usar o desenho", DICA_DO_DESENHO));
+    Ok(json!({"layer": DESENHO, "drawing": true, "panel": {"items": {
+        "area": {"text": area_no_mapa()?},
+        "area-desenho": {"label": "Usar o desenho"},
+    }}}))
+}
+
+/// O que fazer para desenhar a área.
+const DICA_DO_DESENHO: &str =
+    "Desenhando a área: clique nos cantos do polígono no mapa e dê um duplo clique para fechá-lo; depois, Usar o desenho";
+
+/// Os polígonos desenhados, como área. São poucos e leves, e o plugin pode lê-los.
+fn usar_desenho() -> Result<Value, String> {
+    let fc = host::features(DESENHO, false)?;
+    let desenhos: Vec<&Value> = fc["features"].as_array().into_iter().flatten().map(|f| &f["geometry"]).collect();
+    if let Some(i) = desenhos.iter().position(|g| malhas::se_cruza(g)) {
+        return Err(format!(
+            "o desenho {} cruza a si mesmo e daria um recorte errado: desfaça-o (Ctrl+Z) e desenhe de novo, sem cruzar as linhas",
+            i + 1
+        ));
+    }
+    let n = desenhos.len();
+    let feicoes: Vec<Value> = desenhos
+        .iter()
+        .enumerate()
+        .map(|(i, g)| {
+            let nome = if n == 1 { "Desenho livre".to_string() } else { format!("Desenho {}", i + 1) };
+            json!({"type": "Feature", "properties": {"nome": nome}, "geometry": g})
+        })
+        .collect();
+    let mut r = por_area(json!({"type": "FeatureCollection", "features": feicoes}))?;
+    desistir_do_desenho(&mut r)?;
+    marcar_nas_arvores(&mut r, None);
+    Ok(r)
 }
 
 /// Os polígonos selecionados da camada ativa.
@@ -227,7 +299,10 @@ fn area_selecao() -> Result<Value, String> {
     host::run("layer.zoomTo", json!({"layer": AREA}))?;
     let texto = texto_da_area(&nomes, ativa["selected"].as_u64().unwrap_or(0) as usize, Some(caixa));
     host::notify(&format!("Área do BrasilData: {texto}"));
-    Ok(json!({"area": AREA, "bbox": caixa, "panel": {"items": {"area": {"text": texto}}}}))
+    let mut r = json!({"area": AREA, "bbox": caixa, "panel": {"items": {"area": {"text": texto}}}});
+    desistir_do_desenho(&mut r)?;
+    marcar_nas_arvores(&mut r, None);
+    Ok(r)
 }
 
 /// O retângulo da área, se houver; senão o da vista. E se é a área.
@@ -863,12 +938,20 @@ fn elevacao(celula: f64) -> Result<Value, String> {
 
 /// O texto do painel sobre a área do mapa.
 fn area_no_mapa() -> Result<String, String> {
-    if !nomes()?.iter().any(|n| n == AREA) {
-        return Ok("Nenhuma ainda: escolha o município abaixo, ou selecione polígonos no mapa e use Área: seleção.".into());
-    }
+    let ha = nomes()?;
+    let texto = if ha.iter().any(|n| n == AREA) {
+        area_que_ha()?
+    } else {
+        "Nenhuma ainda: escolha um estado, mesorregião, microrregião ou município abaixo, desenhe com Área: desenho, ou selecione polígonos no mapa e use Área: seleção.".to_string()
+    };
+    Ok(if ha.iter().any(|n| n == DESENHO) { format!("{texto}\n\n{DICA_DO_DESENHO}.") } else { texto })
+}
+
+/// O texto do painel sobre a camada da área.
+fn area_que_ha() -> Result<String, String> {
     let camada = camada_no_projeto(AREA)?.ok_or("a camada da área sumiu")?;
     let n = camada["features"].as_u64().unwrap_or(0) as usize;
-    // Um município escolhido no painel vem leve, com o nome; uma área de seleção pode ser
+    // Um território escolhido no painel vem leve, com o nome; uma área de seleção pode ser
     // detalhada demais para o plugin ler, e fica com o retângulo e quantos polígonos são.
     let do_painel = camada["fields"].as_array().is_some_and(|f| f.iter().any(|c| c.as_str().is_some_and(|c| c.starts_with("nome "))));
     if do_painel && n <= 50 {
@@ -877,27 +960,21 @@ fn area_no_mapa() -> Result<String, String> {
     Ok(texto_da_area(&[], n, extensao(AREA)?))
 }
 
-/// A árvore de estados do painel, com os municípios de todos (fechados até o usuário abrir um):
-/// a busca do painel só procura nos nós que recebeu.
-fn arvore() -> Value {
-    let nos: Vec<Value> = municipios::ufs()
-        .into_iter()
-        .map(|(uf, nome)| {
-            let filhos: Vec<Value> = municipios::da_uf(uf).map(|m| json!({"id": format!("mun:{}", m.codigo), "label": m.nome})).collect();
-            json!({"id": format!("uf:{uf}"), "label": nome, "count": filhos.len(), "children": filhos})
-        })
-        .collect();
-    Value::Array(nos)
-}
-
 /// O estado do painel, quando ele abre.
 fn painel(_req: &Request) -> Result<Value, String> {
     let mut r = json!({"panel": {"items": {
-        "municipio": {"nodes": arvore()},
         "area": {"text": area_no_mapa()?},
         "citacao": {"text": citacoes()?.1},
         "versao": {"text": format!("BrasilData {}. O botão compara com a última versão publicada.", versao::ESTA)},
     }}});
+    // A busca do painel só procura nos nós que recebeu: vão as árvores inteiras, fechadas até o
+    // usuário abrir um ramo.
+    for (id, regioes) in ARVORES {
+        r["panel"]["items"][id]["nodes"] = municipios::arvore(regioes);
+    }
+    // O botão do desenho volta a dizer o que faz quando o painel é reaberto no meio de um desenho.
+    let desenhando = feicoes_da_camada(DESENHO)?.is_some();
+    r["panel"]["items"]["area-desenho"] = json!({"label": if desenhando { json!("Usar o desenho") } else { Value::Null }});
     // Os controles do período com as datas do mês dos focos. No app web a resposta chega depois:
     // o painel mostra as datas quando for aberto de novo, ou depois do primeiro período.
     if let Some(mes) = TEMAS.iter().find(|t| t.id == "inpe-focos-mes")
@@ -909,21 +986,17 @@ fn painel(_req: &Request) -> Result<Value, String> {
     Ok(r)
 }
 
-/// Um nó escolhido na árvore: um estado mostra os seus municípios; um município vira a área.
-fn escolher_municipio(req: &Request) -> Result<Value, String> {
-    let Some(no) = req.panel.get("municipio").and_then(Value::as_str) else {
+/// Um nó escolhido numa árvore do painel vira a área: um estado, uma mesorregião, uma microrregião
+/// ou um município.
+fn escolher_area(req: &Request) -> Result<Value, String> {
+    let escolhido = ARVORES.iter().find(|(id, _)| req.changed(id)).and_then(|(id, _)| Some((*id, req.panel.get(*id)?.as_str()?)));
+    let Some((arvore, no)) = escolhido else {
         return Ok(json!({}));
     };
-    let nos = arvore();
-    let Some(m) = no.strip_prefix("mun:").and_then(municipios::por_codigo) else {
-        // Um estado: os municípios aparecem debaixo dele; a busca acha o nome.
-        return Ok(json!({"panel": {"items": {"municipio": {"nodes": nos}}, "values": {"municipio": no}}}));
-    };
-    let mut r = area_de(m)?;
-    if r.get("pending").and_then(Value::as_bool) != Some(true) {
-        r["panel"]["items"]["municipio"] = json!({"nodes": nos});
-        r["panel"]["values"] = json!({"municipio": no});
-    }
+    let t = municipios::territorio(no).ok_or_else(|| format!("'{no}' não é um nó das árvores do painel {PAINEL}"))?;
+    let mut r = area_de(&t)?;
+    desistir_do_desenho(&mut r)?;
+    marcar_nas_arvores(&mut r, Some(arvore));
     Ok(r)
 }
 

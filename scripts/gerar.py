@@ -30,10 +30,10 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.13"
+VERSAO = "0.1.14"
 
 # Os comandos que não vêm da tabela, com o grupo da aba em que ficam. Na aba, o grupo Área
-# tem o painel (a escolha do município pelo nome) e a área pela seleção; o comando
+# tem o painel (a escolha do território pelo nome), a área pela seleção e o desenho; o comando
 # area-municipio fica para scripts e para a linha de comando.
 AREA = [
     {
@@ -44,49 +44,66 @@ AREA = [
         "params": "{}",
     },
     {
+        "id": "area-desenho",
+        "label": "Área:\ndesenho",
+        "help": "Desenhe a área no mapa: o primeiro clique neste botão liga a ferramenta (clique nos cantos do polígono e dê um duplo clique para fechá-lo); o segundo faz do desenho a área do BrasilData.",
+        "icon": "polygon_tool",
+        "params": "{}",
+    },
+    {
         "id": "area-municipio",
         "label": "Área:\nmunicípio",
-        "help": "Traz o limite de um município pela API de malhas do IBGE e o torna a área do BrasilData. Na janela, use o painel Área e fontes.",
+        "help": "Torna um município a área do BrasilData, com o limite do IBGE que vem no plugin. Na janela, use o painel Área e fontes.",
         "icon": "polygon_layer",
         "params": "{\"nome\": nome do município (\"Teresina\", \"Bom Jesus/PI\"), \"uf\"?: sigla, quando o nome se repete} | {\"codigo\": código do IBGE, 7 dígitos}",
     },
 ]
-NA_ABA_AREA = ["panel", "area-selecao"]
+NA_ABA_AREA = ["panel", "area-selecao", "area-desenho"]
 # A verificação de atualização fica no fim do grupo Área, depois das fontes.
 # Os comandos do painel, que não vão para a aba.
 DO_PAINEL = [
     {
         "id": "painel",
         "label": "Atualizar painel",
-        "help": "O estado do painel Área e fontes: a árvore de estados e municípios, a área e as fontes.",
+        "help": "O estado do painel Área e fontes: as árvores de estados, mesorregiões, microrregiões e municípios, a área e as fontes.",
         "icon": "polygon_layer",
         "params": "{}",
     },
     {
-        "id": "escolher-municipio",
-        "label": "Escolher município",
-        "help": "O nó escolhido na árvore do painel: um estado mostra os seus municípios; um município vira a área.",
+        "id": "escolher-area",
+        "label": "Escolher área",
+        "help": "O nó escolhido numa árvore do painel vira a área: um estado, uma mesorregião, uma microrregião ou um município, com o limite do IBGE que vem no plugin.",
         "icon": "polygon_layer",
-        "params": "{\"panel\": {\"municipio\": \"uf:PI\" | \"mun:2211001\"}}",
+        "params": "{\"panel\": {\"norte-nordeste-co\" | \"sudeste-sul\": \"uf:PI\" | \"meso:2204\" | \"micro:22010\" | \"mun:2211001\"}}",
     },
 ]
+ARVORE = "Clique no nome de um estado, mesorregião, microrregião ou município (divisão do IBGE de 1989): ele vira a área. O triângulo abre o ramo, e a caixa busca pelo nome. Os limites vêm no plugin (IBGE), sem depender da rede; para o contorno exato, traga a camada de Limites e use Área: seleção."
 PAINEL = {
     "title": "Área e fontes",
     "icon": "polygon_layer",
-    "help": "Escolha o município da área pelo nome, e veja as fontes das camadas do BrasilData no mapa.",
+    "help": "Escolha a área num estado, mesorregião, microrregião ou município, desenhe-a ou use a seleção, e veja as fontes das camadas do BrasilData no mapa.",
     "state": "painel",
     "items": [
         {"kind": "text", "id": "area", "label": "Área do BrasilData"},
+        {"kind": "button", "command": "area-selecao"},
+        {"kind": "button", "command": "area-desenho"},
+        {"kind": "button", "command": "fontes"},
         {
             "kind": "tree",
-            "id": "municipio",
-            "label": "Município",
-            "help": "Abra o estado e escolha o município (a caixa acima da árvore busca pelo nome); ele vira a área.",
+            "id": "norte-nordeste-co",
+            "label": "Norte, Nordeste e Centro-Oeste",
+            "help": ARVORE,
             "search": True,
-            "command": "escolher-municipio",
+            "command": "escolher-area",
         },
-        {"kind": "button", "command": "area-selecao"},
-        {"kind": "button", "command": "fontes"},
+        {
+            "kind": "tree",
+            "id": "sudeste-sul",
+            "label": "Sudeste e Sul",
+            "help": ARVORE,
+            "search": True,
+            "command": "escolher-area",
+        },
         {
             "kind": "slider",
             "id": "focos-de",

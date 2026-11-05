@@ -24,8 +24,20 @@ licence. It runs on the desktop and in the web app. The interface is in Portugue
 A aba **BrasilData** vai de tópicos a subtópicos e camadas: cada grupo é um tópico, cada menu é
 um subtópico e os itens do menu são as camadas, com a fonte entre parênteses. Os tópicos seguem as
 categorias temáticas da ISO 19115 e do Perfil MGB da INDE, juntadas para caber nos 8 grupos que o
-RustGIS aceita. O grupo Área tem o painel para escolher a área (um município, a seleção ou a vista)
-e o comando Fontes.
+RustGIS aceita. O grupo Área tem o painel para escolher a área e o comando Fontes.
+
+A área pode ser:
+
+- **um estado, mesorregião, microrregião ou município**, clicando no nome numa das duas árvores do
+  painel **Área e fontes** (Norte, Nordeste e Centro-Oeste; Sudeste e Sul). O triângulo abre o ramo,
+  e a caixa busca pelo nome. Os limites vêm dentro do plugin (`malhas.bin`, da API de malhas do
+  IBGE), e a escolha funciona com o site do IBGE fora do ar ou sem internet. Meso e microrregiões
+  são as da divisão do IBGE de 1989. As fronteiras são generalizadas: para o contorno exato, traga
+  a camada de **Limites** e use a seleção;
+- **um desenho**: **Área: desenho** liga a ferramenta (clique nos cantos e dê um duplo clique para
+  fechar o polígono) e **Usar o desenho** faz dele a área;
+- **a seleção**: os polígonos selecionados da camada ativa, com **Área: seleção**;
+- **a vista**: sem área, os temas pedem o que está na vista do mapa.
 
 | Tópico | Subtópicos |
 |---|---|
@@ -191,8 +203,8 @@ O `package.py` e o `smoke.py` vêm do
 
 - **Fontes:** uma camada nova é uma linha em `fontes.csv`, seguida de `python scripts/gerar.py`.
   O CI roda `gerar.py --check` e falha se o `plugin.json` ou o `catalogo.rs` não estiverem em dia.
-- **Tabelas embutidas:** `municipios.csv`, `tse.csv` e `caged.csv` são refeitas pelos
-  `scripts/baixar_*.py`.
+- **Tabelas embutidas:** `municipios.csv`, `malhas.bin`, `tse.csv` e `caged.csv` são refeitas pelos
+  `scripts/baixar_*.py` (`baixar_malhas.py` depois de `baixar_municipios.py`).
 - **Versão do RustGIS no CI:** a variável `RUSTGIS_VERSION` do repositório escolhe a versão em
   que o plugin roda; sem ela, é a mais recente.
 
