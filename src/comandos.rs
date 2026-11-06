@@ -76,6 +76,31 @@ fn remover(alvo: &[&str]) -> Result<(), String> {
     Ok(())
 }
 
+/// Tira do mapa as camadas com os nomes `antigas`, menos a que uma chamada acaba de responder
+/// (`veio`, o `layer` da resposta), que fica com o nome `destino`: com o nome já em uso, ela entrou
+/// como "nome (2)". Uma camada nova só substitui a antiga depois da chamada: quando o RustGIS roda
+/// o comando de novo com o download pronto, a camada que chegou já está no mapa, e tirá-la antes da
+/// chamada dá o erro de camada desfeita.
+fn substituir(antigas: &[&str], destino: &str, veio: &Value) -> Result<(), String> {
+    let veio = Some(veio).filter(|v| !v.is_null());
+    let camadas = host::layers()?;
+    let lista = camadas.as_array().map_or(&[][..], Vec::as_slice);
+    let fora: Vec<&Value> = lista
+        .iter()
+        .filter(|l| antigas.iter().any(|n| l["name"].as_str() == Some(n)) && Some(&l["id"]) != veio)
+        .map(|l| &l["id"])
+        .collect();
+    if !fora.is_empty() {
+        host::run("layer.remove", json!({"layer": fora}))?;
+    }
+    if let Some(l) = lista.iter().find(|l| Some(&l["id"]) == veio)
+        && l["name"].as_str() != Some(destino)
+    {
+        host::run("layer.rename", json!({"layer": l["id"], "name": destino}))?;
+    }
+    Ok(())
+}
+
 /// Põe `fc` como a área, no lugar da anterior.
 fn por_area(fc: Value) -> Result<Value, String> {
     let caixa = caixa_de(&fc).ok_or("a área não tem geometria")?;
@@ -366,7 +391,7 @@ fn trazer_pela_web(t: &Tema, nome: &str, c: [f64; 4]) -> Result<Value, String> {
     if r.get("pending").and_then(Value::as_bool) == Some(true) {
         return Ok(json!({"downloading": nome}));
     }
-    Ok(json!({"features": r["features"].as_u64().unwrap_or(0)}))
+    Ok(json!({"layer": r["layer"], "features": r["features"].as_u64().unwrap_or(0)}))
 }
 
 enum Capacidades {
@@ -421,17 +446,23 @@ fn tema(t: &Tema) -> Result<Value, String> {
     // App web: a camada baixada num clique anterior, que este clique recorta.
     let baixada = if na_area { feicoes_da_camada(&bruto)? } else { None };
     let r = match baixada {
-        Some(n) => json!({"features": n}),
-        None => {
-            remover(&[&nome, &bruto])?;
-            trazer(t, if na_area { &bruto } else { &nome }, c)?
+        Some(n) => {
+            remover(&[&nome])?;
+            json!({"features": n})
         }
+        None => trazer(t, if na_area { &bruto } else { &nome }, c)?,
     };
     if r.get("pending").and_then(Value::as_bool) == Some(true) {
-        // App web: o RustGIS roda o comando de novo quando as respostas chegarem.
+        // O RustGIS roda o comando de novo quando as respostas chegarem.
         return Ok(r);
     }
+    if baixada.is_none() && r.get("downloading").is_none() {
+        substituir(&[&nome, &bruto], if na_area { &bruto } else { &nome }, &r["layer"])?;
+    }
     if r.get("downloading").is_some() {
+        // Um RustGIS que não roda o comando de novo põe a camada nova sem mais nada: a antiga sai
+        // agora. Num que roda, esta volta é desfeita, e a antiga sai depois da chamada.
+        remover(&[&nome, &bruto])?;
         host::notify(&if na_area {
             format!("{nome}: baixando; quando a camada aparecer no mapa, clique de novo neste botão para recortá-la pela área")
         } else {
@@ -690,13 +721,14 @@ fn tema_proprio_de(t: &Tema) -> Result<Value, String> {
             host::notify(&format!("{nome}: {} de {de} partes no mapa; clique de novo quando todas tiverem chegado", partes.len()));
             return Ok(json!({"downloading": nome, "parts": partes.len(), "of": de}));
         }
+        remover(&[&nome, &bruto])?;
         let lidas = juntar(&partes, destino)?;
         return concluir(t, lidas, area, na_area);
     }
     if na_area && let Some(n) = feicoes_da_camada(&bruto)? {
+        remover(&[&nome])?;
         return concluir(t, n, area, na_area);
     }
-    remover(&[&nome, &bruto])?;
     let ufs = if t.camada.contains("{uf}") {
         match ufs_da_area(c)? {
             Ok(u) => u,
@@ -723,6 +755,7 @@ fn tema_proprio_de(t: &Tema) -> Result<Value, String> {
     }
     let onde = if area { "na área" } else { "na vista" };
     if total == 0 {
+        remover(&[&nome, &bruto])?;
         host::notify(&format!("{nome}: nenhuma feição {onde} ({})", t.fonte));
         return Ok(json!({"layer": null, "features": 0}));
     }
@@ -733,12 +766,17 @@ fn tema_proprio_de(t: &Tema) -> Result<Value, String> {
     let nomes_das_partes: Vec<String> =
         if n == 1 { vec![destino.clone()] } else { (1..=n).map(|i| format!("{nome} (parte {i} de {n})")).collect() };
     let mut baixando = 0;
+    let mut veio = Value::Null;
     for (url, p) in pedidos.iter().zip(&nomes_das_partes) {
         let r = host::run("layer.addUrl", json!({"url": url, "name": p, "zoom": false}))?;
         if r.get("pending").and_then(Value::as_bool) == Some(true) {
             baixando += 1;
+        } else if n == 1 {
+            veio = r["layer"].clone();
         }
     }
+    // Um download pendente ainda não está no mapa (veja `tema`).
+    substituir(&[&nome, &bruto], destino, &veio)?;
     if baixando > 0 {
         let partes = if n == 1 { String::new() } else { format!(" em {n} partes") };
         let depois = match (n > 1, na_area) {
@@ -1291,13 +1329,14 @@ fn censo_setores() -> Result<Value, String> {
         let nome = format!("{PREFIXO}{CENSO_SETORES} ({uf})");
         let bruto = format!("{nome} (sem recorte)");
         if feicoes_da_camada(&bruto)?.is_none() {
-            remover(&[&nome])?;
             let r = host::run("layer.addUrl", json!({"url": censo::url_setores(uf), "name": bruto, "zoom": false}))?;
             if r.get("pending").and_then(Value::as_bool) == Some(true) {
+                remover(&[&nome])?;
                 baixando.push(uf.clone());
                 continue;
             }
         }
+        remover(&[&nome])?;
         let r = host::run("gp.run", json!({"tool": "clip", "params": {"input": bruto, "clip": AREA}}))?;
         let recortada = r.get("layer").cloned().ok_or("o clip não disse a camada que fez")?;
         host::run("layer.rename", json!({"layer": recortada, "name": nome}))?;
