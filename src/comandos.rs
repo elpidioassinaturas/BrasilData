@@ -4,6 +4,7 @@ use rustgis_plugin::{Request, Value, geojson, host, json};
 
 use crate::censo;
 use crate::datas::{self, Data};
+use crate::estilo;
 use crate::grade::{self, Escolha, GRADE, Grade};
 use crate::indicadores::{self, Fonte};
 use crate::malhas;
@@ -31,7 +32,50 @@ const DESENHO: &str = "BrasilData: área (desenho)";
 /// Mais tiles do Copernicus que isto (cerca de 59 MB cada) é área grande demais para baixá-los inteiros.
 const MAX_TILES: usize = 4;
 
+/// Um comando do plugin, com o estilo que o usuário deu às camadas do BrasilData guardado: um tema
+/// buscado de novo (outra área, outra vista) troca a camada por uma nova, e a nova fica com a
+/// legenda, as cores, os rótulos e a transparência da antiga. O estilo fica na camada (e no
+/// projeto, com ela); o plugin só o leva da antiga para a nova. O estado do painel, que o RustGIS
+/// pede a cada abertura, não mexe em camadas.
 fn handle(req: Request) -> Result<Value, String> {
+    if req.id == "painel" {
+        return executar(req);
+    }
+    guardar_estilos();
+    let r = executar(req);
+    if let Ok(v) = &r
+        && !estilo::esperando(v)
+    {
+        devolver_estilos();
+    }
+    r
+}
+
+/// As camadas do BrasilData no mapa cujo estilo é do usuário ([`estilo::com_estilo`]).
+fn camadas_com_estilo() -> Vec<String> {
+    host::layers().map(|c| estilo::com_estilo(&c, &[DESENHO, CONTORNOS_RADAR, FONTES])).unwrap_or_default()
+}
+
+/// Guarda, como estilos do projeto, o estilo de cada camada do BrasilData no mapa. Uma falha aqui
+/// só deixa a camada nova com o estilo de sempre.
+fn guardar_estilos() {
+    for n in camadas_com_estilo() {
+        let _ = host::run("style.new", json!({"layer": n, "name": estilo::guardado(&n)}));
+    }
+}
+
+/// Devolve a cada camada do BrasilData no mapa o estilo guardado com o nome dela, nova ou não, e
+/// tira esse estilo do projeto. Sem um (a primeira vez de um tema) ou com um que não serve (outra
+/// geometria), a camada fica como veio. O de uma camada que saiu do mapa e ainda não voltou (um
+/// download no meio) fica guardado até ela voltar.
+fn devolver_estilos() {
+    for n in camadas_com_estilo() {
+        let _ = host::run("style.apply", json!({"layer": n, "name": estilo::guardado(&n)}));
+        let _ = host::run("style.remove", json!({"name": estilo::guardado(&n)}));
+    }
+}
+
+fn executar(req: Request) -> Result<Value, String> {
     if let Some(t) = TEMAS.iter().find(|t| t.id == req.id) {
         return tema(t);
     }

@@ -14,6 +14,7 @@
 mod catalogo;
 pub mod censo;
 pub mod datas;
+pub mod estilo;
 pub mod grade;
 pub mod indicadores;
 // O que fala com o RustGIS só compila no wasm: fora dele (nos testes), as importações do

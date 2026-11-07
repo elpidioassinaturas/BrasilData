@@ -101,6 +101,13 @@ do mapeamento, e o Rio Amazonas (ordem 9) ficaria abaixo de rios do Sudeste de o
 traz no máximo 30 mil trechos: numa área grande, só os rios a partir de uma área de drenagem (no
 Brasil inteiro, 10 mil km²), e o aviso diz qual; numa área menor, vêm os rios menores.
 
+O estilo que você der a uma camada do BrasilData fica com ela: a legenda (o campo, as classes, a
+paleta), as cores, os rótulos e a transparência. Quando o tema vem de novo, para outra área ou outra
+vista, a camada nova recebe o estilo da antiga; o estilo também fica salvo no projeto, com a camada.
+Numa legenda por classes, os limites das classes ficam como estavam: para recalculá-los com os dados
+novos, aplique a simbologia de novo. Os rasters (MapBiomas, relevo, radar) ainda não guardam o
+estilo.
+
 | Tópico | Subtópicos |
 |---|---|
 | Território | Limites (IBGE: Brasil, Grandes Regiões, estados, regiões intermediárias e imediatas, meso e microrregiões, municípios, distritos, subdistritos e bairros), Recortes especiais (IBGE: Amazônia Legal, Semiárido, MATOPIBA, SUDENE, municípios costeiros, regiões metropolitanas, aglomerações, concentrações e arranjos urbanos, hierarquia urbana), Cadastro fundiário (SFB, INCRA), Terras indígenas (FUNAI) |
