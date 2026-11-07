@@ -742,6 +742,13 @@
       "help": "Compara esta versão do BrasilData com a última publicada no GitHub e diz como atualizar: pelo Gerenciador de plugins, se ele veio do registro, ou pelo arquivo .rgplugin da release.",
       "icon": "update",
       "params": "{}"
+    },
+    {
+      "id": "sobre",
+      "label": "Sobre",
+      "help": "A autoria do BrasilData, a versão, a licença, o repositório, as fontes dos dados e como contribuir. O texto completo fica em Sobre o BrasilData, no fim do painel Área de trabalho.",
+      "icon": "about",
+      "params": "{}"
     }
   ],
   "panel": {
@@ -799,6 +806,12 @@
       {
         "kind": "button",
         "command": "grade"
+      },
+      {
+        "kind": "text",
+        "id": "sobre",
+        "label": "Sobre o BrasilData",
+        "text": "BrasilData 0.1.16, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Elpídio Filho.\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nFontes dos dados: IBGE, INPE, ANA, ANP, ANEEL, INCRA, ANM, MMA, ICMBio, FUNAI, Serviço Florestal Brasileiro, IBAMA, DNIT e MapBiomas, pelos serviços de cada órgão; Copernicus DEM GLO-30 (DLR e Airbus, pelo espelho da OpenTopography); Banco Central (Pix e crédito rural); TSE; Novo CAGED (IPEA Data) e Ministério da Saúde (CNES, pelo geobr do Ipea).\n\nComo contribuir: sentiu falta de algum dado? Abra uma issue em https://github.com/elpidioassinaturas/BrasilData/issues com o nome do dado, o órgão que o publica, o endereço do serviço (WFS, ArcGIS REST, API ou arquivo) e para que você o usaria. Para trazer a fonte você mesmo, acrescente uma linha ao fontes.csv, rode python scripts/gerar.py e abra um pull request. Correções, avisos de serviço fora do ar e relatos de uso também são bem-vindos."
       }
     ]
   },
@@ -813,7 +826,8 @@
           "area-desenho",
           "grade",
           "fontes",
-          "atualizacao"
+          "atualizacao",
+          "sobre"
         ]
       },
       {

@@ -24,8 +24,10 @@ licence. It runs on the desktop and in the web app. The interface is in Portugue
 A aba **BrasilData** vai de tópicos a subtópicos e camadas: cada grupo é um tópico, cada menu é
 um subtópico e os itens do menu são as camadas, com a fonte entre parênteses. Os tópicos seguem as
 categorias temáticas da ISO 19115 e do Perfil MGB da INDE, juntadas para caber nos 8 grupos que o
-RustGIS aceita. O grupo Área tem o painel **Área de trabalho**, a Grade do projeto e o comando
-Fontes.
+RustGIS aceita. O grupo Área tem o painel **Área de trabalho**, a Grade do projeto, o comando
+Fontes, a verificação de atualização e o **Sobre**: a autoria, a versão, a licença, o repositório,
+as fontes dos dados e como contribuir, num aviso curto e, inteiro, em **Sobre o BrasilData**, no
+fim do painel.
 
 A área de trabalho pode ser:
 
@@ -240,6 +242,10 @@ O `package.py` e o `smoke.py` vêm do
    roda o plugin no RustGIS e cria a release com o `.rgplugin` e a entrada do registro.
 3. Abra um PR no [opengeos/rustgis-plugins](https://github.com/opengeos/rustgis-plugins) com
    `registry/brasildata.json`, com a categoria `Data`.
+
+## Autoria
+
+Elpídio Filho. O botão **Sobre** (grupo Área) mostra a autoria dentro do RustGIS.
 
 ## Licença
 

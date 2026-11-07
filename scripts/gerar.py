@@ -148,7 +148,71 @@ FIM = [
             "params": "{}",
         },
     ),
+    (
+        "Área",
+        {
+            "id": "sobre",
+            "label": "Sobre",
+            "help": "A autoria do BrasilData, a versão, a licença, o repositório, as fontes dos dados e como contribuir. O texto completo fica em Sobre o BrasilData, no fim do painel Área de trabalho.",
+            "icon": "about",
+            "params": "{}",
+        },
+    ),
 ]
+
+# A seção Sobre: a autoria e o resto, no fim do painel (o RustGIS não tem janela de texto para um
+# plugin, e um comando não abre o painel) e, resumida, no aviso do botão Sobre. O autor, a
+# licença e o repositório são os do manifesto.
+AUTOR = "Elpídio Filho"
+LICENCA = "MIT"
+REPOSITORIO = "https://github.com/elpidioassinaturas/BrasilData"
+# As fontes fora do fontes.csv, depois dos órgãos das camadas vetoriais.
+OUTRAS_FONTES = [
+    "Copernicus DEM GLO-30 (DLR e Airbus, pelo espelho da OpenTopography)",
+    "Banco Central (Pix e crédito rural)",
+    "TSE",
+    "Novo CAGED (IPEA Data)",
+    "Ministério da Saúde (CNES, pelo geobr do Ipea)",
+]
+# O RustGIS aceita até 2.000 caracteres num texto declarado do painel e corta um aviso em 500
+# (com o "BrasilData: " na frente).
+MAX_SOBRE = 2000
+MAX_AVISO = 500 - len("BrasilData: ")
+
+
+def sobre(linhas: list[dict]) -> tuple[str, str]:
+    """O texto da seção Sobre e o aviso curto do botão."""
+    # Os órgãos das camadas vetoriais, do que tem mais camadas ao que tem menos.
+    conta: dict[str, int] = {}
+    for l in linhas:
+        o = l["fonte"].split(",")[0].strip()
+        conta[o] = conta.get(o, 0) + 1
+    orgaos = sorted(conta, key=lambda o: -conta[o])
+    texto = "\n\n".join(
+        [
+            f"BrasilData {VERSAO}, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.",
+            f"Autor: {AUTOR}.\n"
+            f"Licença: {LICENCA}, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: "
+            "o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\n"
+            f"Repositório: {REPOSITORIO}",
+            f"Fontes dos dados: {', '.join(orgaos[:-1])} e {orgaos[-1]}, pelos serviços de cada órgão; "
+            f"{'; '.join(OUTRAS_FONTES[:-1])} e {OUTRAS_FONTES[-1]}.",
+            "Como contribuir: sentiu falta de algum dado? Abra uma issue em "
+            f"{REPOSITORIO}/issues com o nome do dado, o órgão que o publica, o endereço do serviço "
+            "(WFS, ArcGIS REST, API ou arquivo) e para que você o usaria. Para trazer a fonte você "
+            "mesmo, acrescente uma linha ao fontes.csv, rode python scripts/gerar.py e abra um pull "
+            "request. Correções, avisos de serviço fora do ar e relatos de uso também são bem-vindos.",
+        ]
+    )
+    aviso = (
+        f"BrasilData {VERSAO}, de {AUTOR}, sob a licença {LICENCA}: {REPOSITORIO}. A autoria, as fontes "
+        "dos dados e como contribuir estão em Sobre o BrasilData, no fim do painel Área de trabalho."
+    )
+    if len(texto) > MAX_SOBRE:
+        sys.exit(f"o texto Sobre tem {len(texto)} caracteres; o RustGIS aceita até {MAX_SOBRE}")
+    if len(aviso) > MAX_AVISO:
+        sys.exit(f"o aviso Sobre tem {len(aviso)} caracteres; o RustGIS corta em {MAX_AVISO}")
+    return texto, aviso
 
 
 # Comandos que não vêm da tabela e ficam num grupo da aba: (tópico, subtópico ou None, comando).
@@ -436,20 +500,21 @@ def manifesto(linhas: list[dict]) -> str:
         itens.sort(key=lambda i: TOPICOS[g].index(i["menu"]) if isinstance(i, dict) else len(TOPICOS[g]))
     if len(grupos) > 8:
         sys.exit(f"a aba tem {len(grupos)} grupos; o RustGIS aceita até 8")
+    painel = dict(PAINEL, items=PAINEL["items"] + [{"kind": "text", "id": "sobre", "label": "Sobre o BrasilData", "text": sobre(linhas)[0]}])
     m = {
         "id": "brasildata",
         "name": "BrasilData",
         "version": VERSAO,
         "description": "Dados públicos do Brasil para a área do usuário (IBGE, MMA, ICMBio, INPE, ANA, ANEEL, ANP, SFB/CAR, INCRA, FUNAI, IBAMA, ANM, DNIT, Ministério da Saúde, Copernicus): só o que cruza a área, recortado por ela, com a fonte e a licença de cada camada.",
-        "author": "Elpídio Filho",
-        "homepage": "https://github.com/elpidioassinaturas/BrasilData",
-        "license": "MIT",
+        "author": AUTOR,
+        "homepage": REPOSITORIO,
+        "license": LICENCA,
         "entry": "plugin.wasm",
         "abi": 1,
         "minRustgisVersion": "0.5.0",
         "permissions": ["edit", "files", "network"],
         "commands": comandos,
-        "panel": PAINEL,
+        "panel": painel,
         "tab": {"label": "BrasilData", "groups": [{"label": g, "items": i} for g, i in grupos.items()]},
     }
     return json.dumps(m, ensure_ascii=False, indent=2) + "\n"
@@ -485,6 +550,16 @@ def catalogo(linhas: list[dict]) -> str:
             "    },",
         ]
     out.append("];")
+    texto, aviso = sobre(linhas)
+    out += [
+        "",
+        "/// O texto da seção Sobre (o do painel Área de trabalho): autoria, versão, licença, repositório,",
+        "/// fontes e como contribuir.",
+        f"pub const SOBRE: &str = {s(texto)};",
+        "",
+        "/// O aviso do botão Sobre: o resumo do [`SOBRE`].",
+        f"pub const SOBRE_AVISO: &str = {s(aviso)};",
+    ]
     return "\n".join(out) + "\n"
 
 

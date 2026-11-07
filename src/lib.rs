@@ -27,7 +27,7 @@ pub mod saude;
 pub mod versao;
 pub mod vista;
 
-pub use catalogo::TEMAS;
+pub use catalogo::{SOBRE, SOBRE_AVISO, TEMAS};
 
 /// O nome da camada da área.
 pub const AREA: &str = "BrasilData: área";
@@ -305,6 +305,18 @@ mod tests {
         assert!(!t("municipios").recorta && t("geologia").recorta);
         assert_eq!(tema_da_camada("BrasilData: Solos (BDiA 1:250.000)").map(|t| t.id), Some("solos"));
         assert!(tema_da_camada(AREA).is_none());
+    }
+
+    #[test]
+    fn o_sobre_tem_a_autoria_a_versao_e_cabe_no_rustgis() {
+        for t in [SOBRE, SOBRE_AVISO] {
+            assert!(t.contains("Elpídio Filho") && t.contains("MIT") && t.contains("github.com/elpidioassinaturas/BrasilData"), "{t}");
+            // A versão do texto é a do Cargo.toml (o gerar.py mantém as duas iguais).
+            assert!(t.contains(&format!("BrasilData {}", versao::ESTA)), "{t}");
+        }
+        assert!(SOBRE.contains("Como contribuir") && SOBRE.contains("IBGE") && SOBRE.contains("Copernicus"));
+        // O texto declarado de um painel vai até 2.000 caracteres; um aviso é cortado em 500.
+        assert!(SOBRE.chars().count() <= 2000 && SOBRE_AVISO.chars().count() + "BrasilData: ".len() <= 500);
     }
 
     #[test]

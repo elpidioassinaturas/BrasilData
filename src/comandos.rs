@@ -43,6 +43,7 @@ fn handle(req: Request) -> Result<Value, String> {
         "grade" => grade_do_projeto(&req),
         "fontes" => fontes(),
         "atualizacao" => atualizacao(),
+        "sobre" => sobre(),
         "indicadores" => indicadores(&fontes_de(&req)?),
         "indicadores-todos" => indicadores(&indicadores::TODAS),
         "censo-municipios" => indicadores(&[Fonte::Censo]),
@@ -1596,6 +1597,14 @@ fn cobertura_mapbiomas(ano: i64) -> Result<Value, String> {
         "{nome}: mapa para ver, com as cores da legenda oficial (brasil.mapbiomas.org); não é recortado pela área e vale por algumas horas"
     ));
     Ok(json!({"tiles": nome, "year": ano}))
+}
+
+/// A autoria e o resto da seção Sobre: o resumo no aviso e o texto inteiro na resposta (a da
+/// linha de comando e dos scripts) e no painel, onde ele já está desde a instalação. O RustGIS
+/// não tem janela de texto para um plugin, e um comando não abre o painel.
+fn sobre() -> Result<Value, String> {
+    host::notify(crate::SOBRE_AVISO);
+    Ok(json!({"version": versao::ESTA, "text": crate::SOBRE, "panel": {"items": {"sobre": {"text": crate::SOBRE}}}}))
 }
 
 /// Compara esta versão com a última release no GitHub e diz como atualizar.
