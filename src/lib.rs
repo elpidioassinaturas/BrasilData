@@ -310,7 +310,14 @@ mod tests {
     #[test]
     fn o_sobre_tem_a_autoria_a_versao_e_cabe_no_rustgis() {
         for t in [SOBRE, SOBRE_AVISO] {
-            assert!(t.contains("Elpídio Filho") && t.contains("LABGEO") && t.contains("UFV") && t.contains("MIT") && t.contains("github.com/elpidioassinaturas/BrasilData"), "{t}");
+            assert!(
+                t.contains("Elpídio Filho")
+                    && t.contains("LABGEO")
+                    && t.contains("UFV")
+                    && t.contains("MIT")
+                    && t.contains("github.com/elpidioassinaturas/BrasilData"),
+                "{t}"
+            );
             // A versão do texto é a do Cargo.toml (o gerar.py mantém as duas iguais).
             assert!(t.contains(&format!("BrasilData {}", versao::ESTA)), "{t}");
         }
