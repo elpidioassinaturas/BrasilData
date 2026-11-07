@@ -65,6 +65,15 @@ mesmas escolhas. Sem grade, a primeira Elevação cria a padrão: 30 m, sistema 
 `plugin:brasildata/grade={"celula": 90, "crs": "albers"}`; o `crs` aceita também um código EPSG em
 metros.
 
+Os **Trechos de drenagem (BHO 2017, ANA)** mostram os rios conforme o zoom. De longe aparecem só os
+rios principais; à medida que o mapa aproxima, os menores aparecem também. A hierarquia é a área de
+drenagem a montante de cada trecho (`nuareamont`): de 1:20 milhões para longe, os rios com 50 mil
+km² ou mais; perto de 1:1 milhão, os com 500 km² ou mais; de 1:300 mil para perto, todos os que
+vieram. A ordem de Strahler, que a BHO também traz, não serve para isso: ela cresce com o detalhe
+do mapeamento, e o Rio Amazonas (ordem 9) ficaria abaixo de rios do Sudeste de ordem 10. O plugin
+traz no máximo 30 mil trechos: numa área grande, só os rios a partir de uma área de drenagem (no
+Brasil inteiro, 10 mil km²), e o aviso diz qual; numa área menor, vêm os rios menores.
+
 | Tópico | Subtópicos |
 |---|---|
 | Território | Limites (IBGE: Brasil, Grandes Regiões, estados, regiões intermediárias e imediatas, meso e microrregiões, municípios, distritos, subdistritos e bairros), Recortes especiais (IBGE: Amazônia Legal, Semiárido, MATOPIBA, SUDENE, municípios costeiros, regiões metropolitanas, aglomerações, concentrações e arranjos urbanos, hierarquia urbana), Cadastro fundiário (SFB, INCRA), Terras indígenas (FUNAI) |

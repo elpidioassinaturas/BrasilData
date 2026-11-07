@@ -26,6 +26,7 @@ pub mod municipios;
 pub mod saude;
 pub mod versao;
 pub mod vista;
+pub mod zoom;
 
 pub use catalogo::{SOBRE, SOBRE_AVISO, TEMAS};
 

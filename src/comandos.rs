@@ -11,6 +11,7 @@ use crate::mapbiomas;
 use crate::municipios::{self, Territorio};
 use crate::saude;
 use crate::versao;
+use crate::zoom;
 use crate::{AREA, PREFIXO, TEMAS, Tema, falha_passageira, pedido_de_feicoes, tema_da_camada, tiles};
 
 /// Os nomes das camadas dos censos, depois de [`PREFIXO`].
@@ -801,7 +802,30 @@ const MAX_FEICOES: u64 = 100_000;
 /// baixa fora do plugin), junta-as (`gp.run merge`) e termina como os outros temas. No app web
 /// as páginas chegam depois; um segundo clique junta e recorta.
 fn tema_proprio(t: &Tema) -> Result<Value, String> {
-    tema_proprio_de(t).map_err(crate::explicar)
+    let r = tema_proprio_de(t).map_err(crate::explicar)?;
+    if let (Some(campo), Some(nome)) = (zoom::campo(t), r["layer"].as_str()) {
+        por_zoom(campo, nome, &r)?;
+    }
+    Ok(r)
+}
+
+/// Os filtros por escala de um tema por zoom na camada `nome`, que acabou de chegar (`r`): de
+/// longe, só os rios principais; de perto, também os menores.
+fn por_zoom(campo: &str, nome: &str, r: &Value) -> Result<(), String> {
+    // As faixas com área até a que veio não filtram nada: com 0, valem todas, e a camada que
+    // chegou num clique anterior (app web) também as recebe.
+    let minima = r["areaMinima"].as_f64().unwrap_or(0.0);
+    host::run("layer.displayFilters", json!({"layer": nome, "filters": zoom::filtros_de_exibicao(campo, minima)}))?;
+    let curto = nome.trim_start_matches(PREFIXO);
+    host::notify(&if minima > 0.0 {
+        format!(
+            "{curto}: só os rios com área de drenagem de {} ou mais (os menores não cabem nesta área; numa área menor eles vêm). De longe aparecem só os principais; aproxime o mapa para ver os menores",
+            zoom::km2(minima)
+        )
+    } else {
+        format!("{curto}: de longe aparecem só os rios principais (pela área de drenagem); aproxime o mapa para ver os menores")
+    });
+    Ok(())
 }
 
 /// [`tema_proprio`], sem a explicação dos erros.
@@ -829,6 +853,22 @@ fn tema_proprio_de(t: &Tema) -> Result<Value, String> {
         remover(&[&nome])?;
         return concluir(t, n, area, na_area);
     }
+    // Rios conforme o zoom: só os rios cuja área de drenagem cabe no orçamento.
+    let filtrado;
+    let mut minima = None;
+    let t = match zoom::campo(t) {
+        Some(campo) => {
+            let m = match area_que_cabe(t, campo, c)? {
+                Ok(m) => m,
+                Err(p) => return Ok(p),
+            };
+            minima = Some(m);
+            // O catálogo é estático: o filtro desta área vive até o fim do plugin (um por clique).
+            filtrado = Tema { filtro: Box::leak(zoom::filtro(t, campo, m).into_boxed_str()), ..*t };
+            &filtrado
+        }
+        None => t,
+    };
     let ufs = if t.camada.contains("{uf}") {
         match ufs_da_area(c)? {
             Ok(u) => u,
@@ -893,7 +933,37 @@ fn tema_proprio_de(t: &Tema) -> Result<Value, String> {
         return Ok(json!({"downloading": nome, "features": total, "parts": n}));
     }
     let lidas = if n == 1 { feicoes_da_camada(destino)?.unwrap_or(0) } else { juntar(&nomes_das_partes, destino)? };
-    concluir(t, lidas, area, na_area)
+    let mut r = concluir(t, lidas, area, na_area)?;
+    if let Some(m) = minima {
+        r["areaMinima"] = json!(m);
+    }
+    Ok(r)
+}
+
+/// A menor área a montante (`campo`, km²) cujos trechos de `t` em `c` cabem em [`zoom::ORCAMENTO`],
+/// ou o pedido pendente (app web). Cada contagem é a mesma que [`tema_proprio_de`] faz depois com
+/// o filtro, e o `host.fetch` a guarda: a escolhida não é pedida de novo.
+fn area_que_cabe(t: &Tema, campo: &str, c: [f64; 4]) -> Result<Result<f64, Value>, String> {
+    enum Parada {
+        Erro(String),
+        Pendente(Value),
+    }
+    let contar = |n: f64| -> Result<u64, Parada> {
+        let com = Tema { filtro: Box::leak(zoom::filtro(t, campo, n).into_boxed_str()), ..*t };
+        let r = match buscar(&[crate::pedido_de_contagem(&com, com.camada, c)]) {
+            Ok(Ok(r)) => r,
+            Ok(Err(p)) => return Err(Parada::Pendente(p)),
+            Err(e) => return Err(Parada::Erro(e)),
+        };
+        let r = r.first().ok_or_else(|| Parada::Erro("a contagem não veio".into()))?;
+        crate::contagem(r.get("json"), r["text"].as_str())
+            .map_err(|e| Parada::Erro(format!("{} (área de drenagem de {} ou mais): {e}", t.fonte, zoom::km2(n))))
+    };
+    match zoom::area_minima(zoom::ORCAMENTO, contar) {
+        Ok(m) => Ok(Ok(m)),
+        Err(Parada::Pendente(p)) => Ok(Err(p)),
+        Err(Parada::Erro(e)) => Err(e),
+    }
 }
 
 /// Junta as camadas `partes` numa só, `destino`, e diz quantas feições ela tem.
