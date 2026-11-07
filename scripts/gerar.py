@@ -164,6 +164,8 @@ FIM = [
 # plugin, e um comando não abre o painel) e, resumida, no aviso do botão Sobre. O autor, a
 # licença e o repositório são os do manifesto.
 AUTOR = "Elpídio Filho"
+LABORATORIO = "Laboratório de Geoprocessamento e Pedometria (LABGEO)"
+INSTITUICAO = "Universidade Federal de Viçosa (UFV)"
 LICENCA = "MIT"
 REPOSITORIO = "https://github.com/elpidioassinaturas/BrasilData"
 # As fontes fora do fontes.csv, depois dos órgãos das camadas vetoriais.
@@ -191,7 +193,7 @@ def sobre(linhas: list[dict]) -> tuple[str, str]:
     texto = "\n\n".join(
         [
             f"BrasilData {VERSAO}, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.",
-            f"Autor: {AUTOR}.\n"
+            f"Autor: {AUTOR}, do {LABORATORIO} da {INSTITUICAO}.\n"
             f"Licença: {LICENCA}, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: "
             "o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\n"
             f"Repositório: {REPOSITORIO}",
@@ -205,7 +207,7 @@ def sobre(linhas: list[dict]) -> tuple[str, str]:
         ]
     )
     aviso = (
-        f"BrasilData {VERSAO}, de {AUTOR}, sob a licença {LICENCA}: {REPOSITORIO}. A autoria, as fontes "
+        f"BrasilData {VERSAO}, de {AUTOR} (LABGEO/UFV), sob a licença {LICENCA}: {REPOSITORIO}. A autoria, as fontes "
         "dos dados e como contribuir estão em Sobre o BrasilData, no fim do painel Área de trabalho."
     )
     if len(texto) > MAX_SOBRE:

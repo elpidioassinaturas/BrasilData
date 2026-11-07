@@ -245,7 +245,8 @@ O `package.py` e o `smoke.py` vêm do
 
 ## Autoria
 
-Elpídio Filho. O botão **Sobre** (grupo Área) mostra a autoria dentro do RustGIS.
+Elpídio Filho, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal
+de Viçosa (UFV). O botão **Sobre** (grupo Área) mostra a autoria dentro do RustGIS.
 
 ## Licença
 
