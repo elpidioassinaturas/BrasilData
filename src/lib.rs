@@ -190,7 +190,13 @@ pub fn pedido(t: &Tema, camada: &str, c: [f64; 4], pagina: Option<(u64, u64)>) -
             u.push_str(&format!("&propertyName={}", escapar(&format!("{},{}", t.campos, t.geom))));
         }
         match pagina {
-            Some((inicio, n)) => u.push_str(&format!("&count={n}&startIndex={inicio}&sortBy={}", escapar(t.ordem))),
+            Some((inicio, n)) => {
+                u.push_str(&format!("&count={n}&startIndex={inicio}"));
+                // Sem ordem, o GeoServer pagina pela chave primária.
+                if !t.ordem.is_empty() {
+                    u.push_str(&format!("&sortBy={}", escapar(t.ordem)));
+                }
+            }
             None => u.push_str("&count=50000"),
         }
     }
@@ -373,6 +379,15 @@ mod tests {
         assert!(
             snv.contains("dt_fim%20%3E%20now%28%29") && snv.contains("&propertyName=Codigo_BR%2C") && snv.contains("%2CVersao_SNV%2Cgeom&"),
             "{snv}"
+        );
+        // A drenagem da BC250 passa das 50 mil feições por pedido do RustGIS num estado: vem em
+        // páginas, sem sortBy (o GeoServer usa a chave primária).
+        let dren = t("drenagem");
+        assert!(dren.pedido_proprio() && dren.pagina > 0);
+        let d = pedido(dren, dren.camada, c, Some((20_000, 20_000)));
+        assert!(
+            d.contains("&bbox=-42.970000,-5.590000,-42.600000,-4.790000,EPSG:4674") && d.ends_with("&count=20000&startIndex=20000"),
+            "{d}"
         );
         let n = pedido_de_contagem(car, "sicar:sicar_imoveis_pi", c);
         assert!(n.ends_with("&resultType=hits") && !n.contains("outputFormat"), "{n}");

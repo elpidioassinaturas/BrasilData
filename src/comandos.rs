@@ -551,6 +551,9 @@ fn tema(t: &Tema) -> Result<Value, String> {
     if baixada.is_none() && r.get("downloading").is_none() {
         substituir(&[&nome, &bruto], if na_area { &bruto } else { &nome }, &r["layer"])?;
     }
+    if let Some(aviso) = corte_do_servico(&r) {
+        host::notify(&format!("{nome}: {aviso}; escolha uma área menor ({})", t.fonte));
+    }
     if r.get("downloading").is_some() {
         // Um RustGIS que não roda o comando de novo põe a camada nova sem mais nada: a antiga sai
         // agora. Num que roda, esta volta é desfeita, e a antiga sai depois da chamada.
@@ -563,6 +566,21 @@ fn tema(t: &Tema) -> Result<Value, String> {
         return Ok(r);
     }
     concluir(t, r["features"].as_u64().unwrap_or(0), area, na_area)
+}
+
+/// O aviso, em português, de um `service.add` que trouxe só parte das feições (o RustGIS lê no
+/// máximo uma página de um WFS: 50 mil feições na 0.5.0), que senão passaria calado.
+fn corte_do_servico(r: &Value) -> Option<String> {
+    let avisos = r.get("notices")?.as_array()?;
+    let corte = avisos.iter().filter_map(Value::as_str).find(|a| a.contains("aren't read"))?;
+    // "<camada>: the server sent 50000 of its 1552635 features (one page); ...": o nome da
+    // camada pode ter números (BC250 2025).
+    let depois = corte.split_once(" sent ").map_or("", |(_, d)| d);
+    let numeros: Vec<&str> = depois.split(|c: char| !c.is_ascii_digit()).filter(|s| !s.is_empty()).collect();
+    Some(match numeros.as_slice() {
+        [veio, tem, ..] => format!("o servidor mandou só {veio} das {tem} feições do retângulo"),
+        _ => "o servidor mandou só parte das feições do retângulo".into(),
+    })
 }
 
 /// Se a camada `nome`, recortada pela área (`recorta`), já está no mapa para a área de agora: o
@@ -1618,4 +1636,24 @@ fn atualizacao() -> Result<Value, String> {
     let texto = versao::mensagem(nova.as_deref());
     host::notify(&texto);
     Ok(json!({"version": versao::ESTA, "latest": nova}))
+}
+
+#[cfg(test)]
+mod testes_do_corte {
+    use super::corte_do_servico;
+    use serde_json::json;
+
+    #[test]
+    fn corte_de_uma_pagina_vira_aviso_com_os_numeros() {
+        let r = json!({"notices": ["BrasilData: Drenagem (BC250 2025) (sem recorte): the server sent 50000 of its 184332 features (one page); the rest aren't read"]});
+        assert_eq!(corte_do_servico(&r).as_deref(), Some("o servidor mandou só 50000 das 184332 feições do retângulo"));
+    }
+
+    #[test]
+    fn corte_sem_numeros_e_resposta_inteira() {
+        let r = json!({"notices": ["x: the server sent its first features only (its record limit); the rest aren't read"]});
+        assert_eq!(corte_do_servico(&r).as_deref(), Some("o servidor mandou só parte das feições do retângulo"));
+        assert_eq!(corte_do_servico(&json!({"features": 10, "notices": ["other note"]})), None);
+        assert_eq!(corte_do_servico(&json!({"features": 10})), None);
+    }
 }

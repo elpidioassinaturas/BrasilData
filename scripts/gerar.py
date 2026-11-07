@@ -20,7 +20,7 @@ As cinco últimas colunas, quando preenchidas, fazem o plugin montar o pedido el
 (os atributos que vêm, separados por vírgula: o `propertyName` ou o `outFields`; deixa de fora
 nomes de pessoas e CPF/CNPJ), geom (o atributo da geometria de um WFS, que o filtro e os campos
 pedem), pagina (feições por pedido: o plugin conta antes e pede as páginas) e ordem (o atributo
-que ordena as páginas). Um `{uf}` na camada vira a sigla, em minúsculas, de cada UF que a área
+que ordena as páginas; num WFS pode ficar vazia, e o GeoServer usa a chave primária). Um `{uf}` na camada vira a sigla, em minúsculas, de cada UF que a área
 cruza (o CAR tem uma camada por UF).
 """
 
@@ -30,7 +30,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.16"
+VERSAO = "0.1.17"
 
 # Os comandos que não vêm da tabela, com o grupo da aba em que ficam. Na aba, o grupo Área
 # tem o painel (a escolha do território pelo nome), a área pela seleção e o desenho; o comando
@@ -397,8 +397,9 @@ def ler() -> list[dict]:
                 sys.exit(f"{onde}: {campo} está vazio")
         if l["pagina"] and not (l["pagina"].isdigit() and int(l["pagina"]) > 0):
             sys.exit(f"{onde}: pagina é o número de feições por pedido, ou vazio")
-        if l["pagina"] and not l["ordem"]:
-            sys.exit(f"{onde}: as páginas pedem a ordem (o atributo que as ordena)")
+        # Um WFS (GeoServer) pagina na ordem da chave primária quando não há sortBy.
+        if l["pagina"] and not l["ordem"] and l["tipo"] != "wfs":
+            sys.exit(f"{onde}: as páginas de um ArcGIS pedem a ordem (o atributo que as ordena)")
         if l["tipo"] == "wfs" and (l["filtro"] or l["campos"]) and not l["geom"]:
             sys.exit(f"{onde}: o filtro e os campos de um WFS pedem geom, o atributo da geometria")
         if "{uf}" in l["camada"] and l["tipo"] != "wfs":
