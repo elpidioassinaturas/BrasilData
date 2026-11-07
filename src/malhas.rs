@@ -35,7 +35,7 @@ impl Leitor {
 }
 
 /// A geometria GeoJSON (`Polygon` ou `MultiPolygon`) do código do IBGE: o de um estado (2 dígitos),
-/// mesorregião (4), microrregião (5) ou município (7).
+/// mesorregião (4), microrregião (5) ou município (7), ou o do Brasil (0).
 pub fn geometria(codigo: &str) -> Option<Value> {
     let alvo: u32 = codigo.parse().ok()?;
     let (mut baixo, mut alto) = (0, u32_em(0) as usize);

@@ -18,11 +18,10 @@ const INDICADORES: &str = "Indicadores por município";
 const CENSO_SETORES: &str = "Setores censitários 2022";
 
 /// O título do painel do plugin (o do `plugin.json`).
-const PAINEL: &str = "Área e fontes";
+const PAINEL: &str = "Área de trabalho";
 
-/// As árvores do painel e as grandes regiões de cada uma (o primeiro dígito do código do IBGE):
-/// com tudo numa só, o RustGIS cortaria o que passa de 5.000 nós.
-const ARVORES: [(&str, &str); 2] = [("norte-nordeste-co", "125"), ("sudeste-sul", "34")];
+/// A árvore Limites políticos do painel (`municipios::arvore`).
+const ARVORE: &str = "limites";
 
 /// A camada em que o usuário desenha a área, até usar o desenho.
 const DESENHO: &str = "BrasilData: área (desenho)";
@@ -191,7 +190,7 @@ fn grade_para(c: [f64; 4], celula: Option<f64>) -> Result<Grade, String> {
             let m = celula.unwrap_or(grade::CELULA_PADRAO);
             grade::conferir_celula(m)?;
             let g = por_grade(Grade::nova(c, Escolha::Automatico, m))?;
-            host::notify(&format!("Grade do projeto criada: {}. Para outra, use Grade do projeto no painel Área e fontes", g.texto()));
+            host::notify(&format!("Grade do projeto criada: {}. Para outra, use Grade do projeto no painel Área de trabalho", g.texto()));
             g
         }
     };
@@ -206,9 +205,10 @@ fn descrever(fc: &Value) -> String {
 }
 
 /// Os nomes das feições de `fc`: o do BrasilData (`nome`, `uf`) ou o de uma camada do IBGE
-/// (`nm_mun`, `nm_meso`, `nm_uf`…, com `sigla_uf`).
+/// (`nm_mun`, `nm_meso`, `nm_uf`…, com `sigla_uf`). Um nome repetido em seguida conta uma vez: uma
+/// grande região e o Brasil são os seus estados, todos com o nome da área.
 fn nomes_nas_feicoes(fc: &Value) -> Vec<String> {
-    fc["features"]
+    let mut nomes: Vec<String> = fc["features"]
         .as_array()
         .into_iter()
         .flatten()
@@ -222,7 +222,9 @@ fn nomes_nas_feicoes(fc: &Value) -> Vec<String> {
                 None => nome.to_string(),
             })
         })
-        .collect()
+        .collect();
+    nomes.dedup();
+    nomes
 }
 
 /// O texto do painel sobre a área: os nomes (ou quantos polígonos são) e o retângulo.
@@ -300,25 +302,29 @@ fn area_municipio(req: &Request) -> Result<Value, String> {
     area_de(&m.into())
 }
 
-/// O limite de `t`, que vem embutido no plugin, como área. O nome vai na feição, para o painel
-/// dizer qual é a área.
+/// O limite de `t`, que vem embutido no plugin, como área: uma feição por malha (uma grande região
+/// e o Brasil são os seus estados, com o contorno detalhado). O nome vai em cada feição, para o
+/// painel dizer qual é a área.
 fn area_de(t: &Territorio) -> Result<Value, String> {
-    let geometria = malhas::geometria(t.codigo).ok_or_else(|| format!("o plugin não tem o limite de {} ({})", t.nome, t.codigo))?;
-    let mut feicao = json!({"type": "Feature", "properties": {"nome": t.nome, "uf": t.uf, "codigo": t.codigo}});
-    feicao["geometry"] = geometria;
+    let mut feicoes = Vec::with_capacity(t.codigos.len());
+    for codigo in &t.codigos {
+        let geometria = malhas::geometria(codigo).ok_or_else(|| format!("o plugin não tem o limite de {} ({codigo})", t.nome))?;
+        let mut feicao = json!({"type": "Feature", "properties": {"nome": t.nome, "codigo": codigo}});
+        if !t.uf.is_empty() {
+            feicao["properties"]["uf"] = json!(t.uf);
+        }
+        feicao["geometry"] = geometria;
+        feicoes.push(feicao);
+    }
     let mut fc = json!({"type": "FeatureCollection"});
-    fc["features"] = Value::Array(vec![feicao]);
+    fc["features"] = Value::Array(feicoes);
     por_area(fc)
 }
 
-/// `r` com o painel depois de uma nova área: a escolhida na árvore `arvore` fica marcada, e a outra
-/// (ou as duas, se a área veio de outro lugar) sem marca, para um clique nela escolher de novo.
-fn marcar_nas_arvores(r: &mut Value, arvore: Option<&str>) {
-    for (id, _) in ARVORES {
-        if arvore != Some(id) {
-            r["panel"]["values"][id] = Value::Null;
-        }
-    }
+/// `r` com a árvore sem marca, depois de uma área que veio de outro lugar (a seleção, um desenho):
+/// um clique num nó escolhe de novo.
+fn desmarcar_na_arvore(r: &mut Value) {
+    r["panel"]["values"][ARVORE] = Value::Null;
 }
 
 /// Se há um desenho em andamento, desiste dele: a área veio de outro lugar.
@@ -378,7 +384,7 @@ fn usar_desenho() -> Result<Value, String> {
         .collect();
     let mut r = por_area(json!({"type": "FeatureCollection", "features": feicoes}))?;
     desistir_do_desenho(&mut r)?;
-    marcar_nas_arvores(&mut r, None);
+    desmarcar_na_arvore(&mut r);
     Ok(r)
 }
 
@@ -411,7 +417,7 @@ fn area_selecao() -> Result<Value, String> {
     host::notify(&format!("Área do BrasilData: {texto}"));
     let mut r = json!({"area": AREA, "bbox": caixa, "panel": {"items": {"area": {"text": texto}}}});
     desistir_do_desenho(&mut r)?;
-    marcar_nas_arvores(&mut r, None);
+    desmarcar_na_arvore(&mut r);
     Ok(r)
 }
 
@@ -1071,7 +1077,7 @@ fn area_no_mapa() -> Result<String, String> {
     let texto = if ha.iter().any(|n| n == AREA) {
         area_que_ha()?
     } else {
-        "Nenhuma ainda: escolha um estado, mesorregião, microrregião ou município abaixo, desenhe com Área: desenho, ou selecione polígonos no mapa e use Área: seleção.".to_string()
+        "Nenhuma ainda: clique num limite da árvore abaixo (o Brasil, uma grande região, um estado, uma meso ou microrregião, um município), selecione polígonos no mapa e use Área: seleção, ou desenhe com Área: desenho.".to_string()
     };
     Ok(if ha.iter().any(|n| n == DESENHO) { format!("{texto}\n\n{DICA_DO_DESENHO}.") } else { texto })
 }
@@ -1090,7 +1096,7 @@ fn area_que_ha() -> Result<String, String> {
 }
 
 /// O estado do painel, quando ele abre.
-fn painel(_req: &Request) -> Result<Value, String> {
+fn painel(req: &Request) -> Result<Value, String> {
     let mut r = json!({"panel": {"items": {
         "area": {"text": area_no_mapa()?},
         "citacao": {"text": citacoes()?.1},
@@ -1111,11 +1117,10 @@ fn painel(_req: &Request) -> Result<Value, String> {
             r["panel"]["values"]["grade-sistema"] = json!(i);
         }
     }
-    // A busca do painel só procura nos nós que recebeu: vão as árvores inteiras, fechadas até o
-    // usuário abrir um ramo.
-    for (id, regioes) in ARVORES {
-        r["panel"]["items"][id]["nodes"] = municipios::arvore(regioes);
-    }
+    // A árvore, com os municípios da grande região do nó escolhido (a busca só procura nos nós
+    // que recebeu).
+    let regiao = req.panel.get(ARVORE).and_then(Value::as_str).and_then(municipios::regiao_do_no);
+    r["panel"]["items"][ARVORE]["nodes"] = municipios::arvore(regiao);
     // O botão do desenho volta a dizer o que faz quando o painel é reaberto no meio de um desenho.
     let desenhando = feicoes_da_camada(DESENHO)?.is_some();
     r["panel"]["items"]["area-desenho"] = json!({"label": if desenhando { json!("Usar o desenho") } else { Value::Null }});
@@ -1138,17 +1143,21 @@ fn sem_grade() -> String {
     )
 }
 
-/// Um nó escolhido numa árvore do painel vira a área: um estado, uma mesorregião, uma microrregião
-/// ou um município.
+/// Um nó escolhido na árvore Limites políticos vira a área: o Brasil, uma grande região, um
+/// estado, uma mesorregião, uma microrregião ou um município. A árvore volta com os municípios da
+/// grande região dele, que passam a aparecer na busca. Por script, o nó vem em `no`.
 fn escolher_area(req: &Request) -> Result<Value, String> {
-    let escolhido = ARVORES.iter().find(|(id, _)| req.changed(id)).and_then(|(id, _)| Some((*id, req.panel.get(*id)?.as_str()?)));
-    let Some((arvore, no)) = escolhido else {
-        return Ok(json!({}));
+    let no = match req.str("no") {
+        Some(no) => no,
+        None => match req.panel.get(ARVORE).and_then(Value::as_str).filter(|_| req.changed(ARVORE)) {
+            Some(no) => no,
+            None => return Ok(json!({})),
+        },
     };
-    let t = municipios::territorio(no).ok_or_else(|| format!("'{no}' não é um nó das árvores do painel {PAINEL}"))?;
+    let t = municipios::territorio(no).ok_or_else(|| format!("'{no}' não é um nó da árvore Limites políticos do painel {PAINEL}"))?;
     let mut r = area_de(&t)?;
     desistir_do_desenho(&mut r)?;
-    marcar_nas_arvores(&mut r, Some(arvore));
+    r["panel"]["items"][ARVORE]["nodes"] = municipios::arvore(municipios::regiao_do_no(no));
     Ok(r)
 }
 

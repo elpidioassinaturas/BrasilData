@@ -13,11 +13,11 @@ pub fn vista_no_brasil(lon: f64, lat: f64, escala: f64) -> Result<[f64; 4], Stri
     let [w, s, e, n] = [lon - dx, lat - dy, lon + dx, lat + dy];
     let [bw, bs, be, bn] = BRASIL;
     if w <= bw && s <= bs && e >= be && n >= bn {
-        return Err("a vista mostra mais que o Brasil inteiro: aproxime o mapa ou escolha a área (painel Área e fontes)".into());
+        return Err("a vista mostra mais que o Brasil inteiro: aproxime o mapa ou escolha a área (painel Área de trabalho)".into());
     }
     let caixa = [w.max(bw), s.max(bs), e.min(be), n.min(bn)];
     if caixa[0] >= caixa[2] || caixa[1] >= caixa[3] {
-        return Err("a vista não mostra o Brasil: leve o mapa até a área ou escolha a área (painel Área e fontes)".into());
+        return Err("a vista não mostra o Brasil: leve o mapa até a área ou escolha a área (painel Área de trabalho)".into());
     }
     Ok(caixa)
 }

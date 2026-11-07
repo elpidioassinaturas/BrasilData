@@ -1,6 +1,7 @@
 """Baixa os limites do IBGE para o malhas.bin que vai embutido no plugin.
 
-    python scripts/baixar_malhas.py
+    python scripts/baixar_malhas.py             # baixa tudo de novo
+    python scripts/baixar_malhas.py --so-brasil  # só troca o contorno do Brasil no malhas.bin
 
 A escolha da área no painel não depende de rede: estados, mesorregiões, microrregiões e municípios
 vêm da API de malhas do IBGE e ficam no plugin. A qualidade é a máxima da API nos três níveis de
@@ -14,8 +15,12 @@ O arquivo (inteiros em little-endian; coordenadas em 1/10.000 de grau, as 4 casa
     para cada malha: polígonos, e em cada um os anéis, e em cada um os pontos, cada contagem em
     varint, e cada ponto como lon e lat em zigzag varint, a diferença para o ponto anterior
 
-O código diz o nível pelo número de dígitos (2, 4, 5 ou 7). Os limites mudam pouco; rode de novo
-e confira o que o script diz.
+O código diz o nível pelo número de dígitos (2, 4, 5 ou 7); o Brasil é o código 0. O contorno do
+Brasil é a malha do país da API, na qualidade máxima dela (cerca de 4.000 vértices, um só contorno):
+os 27 estados detalhados juntos passam da cota de instruções de uma chamada de plugin no RustGIS,
+e simplificados um a um deixariam frestas nas divisas. As grandes regiões não têm malha própria no
+arquivo: o plugin as monta com os seus estados. Os limites mudam pouco; rode de novo e confira o
+que o script diz.
 """
 
 import csv
@@ -23,6 +28,7 @@ import gzip
 import json
 import pathlib
 import struct
+import sys
 import time
 import urllib.request
 
@@ -88,7 +94,47 @@ def vertices(geometria: dict) -> int:
     return sum(len(anel) for poligono in poligonos(geometria) for anel in poligono)
 
 
+def brasil() -> dict:
+    """O contorno do Brasil: a malha do país da API, na qualidade máxima dela."""
+    return baixar(f"v4/malhas/paises/BR?{GEOJSON}&qualidade=maxima")["features"][0]["geometry"]
+
+
+def escrever(corpos: dict[int, bytes]) -> None:
+    """Grava o malhas.bin com as malhas já compactadas, por código."""
+    codigos = sorted(corpos)
+    base = 4 + 8 * len(codigos)
+    posicoes, pos = [], base
+    for c in codigos:
+        posicoes.append(pos)
+        pos += len(corpos[c])
+    with open(ROOT / "malhas.bin", "wb") as f:
+        f.write(struct.pack("<I", len(codigos)))
+        for c, p in zip(codigos, posicoes):
+            f.write(struct.pack("<II", c, p))
+        for c in codigos:
+            f.write(corpos[c])
+    print(f"malhas.bin: {pos:,} bytes, {len(codigos)} malhas")
+
+
+def so_brasil() -> None:
+    """Troca só o contorno do Brasil (código 0) no malhas.bin que já existe."""
+    d = (ROOT / "malhas.bin").read_bytes()
+    n = struct.unpack_from("<I", d, 0)[0]
+    indice = [struct.unpack_from("<II", d, 4 + 8 * i) for i in range(n)]
+    corpos = {}
+    for i, (c, p) in enumerate(indice):
+        fim = indice[i + 1][1] if i + 1 < n else len(d)
+        corpos[c] = d[p:fim]
+    g = brasil()
+    print(f"Brasil: {vertices(g)} vértices")
+    corpos[0] = compactar(g)
+    escrever(corpos)
+
+
 def main() -> None:
+    if "--so-brasil" in sys.argv[1:]:
+        so_brasil()
+        return
     with open(ROOT / "municipios.csv", encoding="utf-8", newline="") as f:
         linhas = list(csv.DictReader(f))
     esperados = {l["codigo"] for l in linhas}
@@ -113,26 +159,15 @@ def main() -> None:
     faltam = sorted(esperados - malhas.keys())
     print("sem malha na API:", faltam or "nenhum")
     malhas = {c: g for c, g in malhas.items() if c in esperados}
+    malhas["0"] = brasil()
 
-    for digitos, nome in ((2, "estados"), (4, "mesorregiões"), (5, "microrregiões"), (7, "municípios")):
+    for digitos, nome in ((1, "Brasil"), (2, "estados"), (4, "mesorregiões"), (5, "microrregiões"), (7, "municípios")):
         do_nivel = {c: g for c, g in malhas.items() if len(c) == digitos}
         maior = max(do_nivel, key=lambda c: vertices(do_nivel[c]))
         total = sum(vertices(g) for g in do_nivel.values())
         print(f"{nome}: {len(do_nivel)}, {total} vértices, o maior é {maior} com {vertices(do_nivel[maior])}")
 
-    codigos = sorted(malhas, key=int)
-    corpo = bytearray()
-    posicoes = []
-    base = 4 + 8 * len(codigos)
-    for c in codigos:
-        posicoes.append(base + len(corpo))
-        corpo += compactar(malhas[c])
-    with open(ROOT / "malhas.bin", "wb") as f:
-        f.write(struct.pack("<I", len(codigos)))
-        for c, p in zip(codigos, posicoes):
-            f.write(struct.pack("<II", int(c), p))
-        f.write(corpo)
-    print(f"malhas.bin: {base + len(corpo):,} bytes, {len(codigos)} malhas")
+    escrever({int(c): compactar(g) for c, g in malhas.items()})
 
 
 if __name__ == "__main__":

@@ -61,33 +61,69 @@ pub fn por_codigo(codigo: &str) -> Option<&'static Municipio> {
     todos().iter().find(|m| m.codigo == codigo)
 }
 
-/// Um território que pode virar a área: o código da malha, o nome e a sigla da UF.
+/// As grandes regiões do IBGE: o primeiro dígito do código de um estado ou município, e o nome.
+pub const REGIOES: [(char, &str); 5] = [('1', "Norte"), ('2', "Nordeste"), ('3', "Sudeste"), ('4', "Sul"), ('5', "Centro-Oeste")];
+
+/// A grande região de um código do IBGE (estado, meso, micro ou município): o primeiro dígito.
+pub fn regiao_de(codigo: &str) -> Option<char> {
+    codigo.chars().next().filter(|c| REGIOES.iter().any(|(r, _)| r == c))
+}
+
+/// Um território que pode virar a área: os códigos das malhas que o compõem (uma só, ou os
+/// estados de uma grande região, que vêm com o contorno detalhado), o nome e a sigla da UF (vazia
+/// numa região e no Brasil). O Brasil é a malha 0, a do país (ver `scripts/baixar_malhas.py`).
 #[derive(Debug, PartialEq)]
 pub struct Territorio {
-    pub codigo: &'static str,
+    pub codigos: Vec<&'static str>,
     pub nome: String,
     pub uf: &'static str,
 }
 
 impl From<&'static Municipio> for Territorio {
     fn from(m: &'static Municipio) -> Territorio {
-        Territorio { codigo: m.codigo, nome: m.nome.to_string(), uf: m.uf }
+        Territorio { codigos: vec![m.codigo], nome: m.nome.to_string(), uf: m.uf }
     }
 }
 
-/// O território de um nó da árvore do painel (`uf:PI`, `meso:2204`, `micro:22010`, `mun:2211001`).
+/// Os códigos dos estados (2 dígitos) da grande região `regiao`.
+fn estados(regiao: char) -> Vec<&'static str> {
+    let mut v: Vec<&'static str> = todos().iter().map(|m| &m.codigo[..2]).filter(|c| c.starts_with(regiao)).collect();
+    v.sort_unstable();
+    v.dedup();
+    v
+}
+
+/// O território de um nó da árvore do painel: `br`, `reg:2`, `uf:PI`, `meso:2204`, `micro:22010`
+/// ou `mun:2211001`.
 pub fn territorio(no: &str) -> Option<Territorio> {
+    if no == "br" {
+        return Some(Territorio { codigos: vec!["0"], nome: "Brasil".into(), uf: "" });
+    }
     let (nivel, valor) = no.split_once(':')?;
     let achar = |campo: fn(&'static Municipio) -> &'static str| todos().iter().find(|m| campo(m) == valor);
     match nivel {
-        "uf" => achar(|m| m.uf).map(|m| Territorio { codigo: &m.codigo[..2], nome: m.uf_nome.to_string(), uf: m.uf }),
+        "reg" => {
+            let (r, nome) = REGIOES.iter().find(|(r, _)| valor.len() == 1 && valor.starts_with(*r))?;
+            Some(Territorio { codigos: estados(*r), nome: format!("Região {nome}"), uf: "" })
+        }
+        "uf" => achar(|m| m.uf).map(|m| Territorio { codigos: vec![&m.codigo[..2]], nome: m.uf_nome.to_string(), uf: m.uf }),
         "meso" if !valor.is_empty() => {
-            achar(|m| m.meso).map(|m| Territorio { codigo: m.meso, nome: format!("Mesorregião {}", m.meso_nome), uf: m.uf })
+            achar(|m| m.meso).map(|m| Territorio { codigos: vec![m.meso], nome: format!("Mesorregião {}", m.meso_nome), uf: m.uf })
         }
         "micro" if !valor.is_empty() => {
-            achar(|m| m.micro).map(|m| Territorio { codigo: m.micro, nome: format!("Microrregião {}", m.micro_nome), uf: m.uf })
+            achar(|m| m.micro).map(|m| Territorio { codigos: vec![m.micro], nome: format!("Microrregião {}", m.micro_nome), uf: m.uf })
         }
         "mun" => por_codigo(valor).map(Territorio::from),
+        _ => None,
+    }
+}
+
+/// A grande região de um nó da árvore (`None` no Brasil e num nó que não é da árvore).
+pub fn regiao_do_no(no: &str) -> Option<char> {
+    let (nivel, valor) = no.split_once(':')?;
+    match nivel {
+        "reg" | "meso" | "micro" | "mun" => regiao_de(valor),
+        "uf" => todos().iter().find(|m| m.uf == valor).and_then(|m| regiao_de(m.codigo)),
         _ => None,
     }
 }
@@ -101,12 +137,17 @@ fn ramo(id: String, nome: &str, municipios: usize, filhos: Vec<Value>) -> Value 
     r
 }
 
-/// As microrregiões de uma mesorregião (ou, sem elas, os municípios soltos).
-fn nos_da_meso(lista: &'static [Municipio]) -> Vec<Value> {
+/// As microrregiões de uma mesorregião (ou, sem elas, os municípios soltos), com os municípios
+/// só quando `com_municipios`.
+fn nos_da_meso(lista: &'static [Municipio], com_municipios: bool) -> Vec<Value> {
     lista
         .chunk_by(|a, b| a.micro == b.micro)
         .flat_map(|micro| {
-            let nos: Vec<Value> = micro.iter().map(|m| json!({"id": format!("mun:{}", m.codigo), "label": m.nome})).collect();
+            let nos: Vec<Value> = if com_municipios {
+                micro.iter().map(|m| json!({"id": format!("mun:{}", m.codigo), "label": m.nome})).collect()
+            } else {
+                Vec::new()
+            };
             if micro[0].micro.is_empty() {
                 nos
             } else {
@@ -116,27 +157,44 @@ fn nos_da_meso(lista: &'static [Municipio]) -> Vec<Value> {
         .collect()
 }
 
-/// A árvore do painel para as grandes regiões `regioes` (o primeiro dígito do código do IBGE):
-/// estado, mesorregião, microrregião e município, cada um uma área que se pode escolher.
-pub fn arvore(regioes: &str) -> Value {
-    let nos = todos()
-        .chunk_by(|a, b| a.uf == b.uf)
-        .filter(|uf| regioes.contains(&uf[0].codigo[..1]))
-        .map(|uf| {
-            let mesos = uf
-                .chunk_by(|a, b| a.meso == b.meso)
-                .flat_map(|meso| {
-                    if meso[0].meso.is_empty() {
-                        nos_da_meso(meso)
-                    } else {
-                        vec![ramo(format!("meso:{}", meso[0].meso), meso[0].meso_nome, meso.len(), nos_da_meso(meso))]
-                    }
+/// A árvore Limites políticos do painel: Brasil, grandes regiões, estados, mesorregiões,
+/// microrregiões e municípios, cada um uma área que se pode escolher.
+///
+/// O RustGIS guarda até 5.000 nós por árvore (`MAX_TREE_NODES`) e descarta o resto sem avisar; com
+/// os 5.570 municípios, a árvore inteira teria 6.298. Por isso os municípios vêm só para a grande
+/// região `aberta` (a do nó escolhido): no máximo 728 + 1.794 nós, no Nordeste.
+pub fn arvore(aberta: Option<char>) -> Value {
+    let regioes: Vec<Value> = REGIOES
+        .iter()
+        .map(|(r, nome)| {
+            let com_municipios = aberta == Some(*r);
+            let ufs: Vec<Value> = todos()
+                .chunk_by(|a, b| a.uf == b.uf)
+                .filter(|uf| uf[0].codigo.starts_with(*r))
+                .map(|uf| {
+                    let mesos = uf
+                        .chunk_by(|a, b| a.meso == b.meso)
+                        .flat_map(|meso| {
+                            if meso[0].meso.is_empty() {
+                                nos_da_meso(meso, com_municipios)
+                            } else {
+                                vec![ramo(
+                                    format!("meso:{}", meso[0].meso),
+                                    meso[0].meso_nome,
+                                    meso.len(),
+                                    nos_da_meso(meso, com_municipios),
+                                )]
+                            }
+                        })
+                        .collect();
+                    ramo(format!("uf:{}", uf[0].uf), uf[0].uf_nome, uf.len(), mesos)
                 })
                 .collect();
-            ramo(format!("uf:{}", uf[0].uf), uf[0].uf_nome, uf.len(), mesos)
+            let n = todos().iter().filter(|m| m.codigo.starts_with(*r)).count();
+            ramo(format!("reg:{r}"), nome, n, ufs)
         })
         .collect();
-    Value::Array(nos)
+    Value::Array(vec![ramo("br".into(), "Brasil", todos().len(), regioes)])
 }
 
 /// O município de um nome, sem diferença de maiúsculas nem acentos, e da `uf` quando dada.
@@ -236,14 +294,17 @@ mod tests {
     }
 
     #[test]
-    fn as_duas_arvores_cabem_no_limite_do_rustgis_e_tem_todos_os_municipios() {
+    fn a_arvore_cabe_no_limite_do_rustgis_em_qualquer_regiao() {
         // O RustGIS guarda até 5.000 nós por árvore e descarta o resto sem avisar (MAX_TREE_NODES).
-        let (a, b) = (arvore("125"), arvore("34"));
-        let (na, ma) = contar(&a);
-        let (nb, mb) = contar(&b);
-        assert!(na <= 5_000 && nb <= 5_000, "{na}, {nb}");
-        assert_eq!(ma + mb, todos().len());
-        assert!(achar(&a, "uf:TO").is_some() && achar(&b, "uf:SP").is_some() && achar(&b, "mun:3550308").is_some());
+        let (n, m) = contar(&arvore(None));
+        assert_eq!((n, m), (1 + 5 + 27 + 137 + 558, 0));
+        let mut todos_os_municipios = 0;
+        for (r, _) in REGIOES {
+            let (n, m) = contar(&arvore(Some(r)));
+            assert!(n <= 5_000, "região {r}: {n} nós");
+            todos_os_municipios += m;
+        }
+        assert_eq!(todos_os_municipios, todos().len());
         // As mesorregiões e as microrregiões do IBGE.
         let (mesos, micros): (std::collections::HashSet<_>, std::collections::HashSet<_>) =
             todos().iter().filter(|m| !m.meso.is_empty()).map(|m| (m.meso, m.micro)).unzip();
@@ -251,9 +312,13 @@ mod tests {
     }
 
     #[test]
-    fn a_hierarquia_vai_do_estado_ao_municipio() {
-        let a = arvore("125");
-        let pi = achar(&a, "uf:PI").unwrap();
+    fn a_hierarquia_vai_do_brasil_ao_municipio() {
+        let a = arvore(Some('2'));
+        let br = achar(&a, "br").unwrap();
+        assert_eq!((br["label"].as_str(), br["count"].as_u64()), (Some("Brasil"), Some(todos().len() as u64)));
+        let ne = achar(&a, "reg:2").unwrap();
+        assert_eq!(ne["label"], "Nordeste");
+        let pi = achar(&ne["children"], "uf:PI").unwrap();
         assert_eq!(pi["label"], "Piauí");
         assert_eq!(pi["count"], da_uf("PI").count());
         let meso = achar(&pi["children"], "meso:2202").unwrap();
@@ -261,19 +326,31 @@ mod tests {
         let micro = achar(&meso["children"], "micro:22003").unwrap();
         assert_eq!(micro["label"], "Teresina");
         assert!(achar(&micro["children"], "mun:2211001").is_some());
+        // Fora da região aberta, a microrregião fica sem os municípios.
+        assert!(achar(&a, "micro:35061").is_some() && achar(&a, "mun:3550308").is_none());
         // Um município sem micro nem mesorregião fica direto no estado.
-        let mt = achar(&a, "uf:MT").unwrap();
+        let co = arvore(Some('5'));
+        let mt = achar(&co, "uf:MT").unwrap();
         assert!(mt["children"].as_array().unwrap().iter().any(|n| n["id"] == "mun:5101837"));
     }
 
     #[test]
-    fn um_no_da_arvore_diz_o_territorio() {
+    fn um_no_da_arvore_diz_o_territorio_e_a_regiao() {
         let t = |no| territorio(no).unwrap();
-        assert_eq!((t("uf:PI").codigo, t("uf:PI").nome.as_str(), t("uf:PI").uf), ("22", "Piauí", "PI"));
-        assert_eq!((t("meso:2202").codigo, t("meso:2202").nome.as_str()), ("2202", "Mesorregião Centro-Norte Piauiense"));
-        assert_eq!((t("micro:22003").codigo, t("micro:22003").nome.as_str()), ("22003", "Microrregião Teresina"));
-        assert_eq!((t("mun:2211001").codigo, t("mun:2211001").nome.as_str(), t("mun:2211001").uf), ("2211001", "Teresina", "PI"));
-        assert!(territorio("uf:XX").is_none() && territorio("meso:").is_none() && territorio("outro").is_none());
+        assert_eq!((t("uf:PI").codigos, t("uf:PI").nome, t("uf:PI").uf), (vec!["22"], "Piauí".to_string(), "PI"));
+        assert_eq!((t("meso:2202").codigos, t("meso:2202").nome), (vec!["2202"], "Mesorregião Centro-Norte Piauiense".to_string()));
+        assert_eq!((t("micro:22003").codigos, t("micro:22003").nome), (vec!["22003"], "Microrregião Teresina".to_string()));
+        assert_eq!((t("mun:2211001").codigos, t("mun:2211001").uf), (vec!["2211001"], "PI"));
+        let ne = t("reg:2");
+        assert_eq!((ne.nome.as_str(), ne.uf, ne.codigos.len()), ("Região Nordeste", "", 9));
+        assert!(ne.codigos.contains(&"22") && ne.codigos.iter().all(|c| c.starts_with('2')));
+        assert_eq!((t("br").nome.as_str(), t("br").codigos), ("Brasil", vec!["0"]));
+        assert!(territorio("uf:XX").is_none() && territorio("meso:").is_none() && territorio("reg:9").is_none());
+        assert!(territorio("reg:").is_none() && territorio("outro").is_none());
+        assert_eq!(regiao_do_no("mun:2211001"), Some('2'));
+        assert_eq!(regiao_do_no("uf:SP"), Some('3'));
+        assert_eq!(regiao_do_no("reg:4"), Some('4'));
+        assert_eq!(regiao_do_no("br"), None);
     }
 
     #[test]

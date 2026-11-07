@@ -24,17 +24,23 @@ licence. It runs on the desktop and in the web app. The interface is in Portugue
 A aba **BrasilData** vai de tópicos a subtópicos e camadas: cada grupo é um tópico, cada menu é
 um subtópico e os itens do menu são as camadas, com a fonte entre parênteses. Os tópicos seguem as
 categorias temáticas da ISO 19115 e do Perfil MGB da INDE, juntadas para caber nos 8 grupos que o
-RustGIS aceita. O grupo Área tem o painel para escolher a área, a Grade do projeto e o comando
+RustGIS aceita. O grupo Área tem o painel **Área de trabalho**, a Grade do projeto e o comando
 Fontes.
 
-A área pode ser:
+A área de trabalho pode ser:
 
-- **um estado, mesorregião, microrregião ou município**, clicando no nome numa das duas árvores do
-  painel **Área e fontes** (Norte, Nordeste e Centro-Oeste; Sudeste e Sul). O triângulo abre o ramo,
-  e a caixa busca pelo nome. Os limites vêm dentro do plugin (`malhas.bin`, da API de malhas do
-  IBGE), e a escolha funciona com o site do IBGE fora do ar ou sem internet. Meso e microrregiões
-  são as da divisão do IBGE de 1989. As fronteiras são generalizadas: para o contorno exato, traga
-  a camada de **Limites** e use a seleção;
+- **um limite político**, clicando no nome na árvore **Limites políticos** do painel **Área de
+  trabalho**: o Brasil, uma grande região, um estado, uma mesorregião, uma microrregião ou um
+  município. O triângulo abre o ramo, e a caixa busca pelo nome. O RustGIS guarda até 5.000 nós
+  por árvore, e o Brasil tem 5.570 municípios: os municípios aparecem (e entram na busca) quando
+  você escolhe a grande região deles ou qualquer lugar dentro dela. Os limites vêm dentro do plugin
+  (`malhas.bin`, da API de malhas do IBGE), e a escolha funciona com o site do IBGE fora do ar ou
+  sem internet. Meso e microrregiões são as da divisão do IBGE de 1989. Uma grande região é o
+  conjunto dos seus estados; o Brasil é o contorno do país do IBGE, mais simples (cerca de 4.000
+  vértices), porque os 27 estados detalhados não cabem numa chamada de plugin. As fronteiras são
+  generalizadas: para o contorno exato, traga a camada de **Limites** e use a seleção. Por script:
+  `plugin:brasildata/escolher-area={"no": "reg:2"}` (`br`, `reg:1` a `reg:5`, `uf:PI`,
+  `meso:2202`, `micro:22003`, `mun:2211001`);
 - **um desenho**: **Área: desenho** liga a ferramenta (clique nos cantos e dê um duplo clique para
   fechar o polígono) e **Usar o desenho** faz dele a área;
 - **a seleção**: os polígonos selecionados da camada ativa, com **Área: seleção**;
@@ -197,7 +203,7 @@ Fora da tabela, com a citação no comando **Fontes**:
 - **Por arquivo:** baixe o `.rgplugin` da [última versão](https://github.com/elpidioassinaturas/BrasilData/releases)
   e use *Plugins › Plugin Manager › Settings › Install From File…*, ou
   `rustgis-cli plugins install brasildata-<versão>.rgplugin`.
-- **Atualizar:** o botão **Verificar atualização** (grupo Área e painel Área e fontes) compara a
+- **Atualizar:** o botão **Verificar atualização** (grupo Área e painel Área de trabalho) compara a
   versão instalada com a última release e diz como atualizar. Instalado pelo registro, o plugin
   se atualiza em *Gerenciador de plugins › Instalado › Atualizar*; instalado por arquivo, baixe o
   `.rgplugin` novo e instale-o de novo. Um plugin não pode se atualizar sozinho: o RustGIS não
