@@ -72,7 +72,7 @@ DO_PAINEL = [
     {
         "id": "painel",
         "label": "Atualizar painel",
-        "help": "O estado do painel Área de trabalho: a árvore Limites políticos, a área, a grade e as fontes.",
+        "help": "O estado do painel Área de trabalho: a árvore Limites políticos, a área e a grade.",
         "icon": "polygon_layer",
         "params": "{}",
     },
@@ -88,7 +88,7 @@ ARVORE = "Clique no Brasil, numa grande região, estado, mesorregião, microrreg
 PAINEL = {
     "title": "Área de trabalho",
     "icon": "polygon_layer",
-    "help": "Escolha a área de trabalho nos limites políticos (Brasil, grandes regiões, estados, meso e microrregiões, municípios), a seleção ou um desenho; a grade dos rasters; e veja as fontes das camadas do BrasilData no mapa.",
+    "help": "Escolha a área de trabalho nos limites políticos (Brasil, grandes regiões, estados, meso e microrregiões, municípios), a seleção ou um desenho, e a grade dos rasters.",
     "state": "painel",
     "items": [
         {"kind": "text", "id": "area", "label": "Área de trabalho"},
@@ -124,31 +124,6 @@ PAINEL = {
             "steps": True,
         },
         {"kind": "button", "command": "grade"},
-        {
-            "kind": "slider",
-            "id": "focos-de",
-            "label": "Focos de calor: do dia",
-            "help": "O primeiro dia do período, dia/mês/ano, no mês corrente (UTC): o serviço do IBAMA só guarda o mês corrente. As datas aparecem quando o mês é conhecido (no app web, depois do primeiro período).",
-            "min": 1,
-            "max": 31,
-            "default": 1,
-            "steps": True,
-        },
-        {
-            "kind": "slider",
-            "id": "focos-ate",
-            "label": "Focos de calor: até o dia",
-            "help": "O último dia do período, dia/mês/ano, no mês corrente (UTC), incluído.",
-            "min": 1,
-            "max": 31,
-            "default": 31,
-            "steps": True,
-        },
-        {"kind": "button", "command": "inpe-focos-periodo"},
-        {"kind": "text", "id": "citacao", "label": "Fontes das camadas no mapa"},
-        {"kind": "button", "command": "fontes"},
-        {"kind": "button", "command": "atualizacao"},
-        {"kind": "text", "id": "versao", "label": "Versão"},
     ],
 }
 # Os comandos que vão no fim de um grupo da aba: as fontes, com a área.
@@ -158,7 +133,7 @@ FIM = [
         {
             "id": "fontes",
             "label": "Fontes",
-            "help": "Lista a fonte e a licença de cada camada do BrasilData que está no mapa, para a citação.",
+            "help": "A fonte e a licença de cada camada do BrasilData que está no mapa, para a citação, na tabela BrasilData: fontes (salva com o projeto).",
             "icon": "table",
             "params": "{}",
         },
@@ -178,17 +153,6 @@ FIM = [
 
 # Comandos que não vêm da tabela e ficam num grupo da aba: (tópico, subtópico ou None, comando).
 EM_MENUS = [
-    (
-        "Vegetação e meio ambiente",
-        "Queimadas",
-        {
-            "id": "inpe-focos-periodo",
-            "label": "Focos de calor: período (INPE)",
-            "help": "Os focos de calor do INPE de uma data a outra (dia/mês/ano) do mês corrente (UTC), escolhidas nos controles do painel Área de trabalho (sem eles, o mês inteiro): INPE, Programa Queimadas (Sisfogo, IBAMA/PAMGIA). Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
-            "icon": "point_layer",
-            "params": "{\"de\"?: \"dd/mm/aaaa\" ou o dia do mês (1 a 31), \"ate\"?: \"dd/mm/aaaa\" ou o dia do mês (padrão: os do painel; o mês é o corrente)}",
-        },
-    ),
     (
         "Sociedade e economia",
         "População",
@@ -324,6 +288,13 @@ EM_MENUS = [
 ]
 # Comandos só para scripts e a linha de comando, fora da aba.
 SO_SCRIPTS = [
+    {
+        "id": "inpe-focos-periodo",
+        "label": "Focos de calor: período (INPE)",
+        "help": "Os focos de calor do INPE de uma data a outra (dia/mês/ano) do mês corrente (UTC): INPE, Programa Queimadas (Sisfogo, IBAMA/PAMGIA). Só o que cruza a área, recortado pela área; sem área, o que está na vista. Por script, até o RustGIS abrir uma janela de parâmetros para comandos de plugin; na aba, Queimadas tem 48 horas, 7 dias e o mês corrente.",
+        "icon": "point_layer",
+        "params": "{\"de\"?: \"dd/mm/aaaa\" ou o dia do mês (1 a 31), \"ate\"?: \"dd/mm/aaaa\" ou o dia do mês (padrão: o mês corrente inteiro)}",
+    },
     {
         "id": "indicadores",
         "label": "Indicadores por município",

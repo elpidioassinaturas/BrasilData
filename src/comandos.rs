@@ -662,16 +662,10 @@ fn mes_dos_focos(t: &Tema) -> Result<Result<Option<Data>, Value>, String> {
     Ok(Ok(json.and_then(|j| j["features"][0]["attributes"]["ultimo"].as_i64()).map(Data::de_milissegundos)))
 }
 
-/// Os controles do período no painel, com os dias do mês de `ultimo` escritos dd/mm/aaaa.
-fn controles_do_periodo(ultimo: Data) -> Value {
-    let n = datas::dias_no_mes(ultimo.ano, ultimo.mes);
-    let rotulos: Vec<String> = (1..=n).map(|dia| Data { dia, ..ultimo }.texto()).collect();
-    json!({"focos-de": {"max": n, "labels": rotulos}, "focos-ate": {"max": n, "labels": rotulos}})
-}
-
 /// Os focos de calor do INPE de um período do mês corrente (UTC, os dois dias incluídos): `de` e
-/// `ate` como "dd/mm/aaaa" ou como o dia do mês (1 a 31), ou, sem eles, os controles do painel
-/// (`focos-de`, `focos-ate`), que mostram as datas; sem nada, o mês inteiro. O serviço do IBAMA só
+/// `ate` como "dd/mm/aaaa" ou como o dia do mês (1 a 31); sem eles, o mês inteiro. Por enquanto só
+/// por script: o RustGIS não abre uma janela de parâmetros para um comando de plugin, e as datas
+/// no painel Área de trabalho confundiam (ficavam fora do lugar). O serviço do IBAMA só
 /// guarda o mês corrente, o do último foco. É o tema do mês corrente com outro filtro e outro
 /// nome, um por período, para que dois períodos fiquem lado a lado no mapa.
 fn focos_no_periodo(req: &Request) -> Result<Value, String> {
@@ -681,7 +675,7 @@ fn focos_no_periodo(req: &Request) -> Result<Value, String> {
         Err(p) => return Ok(p),
     };
     // Um dia do período: uma data dd/mm/aaaa (do mês corrente) ou o dia do mês.
-    let dia = |param: &str, controle: &str, padrao: u32| -> Result<u32, String> {
+    let dia = |param: &str, padrao: u32| -> Result<u32, String> {
         if let Some(texto) = req.params.get(param).and_then(Value::as_str) {
             let d =
                 Data::ler(texto).ok_or_else(|| format!("\"{param}\": \"{texto}\" não é uma data dia/mês/ano válida (como 01/11/2026)"))?;
@@ -698,14 +692,14 @@ fn focos_no_periodo(req: &Request) -> Result<Value, String> {
                 None => Err("o serviço ainda não tem focos neste mês".into()),
             };
         }
-        let d = req.f64(param).or_else(|| req.panel.get(controle).and_then(Value::as_f64)).unwrap_or(f64::from(padrao));
+        let d = req.f64(param).unwrap_or(f64::from(padrao));
         if d.fract() != 0.0 || !(1.0..=31.0).contains(&d) {
             return Err(format!("o dia do período é dia/mês/ano ou um número inteiro de 1 a 31, não {d}"));
         }
         Ok(d as u32)
     };
     let fim_do_mes = ultimo.map_or(31, |u| datas::dias_no_mes(u.ano, u.mes));
-    let (de, ate) = (dia("de", "focos-de", 1)?, dia("ate", "focos-ate", fim_do_mes)?.min(fim_do_mes));
+    let (de, ate) = (dia("de", 1)?, dia("ate", fim_do_mes)?.min(fim_do_mes));
     if de > ate {
         let (a, b) = match ultimo {
             Some(u) => (Data { dia: de, ..u }.texto(), Data { dia: ate, ..u }.texto()),
@@ -733,11 +727,7 @@ fn focos_no_periodo(req: &Request) -> Result<Value, String> {
     // Os textos de um tema são estáticos; os deste período ficam na memória do plugin, que é
     // pequena e é refeita com ele.
     let (filtro, nome): (&'static str, &'static str) = (Box::leak(filtro.into_boxed_str()), Box::leak(nome.into_boxed_str()));
-    let mut r = tema(&Tema { id: "inpe-focos-periodo", nome, filtro, ..*mes })?;
-    if let (Some(u), Some(o)) = (ultimo, r.as_object_mut()) {
-        o.insert("panel".into(), json!({"items": controles_do_periodo(u)}));
-    }
-    Ok(r)
+    tema(&Tema { id: "inpe-focos-periodo", nome, filtro, ..*mes })
 }
 
 /// Os temas cuja data o ArcGIS manda em milissegundos desde 1970 (UTC), pelo começo do id, e o
@@ -968,18 +958,44 @@ fn citacoes() -> Result<(Vec<Value>, String), String> {
 
 /// As citações das camadas do BrasilData no mapa, no painel.
 fn fontes() -> Result<Value, String> {
-    let (lista, texto) = citacoes()?;
+    let (lista, _) = citacoes()?;
     // A camada de indicadores tem uma citação por fonte.
     let mut camadas: Vec<&str> = lista.iter().filter_map(|f| f["layer"].as_str()).collect();
     camadas.dedup();
+    // Ela entra como uma camada sem geometria (uma tabela na lista de camadas).
+    remover(&[FONTES])?;
+    if lista.is_empty() {
+        host::notify("Nenhuma camada do BrasilData no mapa");
+        return Ok(json!({"layers": lista}));
+    }
+    // Uma tabela no projeto (sem geometria), salva com ele: uma linha por citação.
+    let linhas: Vec<Value> = lista
+        .iter()
+        .map(|f| {
+            json!({"type": "Feature", "geometry": null, "properties": {
+                "camada": f["layer"].as_str().unwrap_or("").trim_start_matches(PREFIXO),
+                "fonte": f["source"],
+                "licenca": f["license"],
+                "servico": f["service"].as_str().unwrap_or(""),
+                "camada_do_servico": f["featureType"].as_str().unwrap_or(""),
+            }})
+        })
+        .collect();
+    let mut fc = json!({"type": "FeatureCollection"});
+    fc["features"] = Value::Array(linhas);
+    host::add_layer(FONTES, fc)?;
+    // A tabela de atributos dela, na janela (no rustgis-cli não há o que abrir).
+    let _ = host::run("table.open", json!({"layer": FONTES}));
     host::notify(&match (camadas.len(), lista.len()) {
-        (0, _) => "Nenhuma camada do BrasilData no mapa".to_string(),
-        (1, 1) => format!("A fonte da camada está no painel {PAINEL}"),
-        (1, n) => format!("As {n} fontes da camada estão no painel {PAINEL}"),
-        (c, _) => format!("As fontes das {c} camadas estão no painel {PAINEL}"),
+        (1, 1) => format!("A fonte da camada está na tabela {FONTES}"),
+        (1, n) => format!("As {n} fontes da camada estão na tabela {FONTES}"),
+        (c, _) => format!("As fontes das {c} camadas estão na tabela {FONTES}"),
     });
-    Ok(json!({"layers": lista, "panel": {"items": {"citacao": {"text": texto}}}}))
+    Ok(json!({"layers": lista, "table": FONTES}))
 }
+
+/// A tabela das fontes (comando Fontes).
+const FONTES: &str = "BrasilData: fontes";
 
 /// O nome da camada de elevação.
 const ELEVACAO: &str = "BrasilData: Elevação (Copernicus GLO-30)";
@@ -1099,8 +1115,6 @@ fn area_que_ha() -> Result<String, String> {
 fn painel(req: &Request) -> Result<Value, String> {
     let mut r = json!({"panel": {"items": {
         "area": {"text": area_no_mapa()?},
-        "citacao": {"text": citacoes()?.1},
-        "versao": {"text": format!("BrasilData {}. O botão compara com a última versão publicada.", versao::ESTA)},
     }}});
     // A grade: o texto, os nomes das posições dos controles e, havendo grade, os controles nela.
     let g = grade_no_mapa()?;
@@ -1124,14 +1138,6 @@ fn painel(req: &Request) -> Result<Value, String> {
     // O botão do desenho volta a dizer o que faz quando o painel é reaberto no meio de um desenho.
     let desenhando = feicoes_da_camada(DESENHO)?.is_some();
     r["panel"]["items"]["area-desenho"] = json!({"label": if desenhando { json!("Usar o desenho") } else { Value::Null }});
-    // Os controles do período com as datas do mês dos focos. No app web a resposta chega depois:
-    // o painel mostra as datas quando for aberto de novo, ou depois do primeiro período.
-    if let Some(mes) = TEMAS.iter().find(|t| t.id == "inpe-focos-mes")
-        && let Ok(Ok(Some(u))) = mes_dos_focos(mes)
-        && let (Some(itens), Some(controles)) = (r["panel"]["items"].as_object_mut(), controles_do_periodo(u).as_object())
-    {
-        itens.extend(controles.clone());
-    }
     Ok(r)
 }
 
@@ -1602,5 +1608,5 @@ fn atualizacao() -> Result<Value, String> {
     let nova = versao::mais_nova(r.get("json").unwrap_or(&Value::Null))?;
     let texto = versao::mensagem(nova.as_deref());
     host::notify(&texto);
-    Ok(json!({"version": versao::ESTA, "latest": nova, "panel": {"items": {"versao": {"text": texto}}}}))
+    Ok(json!({"version": versao::ESTA, "latest": nova}))
 }

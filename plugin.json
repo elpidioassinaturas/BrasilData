@@ -46,7 +46,7 @@
     {
       "id": "painel",
       "label": "Atualizar painel",
-      "help": "O estado do painel Área de trabalho: a árvore Limites políticos, a área, a grade e as fontes.",
+      "help": "O estado do painel Área de trabalho: a árvore Limites políticos, a área e a grade.",
       "icon": "polygon_layer",
       "params": "{}"
     },
@@ -56,6 +56,13 @@
       "help": "O nó escolhido na árvore Limites políticos vira a área: o Brasil, uma grande região, um estado, uma mesorregião, uma microrregião ou um município, com o limite do IBGE que vem no plugin.",
       "icon": "polygon_layer",
       "params": "{\"no\": \"br\" | \"reg:2\" | \"uf:PI\" | \"meso:2204\" | \"micro:22010\" | \"mun:2211001\"} (por script), ou o nó escolhido na árvore limites do painel"
+    },
+    {
+      "id": "inpe-focos-periodo",
+      "label": "Focos de calor: período (INPE)",
+      "help": "Os focos de calor do INPE de uma data a outra (dia/mês/ano) do mês corrente (UTC): INPE, Programa Queimadas (Sisfogo, IBAMA/PAMGIA). Só o que cruza a área, recortado pela área; sem área, o que está na vista. Por script, até o RustGIS abrir uma janela de parâmetros para comandos de plugin; na aba, Queimadas tem 48 horas, 7 dias e o mês corrente.",
+      "icon": "point_layer",
+      "params": "{\"de\"?: \"dd/mm/aaaa\" ou o dia do mês (1 a 31), \"ate\"?: \"dd/mm/aaaa\" ou o dia do mês (padrão: o mês corrente inteiro)}"
     },
     {
       "id": "indicadores",
@@ -639,13 +646,6 @@
       "params": "{}"
     },
     {
-      "id": "inpe-focos-periodo",
-      "label": "Focos de calor: período (INPE)",
-      "help": "Os focos de calor do INPE de uma data a outra (dia/mês/ano) do mês corrente (UTC), escolhidas nos controles do painel Área de trabalho (sem eles, o mês inteiro): INPE, Programa Queimadas (Sisfogo, IBAMA/PAMGIA). Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
-      "icon": "point_layer",
-      "params": "{\"de\"?: \"dd/mm/aaaa\" ou o dia do mês (1 a 31), \"ate\"?: \"dd/mm/aaaa\" ou o dia do mês (padrão: os do painel; o mês é o corrente)}"
-    },
-    {
       "id": "censo-setores",
       "label": "Setores censitários (IBGE)",
       "help": "Os setores censitários de 2022 da área, com pessoas e domicílios (IBGE, agregados por setores): o GeoPackage de cada UF, recortado pela área. No app web, um segundo clique recorta.",
@@ -732,7 +732,7 @@
     {
       "id": "fontes",
       "label": "Fontes",
-      "help": "Lista a fonte e a licença de cada camada do BrasilData que está no mapa, para a citação.",
+      "help": "A fonte e a licença de cada camada do BrasilData que está no mapa, para a citação, na tabela BrasilData: fontes (salva com o projeto).",
       "icon": "table",
       "params": "{}"
     },
@@ -747,7 +747,7 @@
   "panel": {
     "title": "Área de trabalho",
     "icon": "polygon_layer",
-    "help": "Escolha a área de trabalho nos limites políticos (Brasil, grandes regiões, estados, meso e microrregiões, municípios), a seleção ou um desenho; a grade dos rasters; e veja as fontes das camadas do BrasilData no mapa.",
+    "help": "Escolha a área de trabalho nos limites políticos (Brasil, grandes regiões, estados, meso e microrregiões, municípios), a seleção ou um desenho, e a grade dos rasters.",
     "state": "painel",
     "items": [
       {
@@ -799,48 +799,6 @@
       {
         "kind": "button",
         "command": "grade"
-      },
-      {
-        "kind": "slider",
-        "id": "focos-de",
-        "label": "Focos de calor: do dia",
-        "help": "O primeiro dia do período, dia/mês/ano, no mês corrente (UTC): o serviço do IBAMA só guarda o mês corrente. As datas aparecem quando o mês é conhecido (no app web, depois do primeiro período).",
-        "min": 1,
-        "max": 31,
-        "default": 1,
-        "steps": true
-      },
-      {
-        "kind": "slider",
-        "id": "focos-ate",
-        "label": "Focos de calor: até o dia",
-        "help": "O último dia do período, dia/mês/ano, no mês corrente (UTC), incluído.",
-        "min": 1,
-        "max": 31,
-        "default": 31,
-        "steps": true
-      },
-      {
-        "kind": "button",
-        "command": "inpe-focos-periodo"
-      },
-      {
-        "kind": "text",
-        "id": "citacao",
-        "label": "Fontes das camadas no mapa"
-      },
-      {
-        "kind": "button",
-        "command": "fontes"
-      },
-      {
-        "kind": "button",
-        "command": "atualizacao"
-      },
-      {
-        "kind": "text",
-        "id": "versao",
-        "label": "Versão"
       }
     ]
   },
@@ -1074,8 +1032,7 @@
             "items": [
               "inpe-focos-48h",
               "inpe-focos-7d",
-              "inpe-focos-mes",
-              "inpe-focos-periodo"
+              "inpe-focos-mes"
             ]
           },
           {

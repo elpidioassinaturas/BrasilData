@@ -70,12 +70,13 @@ metros.
 | Saúde | Estabelecimentos (CNES, DATASUS) |
 | Meio físico | Geologia e recursos minerais (IBGE, ANM, MapBiomas), Relevo (IBGE, Copernicus), Solos (IBGE) |
 | Água | Hidrografia (IBGE, ANA), Bacias (IBGE, ANA), Recursos hídricos (ANA) |
-| Vegetação e meio ambiente | Vegetação (IBGE), Uso e cobertura (MapBiomas), Desmatamento (INPE: PRODES e DETER), Queimadas (INPE: focos de calor), Áreas protegidas (MMA, ICMBio), Fiscalização (IBAMA) |
+| Vegetação e meio ambiente | Vegetação (IBGE), Uso e cobertura (MapBiomas), Desmatamento (INPE: PRODES e DETER), Queimadas (INPE: focos de calor das últimas 48 horas, dos últimos 7 dias e do mês corrente; um período com datas, por script: `plugin:brasildata/inpe-focos-periodo={"de": "01/11/2026", "ate": "06/11/2026"}`), Áreas protegidas (MMA, ICMBio), Fiscalização (IBAMA) |
 | Infraestrutura | Energia (ANEEL), Petróleo e gás (ANP), Transportes (DNIT) |
 
 As camadas vetoriais estão listadas em [`fontes.csv`](fontes.csv) e na tabela [Fontes](#fontes),
 abaixo: serviço, camada, fonte, licença e se a camada abre no app web. O comando **Fontes**
-mostra a citação e a licença de cada camada trazida. Os indicadores são agregados por município: o plugin não traz CPF, CNPJ ou
+põe a citação e a licença de cada camada trazida na tabela **BrasilData: fontes**, que abre embaixo
+do mapa e fica salva com o projeto. Os indicadores são agregados por município: o plugin não traz CPF, CNPJ ou
 nomes de pessoas.
 
 Algumas camadas só abrem num dos aplicativos, e a ajuda de cada botão diz quando é o caso:
@@ -184,7 +185,7 @@ Fora da tabela, com a citação no comando **Fontes**:
   energia elétrica, a orientação técnica e o valor da produção (mil R$). A **Agroecologia**, do
   mesmo censo, traz a produção orgânica, a associação a cooperativas e entidades, as práticas de
   conservação, o plantio direto, a adubação orgânica ou química, quem não usou agrotóxicos e a área
-  de sistemas agroflorestais. O painel Fontes diz o que é cada campo;
+  de sistemas agroflorestais. A tabela das fontes diz o que é cada campo;
 - **Setores censitários:** IBGE, Censo Demográfico 2022, agregados por setores;
 - **Uso e cobertura:** Projeto MapBiomas, Coleção 11 (1985 a 2025, 30 m), pela API da plataforma
   MapBiomas, como mapa de mosaicos com as cores da legenda oficial. É um mapa para ver, do Brasil
@@ -203,7 +204,7 @@ Fora da tabela, com a citação no comando **Fontes**:
 - **Por arquivo:** baixe o `.rgplugin` da [última versão](https://github.com/elpidioassinaturas/BrasilData/releases)
   e use *Plugins › Plugin Manager › Settings › Install From File…*, ou
   `rustgis-cli plugins install brasildata-<versão>.rgplugin`.
-- **Atualizar:** o botão **Verificar atualização** (grupo Área e painel Área de trabalho) compara a
+- **Atualizar:** o botão **Verificar atualização** (grupo Área) compara a
   versão instalada com a última release e diz como atualizar. Instalado pelo registro, o plugin
   se atualiza em *Gerenciador de plugins › Instalado › Atualizar*; instalado por arquivo, baixe o
   `.rgplugin` novo e instale-o de novo. Um plugin não pode se atualizar sozinho: o RustGIS não
