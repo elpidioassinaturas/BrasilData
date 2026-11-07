@@ -29,9 +29,10 @@ const EM_GRAUS: [u32; 3] = [4326, 4674, 4618];
 /// O sistema de coordenadas escolhido para a grade.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Escolha {
-    /// O UTM SIRGAS 2000 do fuso da área, ou a Policônica quando ela passa de um fuso.
+    /// O UTM SIRGAS 2000 do fuso da área, ou o Albers do IBGE quando ela passa de um fuso.
     Automatico,
-    /// A Policônica SIRGAS 2000 (EPSG:5880), a do IBGE para o país.
+    /// A Policônica SIRGAS 2000 (EPSG:5880), a do IBGE para o país. O `raster.project` do RustGIS
+    /// 0.5.0 não a tem; as versões depois dela, sim.
     Policonica,
     /// A Cônica Equivalente de Albers do IBGE, SIRGAS 2000 (EPSG:10857): áreas iguais.
     Albers,
@@ -218,9 +219,9 @@ mod tests {
     const PIAUI: [f64; 4] = [-45.994, -10.928, -40.37, -2.739];
 
     #[test]
-    fn o_automatico_e_o_utm_do_fuso_ou_a_policonica() {
+    fn o_automatico_e_o_utm_do_fuso_ou_o_albers() {
         assert_eq!(Escolha::Automatico.epsg(TERESINA), 31983);
-        assert_eq!(Escolha::Automatico.epsg(PIAUI), 5880);
+        assert_eq!(Escolha::Automatico.epsg(PIAUI), 10857);
         assert_eq!(Escolha::Albers.epsg(PIAUI), 10857);
         assert_eq!(nome_do_sistema(31983), "UTM fuso 23S, SIRGAS 2000 (EPSG:31983)");
         assert_eq!(nome_do_sistema(31976), "UTM fuso 22N, SIRGAS 2000 (EPSG:31976)");

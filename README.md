@@ -49,12 +49,13 @@ A área de trabalho pode ser:
 - **a vista**: sem área, os temas pedem o que está na vista do mapa.
 
 A **Grade do projeto** é o sistema de coordenadas e o tamanho das células em que os rasters chegam
-(hoje, a Elevação). No painel, escolha a célula (de 10 m a 1 km) e o sistema e clique em **Grade do
+(hoje, a Elevação e o Radar). No painel, escolha a célula (de 10 m a 1 km) e o sistema e clique em **Grade do
 projeto**:
 
-- **Automático:** o UTM SIRGAS 2000 do fuso da área, ou a Policônica (EPSG:5880) quando a área
-  passa de um fuso;
-- **Policônica:** a Policônica do Brasil, SIRGAS 2000 (EPSG:5880);
+- **Automático:** o UTM SIRGAS 2000 do fuso da área, ou o Albers do IBGE (EPSG:10857) quando a
+  área passa de um fuso;
+- **Policônica:** a Policônica do Brasil, SIRGAS 2000 (EPSG:5880). O RustGIS 0.5.0 ainda não
+  projeta rasters nela; as versões seguintes, sim;
 - **Albers (IBGE):** a Cônica Equivalente de Albers do IBGE, SIRGAS 2000 (EPSG:10857), que preserva
   as áreas.
 
@@ -64,6 +65,31 @@ então rasters na mesma grade têm as mesmas linhas e colunas. Uma área nova re
 mesmas escolhas. Sem grade, a primeira Elevação cria a padrão: 30 m, sistema automático. Por script:
 `plugin:brasildata/grade={"celula": 90, "crs": "albers"}`; o `crs` aceita também um código EPSG em
 metros.
+
+O **Radar (Sentinel-1, OPERA)**, em Uso e cobertura, traz o retroespalhamento do Sentinel-1
+corrigido do relevo (OPERA RTC-S1, 30 m), do ASF DAAC da NASA: a polarização **VV**, que responde
+mais à rugosidade e à umidade do solo, a **VH**, que responde mais ao volume da vegetação, e a
+**Razão VH/VV**, que separa vegetação de solo exposto (ela deixa as duas polarizações no mapa
+também). Como chega:
+
+1. A API de busca do ASF lista os recortes (*bursts*, cerca de 20 × 85 km) que cruzam o retângulo
+   da área, os mais recentes primeiro.
+2. O RustGIS seleciona os que cruzam o polígono da área (`selectByLocation`), e não só o retângulo
+   dela: na Zona da Mata mineira, 38 dos 49 recortes de uma passagem.
+3. Vale a passagem mais recente que cobre a área quase tão bem quanto a melhor; por script, a de um
+   dia: `plugin:brasildata/radar-razao={"data": "26/10/2026"}`.
+4. Cada recorte é projetado na grade do projeto, cortado ao retângulo da área e juntado aos outros;
+   o mosaico é recortado pelo polígono da área.
+
+Os valores são o gama0 em potência linear, como o OPERA entrega (o RustGIS 0.5.0 ainda não calcula
+o dB), em cinza com limites fixos: VV de 0 a 0,35, VH de 0 a 0,08 e a razão de 0 a 0,6, os mesmos
+para qualquer data e lugar. Numa só data, a 30 m, a imagem tem o ruído
+granulado (*speckle*) próprio do radar: uma grade de 90 m (média) o reduz. O radar pede o **login
+Earthdata**, que é grátis: crie um token em [urs.earthdata.nasa.gov](https://urs.earthdata.nasa.gov)
+(Generate Token) e cole-o no RustGIS, em Início › Dados web › NASA Earthaccess › Earthdata Login. O
+token fica com o RustGIS, que o manda só aos servidores da NASA; o plugin nunca o vê. Na janela, os
+recortes (cerca de 7 MB cada) chegam depois do clique: quando aparecerem no mapa, clique de novo.
+Áreas de até cerca de 400 km de lado (uma mesorregião). Só no app desktop, por enquanto.
 
 Os **Trechos de drenagem (BHO 2017, ANA)** mostram os rios conforme o zoom. De longe aparecem só os
 rios principais; à medida que o mapa aproxima, os menores aparecem também. A hierarquia é a área de
@@ -81,7 +107,7 @@ Brasil inteiro, 10 mil km²), e o aviso diz qual; numa área menor, vêm os rios
 | Saúde | Estabelecimentos (CNES, DATASUS) |
 | Meio físico | Geologia e recursos minerais (IBGE, ANM, MapBiomas), Relevo (IBGE, Copernicus), Solos (IBGE) |
 | Água | Hidrografia (IBGE, ANA), Bacias (IBGE, ANA), Recursos hídricos (ANA) |
-| Vegetação e meio ambiente | Vegetação (IBGE), Uso e cobertura (MapBiomas), Desmatamento (INPE: PRODES e DETER), Queimadas (INPE: focos de calor das últimas 48 horas, dos últimos 7 dias e do mês corrente; um período com datas, por script: `plugin:brasildata/inpe-focos-periodo={"de": "01/11/2026", "ate": "06/11/2026"}`), Áreas protegidas (MMA, ICMBio), Fiscalização (IBAMA) |
+| Vegetação e meio ambiente | Vegetação (IBGE), Uso e cobertura (MapBiomas; radar Sentinel-1 do ASF/NASA), Desmatamento (INPE: PRODES e DETER), Queimadas (INPE: focos de calor das últimas 48 horas, dos últimos 7 dias e do mês corrente; um período com datas, por script: `plugin:brasildata/inpe-focos-periodo={"de": "01/11/2026", "ate": "06/11/2026"}`), Áreas protegidas (MMA, ICMBio), Fiscalização (IBAMA) |
 | Infraestrutura | Energia (ANEEL), Petróleo e gás (ANP), Transportes (DNIT) |
 
 As camadas vetoriais estão listadas em [`fontes.csv`](fontes.csv) e na tabela [Fontes](#fontes),
@@ -189,6 +215,11 @@ Fora da tabela, com a citação no comando **Fontes**:
 - **Elevação:** Copernicus DEM GLO-30 (© DLR e.V. e © Airbus Defence and Space GmbH, sob o
   programa Copernicus da União Europeia e da ESA), baixado do espelho da
   [OpenTopography](https://opentopography.org), que abre também no app web;
+- **Radar:** OPERA Radiometric Terrain Corrected SAR Backscatter from Sentinel-1, versão 1
+  (OPERA_L2_RTC-S1_V1), do projeto OPERA do JPL, distribuído pelo
+  [ASF DAAC](https://asf.alaska.edu) da NASA
+  ([doi:10.5067/SNWG/OPERA_L2_RTC-S1_V1](https://doi.org/10.5067/SNWG/OPERA_L2_RTC-S1_V1)), com
+  dados Copernicus Sentinel-1 modificados (ESA);
 - **Indicadores por município:** IBGE (Censo Demográfico 2022, Censo Agropecuário 2017), Banco
   Central (Pix, crédito rural), TSE e Novo CAGED. O **Censo Agropecuário 2017** (Agricultura) traz
   os estabelecimentos e a agricultura familiar, a utilização das terras (lavouras, pastagens e

@@ -30,7 +30,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.18"
+VERSAO = "0.1.19"
 
 # Os comandos que não vêm da tabela, com o grupo da aba em que ficam. Na aba, o grupo Área
 # tem o painel (a escolha do território pelo nome), a área pela seleção e o desenho; o comando
@@ -62,7 +62,7 @@ AREA = [
         "label": "Grade do\nprojeto",
         "help": "A grade em que os rasters do BrasilData chegam (a Elevação, e depois os temas rasterizados): o sistema de coordenadas e o tamanho das células, no retângulo da área, como a camada BrasilData: grade. Escolha a célula e o sistema no painel Área de trabalho. Rasters na mesma grade têm as mesmas linhas e colunas. Uma área nova refaz a grade com as mesmas escolhas.",
         "icon": "graticule",
-        "params": "{\"celula\"?: tamanho da célula em metros, de 1 a 10.000 (padrão: o do painel, ou 30), \"crs\"?: código EPSG em metros (31983, \"EPSG:5880\") ou \"automatico\" (UTM do fuso, ou a Policônica se a área passa de um fuso), \"policonica\" ou \"albers\" (EPSG:10857, o do IBGE)}",
+        "params": "{\"celula\"?: tamanho da célula em metros, de 1 a 10.000 (padrão: o do painel, ou 30), \"crs\"?: código EPSG em metros (31983, \"EPSG:5880\") ou \"automatico\" (UTM do fuso, ou o Albers se a área passa de um fuso), \"policonica\" (que o RustGIS 0.5.0 ainda não projeta) ou \"albers\" (EPSG:10857, o do IBGE)}",
     },
 ]
 NA_ABA_AREA = ["panel", "area-selecao", "area-desenho", "grade"]
@@ -117,7 +117,7 @@ PAINEL = {
             "kind": "slider",
             "id": "grade-sistema",
             "label": "Grade: sistema",
-            "help": "O sistema de coordenadas da grade: o automático (UTM SIRGAS 2000 do fuso da área, ou a Policônica quando a área passa de um fuso), a Policônica do Brasil (EPSG:5880) ou o Albers do IBGE (EPSG:10857), que preserva as áreas. Vale quando você clicar em Grade do projeto.",
+            "help": "O sistema de coordenadas da grade: o automático (UTM SIRGAS 2000 do fuso da área, ou o Albers do IBGE quando a área passa de um fuso), a Policônica do Brasil (EPSG:5880, que o RustGIS 0.5.0 ainda não projeta) ou o Albers do IBGE (EPSG:10857), que preserva as áreas. Vale quando você clicar em Grade do projeto.",
             "min": 0,
             "max": 2,
             "default": 0,
@@ -341,12 +341,45 @@ EM_MENUS = [
         },
     ),
     (
+        "Vegetação e meio ambiente",
+        "Uso e cobertura",
+        {
+            "id": "radar-vv",
+            "label": "Radar VV (Sentinel-1, OPERA)",
+            "help": "A polarização VV: responde mais à rugosidade e à umidade do solo. O radar do Sentinel-1 corrigido do relevo (OPERA RTC-S1, JPL, pelo ASF DAAC da NASA), 30 m, gama0 em potência linear: os recortes da passagem mais recente que cruzam o polígono da área, juntados, recortados pela área e postos na grade do projeto. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Áreas de até cerca de 400 km.",
+            "icon": "raster_layer",
+            "params": "{\"data\"?: \"dd/mm/aaaa\", a passagem desse dia (padrão: a mais recente que cobre a área), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+        },
+    ),
+    (
+        "Vegetação e meio ambiente",
+        "Uso e cobertura",
+        {
+            "id": "radar-vh",
+            "label": "Radar VH (Sentinel-1, OPERA)",
+            "help": "A polarização VH: responde mais ao volume da vegetação. O radar do Sentinel-1 corrigido do relevo (OPERA RTC-S1, JPL, pelo ASF DAAC da NASA), 30 m, gama0 em potência linear: os recortes da passagem mais recente que cruzam o polígono da área, juntados, recortados pela área e postos na grade do projeto. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Áreas de até cerca de 400 km.",
+            "icon": "raster_layer",
+            "params": "{\"data\"?: \"dd/mm/aaaa\", a passagem desse dia (padrão: a mais recente que cobre a área), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+        },
+    ),
+    (
+        "Vegetação e meio ambiente",
+        "Uso e cobertura",
+        {
+            "id": "radar-razao",
+            "label": "Razão VH/VV (Sentinel-1, OPERA)",
+            "help": "A razão VH/VV, que separa vegetação de solo exposto; as camadas VV e VH da mesma passagem também ficam no mapa. O radar do Sentinel-1 corrigido do relevo (OPERA RTC-S1, JPL, pelo ASF DAAC da NASA), 30 m, gama0 em potência linear: os recortes da passagem mais recente que cruzam o polígono da área, juntados, recortados pela área e postos na grade do projeto. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Áreas de até cerca de 400 km.",
+            "icon": "raster_layer",
+            "params": "{\"data\"?: \"dd/mm/aaaa\", a passagem desse dia (padrão: a mais recente que cobre a área), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+        },
+    ),
+    (
         "Meio físico",
         "Relevo",
         {
             "id": "elevacao",
             "label": "Elevação (Copernicus GLO-30)",
-            "help": "Copernicus GLO-30 recortado pela área e posto na grade do projeto (Grade do projeto, no grupo Área). Sem grade, o primeiro clique cria a padrão: células de 30 m no UTM SIRGAS 2000 do fuso da área, ou na Policônica quando a área passa de um fuso.",
+            "help": "Copernicus GLO-30 recortado pela área e posto na grade do projeto (Grade do projeto, no grupo Área). Sem grade, o primeiro clique cria a padrão: células de 30 m no UTM SIRGAS 2000 do fuso da área, ou no Albers do IBGE quando a área passa de um fuso.",
             "icon": "raster_layer",
             "params": "{\"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30); com grade, só o da grade é aceito}",
         },
@@ -508,7 +541,7 @@ def manifesto(linhas: list[dict]) -> str:
         "id": "brasildata",
         "name": "BrasilData",
         "version": VERSAO,
-        "description": "Dados públicos do Brasil para a área do usuário (IBGE, MMA, ICMBio, INPE, ANA, ANEEL, ANP, SFB/CAR, INCRA, FUNAI, IBAMA, ANM, DNIT, Ministério da Saúde, Copernicus): só o que cruza a área, recortado por ela, com a fonte e a licença de cada camada.",
+        "description": "Dados públicos do Brasil para a área do usuário (IBGE, MMA, ICMBio, INPE, ANA, ANEEL, ANP, SFB/CAR, INCRA, FUNAI, IBAMA, ANM, DNIT, Ministério da Saúde, Copernicus, NASA/ASF): só o que cruza a área, recortado por ela, com a fonte e a licença de cada camada.",
         "author": AUTOR,
         "homepage": REPOSITORIO,
         "license": LICENCA,

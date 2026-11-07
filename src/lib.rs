@@ -23,6 +23,7 @@ mod comandos;
 pub mod malhas;
 pub mod mapbiomas;
 pub mod municipios;
+pub mod radar;
 pub mod saude;
 pub mod versao;
 pub mod vista;
@@ -250,11 +251,13 @@ pub fn paginas(n: u64, tamanho: u32) -> Vec<Option<(u64, u64)>> {
     (0..n.div_ceil(t)).map(|i| Some((i * t, t))).collect()
 }
 
-/// O código EPSG do UTM SIRGAS 2000 sul do fuso de `lon` (fusos 18 a 25, os do Brasil), ou a
-/// Policônica SIRGAS 2000 quando a área passa de um fuso.
+/// O código EPSG do UTM SIRGAS 2000 sul do fuso de `lon` (fusos 18 a 25, os do Brasil), ou o
+/// Albers do IBGE (SIRGAS 2000, EPSG:10857) quando a área passa de um fuso. A Policônica
+/// (EPSG:5880) seria a outra escolha do IBGE, mas o `raster.project` do RustGIS 0.5.0 não a tem
+/// (ela chegou ao `main` depois).
 pub fn sistema(c: [f64; 4]) -> u32 {
     let fuso = |lon: f64| (((lon + 180.0) / 6.0).floor() as i32 + 1).clamp(18, 25);
-    if fuso(c[0]) == fuso(c[2]) { 31960 + fuso((c[0] + c[2]) / 2.0) as u32 } else { 5880 }
+    if fuso(c[0]) == fuso(c[2]) { 31960 + fuso((c[0] + c[2]) / 2.0) as u32 } else { 10857 }
 }
 
 /// Os tiles de 1° do Copernicus GLO-30 que cobrem `c`: o endereço no espelho da OpenTopography,
@@ -289,8 +292,8 @@ mod tests {
         assert_eq!(t.len(), 2);
         assert!(t[0].0.contains("S06_00_W043") && t[1].0.contains("S05_00_W043"), "{t:?}");
         assert!(t[0].0.starts_with("https://opentopography.s3.sdsc.edu/") && t[0].1.contains("copernicus-dem-30m"), "{t:?}");
-        // Duas zonas: a Policônica.
-        assert_eq!(sistema([-46.0, -10.0, -40.0, -3.0]), 5880);
+        // Dois fusos: o Albers do IBGE.
+        assert_eq!(sistema([-46.0, -10.0, -40.0, -3.0]), 10857);
         // Um grau inteiro como borda não puxa o vizinho.
         assert_eq!(tiles([-43.0, -6.0, -42.0, -5.0]).len(), 1);
     }

@@ -9,6 +9,7 @@ use crate::indicadores::{self, Fonte};
 use crate::malhas;
 use crate::mapbiomas;
 use crate::municipios::{self, Territorio};
+use crate::radar;
 use crate::saude;
 use crate::versao;
 use crate::zoom;
@@ -41,6 +42,9 @@ fn handle(req: Request) -> Result<Value, String> {
         "painel" => painel(&req),
         "escolher-area" => escolher_area(&req),
         "elevacao" => elevacao(req.f64("celula")),
+        "radar-vv" => radar(&req, Some(radar::Pol::Vv)),
+        "radar-vh" => radar(&req, Some(radar::Pol::Vh)),
+        "radar-razao" => radar(&req, None),
         "grade" => grade_do_projeto(&req),
         "fontes" => fontes(),
         "atualizacao" => atualizacao(),
@@ -1021,6 +1025,8 @@ fn citacoes() -> Result<(Vec<Value>, String), String> {
             lista.push(json!({"layer": n, "source": mapbiomas::CITACAO, "license": mapbiomas::LICENCA}));
         } else if n == camada_de_saude() {
             lista.push(json!({"layer": n, "source": saude::CITACAO, "license": saude::LICENCA}));
+        } else if radar::eh_do_radar(&n) {
+            lista.push(json!({"layer": n, "source": radar::CITACAO, "license": radar::LICENCA}));
         } else if n == ELEVACAO {
             lista.push(json!({"layer": n, "source": CITACAO_ELEVACAO, "license": "licença do Copernicus DEM: uso livre e gratuito, com esta citação"}));
         } else if n.starts_with(&format!("{PREFIXO}{CENSO_SETORES}")) {
@@ -1173,6 +1179,212 @@ fn elevacao(celula: Option<f64>) -> Result<Value, String> {
     Ok(json!({
         "layer": nome, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula, "tiles": urls.len(),
         "width": r["width"], "height": r["height"], "corner": r["corner"],
+    }))
+}
+
+/// A camada temporária dos contornos dos recortes do radar.
+const CONTORNOS_RADAR: &str = "BrasilData: contornos do radar";
+
+/// Os recortes do radar que cruzam o polígono da área, da passagem escolhida ([`radar::passagem`]),
+/// ou o pedido pendente (app web).
+fn recortes_do_radar(c: [f64; 4], dia: Option<Data>) -> Result<Result<Vec<radar::Recorte>, Value>, String> {
+    let resposta = match buscar_varios(&[radar::url_busca(c, dia)])? {
+        Ok(mut r) => r.remove(0),
+        Err(p) => return Ok(Err(p)),
+    };
+    let todos = radar::recortes(&resposta);
+    let quando = dia.map(|d| format!(" em {}", d.texto())).unwrap_or_default();
+    if todos.is_empty() {
+        return Err(format!("o ASF não tem recortes do OPERA RTC-S1 na área{quando}"));
+    }
+    // Os contornos numa camada, e o RustGIS seleciona os que cruzam o polígono da área.
+    remover(&[CONTORNOS_RADAR])?;
+    host::add_layer(CONTORNOS_RADAR, radar::camada_dos_contornos(&todos))?;
+    let selecao = host::run("gp.run", json!({"tool": "selectByLocation", "params": {"input": CONTORNOS_RADAR, "select": AREA}}))
+        .and_then(|_| host::features(CONTORNOS_RADAR, true));
+    remover(&[CONTORNOS_RADAR])?;
+    let indices: Vec<usize> =
+        selecao?["features"].as_array().into_iter().flatten().filter_map(|f| f["properties"]["i"].as_u64().map(|i| i as usize)).collect();
+    let cruzam: Vec<&radar::Recorte> = indices.iter().filter_map(|i| todos.get(*i)).collect();
+    let (data, orbita) = radar::passagem(&cruzam).ok_or(format!("nenhum recorte do OPERA RTC-S1 cruza a área{quando}"))?;
+    let escolhidos: Vec<radar::Recorte> = cruzam.into_iter().filter(|r| r.passagem() == (data, orbita)).cloned().collect();
+    if escolhidos.len() > radar::MAX_RECORTES {
+        return Err(format!(
+            "a passagem de {} tem {} recortes na área; o limite é {}: escolha uma área menor",
+            data.texto(),
+            escolhidos.len(),
+            radar::MAX_RECORTES
+        ));
+    }
+    host::log(&format!(
+        "radar: {} recortes cruzam a área, {} da passagem de {} (órbita {orbita})",
+        indices.len(),
+        escolhidos.len(),
+        data.texto()
+    ));
+    Ok(Ok(escolhidos))
+}
+
+/// Uma polarização dos `recortes` na grade `g`, recortada pela área, como a camada `nome`; ou o
+/// pedido pendente (app web).
+fn radar_na_grade(recortes: &[radar::Recorte], p: radar::Pol, g: &Grade, c: [f64; 4], nome: &str) -> Result<Option<Value>, String> {
+    // A lista de camadas do mapa custa caro ao plugin (cerca de 16 milhões de instruções, com
+    // rasters no mapa): é lida uma vez, e não a cada recorte, senão uma mesorregião passa da cota.
+    let ha = nomes()?;
+    // As camadas intermediárias de uma vez anterior que tenha parado no meio.
+    let (mosaico, recorte) = ("BrasilData: mosaico do radar".to_string(), "BrasilData: recorte do radar".to_string());
+    let brutos: Vec<String> = recortes.iter().map(|r| format!("{}radar {} {}", PREFIXO, p.sigla(), r.rotulo())).collect();
+    let na_grade: Vec<String> = brutos.iter().map(|b| format!("{b} na grade")).collect();
+    let na_area: Vec<String> = brutos.iter().map(|b| format!("{b} na área")).collect();
+    let velhas: Vec<&str> = na_grade
+        .iter()
+        .chain(&na_area)
+        .map(String::as_str)
+        .chain([mosaico.as_str(), recorte.as_str()])
+        .filter(|n| ha.iter().any(|h| h == n))
+        .collect();
+    if !velhas.is_empty() {
+        host::run("layer.remove", json!({"layer": velhas}))?;
+    }
+    // Os recortes inteiros (cerca de 7 MB cada): um COG lido no lugar fica fora do alcance dos
+    // comandos `raster.*`. Os que já chegaram, de um clique anterior, ficam; os outros são pedidos
+    // todos de uma vez. A janela do RustGIS (e o app web) não espera o download: eles chegam
+    // depois, com estes nomes, e o próximo clique os encontra.
+    let mut baixando = 0;
+    for (r, bruto) in recortes.iter().zip(&brutos) {
+        if ha.contains(bruto) {
+            continue;
+        }
+        let a = host::run("layer.addUrl", json!({"url": r.url(p), "name": bruto, "whole": true, "zoom": false})).map_err(|e| {
+            if e.contains("token") || e.contains("401") || e.contains("Earthdata") {
+                format!("{e}. O radar do ASF pede o login Earthdata: Início › Dados web › NASA Earthaccess › Earthdata Login")
+            } else {
+                e
+            }
+        })?;
+        if a.get("pending").and_then(Value::as_bool) == Some(true) {
+            baixando += 1;
+        }
+    }
+    if baixando > 0 {
+        let n = if baixando == 1 { "1 recorte".to_string() } else { format!("{baixando} recortes") };
+        host::notify(&format!(
+            "Radar {}: baixando {n} do ASF (cerca de 7 MB cada). Quando aparecerem no mapa como \"BrasilData: radar\", clique de novo",
+            p.sigla()
+        ));
+        return Ok(Some(json!({"pending": baixando, "bursts": recortes.len()})));
+    }
+    let mut temporarias: Vec<String> = Vec::new();
+    // Para células maiores que as do OPERA (30 m), a média; senão, bilinear.
+    let resampling = if g.celula > 45.0 { "average" } else { "bilinear" };
+    let resultado = (|| -> Result<(), String> {
+        for ((bruto, q), a) in brutos.iter().zip(&na_grade).zip(&na_area) {
+            // Cada recorte vai para a rede da grade (o sistema e a célula dela, origem [0, 0]) no
+            // próprio retângulo: os recortes, que podem estar em fusos UTM diferentes, passam a ter
+            // o mesmo sistema e as mesmas células, e o mosaico os junta.
+            host::run("raster.project", json!({"layer": bruto, "crs": g.epsg, "cellSize": g.celula, "resampling": resampling, "name": q}))?;
+            // Só o retângulo da área: os recortes passam bastante dela, e o mosaico de uma
+            // mesorregião inteira passaria do limite de 120 milhões de valores de um raster.
+            host::run("raster.process", json!({"layer": q, "operation": "clip", "extent": c, "name": a}))?;
+            temporarias.push(a.clone());
+            // O bruto e o projetado saem já, para poupar memória.
+            host::run("layer.remove", json!({"layer": [bruto, q]}))?;
+        }
+        let junto = if na_area.len() == 1 {
+            na_area[0].clone()
+        } else {
+            host::run("raster.mosaic", json!({"inputs": na_area, "name": mosaico}))?;
+            temporarias.push(mosaico.clone());
+            mosaico.clone()
+        };
+        host::run("raster.process", json!({"layer": junto, "operation": "clip", "polygon": AREA, "name": recorte}))?;
+        temporarias.push(recorte.clone());
+        // Já na rede da grade: a extensão dela, sem reamostrar.
+        host::run(
+            "raster.project",
+            json!({"layer": recorte, "crs": g.epsg, "cellSize": g.celula, "extent": GRADE, "resampling": "nearest", "name": nome}),
+        )?;
+        let _ = host::run("raster.stretch", json!({"layer": nome, "type": "custom", "min": 0, "max": p.maximo()}));
+        Ok(())
+    })();
+    let fora: Vec<&str> = temporarias.iter().map(String::as_str).collect();
+    if !fora.is_empty() {
+        host::run("layer.remove", json!({"layer": fora})).map(|_| ()).or_else(|e| if resultado.is_err() { Ok(()) } else { Err(e) })?;
+    }
+    resultado.map(|()| None)
+}
+
+/// O radar do Sentinel-1 (OPERA RTC-S1) na área: uma polarização, ou a razão VH/VV (que deixa
+/// as duas no mapa também). Por padrão, a passagem mais recente que cobre a área; por script,
+/// a de um dia.
+fn radar(req: &Request, qual: Option<radar::Pol>) -> Result<Value, String> {
+    let celula = req.f64("celula");
+    if let Some(m) = celula {
+        grade::conferir_celula(m)?;
+    }
+    let dia = match req.str("data") {
+        Some(t) => Some(Data::ler(t).ok_or(format!("data '{t}': use dia/mês/ano, como 26/10/2026"))?),
+        None => None,
+    };
+    let (c, na_area) = retangulo()?;
+    if !na_area {
+        return Err(format!("escolha a área primeiro (painel {PAINEL})"));
+    }
+    if !radar::cabe(c) {
+        return Err(format!(
+            "a área passa de {:.1}° de lado; o radar lê no máximo cerca de 400 km (uma mesorregião). Escolha uma área menor",
+            radar::MAX_GRAUS
+        ));
+    }
+    // Sem o token, os arquivos são recusados: avisa antes de buscar.
+    if let Ok(s) = host::run("earthdata.status", json!({}))
+        && s["token"].as_bool() == Some(false)
+    {
+        return Err("o radar do ASF pede o login Earthdata, que é grátis: crie um token em urs.earthdata.nasa.gov (Generate Token) e cole-o no RustGIS, em Início › Dados web › NASA Earthaccess › Earthdata Login".into());
+    }
+    let g = grade_para(c, celula)?;
+    let recortes = match recortes_do_radar(c, dia)? {
+        Ok(r) => r,
+        Err(p) => return Ok(p),
+    };
+    let data = recortes[0].data;
+    let pols = match qual {
+        Some(p) => vec![p],
+        None => vec![radar::Pol::Vv, radar::Pol::Vh],
+    };
+    let ha = nomes()?;
+    let mut feitas = Vec::new();
+    for p in pols {
+        let nome = radar::nome_da_camada(p, data);
+        // A razão reaproveita uma polarização que já está no mapa, da mesma data.
+        if qual.is_none() && ha.contains(&nome) {
+            feitas.push(nome);
+            continue;
+        }
+        remover(&[&nome])?;
+        if let Some(pendente) = radar_na_grade(&recortes, p, &g, c, &nome)? {
+            return Ok(pendente);
+        }
+        feitas.push(nome);
+    }
+    let mut camada = feitas[0].clone();
+    if qual.is_none() {
+        let razao = radar::nome_da_razao(data);
+        remover(&[&razao])?;
+        host::run("raster.change", json!({"before": feitas[0], "after": feitas[1], "method": "ratio", "name": razao}))?;
+        let _ = host::run("raster.stretch", json!({"layer": razao, "type": "custom", "min": 0, "max": radar::MAXIMO_DA_RAZAO}));
+        camada = razao;
+    }
+    host::notify(&format!(
+        "{}: {} recortes da passagem de {}, na grade do projeto, {}",
+        camada.trim_start_matches(PREFIXO),
+        recortes.len(),
+        data.texto(),
+        g.texto()
+    ));
+    Ok(json!({
+        "layer": camada, "date": data.texto(), "bursts": recortes.iter().map(|r| r.nome.clone()).collect::<Vec<_>>(),
+        "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula,
     }))
 }
 
