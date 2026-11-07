@@ -11,8 +11,9 @@
 //! - **Quais recortes:** os contornos vão para uma camada e o RustGIS seleciona os que cruzam o
 //!   polígono da área (`selectByLocation`), não só o retângulo dela. Entre as passagens que restam,
 //!   vale a mais recente que cobre a área quase tão bem quanto a melhor ([`passagem`]).
-//! - **Os valores:** gama0 em potência linear (sem unidade), como o OPERA entrega. O `bandMath` do
-//!   RustGIS 0.5.0 só tem + - * /, então o dB (10·log10) fica para depois.
+//! - **Os valores:** o gama0 do OPERA (potência linear) passa pelo filtro de Lee (5 × 5, o
+//!   `geolibre:lee_filter`), que tira o granulado do radar, e chega em dB (10 · log10, pelo
+//!   `geolibre:log10`: o `bandMath` só tem + - * /). A razão VH/VV, em dB, é a diferença VH − VV.
 
 use std::collections::HashSet;
 
@@ -49,19 +50,20 @@ pub enum Pol {
     Vh,
 }
 
-/// O topo da escala de cinza da razão VH/VV.
-pub const MAXIMO_DA_RAZAO: f64 = 0.6;
+/// A escala de cinza da razão VH/VV, em dB (VH − VV).
+pub const ESCALA_DA_RAZAO: (f64, f64) = (-8.0, -3.0);
 
 impl Pol {
-    /// O topo da escala de cinza, em gama0 linear: o típico de vegetação densa (cerca de -4,5 dB no
-    /// VV, -11 dB no VH). Limites fixos, e não os do histograma: um punhado de valores extremos
-    /// (encostas viradas para o satélite, mais de 500 numa mesorregião) põe quase tudo na primeira
-    /// faixa do histograma do RustGIS, e a imagem sai toda branca ou toda preta. Fixos, eles também
-    /// deixam datas e lugares diferentes comparáveis.
-    pub fn maximo(self) -> f64 {
+    /// A escala de cinza, em dB, depois do filtro de Lee: um pouco além dos percentis 2 e 98 da
+    /// Zona da Mata mineira em 26/10/2026 (VV de −8,8 a −5,0; VH de −14,7 a −11,3). Limites fixos,
+    /// e não os do histograma: um punhado de valores extremos (encostas viradas para o satélite)
+    /// põe quase tudo na primeira faixa do histograma do RustGIS, e a imagem sai toda branca ou
+    /// toda preta. Fixos, eles também deixam datas e lugares diferentes comparáveis. Água fica
+    /// preta, cidade fica branca.
+    pub fn escala(self) -> (f64, f64) {
         match self {
-            Pol::Vv => 0.35,
-            Pol::Vh => 0.08,
+            Pol::Vv => (-10.0, -3.0),
+            Pol::Vh => (-16.0, -9.0),
         }
     }
 
@@ -222,12 +224,12 @@ pub fn passagem(cruzam: &[&Recorte]) -> Option<(Data, u32)> {
 
 /// O nome da camada de uma polarização numa data.
 pub fn nome_da_camada(p: Pol, d: Data) -> String {
-    format!("{}Radar {} (Sentinel-1, {})", crate::PREFIXO, p.sigla(), d.texto())
+    format!("{}Radar {} em dB (Sentinel-1, {})", crate::PREFIXO, p.sigla(), d.texto())
 }
 
 /// O nome da camada da razão VH/VV numa data.
 pub fn nome_da_razao(d: Data) -> String {
-    format!("{}Razão VH/VV (Sentinel-1, {})", crate::PREFIXO, d.texto())
+    format!("{}Razão VH/VV em dB (Sentinel-1, {})", crate::PREFIXO, d.texto())
 }
 
 /// Se uma camada do mapa é do radar (para a citação).
@@ -314,7 +316,7 @@ mod tests {
     #[test]
     fn os_nomes_e_a_citacao() {
         let d = Data { ano: 2026, mes: 10, dia: 26 };
-        assert_eq!(nome_da_camada(Pol::Vv, d), "BrasilData: Radar VV (Sentinel-1, 26/10/2026)");
+        assert_eq!(nome_da_camada(Pol::Vv, d), "BrasilData: Radar VV em dB (Sentinel-1, 26/10/2026)");
         assert!(eh_do_radar(&nome_da_camada(Pol::Vh, d)));
         assert!(eh_do_radar(&nome_da_razao(d)));
         assert!(!eh_do_radar("BrasilData: Radar de chuva"));

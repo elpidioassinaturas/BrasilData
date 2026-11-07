@@ -81,10 +81,11 @@ também). Como chega:
 4. Cada recorte é projetado na grade do projeto, cortado ao retângulo da área e juntado aos outros;
    o mosaico é recortado pelo polígono da área.
 
-Os valores são o gama0 em potência linear, como o OPERA entrega (o RustGIS 0.5.0 ainda não calcula
-o dB), em cinza com limites fixos: VV de 0 a 0,35, VH de 0 a 0,08 e a razão de 0 a 0,6, os mesmos
-para qualquer data e lugar. Numa só data, a 30 m, a imagem tem o ruído
-granulado (*speckle*) próprio do radar: uma grade de 90 m (média) o reduz. O radar pede o **login
+Cada recorte passa pelo filtro de Lee (5 × 5), que tira o granulado (*speckle*) do radar, antes de
+ir para a grade, e o resultado chega em **dB** (10 · log10), como o radar costuma ser visto. A razão
+VH/VV, em dB, é a diferença VH − VV. O cinza tem limites fixos, os mesmos para qualquer data e
+lugar: VV de −10 a −3 dB, VH de −16 a −9 dB e a razão de −8 a −3 dB. A água fica preta, e as
+cidades, brancas. O radar pede o **login
 Earthdata**, que é grátis: crie um token em [urs.earthdata.nasa.gov](https://urs.earthdata.nasa.gov)
 (Generate Token) e cole-o no RustGIS, em Início › Dados web › NASA Earthaccess › Earthdata Login. O
 token fica com o RustGIS, que o manda só aos servidores da NASA; o plugin nunca o vê. Na janela, os

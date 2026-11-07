@@ -1234,13 +1234,16 @@ fn radar_na_grade(recortes: &[radar::Recorte], p: radar::Pol, g: &Grade, c: [f64
     // As camadas intermediárias de uma vez anterior que tenha parado no meio.
     let (mosaico, recorte) = ("BrasilData: mosaico do radar".to_string(), "BrasilData: recorte do radar".to_string());
     let brutos: Vec<String> = recortes.iter().map(|r| format!("{}radar {} {}", PREFIXO, p.sigla(), r.rotulo())).collect();
+    let filtrados: Vec<String> = brutos.iter().map(|b| format!("{b} filtrado")).collect();
     let na_grade: Vec<String> = brutos.iter().map(|b| format!("{b} na grade")).collect();
     let na_area: Vec<String> = brutos.iter().map(|b| format!("{b} na área")).collect();
-    let velhas: Vec<&str> = na_grade
+    let (linear, log) = (format!("{nome} linear"), format!("{nome} log"));
+    let velhas: Vec<&str> = filtrados
         .iter()
+        .chain(&na_grade)
         .chain(&na_area)
         .map(String::as_str)
-        .chain([mosaico.as_str(), recorte.as_str()])
+        .chain([mosaico.as_str(), recorte.as_str(), linear.as_str(), log.as_str()])
         .filter(|n| ha.iter().any(|h| h == n))
         .collect();
     if !velhas.is_empty() {
@@ -1278,17 +1281,20 @@ fn radar_na_grade(recortes: &[radar::Recorte], p: radar::Pol, g: &Grade, c: [f64
     // Para células maiores que as do OPERA (30 m), a média; senão, bilinear.
     let resampling = if g.celula > 45.0 { "average" } else { "bilinear" };
     let resultado = (|| -> Result<(), String> {
-        for ((bruto, q), a) in brutos.iter().zip(&na_grade).zip(&na_area) {
+        for (((bruto, f), q), a) in brutos.iter().zip(&filtrados).zip(&na_grade).zip(&na_area) {
+            // O filtro de Lee (5 × 5) tira o granulado (speckle) do radar, na geometria do próprio
+            // recorte, antes de qualquer reamostragem, como se faz com radar.
+            ferramenta("geolibre:lee_filter", json!({"input": bruto, "filter_size_x": 5, "filter_size_y": 5}), f)?;
             // Cada recorte vai para a rede da grade (o sistema e a célula dela, origem [0, 0]) no
             // próprio retângulo: os recortes, que podem estar em fusos UTM diferentes, passam a ter
             // o mesmo sistema e as mesmas células, e o mosaico os junta.
-            host::run("raster.project", json!({"layer": bruto, "crs": g.epsg, "cellSize": g.celula, "resampling": resampling, "name": q}))?;
+            host::run("raster.project", json!({"layer": f, "crs": g.epsg, "cellSize": g.celula, "resampling": resampling, "name": q}))?;
             // Só o retângulo da área: os recortes passam bastante dela, e o mosaico de uma
             // mesorregião inteira passaria do limite de 120 milhões de valores de um raster.
             host::run("raster.process", json!({"layer": q, "operation": "clip", "extent": c, "name": a}))?;
             temporarias.push(a.clone());
-            // O bruto e o projetado saem já, para poupar memória.
-            host::run("layer.remove", json!({"layer": [bruto, q]}))?;
+            // O bruto, o filtrado e o projetado saem já, para poupar memória.
+            host::run("layer.remove", json!({"layer": [bruto, f, q]}))?;
         }
         let junto = if na_area.len() == 1 {
             na_area[0].clone()
@@ -1302,9 +1308,16 @@ fn radar_na_grade(recortes: &[radar::Recorte], p: radar::Pol, g: &Grade, c: [f64
         // Já na rede da grade: a extensão dela, sem reamostrar.
         host::run(
             "raster.project",
-            json!({"layer": recorte, "crs": g.epsg, "cellSize": g.celula, "extent": GRADE, "resampling": "nearest", "name": nome}),
+            json!({"layer": recorte, "crs": g.epsg, "cellSize": g.celula, "extent": GRADE, "resampling": "nearest", "name": linear}),
         )?;
-        let _ = host::run("raster.stretch", json!({"layer": nome, "type": "custom", "min": 0, "max": p.maximo()}));
+        temporarias.push(linear.clone());
+        // Em dB, como o radar costuma ser visto: 10 · log10 (o `bandMath` não tem logaritmo; o
+        // GeoLibre tem).
+        ferramenta("geolibre:log10", json!({"input": linear}), &log)?;
+        temporarias.push(log.clone());
+        host::run("raster.function", json!({"layer": log, "function": "bandMath", "expression": "b1 * 10", "name": nome}))?;
+        let (min, max) = p.escala();
+        let _ = host::run("raster.stretch", json!({"layer": nome, "type": "custom", "min": min, "max": max}));
         Ok(())
     })();
     let fora: Vec<&str> = temporarias.iter().map(String::as_str).collect();
@@ -1312,6 +1325,14 @@ fn radar_na_grade(recortes: &[radar::Recorte], p: radar::Pol, g: &Grade, c: [f64
         host::run("layer.remove", json!({"layer": fora})).map(|_| ()).or_else(|e| if resultado.is_err() { Ok(()) } else { Err(e) })?;
     }
     resultado.map(|()| None)
+}
+
+/// Roda uma ferramenta do RustGIS (`gp.run`) e dá à camada que ela cria o nome `nome`.
+fn ferramenta(tool: &str, params: Value, nome: &str) -> Result<(), String> {
+    let r = host::run("gp.run", json!({"tool": tool, "params": params}))?;
+    let id = r["layers"].get(0).cloned().ok_or(format!("{tool} não criou camada"))?;
+    host::run("layer.rename", json!({"layer": id, "name": nome}))?;
+    Ok(())
 }
 
 /// O radar do Sentinel-1 (OPERA RTC-S1) na área: uma polarização, ou a razão VH/VV (que deixa
@@ -1371,8 +1392,10 @@ fn radar(req: &Request, qual: Option<radar::Pol>) -> Result<Value, String> {
     if qual.is_none() {
         let razao = radar::nome_da_razao(data);
         remover(&[&razao])?;
-        host::run("raster.change", json!({"before": feitas[0], "after": feitas[1], "method": "ratio", "name": razao}))?;
-        let _ = host::run("raster.stretch", json!({"layer": razao, "type": "custom", "min": 0, "max": radar::MAXIMO_DA_RAZAO}));
+        // Em dB, a razão VH/VV é a diferença VH − VV.
+        host::run("raster.change", json!({"before": feitas[0], "after": feitas[1], "method": "difference", "name": razao}))?;
+        let (min, max) = radar::ESCALA_DA_RAZAO;
+        let _ = host::run("raster.stretch", json!({"layer": razao, "type": "custom", "min": min, "max": max}));
         camada = razao;
     }
     host::notify(&format!(
