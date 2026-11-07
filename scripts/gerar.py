@@ -30,7 +30,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.15"
+VERSAO = "0.1.16"
 
 # Os comandos que não vêm da tabela, com o grupo da aba em que ficam. Na aba, o grupo Área
 # tem o painel (a escolha do território pelo nome), a área pela seleção e o desenho; o comando
@@ -57,8 +57,15 @@ AREA = [
         "icon": "polygon_layer",
         "params": "{\"nome\": nome do município (\"Teresina\", \"Bom Jesus/PI\"), \"uf\"?: sigla, quando o nome se repete} | {\"codigo\": código do IBGE, 7 dígitos}",
     },
+    {
+        "id": "grade",
+        "label": "Grade do\nprojeto",
+        "help": "A grade em que os rasters do BrasilData chegam (a Elevação, e depois os temas rasterizados): o sistema de coordenadas e o tamanho das células, no retângulo da área, como a camada BrasilData: grade. Escolha a célula e o sistema no painel Área e fontes. Rasters na mesma grade têm as mesmas linhas e colunas. Uma área nova refaz a grade com as mesmas escolhas.",
+        "icon": "graticule",
+        "params": "{\"celula\"?: tamanho da célula em metros, de 1 a 10.000 (padrão: o do painel, ou 30), \"crs\"?: código EPSG em metros (31983, \"EPSG:5880\") ou \"automatico\" (UTM do fuso, ou a Policônica se a área passa de um fuso), \"policonica\" ou \"albers\" (EPSG:10857, o do IBGE)}",
+    },
 ]
-NA_ABA_AREA = ["panel", "area-selecao", "area-desenho"]
+NA_ABA_AREA = ["panel", "area-selecao", "area-desenho", "grade"]
 # A verificação de atualização fica no fim do grupo Área, depois das fontes.
 # Os comandos do painel, que não vão para a aba.
 DO_PAINEL = [
@@ -87,6 +94,28 @@ PAINEL = {
         {"kind": "text", "id": "area", "label": "Área do BrasilData"},
         {"kind": "button", "command": "area-selecao"},
         {"kind": "button", "command": "area-desenho"},
+        {"kind": "text", "id": "grade-texto", "label": "Grade do projeto"},
+        {
+            "kind": "slider",
+            "id": "grade-celula",
+            "label": "Grade: célula",
+            "help": "O tamanho das células da grade, de 10 m a 1 km. Vale quando você clicar em Grade do projeto.",
+            "min": 0,
+            "max": 8,
+            "default": 2,
+            "steps": True,
+        },
+        {
+            "kind": "slider",
+            "id": "grade-sistema",
+            "label": "Grade: sistema",
+            "help": "O sistema de coordenadas da grade: o automático (UTM SIRGAS 2000 do fuso da área, ou a Policônica quando a área passa de um fuso), a Policônica do Brasil (EPSG:5880) ou o Albers do IBGE (EPSG:10857), que preserva as áreas. Vale quando você clicar em Grade do projeto.",
+            "min": 0,
+            "max": 2,
+            "default": 0,
+            "steps": True,
+        },
+        {"kind": "button", "command": "grade"},
         {"kind": "button", "command": "fontes"},
         {
             "kind": "tree",
@@ -295,9 +324,9 @@ EM_MENUS = [
         {
             "id": "elevacao",
             "label": "Elevação (Copernicus GLO-30)",
-            "help": "Copernicus GLO-30 recortado pela área e posto na grade UTM SIRGAS 2000 do fuso da área (ou na Policônica, quando a área passa de um fuso).",
+            "help": "Copernicus GLO-30 recortado pela área e posto na grade do projeto (Grade do projeto, no grupo Área). Sem grade, o primeiro clique cria a padrão: células de 30 m no UTM SIRGAS 2000 do fuso da área, ou na Policônica quando a área passa de um fuso.",
             "icon": "raster_layer",
-            "params": "{\"celula\"?: tamanho da célula em metros (padrão 30)}",
+            "params": "{\"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30); com grade, só o da grade é aceito}",
         },
     ),
 ]

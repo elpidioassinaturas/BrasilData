@@ -8,11 +8,13 @@
 //!
 //! A elevação (Copernicus GLO-30) é a da prova de conceito: os tiles de 1° que cobrem a área,
 //! baixados inteiros, juntados (`raster.mosaic`), recortados (`raster.process clip`) e postos
-//! na grade (`raster.project`), UTM SIRGAS 2000 do fuso da área.
+//! na grade do projeto (`raster.project`, módulo [`grade`]): por padrão, o UTM SIRGAS 2000 do
+//! fuso da área, com células de 30 m.
 
 mod catalogo;
 pub mod censo;
 pub mod datas;
+pub mod grade;
 pub mod indicadores;
 // O que fala com o RustGIS só compila no wasm: fora dele (nos testes), as importações do
 // RustGIS ficariam sem resolver no linker do Windows.

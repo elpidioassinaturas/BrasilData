@@ -24,7 +24,8 @@ licence. It runs on the desktop and in the web app. The interface is in Portugue
 A aba **BrasilData** vai de tópicos a subtópicos e camadas: cada grupo é um tópico, cada menu é
 um subtópico e os itens do menu são as camadas, com a fonte entre parênteses. Os tópicos seguem as
 categorias temáticas da ISO 19115 e do Perfil MGB da INDE, juntadas para caber nos 8 grupos que o
-RustGIS aceita. O grupo Área tem o painel para escolher a área e o comando Fontes.
+RustGIS aceita. O grupo Área tem o painel para escolher a área, a Grade do projeto e o comando
+Fontes.
 
 A área pode ser:
 
@@ -38,6 +39,23 @@ A área pode ser:
   fechar o polígono) e **Usar o desenho** faz dele a área;
 - **a seleção**: os polígonos selecionados da camada ativa, com **Área: seleção**;
 - **a vista**: sem área, os temas pedem o que está na vista do mapa.
+
+A **Grade do projeto** é o sistema de coordenadas e o tamanho das células em que os rasters chegam
+(hoje, a Elevação). No painel, escolha a célula (de 10 m a 1 km) e o sistema e clique em **Grade do
+projeto**:
+
+- **Automático:** o UTM SIRGAS 2000 do fuso da área, ou a Policônica (EPSG:5880) quando a área
+  passa de um fuso;
+- **Policônica:** a Policônica do Brasil, SIRGAS 2000 (EPSG:5880);
+- **Albers (IBGE):** a Cônica Equivalente de Albers do IBGE, SIRGAS 2000 (EPSG:10857), que preserva
+  as áreas.
+
+A grade fica no mapa como a camada **BrasilData: grade**: o retângulo da área, com o sistema e a
+célula nos atributos. Ela é salva com o projeto. Os cantos das células caem nos múltiplos da célula,
+então rasters na mesma grade têm as mesmas linhas e colunas. Uma área nova refaz a grade com as
+mesmas escolhas. Sem grade, a primeira Elevação cria a padrão: 30 m, sistema automático. Por script:
+`plugin:brasildata/grade={"celula": 90, "crs": "albers"}`; o `crs` aceita também um código EPSG em
+metros.
 
 | Tópico | Subtópicos |
 |---|---|

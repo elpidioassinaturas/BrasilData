@@ -4,13 +4,14 @@ use rustgis_plugin::{Request, Value, geojson, host, json};
 
 use crate::censo;
 use crate::datas::{self, Data};
+use crate::grade::{self, Escolha, GRADE, Grade};
 use crate::indicadores::{self, Fonte};
 use crate::malhas;
 use crate::mapbiomas;
 use crate::municipios::{self, Territorio};
 use crate::saude;
 use crate::versao;
-use crate::{AREA, PREFIXO, TEMAS, Tema, falha_passageira, pedido_de_feicoes, sistema, tema_da_camada, tiles};
+use crate::{AREA, PREFIXO, TEMAS, Tema, falha_passageira, pedido_de_feicoes, tema_da_camada, tiles};
 
 /// Os nomes das camadas dos censos, depois de [`PREFIXO`].
 const INDICADORES: &str = "Indicadores por município";
@@ -39,7 +40,8 @@ fn handle(req: Request) -> Result<Value, String> {
         "area-desenho" => area_desenho(),
         "painel" => painel(&req),
         "escolher-area" => escolher_area(&req),
-        "elevacao" => elevacao(req.f64("celula").unwrap_or(30.0)),
+        "elevacao" => elevacao(req.f64("celula")),
+        "grade" => grade_do_projeto(&req),
         "fontes" => fontes(),
         "atualizacao" => atualizacao(),
         "indicadores" => indicadores(&fontes_de(&req)?),
@@ -105,12 +107,95 @@ fn substituir(antigas: &[&str], destino: &str, veio: &Value) -> Result<(), Strin
 fn por_area(fc: Value) -> Result<Value, String> {
     let caixa = caixa_de(&fc).ok_or("a área não tem geometria")?;
     let texto = descrever(&fc);
+    // A grade acompanha a área, com as mesmas escolhas; no automático, o fuso pode mudar. Ela
+    // vem antes, para a área ficar como a camada ativa.
+    let grade = match grade_no_mapa()? {
+        Some(g) => Some(por_grade(Grade::nova(caixa, g.escolha, g.celula))?),
+        None => None,
+    };
     remover(&[AREA])?;
     host::add_layer(AREA, fc)?;
     // Escolhida pelo nome, a área pode estar longe da vista.
     host::run("layer.zoomTo", json!({"layer": AREA}))?;
-    host::notify(&format!("Área do BrasilData: {texto}"));
-    Ok(json!({"area": AREA, "bbox": caixa, "panel": {"items": {"area": {"text": texto}}}}))
+    match &grade {
+        Some(g) => host::notify(&format!("Área do BrasilData: {texto}. Grade refeita para ela: {}", g.texto())),
+        None => host::notify(&format!("Área do BrasilData: {texto}")),
+    }
+    let mut r = json!({"area": AREA, "bbox": caixa, "panel": {"items": {"area": {"text": texto}}}});
+    if let Some(g) = grade {
+        r["panel"]["items"]["grade-texto"] = json!({"text": g.texto()});
+    }
+    Ok(r)
+}
+
+/// A grade que está no mapa, se houver.
+fn grade_no_mapa() -> Result<Option<Grade>, String> {
+    if feicoes_da_camada(GRADE)?.is_none() {
+        return Ok(None);
+    }
+    Ok(Grade::ler(&host::features(GRADE, false)?))
+}
+
+/// Põe `g` no mapa, no lugar da grade anterior: só o contorno, para não cobrir o mapa.
+fn por_grade(g: Grade) -> Result<Grade, String> {
+    grade::conferir_celula(g.celula)?;
+    remover(&[GRADE])?;
+    host::add_layer(GRADE, g.camada())?;
+    host::run("layer.noFill", json!({"layer": GRADE}))?;
+    host::run("layer.outline", json!({"layer": GRADE, "color": "#6a3d9a", "width": 1.5}))?;
+    Ok(g)
+}
+
+/// O botão Grade do projeto: a grade dos rasters do BrasilData na área, com a célula e o sistema
+/// dos controles do painel, ou os `celula` e `crs` de um script.
+fn grade_do_projeto(req: &Request) -> Result<Value, String> {
+    let (c, na_area) = retangulo()?;
+    if !na_area {
+        return Err("escolha a área primeiro: a grade cobre o retângulo da área".into());
+    }
+    let posicao = |id: &str| req.panel.get(id).and_then(Value::as_u64).map(|i| i as usize);
+    let celula = match req.f64("celula") {
+        Some(m) => m,
+        None => posicao("grade-celula").and_then(|i| grade::CELULAS.get(i).copied()).unwrap_or(grade::CELULA_PADRAO),
+    };
+    let escolha = match req.params.get("crs") {
+        Some(v) => Escolha::do_parametro(v)?,
+        None => posicao("grade-sistema").and_then(|i| Escolha::DO_PAINEL.get(i).copied()).unwrap_or(Escolha::Automatico),
+    };
+    let g = por_grade(Grade::nova(c, escolha, celula))?;
+    host::notify(&format!("Grade do projeto: {}. Os rasters do BrasilData (Elevação) vão para ela", g.texto()));
+    Ok(
+        json!({"layer": GRADE, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula, "panel": {"items": {"grade-texto": {"text": g.texto()}}}}),
+    )
+}
+
+/// A grade para um raster na área de retângulo `c`: a do mapa, refeita se não cobre mais a área
+/// (a camada da área trocada à mão), ou, sem grade, a padrão (sistema automático) com
+/// `celula` ou 30 m. Um `celula` diferente do da grade é recusado: os rasters ficariam
+/// desalinhados.
+fn grade_para(c: [f64; 4], celula: Option<f64>) -> Result<Grade, String> {
+    let g = match grade_no_mapa()? {
+        Some(g) => {
+            if let Some(m) = celula
+                && (m - g.celula).abs() > 1e-9
+            {
+                return Err(format!(
+                    "a grade do projeto tem células de {}, não de {}: mude a grade (Grade do projeto) ou deixe o celula de fora",
+                    grade::texto_da_celula(g.celula),
+                    grade::texto_da_celula(m)
+                ));
+            }
+            if g.cobre(c) { g } else { por_grade(Grade::nova(c, g.escolha, g.celula))? }
+        }
+        None => {
+            let m = celula.unwrap_or(grade::CELULA_PADRAO);
+            grade::conferir_celula(m)?;
+            let g = por_grade(Grade::nova(c, Escolha::Automatico, m))?;
+            host::notify(&format!("Grade do projeto criada: {}. Para outra, use Grade do projeto no painel Área e fontes", g.texto()));
+            g
+        }
+    };
+    Ok(g)
 }
 
 /// O que a área é, pelos nomes nas feições (os do painel, ou os da malha do IBGE em
@@ -897,15 +982,16 @@ const ELEVACAO: &str = "BrasilData: Elevação (Copernicus GLO-30)";
 /// de onde vêm os tiles (os termos dela pedem que seja citada junto com a fonte).
 const CITACAO_ELEVACAO: &str = "Copernicus DEM GLO-30, produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved. Tiles do espelho da OpenTopography (opentopography.org), com apoio da National Science Foundation";
 
-/// O Copernicus GLO-30 na área, na grade do fuso, com células de `celula` metros.
-fn elevacao(celula: f64) -> Result<Value, String> {
-    if !(1.0..=10_000.0).contains(&celula) {
-        return Err("celula é um tamanho em metros, de 1 a 10.000".into());
+/// O Copernicus GLO-30 na área, na grade do projeto (sem grade, a padrão, com `celula` ou 30 m).
+fn elevacao(celula: Option<f64>) -> Result<Value, String> {
+    if let Some(m) = celula {
+        grade::conferir_celula(m)?;
     }
     let (c, na_area) = retangulo()?;
     if !na_area {
         return Err("escolha a área primeiro (Área: seleção ou Área: município)".into());
     }
+    let g = grade_para(c, celula)?;
     let urls = tiles(c);
     if urls.len() > MAX_TILES {
         return Err(format!("a área pede {} tiles do Copernicus (cerca de 59 MB cada); o limite desta prova é {MAX_TILES}", urls.len()));
@@ -962,16 +1048,21 @@ fn elevacao(celula: f64) -> Result<Value, String> {
     let recorte = "BrasilData: recorte".to_string();
     host::run("raster.process", json!({"layer": mosaico, "operation": "clip", "polygon": AREA, "name": recorte}))?;
     temporarias.push(recorte.clone());
-    let crs = sistema(c);
     // O Copernicus tem ~30 m: para células maiores, a média dos pixels; senão, bilinear.
-    let resampling = if celula > 45.0 { "average" } else { "bilinear" };
-    let r = host::run("raster.project", json!({"layer": recorte, "crs": crs, "cellSize": celula, "resampling": resampling, "name": nome}))?;
+    let resampling = if g.celula > 45.0 { "average" } else { "bilinear" };
+    // O retângulo da grade como extensão e a origem padrão, [0, 0]: todo raster na grade tem as
+    // mesmas linhas e colunas.
+    let r = host::run(
+        "raster.project",
+        json!({"layer": recorte, "crs": g.epsg, "cellSize": g.celula, "extent": GRADE, "resampling": resampling, "name": nome}),
+    )?;
     let t: Vec<&str> = temporarias.iter().map(String::as_str).collect();
     remover(&t)?;
-    host::notify(&format!("{nome}: EPSG:{crs}, células de {celula} m ({resampling})"));
-    Ok(
-        json!({"layer": nome, "crs": format!("EPSG:{crs}"), "cellSize": celula, "tiles": urls.len(), "width": r["width"], "height": r["height"]}),
-    )
+    host::notify(&format!("{nome}: na grade do projeto, {} ({resampling})", g.texto()));
+    Ok(json!({
+        "layer": nome, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula, "tiles": urls.len(),
+        "width": r["width"], "height": r["height"], "corner": r["corner"],
+    }))
 }
 
 /// O texto do painel sobre a área do mapa.
@@ -1005,6 +1096,21 @@ fn painel(_req: &Request) -> Result<Value, String> {
         "citacao": {"text": citacoes()?.1},
         "versao": {"text": format!("BrasilData {}. O botão compara com a última versão publicada.", versao::ESTA)},
     }}});
+    // A grade: o texto, os nomes das posições dos controles e, havendo grade, os controles nela.
+    let g = grade_no_mapa()?;
+    r["panel"]["items"]["grade-texto"] = json!({"text": g.map_or_else(sem_grade, |g| g.texto())});
+    let celulas: Vec<String> = grade::CELULAS.iter().map(|m| grade::texto_da_celula(*m)).collect();
+    let sistemas: Vec<String> = Escolha::DO_PAINEL.iter().map(|e| e.rotulo()).collect();
+    r["panel"]["items"]["grade-celula"] = json!({"labels": celulas});
+    r["panel"]["items"]["grade-sistema"] = json!({"labels": sistemas});
+    if let Some(g) = g {
+        if let Some(i) = g.no_controle_da_celula() {
+            r["panel"]["values"]["grade-celula"] = json!(i);
+        }
+        if let Some(i) = g.no_controle_do_sistema() {
+            r["panel"]["values"]["grade-sistema"] = json!(i);
+        }
+    }
     // A busca do painel só procura nos nós que recebeu: vão as árvores inteiras, fechadas até o
     // usuário abrir um ramo.
     for (id, regioes) in ARVORES {
@@ -1022,6 +1128,14 @@ fn painel(_req: &Request) -> Result<Value, String> {
         itens.extend(controles.clone());
     }
     Ok(r)
+}
+
+/// O texto do painel sem grade no mapa.
+fn sem_grade() -> String {
+    format!(
+        "Nenhuma ainda: escolha a célula e o sistema abaixo e clique em Grade do projeto. Sem isso, a primeira Elevação cria a padrão ({}, sistema automático)",
+        grade::texto_da_celula(grade::CELULA_PADRAO)
+    )
 }
 
 /// Um nó escolhido numa árvore do painel vira a área: um estado, uma mesorregião, uma microrregião
