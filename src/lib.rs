@@ -252,6 +252,16 @@ pub fn paginas(n: u64, tamanho: u32) -> Vec<Option<(u64, u64)>> {
     (0..n.div_ceil(t)).map(|i| Some((i * t, t))).collect()
 }
 
+/// Quantos downloads os apps do RustGIS esperam de uma vez (`MAX_URL_REQUESTS`, 0.5.0): passando
+/// disso, o `layer.addUrl` recusa o pedido.
+pub const FILA_DO_APP: usize = 16;
+
+/// Se o erro `e` de um `layer.addUrl` é a fila de downloads do app cheia, e não uma falha: o
+/// pedido pode ser feito de novo quando os que esperam chegarem.
+pub fn fila_cheia(e: &str) -> bool {
+    e.contains("downloads are already waiting")
+}
+
 /// O código EPSG do UTM SIRGAS 2000 sul do fuso de `lon` (fusos 18 a 25, os do Brasil), ou o
 /// Albers do IBGE (SIRGAS 2000, EPSG:10857) quando a área passa de um fuso. A Policônica
 /// (EPSG:5880) seria a outra escolha do IBGE, mas o `raster.project` do RustGIS 0.5.0 não a tem
@@ -284,6 +294,12 @@ pub fn tiles(c: [f64; 4]) -> Vec<(String, String)> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_fila_cheia_do_app_nao_e_falha() {
+        assert!(fila_cheia("https://x: 16 downloads are already waiting; try again when they have landed"));
+        assert!(!fila_cheia("https://x: 404 Not Found"));
+    }
 
     #[test]
     fn teresina_cai_no_fuso_23_e_em_dois_tiles() {

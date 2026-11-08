@@ -884,20 +884,12 @@ fn tema_proprio_de(t: &Tema) -> Result<Value, String> {
     let bruto = format!("{nome} (sem recorte)");
     let destino = if na_area { &bruto } else { &nome };
     let parte = format!("{nome} (parte ");
-    // App web: o que um clique anterior baixou.
-    let ha = nomes()?;
-    let partes: Vec<String> = ha.iter().filter(|n| n.starts_with(&parte)).cloned().collect();
-    if let Some(primeira) = partes.first() {
-        let de = primeira.rsplit(" de ").next().and_then(|s| s.trim_end_matches(')').parse::<usize>().ok()).unwrap_or(partes.len());
-        if partes.len() < de {
-            host::notify(&format!("{nome}: {} de {de} partes no mapa; clique de novo quando todas tiverem chegado", partes.len()));
-            return Ok(json!({"downloading": nome, "parts": partes.len(), "of": de}));
-        }
-        remover(&[&nome, &bruto])?;
-        let lidas = juntar(&partes, destino)?;
-        return concluir(t, lidas, area, na_area);
-    }
-    if na_area && let Some(n) = feicoes_da_camada(&bruto)? {
+    let ja_ha_partes = nomes()?.iter().any(|n| n.starts_with(&parte));
+    // App web: a camada de uma página só, baixada num clique anterior, que este recorta.
+    if na_area
+        && !ja_ha_partes
+        && let Some(n) = feicoes_da_camada(&bruto)?
+    {
         remover(&[&nome])?;
         return concluir(t, n, area, na_area);
     }
@@ -953,10 +945,24 @@ fn tema_proprio_de(t: &Tema) -> Result<Value, String> {
     let n = pedidos.len();
     let nomes_das_partes: Vec<String> =
         if n == 1 { vec![destino.clone()] } else { (1..=n).map(|i| format!("{nome} (parte {i} de {n})")).collect() };
+    // Nos apps, as partes que já chegaram (de um clique anterior, ou da volta do RustGIS quando
+    // um download chega) ficam; só as que faltam são pedidas.
+    let ha = if n > 1 { nomes()? } else { Vec::new() };
+    let faltam: Vec<usize> = (0..n).filter(|&i| !ha.contains(&nomes_das_partes[i])).collect();
     let mut baixando = 0;
+    let mut cheio = false;
     let mut veio = Value::Null;
-    for (url, p) in pedidos.iter().zip(&nomes_das_partes) {
-        let r = host::run("layer.addUrl", json!({"url": url, "name": p, "zoom": false}))?;
+    for &i in &faltam {
+        let r = match host::run("layer.addUrl", json!({"url": pedidos[i], "name": nomes_das_partes[i], "zoom": false})) {
+            Ok(r) => r,
+            // O app espera no máximo 16 downloads de uma vez: as outras partes ficam para a volta
+            // seguinte, quando estas tiverem chegado.
+            Err(e) if crate::fila_cheia(&e) => {
+                cheio = true;
+                break;
+            }
+            Err(e) => return Err(e),
+        };
         if r.get("pending").and_then(Value::as_bool) == Some(true) {
             baixando += 1;
         } else if n == 1 {
@@ -965,7 +971,17 @@ fn tema_proprio_de(t: &Tema) -> Result<Value, String> {
     }
     // Um download pendente ainda não está no mapa (veja `tema`).
     substituir(&[&nome, &bruto], destino, &veio)?;
-    if baixando > 0 {
+    if cheio && baixando == 0 && n == 1 {
+        return Err(format!("{nome}: o RustGIS já espera {} downloads; clique de novo quando eles chegarem", crate::FILA_DO_APP));
+    }
+    if baixando > 0 || cheio {
+        let chegaram = n - faltam.len();
+        if n > 1 && (chegaram > 0 || cheio) {
+            host::notify(&format!(
+                "{nome}: {chegaram} de {n} partes no mapa, {baixando} baixando; as outras vêm quando estas chegarem (se nada mudar, clique de novo neste botão)"
+            ));
+            return Ok(json!({"downloading": nome, "features": total, "parts": n, "landed": chegaram}));
+        }
         let partes = if n == 1 { String::new() } else { format!(" em {n} partes") };
         let depois = match (n > 1, na_area) {
             (true, true) => "juntá-las e recortá-las pela área",
