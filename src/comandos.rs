@@ -76,7 +76,16 @@ fn devolver_estilos() {
     }
 }
 
+/// Os comandos que não recortam nada pela área: a área, o painel, a grade e os textos.
+const SEM_RECORTE: &[&str] =
+    &["painel", "escolher-area", "area-municipio", "area-selecao", "area-desenho", "grade", "fontes", "atualizacao", "sobre"];
+
 fn executar(req: Request) -> Result<Value, String> {
+    if !SEM_RECORTE.contains(&req.id.as_str())
+        && let Some(pendente) = afinar_area()?
+    {
+        return Ok(pendente);
+    }
     if let Some(t) = TEMAS.iter().find(|t| t.id == req.id) {
         return tema(t);
     }
@@ -355,6 +364,35 @@ fn area_municipio(req: &Request) -> Result<Value, String> {
         }
     };
     area_de(&m.into())
+}
+
+/// Troca o contorno dos municípios da área que estão na malha intermediária embutida pela malha
+/// máxima do IBGE ([`malhas::a_afinar`]), antes de um comando que recorta: com ela, o recorte de um
+/// raster não deixa células faltando nem sobrando na divisa. Uma vez só por área (a feição fica com
+/// `"malha": "maxima"`). Sem área, ou sem rede, segue com o que há; no app, o pedido pendente.
+fn afinar_area() -> Result<Option<Value>, String> {
+    // A camada direto, sem `host.layers` (caro com rasters no mapa): sem área, não há o que afinar.
+    let Ok(fc) = host::features(AREA, false) else {
+        return Ok(None);
+    };
+    let codigos = malhas::a_afinar(&fc);
+    if codigos.is_empty() || codigos.len() > malhas::MAX_AFINAR {
+        return Ok(None);
+    }
+    let urls: Vec<String> = codigos.iter().map(|c| malhas::url_maxima(c)).collect();
+    let respostas = match buscar_varios(&urls) {
+        Ok(Ok(r)) => r,
+        Ok(Err(p)) => return Ok(Some(p)),
+        Err(e) => {
+            host::log(&format!("área: a malha máxima do IBGE não veio ({e}); o recorte segue com a intermediária"));
+            return Ok(None);
+        }
+    };
+    let novo = malhas::com_maximas(&fc, &codigos.into_iter().zip(respostas).collect::<Vec<_>>());
+    remover(&[AREA])?;
+    host::add_layer(AREA, novo)?;
+    host::log("área: contorno trocado pela malha máxima do IBGE");
+    Ok(None)
 }
 
 /// O limite de `t`, que vem embutido no plugin, como área: uma feição por malha (uma grande região
@@ -1560,6 +1598,7 @@ fn dist_na_grade(
                 host::run("style.importQgis", json!({"layer": nome, "text": paleta.qml()}))?;
                 // Sem perturbação: transparente.
                 host::run("raster.mask", json!({"layer": nome, "values": [0]}))?;
+                manchas_da_situacao(nome, ate, paleta)?;
             }
             dist::Camada::Data => {
                 temporarias.push(na_rede.clone());
@@ -1593,6 +1632,24 @@ fn dist_na_grade(
     resultado.map(|()| None)
 }
 
+/// As manchas da situação `raster` como polígonos, com o nome da classe (campo `situacao`, que a
+/// legenda mostra no lugar do código) e uma borda fina da própria cor ([`dist::Paleta::estilo_das_manchas`]):
+/// sobre um mapa claro, a mancha amarelo-clara sem borda quase some. O raster, que está na grade e
+/// serve à análise, fica no mapa, escondido.
+fn manchas_da_situacao(raster: &str, ate: Data, paleta: dist::Paleta) -> Result<(), String> {
+    let manchas = dist::nome_das_manchas(ate);
+    remover(&[&manchas])?;
+    // As regiões diferentes de 0 (sem perturbação) e do sem dado, com o código em `VALUE`.
+    ferramenta("geolibre:raster_to_vector_polygons", json!({"input": raster}), &manchas)?;
+    host::run("edit.addField", json!({"layer": manchas, "name": "situacao", "type": "text"}))?;
+    host::run("edit.calculateField", json!({"layer": manchas, "field": "situacao", "expression": dist::expressao_dos_nomes()}))?;
+    let _ = host::run("style.remove", json!({"name": paleta.nome_do_estilo()}));
+    host::run("style.add", json!({"text": paleta.estilo_das_manchas()}))?;
+    host::run("style.apply", json!({"layer": manchas, "name": paleta.nome_do_estilo()}))?;
+    host::run("layer.visibility", json!({"layer": raster, "visible": false}))?;
+    Ok(())
+}
+
 /// Uma camada dos alertas de perturbação da vegetação (OPERA DIST-S1) na área: a do produto mais
 /// recente de cada tile, que acumula os alertas desde o começo do monitoramento; por script, até
 /// um dia.
@@ -1613,7 +1670,7 @@ fn perturbacao(req: &Request, camada: dist::Camada) -> Result<Value, String> {
         return Err("nenhum tile do DIST-S1".into());
     };
     let nome = camada.nome(mais_novo);
-    remover(&[&nome])?;
+    remover(&[&nome, &dist::nome_das_manchas(mais_novo)])?;
     if let Some(pendente) = dist_na_grade(&produtos, camada, &g, c, &nome, mais_novo, paleta)? {
         return Ok(pendente);
     }

@@ -39,8 +39,12 @@ A área de trabalho pode ser:
   (`malhas.bin`, da API de malhas do IBGE), e a escolha funciona com o site do IBGE fora do ar ou
   sem internet. Meso e microrregiões são as da divisão do IBGE de 1989. Uma grande região é o
   conjunto dos seus estados; o Brasil é o contorno do país do IBGE, mais simples (cerca de 4.000
-  vértices), porque os 27 estados detalhados não cabem numa chamada de plugin. As fronteiras são
-  generalizadas: para o contorno exato, traga a camada de **Limites** e use a seleção. Por script:
+  vértices), porque os 27 estados detalhados não cabem numa chamada de plugin. Os municípios vêm
+  embutidos na malha intermediária do IBGE, mais leve; no primeiro tema ou raster pedido para um
+  município, o plugin busca a malha máxima dele na API do IBGE (Viçosa: 455 vértices, contra 70) e
+  troca o contorno da área, para o recorte não deixar células faltando nem sobrando na divisa.
+  Sem rede, segue com a intermediária. Para o contorno exato de uma grande região ou do Brasil,
+  traga a camada de **Limites** e use a seleção. Por script:
   `plugin:brasildata/escolher-area={"no": "reg:2"}` (`br`, `reg:1` a `reg:5`, `uf:PI`,
   `meso:2202`, `micro:22003`, `mun:2211001`);
 - **um desenho**: **Área: desenho** liga a ferramenta (clique nos cantos e dê um duplo clique para
@@ -110,8 +114,12 @@ alerta, que as passagens seguintes confirmam ou encerram. São quatro camadas:
   duas classes, ΔE, é 25,6 na visão normal, 17,8 na deuteranopia, 21,5 na protanopia e 9,5 na
   tritanopia). A paleta oficial da OPERA, feita para fundo preto, vem por script:
   `plugin:brasildata/dist-situacao={"paleta": "oficial"}` (nela, a primeira detecção fica
-  translúcida, e o 4 e o 7 quase se confundem na protanopia, ΔE 5,9). A legenda do mapa mostra
-  os códigos: o RustGIS 0.5.0 ainda não dá nomes às classes de um raster. Uma legenda com os
+  translúcida, e o 4 e o 7 quase se confundem na protanopia, ΔE 5,9). As manchas vêm também
+  como polígonos (**Perturbação da vegetação, manchas**), com a cor da classe, uma borda fina da
+  própria cor mais escura, que deixa as manchas claras legíveis sobre um mapa claro, e o nome da
+  classe na legenda ("6 · Confirmada, alta confiança"). O raster, na grade, fica no projeto,
+  escondido; a legenda dele mostra só os códigos, porque o RustGIS 0.5.0 ainda não dá nomes às
+  classes de um raster. Uma legenda com os
   nomes sai de `scripts/legenda_dist.py <saída> [brasildata|oficial]` (PNG e SVG);
 - **data**: quantos dias antes do produto mais recente a perturbação foi vista pela primeira vez;
 - **confiança**, que cresce a cada passagem que confirma o alerta (escala fixa de 2,5 a 100);

@@ -196,6 +196,58 @@ impl Paleta {
     }
 }
 
+impl Paleta {
+    /// O nome do estilo das manchas no projeto.
+    pub fn nome_do_estilo(self) -> &'static str {
+        match self {
+            Paleta::BrasilData => "BrasilData: manchas do DIST-S1",
+            Paleta::Oficial => "BrasilData: manchas do DIST-S1 (OPERA)",
+        }
+    }
+
+    /// O estilo das manchas (polígonos, campo `situacao`), no formato do `style.add`: a cor da
+    /// classe e uma borda fina da própria cor mais escura (× 0,62). A borda deixa as manchas
+    /// claras legíveis sobre um mapa claro; uma borda de uma cor só apagava as manchas pequenas de
+    /// laranja e vermelho.
+    pub fn estilo_das_manchas(self) -> String {
+        let rgba = |h: &str, f: f64, a: u8| {
+            let c = |i: usize| (f64::from(u8::from_str_radix(&h[i..i + 2], 16).unwrap_or(0)) * f).round() as u8;
+            json!([c(1), c(3), c(5), a])
+        };
+        let classes: Vec<Value> = self
+            .cores()
+            .iter()
+            .map(|&(v, cor, alfa)| {
+                json!([nome_da_classe(v), {"fill": rgba(cor, 1.0, alfa), "stroke": rgba(cor, 0.62, 255), "stroke_width": 0.5,
+                    "size": 0.0, "marker": "Circle"}])
+            })
+            .collect();
+        let nada = json!({"fill": [0, 0, 0, 0], "stroke": [0, 0, 0, 0], "stroke_width": 0.0, "size": 0.0, "marker": "Circle"});
+        json!([{"name": self.nome_do_estilo(), "geometry": "Polygon",
+            "renderer": {"Unique": {"field": "situacao", "classes": classes, "other": nada, "ramp": "Harbour"}},
+            "labels": {"enabled": false, "field": "situacao", "size": 7.5, "color": [59, 50, 38, 255], "halo": true, "bold": false,
+                "min_scale": null, "max_scale": null, "closest": null, "farthest": null, "placement": "Center"},
+            "transparency": 0.0}])
+        .to_string()
+    }
+}
+
+/// O nome de uma classe na legenda: o código primeiro, para a legenda sair na ordem dos códigos.
+pub fn nome_da_classe(v: u8) -> String {
+    format!("{v} · {}", ROTULOS[usize::from(v.clamp(1, 8)) - 1])
+}
+
+/// A expressão do `edit.calculateField` que dá ao campo `situacao` o nome da classe de `VALUE`.
+pub fn expressao_dos_nomes() -> String {
+    let casos: String = (1..=8u8).map(|v| format!(" WHEN VALUE = {v} THEN '{}'", nome_da_classe(v))).collect();
+    format!("CASE{casos} ELSE '' END")
+}
+
+/// O nome da camada das manchas, ao lado do raster da situação.
+pub fn nome_das_manchas(ate: Data) -> String {
+    format!("{}Perturbação da vegetação, manchas (OPERA DIST-S1, até {})", crate::PREFIXO, ate.texto())
+}
+
 /// O nome de cada código, de 1 a 8.
 const ROTULOS: [&str; 8] = [
     "Primeira detecção, baixa confiança",
@@ -367,5 +419,16 @@ mod tests {
         assert_eq!(Paleta::ler(None), Ok(Paleta::BrasilData));
         assert_eq!(Paleta::ler(Some("oficial")), Ok(Paleta::Oficial));
         assert!(Paleta::ler(Some("arco-íris")).is_err());
+        assert_eq!(nome_da_classe(6), "6 · Confirmada, alta confiança");
+        let e = expressao_dos_nomes();
+        assert!(e.starts_with("CASE WHEN VALUE = 1 THEN '1 · Primeira detecção, baixa confiança'") && e.ends_with(" ELSE '' END"), "{e}");
+        let estilo: Value = serde_json::from_str(&Paleta::BrasilData.estilo_das_manchas()).unwrap();
+        let classes = &estilo[0]["renderer"]["Unique"]["classes"];
+        assert_eq!(classes.as_array().map(Vec::len), Some(8));
+        assert_eq!(classes[5][0], "6 · Confirmada, alta confiança");
+        assert_eq!(classes[5][1]["fill"], json!([179, 18, 29, 255]));
+        assert_eq!(classes[5][1]["stroke"], json!([111, 11, 18, 255]), "a borda é a cor × 0,62");
+        assert_eq!(Paleta::Oficial.estilo_das_manchas().matches("\"stroke_width\":0.5").count(), 8);
+        assert!(eh_do_dist(&nome_das_manchas(d)));
     }
 }
