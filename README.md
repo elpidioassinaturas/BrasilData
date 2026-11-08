@@ -97,11 +97,22 @@ da vegetação que o JPL tira do mesmo radar: cada passagem do Sentinel-1 é com
 do lugar, e onde o sinal muda além do normal (desmate, queimada, tempestade, colheita) nasce um
 alerta, que as passagens seguintes confirmam ou encerram. São quatro camadas:
 
-- **situação**, com as cores oficiais da OPERA: 1 a 3 de baixa confiança (primeira detecção,
-  provisória, confirmada), 4 a 6 de alta confiança, 7 e 8 encerrada (a vegetação voltou ao
-  normal). A primeira detecção, ainda não confirmada, fica translúcida: num tile de Viçosa (MG) em
-  28/02/2026, ela cobria 12% da área, contra 0,35% de alertas confirmados. A legenda mostra os
-  códigos: o RustGIS 0.5.0 ainda não dá nomes às classes de um raster;
+- **situação**: a cor diz a etapa e, mais escura, a confiança alta.
+
+  | | Primeira detecção | Provisória (2 passagens) | Confirmada (3 ou mais) | Encerrada (voltou ao normal) |
+  |---|---|---|---|---|
+  | Alta confiança | 4, amarelo | 5, laranja | 6, vermelho-escuro | 8, roxo |
+  | Baixa confiança | 1, amarelo-claro | 2, pêssego | 3, salmão | 7, lilás |
+
+  A primeira detecção, ainda não confirmada, é a mais comum (num tile de Viçosa, MG, em
+  28/02/2026, 12% da área, contra 0,35% de alertas confirmados) e fica clara, sem cobrir o resto.
+  As cores foram escolhidas para continuar distintas com daltonismo (a menor distância de cor entre
+  duas classes, ΔE, é 25,6 na visão normal, 17,8 na deuteranopia, 21,5 na protanopia e 9,5 na
+  tritanopia). A paleta oficial da OPERA, feita para fundo preto, vem por script:
+  `plugin:brasildata/dist-situacao={"paleta": "oficial"}` (nela, a primeira detecção fica
+  translúcida, e o 4 e o 7 quase se confundem na protanopia, ΔE 5,9). A legenda do mapa mostra
+  os códigos: o RustGIS 0.5.0 ainda não dá nomes às classes de um raster. Uma legenda com os
+  nomes sai de `scripts/legenda_dist.py <saída> [brasildata|oficial]` (PNG e SVG);
 - **data**: quantos dias antes do produto mais recente a perturbação foi vista pela primeira vez;
 - **confiança**, que cresce a cada passagem que confirma o alerta (escala fixa de 2,5 a 100);
 - **intensidade**: o maior desvio do sinal em relação ao histórico (escala fixa de 2,5 a 12).

@@ -10,8 +10,8 @@
 //!   preciso juntar passagens, como no radar.
 //! - **Login:** os arquivos pedem o token Earthdata Login, que o RustGIS guarda e manda, como no
 //!   radar.
-//! - **Os códigos:** os da OPERA (`opera-adt/dist-s1`, `constants.py`), com as cores oficiais
-//!   ([`QML_DA_SITUACAO`]).
+//! - **Os códigos:** os da OPERA (`opera-adt/dist-s1`, `constants.py`), na paleta do BrasilData
+//!   ou na oficial ([`Paleta`]).
 
 use std::collections::HashMap;
 
@@ -115,26 +115,98 @@ impl Camada {
     }
 }
 
-/// O estilo da situação, como estilo do QGIS (`style.importQgis`): as cores oficiais da OPERA. A
-/// paleta oficial foi feita para fundo preto; sobre um mapa claro, a primeira detecção (1 e 4),
-/// ainda não confirmada e a mais comum (12% de um tile de Viçosa em 28/02/2026, contra 0,35% de
-/// confirmadas), cobria tudo: ela fica translúcida. O 0 (sem perturbação) sai pela máscara
-/// (`raster.mask`), porque o RustGIS 0.5.0 não esconde um valor de alfa 0. Ele também não lê os
-/// rótulos (`label`): a legenda mostra os códigos, que o aviso explica.
-pub const QML_DA_SITUACAO: &str = r##"<qgis><pipe><rasterrenderer type="paletted" band="1" opacity="1"><colorPalette>
-<paletteEntry value="0" color="#121212" alpha="0" label="Sem perturbação"/>
-<paletteEntry value="1" color="#005555" alpha="110" label="Primeira detecção, baixa confiança"/>
-<paletteEntry value="2" color="#897f4e" alpha="255" label="Provisória, baixa confiança"/>
-<paletteEntry value="3" color="#dee043" alpha="255" label="Confirmada, baixa confiança"/>
-<paletteEntry value="4" color="#008888" alpha="110" label="Primeira detecção, alta confiança"/>
-<paletteEntry value="5" color="#e48727" alpha="255" label="Provisória, alta confiança"/>
-<paletteEntry value="6" color="#e01b07" alpha="255" label="Confirmada, alta confiança"/>
-<paletteEntry value="7" color="#777777" alpha="255" label="Encerrada, baixa confiança"/>
-<paletteEntry value="8" color="#dddddd" alpha="255" label="Encerrada, alta confiança"/>
-</colorPalette></rasterrenderer></pipe></qgis>"##;
+/// A paleta da situação.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Paleta {
+    /// A do BrasilData (padrão): o matiz diz a etapa (amarelo, laranja, vermelho, roxo) e, em
+    /// cada etapa, a confiança alta é a cor mais escura.
+    BrasilData,
+    /// A oficial da OPERA (`opera-adt/dist-s1`, `constants.py`, `DIST_STATUS_CMAP`).
+    Oficial,
+}
 
-/// O que os códigos da situação querem dizer, para o aviso.
-pub const CODIGOS: &str = "1 a 3: baixa confiança (primeira detecção, translúcida; provisória; confirmada); 4 a 6: alta confiança (idem); 7 e 8: encerrada (a vegetação voltou ao normal)";
+impl Paleta {
+    /// A paleta pedida (`"brasildata"`, o padrão, ou `"oficial"`).
+    pub fn ler(texto: Option<&str>) -> Result<Paleta, String> {
+        match texto.map(str::trim) {
+            None | Some("") | Some("brasildata") => Ok(Paleta::BrasilData),
+            Some("oficial") => Ok(Paleta::Oficial),
+            Some(t) => Err(format!("paleta '{t}': use \"brasildata\" (o padrão) ou \"oficial\" (a da OPERA)")),
+        }
+    }
+
+    /// As cores e o alfa dos códigos 1 a 8.
+    ///
+    /// - **BrasilData:** medida contra o daltonismo (Machado et al., 2009): a menor distância de
+    ///   cor entre duas classes é ΔE 25,6 na visão normal, 17,8 na deuteranopia, 21,5 na
+    ///   protanopia e 9,5 na tritanopia (a oficial: 21,0; 11,9; 5,9, com o 4 e o 7 quase iguais;
+    ///   11,3). A primeira detecção já é clara: não precisa de transparência.
+    /// - **Oficial:** feita para fundo preto. Sobre um mapa claro, a primeira detecção (1 e 4), a
+    ///   mais comum e ainda não confirmada (12% de um tile de Viçosa em 28/02/2026, contra 0,35%
+    ///   de confirmadas), cobria tudo: ela fica translúcida.
+    pub fn cores(self) -> [(u8, &'static str, u8); 8] {
+        match self {
+            Paleta::BrasilData => [
+                (1, "#fbe6a2", 255),
+                (2, "#f0a06e", 255),
+                (3, "#ee8a8a", 255),
+                (4, "#f6d256", 255),
+                (5, "#e8711f", 255),
+                (6, "#b3121d", 255),
+                (7, "#d3c3e6", 255),
+                (8, "#7a55a8", 255),
+            ],
+            Paleta::Oficial => [
+                (1, "#005555", 110),
+                (2, "#897f4e", 255),
+                (3, "#dee043", 255),
+                (4, "#008888", 110),
+                (5, "#e48727", 255),
+                (6, "#e01b07", 255),
+                (7, "#777777", 255),
+                (8, "#dddddd", 255),
+            ],
+        }
+    }
+
+    /// O estilo da situação, como estilo do QGIS (`style.importQgis`, renderizador "paletted").
+    /// O 0 (sem perturbação) sai pela máscara (`raster.mask`), porque o RustGIS 0.5.0 não esconde
+    /// um valor de alfa 0; ele também não lê os rótulos (`label`): a legenda mostra os códigos,
+    /// que o aviso explica.
+    pub fn qml(self) -> String {
+        let mut q = String::from(r#"<qgis><pipe><rasterrenderer type="paletted" band="1" opacity="1"><colorPalette>"#);
+        q.push_str(r##"<paletteEntry value="0" color="#121212" alpha="0" label="Sem perturbação"/>"##);
+        for (v, cor, alfa) in self.cores() {
+            q.push_str(&format!(r#"<paletteEntry value="{v}" color="{cor}" alpha="{alfa}" label="{}"/>"#, ROTULOS[usize::from(v) - 1]));
+        }
+        q.push_str("</colorPalette></rasterrenderer></pipe></qgis>");
+        q
+    }
+
+    /// O que os códigos querem dizer, com as cores, para o aviso.
+    pub fn codigos(self) -> &'static str {
+        match self {
+            Paleta::BrasilData => {
+                "a cor diz a etapa e, mais escura, a confiança alta: amarelo, primeira detecção (1 baixa, 4 alta); laranja, provisória (2, 5); vermelho, confirmada (3, 6); roxo, encerrada, a vegetação voltou ao normal (7, 8)"
+            }
+            Paleta::Oficial => {
+                "paleta oficial da OPERA. 1 a 3: baixa confiança (primeira detecção, translúcida; provisória; confirmada); 4 a 6: alta confiança (idem); 7 e 8: encerrada (a vegetação voltou ao normal)"
+            }
+        }
+    }
+}
+
+/// O nome de cada código, de 1 a 8.
+const ROTULOS: [&str; 8] = [
+    "Primeira detecção, baixa confiança",
+    "Provisória, baixa confiança",
+    "Confirmada, baixa confiança",
+    "Primeira detecção, alta confiança",
+    "Provisória, alta confiança",
+    "Confirmada, alta confiança",
+    "Encerrada, baixa confiança",
+    "Encerrada, alta confiança",
+];
 
 /// Um produto: um tile MGRS numa data.
 #[derive(Clone, Debug, PartialEq)]
@@ -285,6 +357,15 @@ mod tests {
             assert!(eh_do_dist(&c.nome(d)), "{c:?}");
         }
         assert!(!eh_do_dist("BrasilData: Radar VV em dB (Sentinel-1, 26/10/2026)"));
-        assert!(QML_DA_SITUACAO.matches("<paletteEntry").count() == 9);
+        for p in [Paleta::BrasilData, Paleta::Oficial] {
+            let q = p.qml();
+            assert_eq!(q.matches("<paletteEntry").count(), 9, "{p:?}");
+            assert!(q.contains(r##"value="0" color="#121212" alpha="0""##));
+        }
+        assert!(Paleta::BrasilData.qml().contains(r##"value="6" color="#b3121d" alpha="255" label="Confirmada, alta confiança""##));
+        assert!(Paleta::Oficial.qml().contains(r##"value="1" color="#005555" alpha="110""##));
+        assert_eq!(Paleta::ler(None), Ok(Paleta::BrasilData));
+        assert_eq!(Paleta::ler(Some("oficial")), Ok(Paleta::Oficial));
+        assert!(Paleta::ler(Some("arco-íris")).is_err());
     }
 }

@@ -1491,6 +1491,7 @@ fn dist_na_grade(
     c: [f64; 4],
     nome: &str,
     ate: Data,
+    paleta: dist::Paleta,
 ) -> Result<Option<Value>, String> {
     // Lida uma vez: a lista de camadas custa caro ao plugin com rasters no mapa (ver o radar).
     let ha = nomes()?;
@@ -1556,7 +1557,7 @@ fn dist_na_grade(
         )?;
         match camada {
             dist::Camada::Situacao => {
-                host::run("style.importQgis", json!({"layer": nome, "text": dist::QML_DA_SITUACAO}))?;
+                host::run("style.importQgis", json!({"layer": nome, "text": paleta.qml()}))?;
                 // Sem perturbação: transparente.
                 host::run("raster.mask", json!({"layer": nome, "values": [0]}))?;
             }
@@ -1596,6 +1597,10 @@ fn dist_na_grade(
 /// recente de cada tile, que acumula os alertas desde o começo do monitoramento; por script, até
 /// um dia.
 fn perturbacao(req: &Request, camada: dist::Camada) -> Result<Value, String> {
+    let paleta = dist::Paleta::ler(req.str("paleta"))?;
+    if req.str("paleta").is_some() && camada != dist::Camada::Situacao {
+        return Err(format!("a paleta vale só para a situação; a {} tem a escala dela", camada.curto()));
+    }
     let PedidoAsf { c, celula, dia: ate } = area_do_asf(req, "o DIST-S1")?;
     let g = grade_para(c, celula)?;
     let produtos = match produtos_do_dist(c, ate)? {
@@ -1609,7 +1614,7 @@ fn perturbacao(req: &Request, camada: dist::Camada) -> Result<Value, String> {
     };
     let nome = camada.nome(mais_novo);
     remover(&[&nome])?;
-    if let Some(pendente) = dist_na_grade(&produtos, camada, &g, c, &nome, mais_novo)? {
+    if let Some(pendente) = dist_na_grade(&produtos, camada, &g, c, &nome, mais_novo, paleta)? {
         return Ok(pendente);
     }
     let datas = if mais_velho == mais_novo {
@@ -1617,7 +1622,7 @@ fn perturbacao(req: &Request, camada: dist::Camada) -> Result<Value, String> {
     } else {
         format!("de {} a {}", mais_velho.texto(), mais_novo.texto())
     };
-    let codigos = if camada == dist::Camada::Situacao { format!(". Códigos: {}", dist::CODIGOS) } else { String::new() };
+    let codigos = if camada == dist::Camada::Situacao { format!(". Códigos: {}", paleta.codigos()) } else { String::new() };
     host::notify(&format!(
         "{}: {} tiles {datas}, na grade do projeto, {}{codigos}",
         nome.trim_start_matches(PREFIXO),
