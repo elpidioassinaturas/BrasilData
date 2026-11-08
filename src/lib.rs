@@ -23,6 +23,7 @@ pub mod indicadores;
 #[cfg(target_arch = "wasm32")]
 mod comandos;
 pub mod gedi;
+pub mod layout;
 pub mod malhas;
 pub mod mapbiomas;
 pub mod municipios;

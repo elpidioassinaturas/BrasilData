@@ -800,6 +800,13 @@
       "params": "{\"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30); com grade, só o da grade é aceito}"
     },
     {
+      "id": "layout",
+      "label": "Layout",
+      "help": "Uma folha pronta para exportar, com o dado principal do BrasilData no mapa (a camada visível mais acima): o nome da área no título, o que é o dado no subtítulo, a barra de cores com a unidade ou a legenda das classes, as fontes, a projeção da grade do projeto, a grade em metros e a localização. O mapa passa para a projeção da grade, a área fica só com o contorno e a grade sai da vista. Um novo clique refaz a folha.",
+      "icon": "new_layout",
+      "params": "{\"perfil\"?: a4 (padrão), a3, a2, a4-portrait, a4-landscape... ou figure-1col, figure-2col, thesis-full, \"estilo\"?: classic (padrão), banner, panel, editorial, modular ou poster}"
+    },
+    {
       "id": "fontes",
       "label": "Fontes",
       "help": "A fonte e a licença de cada camada do BrasilData que está no mapa, para a citação, na tabela BrasilData: fontes (salva com o projeto).",
@@ -909,6 +916,7 @@
           "area-selecao",
           "area-desenho",
           "grade",
+          "layout",
           "fontes",
           "atualizacao",
           "sobre"

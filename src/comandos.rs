@@ -9,6 +9,7 @@ use crate::estilo;
 use crate::gedi;
 use crate::grade::{self, Escolha, GRADE, Grade};
 use crate::indicadores::{self, Fonte};
+use crate::layout;
 use crate::malhas;
 use crate::mapbiomas;
 use crate::municipios::{self, Territorio};
@@ -134,6 +135,7 @@ fn executar(req: Request) -> Result<Value, String> {
         id if gedi::Variavel::do_comando(id).is_some() => {
             gedi_na_area(gedi::Variavel::do_comando(id).ok_or("comando do GEDI")?, req.f64("celula"))
         }
+        "layout" => layout_do_mapa(&req),
         "mapbiomas-cobertura" => {
             cobertura_mapbiomas(ano_do_mapbiomas(&req), req.params.get("recorte").and_then(Value::as_bool) != Some(false))
         }
@@ -2513,7 +2515,12 @@ fn gedi_na_area(v: gedi::Variavel, celula: Option<f64>) -> Result<Value, String>
         let (min, max) = v.validos();
         host::run("raster.mask", json!({"layer": saida, "min": min, "max": max}))?;
         let (a, b) = v.escala();
-        host::run("raster.symbology", json!({"layer": saida, "type": "stretch", "ramp": "YlGn"}))?;
+        let (rampa, cores) = v.rampa();
+        // A rampa já registrada (de um clique anterior) fica como está.
+        let _ = host::run("ramp.add", json!({"text": cores, "format": "gdal", "name": rampa}));
+        if host::run("raster.symbology", json!({"layer": saida, "type": "stretch", "ramp": rampa})).is_err() {
+            host::run("raster.symbology", json!({"layer": saida, "type": "stretch", "ramp": "YlGn"}))?;
+        }
         let _ = host::run("raster.stretch", json!({"layer": saida, "type": "custom", "min": a, "max": b}));
         Ok(())
     })();
@@ -2532,6 +2539,119 @@ fn gedi_na_area(v: gedi::Variavel, celula: Option<f64>) -> Result<Value, String>
         g.texto()
     ));
     Ok(json!({"layer": saida, "files": urls.len(), "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula}))
+}
+
+/// O botão Layout: uma folha pronta com o dado principal do BrasilData no mapa (a primeira camada
+/// visível com receita, [`layout::receita`]), o nome da área no título, as fontes das camadas e a
+/// projeção da grade. Na folha do RustGIS (`layout.publication`), a legenda deixa de fora a área e
+/// a grade, e a barra de cores ganha o título com a unidade.
+fn layout_do_mapa(req: &Request) -> Result<Value, String> {
+    let (c, na_area) = retangulo()?;
+    if !na_area {
+        return Err("escolha a área primeiro (painel Área de trabalho, ou Área: seleção): o layout enquadra a área".into());
+    }
+    let info = host::run("info.project", json!({}))?;
+    let visiveis: Vec<String> = info["layers"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter(|l| l["visible"].as_bool() != Some(false))
+        .filter_map(|l| l["name"].as_str())
+        .filter(|n| n.starts_with(PREFIXO) && ![AREA, GRADE, DESENHO].contains(n))
+        .map(str::to_string)
+        .collect();
+    let (principal, r) = visiveis
+        .iter()
+        .find_map(|n| layout::receita(n).map(|r| (n.clone(), r)))
+        .ok_or("nenhum dado do BrasilData visível no mapa para o layout: traga um tema, a elevação, o radar, a perturbação ou o GEDI")?;
+    let titulo = layout::titulo(&area_que_ha()?);
+    // As fontes das camadas visíveis, sem repetir, e a do limite.
+    let mut fontes: Vec<String> = Vec::new();
+    for f in citacoes()?.0 {
+        if f["layer"].as_str().is_some_and(|l| visiveis.iter().any(|v| v == l))
+            && let Some(s) = f["source"].as_str()
+            && !fontes.iter().any(|x| x == s)
+        {
+            fontes.push(s.to_string());
+        }
+    }
+    fontes.push("Limite da área: IBGE · dados trazidos e recortados pelo plugin BrasilData".into());
+    // A projeção da grade do projeto, ou a automática da área (UTM do fuso, ou o Albers do IBGE).
+    let g = grade_no_mapa()?;
+    let epsg = g.as_ref().map_or_else(|| Escolha::Automatico.epsg(c), |g| g.epsg);
+    host::run("map.projection", json!({"type": format!("EPSG:{epsg}")}))?;
+    let passo = layout::passo_da_grade(c);
+    let celula = g.as_ref().map(|g| format!("; células de {}", grade::texto_da_celula(g.celula))).unwrap_or_default();
+    let referencia = [
+        format!("Projeção: {}", grade::nome_do_sistema(epsg)),
+        format!("Grade de {}, coordenadas em metros{celula}", grade::texto_da_celula(passo)),
+    ];
+    // A área só como contorno, e a grade (um retângulo de trabalho) fora do mapa.
+    // (o `layer.noFill` não basta na 0.5.0: a cor transparente, sim)
+    host::run("layer.color", json!({"layer": AREA, "color": "#00000000"}))?;
+    host::run("layer.outline", json!({"layer": AREA, "color": "#5E5547", "width": 1.2}))?;
+    // O fim do comando devolve a cada camada o estilo do começo ([`devolver_estilos`]): o da
+    // área passa a ser este.
+    let _ = host::run("style.remove", json!({"name": estilo::guardado(AREA)}));
+    let _ = host::run("style.new", json!({"layer": AREA, "name": estilo::guardado(AREA)}));
+    if nomes()?.iter().any(|n| n == GRADE) {
+        host::run("layer.visibility", json!({"layer": [GRADE], "visible": false}))?;
+    }
+    let nome = format!("BrasilData: {}", titulo.to_lowercase());
+    let _ = host::run("layout.remove", json!({"name": nome}));
+    let texto = |k: &str, padrao: &str| req.params.get(k).and_then(Value::as_str).unwrap_or(padrao).to_string();
+    let mut p = json!({
+        "name": nome, "profile": texto("perfil", "a4"), "style": texto("estilo", "classic"), "extent": c,
+        "title": titulo, "subtitle": r.subtitulo, "sources": fontes, "reference": referencia,
+        "author": "Elaborado com RustGIS e BrasilData · {date}",
+        "headings": ["Fonte dos dados", "Referência cartográfica", "Nota"],
+        "locator": "globe", "decimal": ",",
+    });
+    if let Some(n) = r.nota {
+        p["note"] = json!(n);
+    }
+    let folha = host::run("layout.publication", p)?;
+    let elemento = |qual: &str| {
+        folha["elements"].as_array().into_iter().flatten().find(|e| e["name"].as_str() == Some(qual)).and_then(|e| e["element"].as_u64())
+    };
+    // A legenda: sem a área, a grade e o raster que a barra de cores já mostra; vazia, some.
+    // (o `exclude` recusa um nome que não está no mapa)
+    let no_mapa = nomes()?;
+    let mut fora: Vec<String> = [AREA, GRADE, DESENHO].into_iter().filter(|n| no_mapa.iter().any(|m| m == n)).map(String::from).collect();
+    if r.barra.is_some() {
+        fora.push(principal.clone());
+    }
+    if let Some(id) = elemento("Legend") {
+        let sobra = visiveis.iter().any(|v| !fora.contains(v));
+        // Um título a mais tira uma linha da caixa, que tem a altura das classes: só nas receitas
+        // com classes nomeadas (o DIST), em que ela cabe.
+        let mut u = json!({"layout": nome, "element": id, "exclude": fora, "visible": sobra});
+        if let Some(t) = r.legenda {
+            u["title"] = json!(t);
+        }
+        host::run("layout.update", u)?;
+    }
+    if let Some(id) = elemento("Colorbar") {
+        match &r.barra {
+            Some((t, marcas)) => {
+                host::run("layout.update", json!({"layout": nome, "element": id, "layer": principal, "title": t, "ticks": marcas}))?
+            }
+            None => host::run("layout.update", json!({"layout": nome, "element": id, "visible": false}))?,
+        };
+    }
+    // A barra de escala em 5 partes: números redondos (1 a 5 km), e não 1,25 e 3,75.
+    if let Some(id) = elemento("Scale Bar") {
+        let _ = host::run("layout.update", json!({"layout": nome, "element": id, "divisions": 5}));
+    }
+    if let Some(id) = elemento("Map Frame") {
+        host::run("layout.update", json!({"layout": nome, "element": id, "grid": {"type": "measured", "step": passo, "labels": true}}))?;
+    }
+    host::notify(&format!(
+        "Layout \"{nome}\": {} na área, em {}. Abra-o em Publicar para ajustar e exportar; um novo clique o refaz",
+        r.subtitulo,
+        grade::nome_do_sistema(epsg)
+    ));
+    Ok(json!({"layout": nome, "layer": principal, "crs": format!("EPSG:{epsg}")}))
 }
 
 /// Um número com uma casa decimal e vírgula.

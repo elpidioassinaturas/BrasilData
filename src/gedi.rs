@@ -110,8 +110,25 @@ impl Variavel {
     pub fn escala(self) -> (f64, f64) {
         match self {
             Variavel::Altura => (0.0, 35.0),
-            Variavel::Biomassa => (0.0, 300.0),
+            Variavel::Biomassa => (0.0, 150.0),
             Variavel::Cobertura => (0.0, 100.0),
+        }
+    }
+
+    /// A rampa de cores (valor e cor, no formato do GDAL que o `ramp.add` lê), de um bege visível
+    /// sobre o papel ao verde escuro: o amarelo-claro das rampas prontas some no papel.
+    pub fn rampa(self) -> (&'static str, &'static str) {
+        match self {
+            Variavel::Altura => (
+                "BrasilData: altura do dossel",
+                "0 239 230 200\n5 214 222 154\n10 169 204 122\n15 114 176 94\n20 62 142 72\n25 34 112 58\n35 11 74 42",
+            ),
+            Variavel::Biomassa => {
+                ("BrasilData: biomassa", "0 239 230 200\n25 207 216 160\n50 141 187 138\n75 78 154 134\n110 34 112 110\n150 15 74 85")
+            }
+            Variavel::Cobertura => {
+                ("BrasilData: cobertura do dossel", "0 241 232 207\n25 201 194 122\n50 143 159 74\n75 86 119 47\n100 44 79 28")
+            }
         }
     }
 }
