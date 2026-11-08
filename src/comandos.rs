@@ -130,7 +130,9 @@ fn executar(req: Request) -> Result<Value, String> {
         "indicadores-caged" => indicadores(&[Fonte::Caged]),
         "censo-setores" => censo_setores(),
         "saude-estabelecimentos" => estabelecimentos_de_saude(),
-        "mapbiomas-cobertura" => cobertura_mapbiomas(ano_do_mapbiomas(&req)),
+        "mapbiomas-cobertura" => {
+            cobertura_mapbiomas(ano_do_mapbiomas(&req), req.params.get("recorte").and_then(Value::as_bool) != Some(false))
+        }
         "inpe-focos-periodo" => focos_no_periodo(&req),
         other => Err(format!("o BrasilData não tem o comando '{other}'")),
     }
@@ -1188,6 +1190,8 @@ fn citacoes() -> Result<(Vec<Value>, String), String> {
             lista.push(json!({"layer": n, "source": t.fonte, "license": t.licenca, "service": t.servico, "featureType": t.camada}));
         } else if n.starts_with(&format!("{PREFIXO}Uso e cobertura ")) && n.ends_with(" (MapBiomas)") {
             lista.push(json!({"layer": n, "source": mapbiomas::CITACAO, "license": mapbiomas::LICENCA}));
+        } else if n.starts_with(&format!("{PREFIXO}Uso e cobertura ")) && n.ends_with(" (MapBiomas, recortado)") {
+            lista.push(json!({"layer": n, "source": mapbiomas::CITACAO_RECORTE, "license": mapbiomas::LICENCA_RECORTE}));
         } else if n == camada_de_saude() {
             lista.push(json!({"layer": n, "source": saude::CITACAO, "license": saude::LICENCA}));
         } else if radar::eh_do_radar(&n) {
@@ -2346,10 +2350,36 @@ fn ano_do_mapbiomas(req: &Request) -> i64 {
     req.f64("ano").map(|a| a as i64).or_else(|| req.panel.get(mapbiomas::CONTROLE).and_then(Value::as_i64)).unwrap_or(mapbiomas::ULTIMO_ANO)
 }
 
-/// O uso e a cobertura do MapBiomas em `ano`, como mapa de mosaicos com as cores da legenda.
-fn cobertura_mapbiomas(ano: i64) -> Result<Value, String> {
+/// O nome do raster de uso e cobertura de `ano` recortado pela área.
+fn camada_recortada(ano: i64) -> String {
+    format!("{PREFIXO}Uso e cobertura {ano} (MapBiomas, recortado)")
+}
+
+/// O uso e a cobertura do MapBiomas em `ano`: com uma área, um ano do espelho, `recortar` e um
+/// RustGIS que lê a janela de um COG, o raster de classes recortado pela área
+/// ([`cobertura_recortada`]); senão, o mapa de mosaicos do Brasil inteiro, com as cores da
+/// legenda, dizendo por que não veio recortado.
+fn cobertura_mapbiomas(ano: i64, recortar: bool) -> Result<Value, String> {
     if !(mapbiomas::PRIMEIRO_ANO..=mapbiomas::ULTIMO_ANO).contains(&ano) {
         return Err(format!("ano é de {} a {}", mapbiomas::PRIMEIRO_ANO, mapbiomas::ULTIMO_ANO));
+    }
+    let mut por_que = None;
+    if recortar && nomes()?.iter().any(|n| n == AREA) {
+        if !mapbiomas::no_espelho(ano) {
+            por_que = Some(format!(
+                "o recorte pela área existe de {} a {} (o espelho aberto da coleção)",
+                mapbiomas::ESPELHO_PRIMEIRO,
+                mapbiomas::ESPELHO_ULTIMO
+            ));
+        } else {
+            match cobertura_recortada(ano) {
+                Ok(Recorte::Feito(v)) => return Ok(v),
+                Ok(Recorte::SemJanela) => {
+                    por_que = Some("esta versão do RustGIS não lê só a janela da área de um COG; o recorte vem com a próxima".into())
+                }
+                Err(e) => por_que = Some(format!("o recorte pela área falhou ({e})")),
+            }
+        }
     }
     let r = host::call("host.fetch", json!({"url": mapbiomas::url_do_mapa(ano)}))?;
     if r.get("pending").and_then(Value::as_bool) == Some(true) {
@@ -2366,10 +2396,83 @@ fn cobertura_mapbiomas(ano: i64) -> Result<Value, String> {
         "map.addTiles",
         json!({"url": url, "kind": "raster", "name": nome, "attribution": "MapBiomas, Coleção 11 (CC BY 4.0)", "maxZoom": 14}),
     )?;
+    let motivo = por_que.as_deref().map(|m| format!(": {m}")).unwrap_or_default();
     host::notify(&format!(
-        "{nome}: mapa para ver, com as cores da legenda oficial (brasil.mapbiomas.org); não é recortado pela área e vale por algumas horas"
+        "{nome}: mapa para ver, com as cores da legenda oficial (brasil.mapbiomas.org); não é recortado pela área{motivo}. Vale por algumas horas"
     ));
-    Ok(json!({"tiles": nome, "year": ano}))
+    Ok(json!({"tiles": nome, "year": ano, "notClipped": por_que}))
+}
+
+/// O que [`cobertura_recortada`] fez.
+enum Recorte {
+    /// O raster na grade, ou o pedido pendente (a janela ou o limite oficial a caminho).
+    Feito(Value),
+    /// O RustGIS não leu a janela: pôs o COG inteiro como camada de mosaicos (até a 0.5.0, que
+    /// ignora o `bbox`), já tirada do mapa.
+    SemJanela,
+}
+
+/// O uso e a cobertura de `ano` (um ano do espelho) recortado pela área, na grade do projeto: a
+/// janela do retângulo da área lida do COG, recortada pelo contorno e projetada na grade com a
+/// classe mais frequente. A tabela de cores do arquivo vem junto.
+fn cobertura_recortada(ano: i64) -> Result<Recorte, String> {
+    // O contorno oficial do município, antes de recortar (o comando não passa por ele na entrada,
+    // para o mapa de mosaicos não gastar um clique).
+    if let Some(pendente) = afinar_area()? {
+        return Ok(Recorte::Feito(pendente));
+    }
+    let (c, _) = retangulo()?;
+    let nome = camada_recortada(ano);
+    let bruto = format!("{PREFIXO}MapBiomas {ano} (janela)");
+    let recorte = format!("{PREFIXO}MapBiomas {ano} (recorte)");
+    // A janela de um clique anterior serve se cobre a área (no desktop, o comando roda de novo
+    // quando ela chega).
+    let serve = nomes()?.contains(&bruto) && extensao(&bruto)?.is_some_and(|e| retangulo_cabe(c, e));
+    if !serve {
+        remover(&[&bruto])?;
+        let mut p = json!({"url": mapbiomas::url_do_cog(ano), "name": bruto, "bbox": mapbiomas::janela(c), "zoom": false});
+        if let Some(m) = mapbiomas::celula_da_janela(c) {
+            p["cellSize"] = json!(m);
+        }
+        let r = host::run("layer.addUrl", p)?;
+        if r.get("pending").and_then(Value::as_bool) == Some(true) {
+            host::notify(&format!(
+                "Uso e cobertura {ano} (MapBiomas): lendo a janela da área no COG da coleção; o raster vem quando ela chegar"
+            ));
+            return Ok(Recorte::Feito(r));
+        }
+        if r.get("inPlace").and_then(Value::as_bool) == Some(true) || r.get("window").is_none() {
+            // A 0.5.0 põe o COG inteiro como camada de mosaicos, que o `layer.remove` não vê.
+            if mosaicos_no_mapa()?.contains(&bruto) {
+                host::run("map.removeTiles", json!({"name": bruto}))?;
+            }
+            remover(&[&bruto])?;
+            return Ok(Recorte::SemJanela);
+        }
+    }
+    let g = grade_para(c, None)?;
+    remover(&[&recorte, &nome])?;
+    let feito =
+        host::run("raster.process", json!({"layer": bruto, "operation": "clip", "polygon": AREA, "name": recorte})).and_then(|_| {
+            host::run(
+                "raster.project",
+                json!({"layer": recorte, "crs": g.epsg, "cellSize": g.celula, "extent": GRADE, "resampling": "mode", "name": nome}),
+            )
+        });
+    remover(&[&bruto, &recorte])?;
+    let r = feito?;
+    // Uma área grande vem de uma pirâmide do arquivo: as células lidas são maiores que as da grade.
+    let piramide = mapbiomas::celula_da_janela(c)
+        .map(|m| format!(" A área é grande para 30 m: a janela veio da pirâmide de {} m do arquivo.", m - 1.0))
+        .unwrap_or_default();
+    host::notify(&format!(
+        "{nome}: classes do MapBiomas (Coleção 10) na grade do projeto, {}, com a classe mais frequente; as cores são as da legenda oficial.{piramide}",
+        g.texto()
+    ));
+    Ok(Recorte::Feito(json!({
+        "layer": nome, "year": ano, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula,
+        "width": r["width"], "height": r["height"],
+    })))
 }
 
 /// A autoria e o resto da seção Sobre: o resumo no aviso e o texto inteiro na resposta (a da

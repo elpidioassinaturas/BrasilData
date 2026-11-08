@@ -718,9 +718,9 @@
     {
       "id": "mapbiomas-cobertura",
       "label": "Uso e cobertura (MapBiomas)",
-      "help": "O uso e a cobertura da terra do MapBiomas (Coleção 11, 30 m), com as cores da legenda oficial: um mapa para ver, do Brasil inteiro, não recortado pela área. O ano, de 1985 a 2025, é o do controle MapBiomas: ano, no painel Área de trabalho (2025 até você mudar). Cada ano vira uma camada; o mapa vale por algumas horas, e um novo clique pede outro.",
+      "help": "O uso e a cobertura da terra do MapBiomas, com as cores da legenda oficial. O ano, de 1985 a 2025, é o do controle MapBiomas: ano, no painel Área de trabalho (2025 até você mudar). Com uma área, de 2019 a 2024 e num RustGIS depois da 0.5.0, vem o raster das classes (Coleção 10, 30 m): só a área, recortada pelo contorno e posta na grade do projeto. Nos outros casos, um mapa para ver, do Brasil inteiro (Coleção 11), que vale por algumas horas. Cada ano vira uma camada.",
       "icon": "raster_layer",
-      "params": "{\"ano\"?: de 1985 a 2025 (padrão: o do painel, ou 2025)}"
+      "params": "{\"ano\"?: de 1985 a 2025 (padrão: o do painel, ou 2025), \"recorte\"?: false para o mapa do Brasil inteiro mesmo com área}"
     },
     {
       "id": "radar-vv",
