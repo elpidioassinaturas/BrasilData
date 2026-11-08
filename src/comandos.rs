@@ -2348,6 +2348,35 @@ fn camada_de_cobertura(ano: i64) -> String {
     format!("{PREFIXO}Uso e cobertura {ano} (MapBiomas)")
 }
 
+/// Se o RustGIS lê só uma janela de um arquivo remoto (o `bbox` do `layer.addUrl`, depois da
+/// 0.5.0). A 0.5.0 ignora o `bbox`: no desktop, a leitura fica pendente e chega o arquivo inteiro
+/// (um fuso UTM do GEDI, o Brasil do MapBiomas), que nenhum passo seguinte termina de processar.
+fn le_janela_remota() -> Result<bool, String> {
+    let lista = host::run("info.commands", json!({}))?;
+    let comandos = lista.get("commands").unwrap_or(&lista);
+    Ok(comandos
+        .as_array()
+        .into_iter()
+        .flatten()
+        .find(|c| c["id"].as_str() == Some("layer.addUrl"))
+        .and_then(|c| c["params"].as_str())
+        .is_some_and(|p| p.contains("\"bbox\"")))
+}
+
+/// Uma "janela" que é o arquivo inteiro: muito maior que a `pedida` (uma camada de um clique
+/// numa versão que ignorou o `bbox`).
+fn janela_inteira(e: [f64; 4], pedida: [f64; 4]) -> bool {
+    e[2] - e[0] > 3.0 * (pedida[2] - pedida[0]) + 0.5 || e[3] - e[1] > 3.0 * (pedida[3] - pedida[1]) + 0.5
+}
+
+/// Tira do mapa a camada `nome`, também quando ela é de mosaicos (que o `layer.remove` não vê).
+fn tirar_janela(nome: &str) -> Result<(), String> {
+    if mosaicos_no_mapa()?.iter().any(|n| n == nome) {
+        host::run("map.removeTiles", json!({"name": nome}))?;
+    }
+    remover(&[nome])
+}
+
 /// Os nomes das camadas de mosaicos do mapa (o `host.layers` não as lista).
 fn mosaicos_no_mapa() -> Result<Vec<String>, String> {
     Ok(host::run("map.tiles", json!({}))?.as_array().into_iter().flatten().filter_map(|t| t["name"].as_str().map(str::to_string)).collect())
@@ -2430,6 +2459,29 @@ fn gedi_na_area(v: gedi::Variavel, celula: Option<f64>) -> Result<Value, String>
             v.titulo()
         ));
     }
+    let sem_janela = || {
+        format!(
+            "{} (GEDI L4D) precisa de um RustGIS que leia só a janela da área de um arquivo remoto (depois da 0.5.0): cada arquivo cobre um fuso UTM inteiro",
+            v.titulo()
+        )
+    };
+    if !le_janela_remota()? {
+        // A camada que uma tentativa anterior deixou: o arquivo inteiro de um fuso. Um erro
+        // desfaria a remoção (o RustGIS desfaz a chamada que falha): sai com um aviso.
+        let sufixo = format!(" {} (janela)", v.titulo());
+        let mut tiradas = Vec::new();
+        for nome in nomes()?.iter().chain(&mosaicos_no_mapa()?) {
+            if nome.starts_with(&format!("{PREFIXO}GEDI ")) && nome.ends_with(&sufixo) && !tiradas.contains(nome) {
+                tirar_janela(nome)?;
+                tiradas.push(nome.clone());
+            }
+        }
+        if tiradas.is_empty() {
+            return Err(sem_janela());
+        }
+        host::notify(&format!("{}; saiu do mapa o arquivo inteiro que uma tentativa anterior trouxe", sem_janela()));
+        return Ok(json!({"removed": tiradas}));
+    }
     let resposta = match buscar_varios(&[gedi::url_busca(c)])? {
         Ok(mut r) => r.remove(0),
         Err(p) => return Ok(p),
@@ -2445,9 +2497,19 @@ fn gedi_na_area(v: gedi::Variavel, celula: Option<f64>) -> Result<Value, String>
     let mut lendo = 0;
     for url in &urls {
         let nome = format!("{PREFIXO}GEDI {} {} (janela)", gedi::fuso(url), v.titulo());
-        if ha.contains(&nome) && extensao(&nome)?.is_some_and(|e| retangulo_cabe(c, e)) {
-            janelas.push(nome);
-            continue;
+        if ha.contains(&nome)
+            && let Some(e) = extensao(&nome)?
+        {
+            if janela_inteira(e, gedi::janela(c)) {
+                // Sem erro, que desfaria a remoção.
+                tirar_janela(&nome)?;
+                host::notify(&format!("{}; saiu do mapa o arquivo inteiro que uma tentativa anterior trouxe", sem_janela()));
+                return Ok(json!({"removed": [nome]}));
+            }
+            if retangulo_cabe(c, e) {
+                janelas.push(nome);
+                continue;
+            }
         }
         remover(&[&nome])?;
         let mut p = json!({"url": url, "name": nome, "bbox": gedi::janela(c), "zoom": false});
@@ -2460,16 +2522,9 @@ fn gedi_na_area(v: gedi::Variavel, celula: Option<f64>) -> Result<Value, String>
             continue;
         }
         if r.get("inPlace").and_then(Value::as_bool) == Some(true) || r.get("window").is_none() {
-            // A 0.5.0 ignora o `bbox` e põe o arquivo inteiro (um fuso a 30 m) como camada de
-            // mosaicos, que o `layer.remove` não vê.
-            if mosaicos_no_mapa()?.contains(&nome) {
-                host::run("map.removeTiles", json!({"name": nome}))?;
-            }
-            remover(&[&nome])?;
-            return Err(format!(
-                "{} (GEDI L4D) precisa de um RustGIS que leia só a janela da área de um arquivo remoto (depois da 0.5.0): cada arquivo cobre um fuso UTM inteiro",
-                v.titulo()
-            ));
+            // A 0.5.0 ignora o `bbox` e põe o arquivo inteiro (um fuso a 30 m) no mapa.
+            tirar_janela(&nome)?;
+            return Err(sem_janela());
         }
         janelas.push(nome);
     }
@@ -2683,7 +2738,12 @@ fn cobertura_recortada(ano: i64) -> Result<Recorte, String> {
     let recorte = format!("{PREFIXO}MapBiomas {ano} (recorte)");
     // A janela de um clique anterior serve se cobre a área (no desktop, o comando roda de novo
     // quando ela chega).
-    let serve = nomes()?.contains(&bruto) && extensao(&bruto)?.is_some_and(|e| retangulo_cabe(c, e));
+    let e = if nomes()?.contains(&bruto) { extensao(&bruto)? } else { None };
+    if e.is_some_and(|e| janela_inteira(e, mapbiomas::janela(c))) || !le_janela_remota()? {
+        tirar_janela(&bruto)?;
+        return Ok(Recorte::SemJanela);
+    }
+    let serve = e.is_some_and(|e| retangulo_cabe(c, e));
     if !serve {
         remover(&[&bruto])?;
         let mut p = json!({"url": mapbiomas::url_do_cog(ano), "name": bruto, "bbox": mapbiomas::janela(c), "zoom": false});
@@ -2698,11 +2758,8 @@ fn cobertura_recortada(ano: i64) -> Result<Recorte, String> {
             return Ok(Recorte::Feito(r));
         }
         if r.get("inPlace").and_then(Value::as_bool) == Some(true) || r.get("window").is_none() {
-            // A 0.5.0 põe o COG inteiro como camada de mosaicos, que o `layer.remove` não vê.
-            if mosaicos_no_mapa()?.contains(&bruto) {
-                host::run("map.removeTiles", json!({"name": bruto}))?;
-            }
-            remover(&[&bruto])?;
+            // A 0.5.0 põe o COG inteiro no mapa.
+            tirar_janela(&bruto)?;
             return Ok(Recorte::SemJanela);
         }
     }
@@ -2769,5 +2826,19 @@ mod testes_do_corte {
         assert_eq!(corte_do_servico(&r).as_deref(), Some("o servidor mandou só parte das feições do retângulo"));
         assert_eq!(corte_do_servico(&json!({"features": 10, "notices": ["other note"]})), None);
         assert_eq!(corte_do_servico(&json!({"features": 10})), None);
+    }
+}
+
+#[cfg(test)]
+mod testes_janela {
+    use super::janela_inteira;
+
+    #[test]
+    fn uma_janela_do_tamanho_de_um_fuso_e_o_arquivo_inteiro() {
+        let pedida = [-42.60, -20.94, -42.27, -20.48];
+        // A janela lida, alinhada aos blocos do arquivo: um pouco maior que a pedida.
+        assert!(!janela_inteira([-42.62, -20.96, -42.25, -20.46], pedida));
+        // O fuso 23S inteiro do GEDI L4D (de 48° a 42° O, do equador a 34° S).
+        assert!(janela_inteira([-48.0, -34.0, -42.0, 0.0], pedida));
     }
 }
