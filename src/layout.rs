@@ -87,10 +87,15 @@ pub fn receita(nome: &str) -> Option<Receita> {
         });
     }
     if crate::radar::eh_do_radar(nome) {
-        let qual = n.split(" (").next().unwrap_or(n);
+        // "Radar VV em dB (Sentinel-1, 26/10/2026)": a polarização e a data da passagem.
+        let qual = n.split(" (").next().unwrap_or(n).trim_end_matches(" em dB");
+        let quando = n.rsplit(", ").next().map(|d| d.trim_end_matches(')')).filter(|d| d.len() == 10);
+        let quando = quando.map(|d| format!(" em {d}")).unwrap_or_default();
+        // As escalas fixas do plugin: 7 dB nas polarizações (marcas de 1 dB) e 5 dB na razão.
+        let marcas = if qual.starts_with("Razão") { 6 } else { 8 };
         return Some(Receita {
-            subtitulo: format!("{qual} do radar Sentinel-1, corrigido do relevo (OPERA RTC-S1)"),
-            barra: Some((format!("{qual} (dB)"), 5)),
+            subtitulo: format!("{qual} do Sentinel-1{quando}, corrigido do relevo (OPERA RTC-S1)"),
+            barra: Some((format!("{qual} (dB)"), marcas)),
             legenda: None,
             nota: None,
         });
@@ -148,8 +153,11 @@ mod tests {
     #[test]
     fn as_outras_receitas() {
         assert_eq!(receita("BrasilData: Elevação (Copernicus GLO-30)").unwrap().barra, Some(("Altitude (m)".into(), 5)));
-        let r = receita("BrasilData: Radar VV (Sentinel-1, OPERA)").unwrap();
-        assert_eq!(r.barra, Some(("Radar VV (dB)".into(), 5)));
+        let r = receita("BrasilData: Radar VV em dB (Sentinel-1, 26/10/2026)").unwrap();
+        assert_eq!(r.subtitulo, "Radar VV do Sentinel-1 em 26/10/2026, corrigido do relevo (OPERA RTC-S1)");
+        assert_eq!(r.barra, Some(("Radar VV (dB)".into(), 8)));
+        let r = receita("BrasilData: Razão VH/VV em dB (Sentinel-1, 26/10/2026)").unwrap();
+        assert_eq!(r.barra, Some(("Razão VH/VV (dB)".into(), 6)));
         let r = receita("BrasilData: Uso e cobertura 2024 (MapBiomas, recortado)").unwrap();
         assert_eq!(r.subtitulo, "Uso e cobertura da terra em 2024 (MapBiomas, Coleção 10)");
         assert_eq!(receita(AREA), None);
