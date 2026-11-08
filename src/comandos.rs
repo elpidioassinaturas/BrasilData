@@ -6,6 +6,7 @@ use crate::censo;
 use crate::datas::{self, Data};
 use crate::dist;
 use crate::estilo;
+use crate::gedi;
 use crate::grade::{self, Escolha, GRADE, Grade};
 use crate::indicadores::{self, Fonte};
 use crate::malhas;
@@ -130,6 +131,9 @@ fn executar(req: Request) -> Result<Value, String> {
         "indicadores-caged" => indicadores(&[Fonte::Caged]),
         "censo-setores" => censo_setores(),
         "saude-estabelecimentos" => estabelecimentos_de_saude(),
+        id if gedi::Variavel::do_comando(id).is_some() => {
+            gedi_na_area(gedi::Variavel::do_comando(id).ok_or("comando do GEDI")?, req.f64("celula"))
+        }
         "mapbiomas-cobertura" => {
             cobertura_mapbiomas(ano_do_mapbiomas(&req), req.params.get("recorte").and_then(Value::as_bool) != Some(false))
         }
@@ -1196,6 +1200,8 @@ fn citacoes() -> Result<(Vec<Value>, String), String> {
             lista.push(json!({"layer": n, "source": saude::CITACAO, "license": saude::LICENCA}));
         } else if radar::eh_do_radar(&n) {
             lista.push(json!({"layer": n, "source": radar::CITACAO, "license": radar::LICENCA}));
+        } else if gedi::eh_do_gedi(&n) {
+            lista.push(json!({"layer": n, "source": gedi::CITACAO, "license": gedi::LICENCA}));
         } else if dist::eh_do_dist(&n) {
             lista.push(json!({"layer": n, "source": dist::CITACAO, "license": radar::LICENCA}));
         } else if n == ELEVACAO {
@@ -2401,6 +2407,136 @@ fn cobertura_mapbiomas(ano: i64, recortar: bool) -> Result<Value, String> {
         "{nome}: mapa para ver, com as cores da legenda oficial (brasil.mapbiomas.org); não é recortado pela área{motivo}. Vale por algumas horas"
     ));
     Ok(json!({"tiles": nome, "year": ano, "notClipped": por_que}))
+}
+
+/// A variável `v` do GEDI L4D na área, na grade do projeto: as janelas da área nos arquivos dos
+/// fusos que ela cruza, cada uma posta na grade, juntadas e recortadas pelo contorno; ou o
+/// pedido pendente (a busca no app web, ou as janelas no desktop).
+fn gedi_na_area(v: gedi::Variavel, celula: Option<f64>) -> Result<Value, String> {
+    if let Some(m) = celula {
+        grade::conferir_celula(m)?;
+    }
+    let (c, na_area) = retangulo()?;
+    if !na_area {
+        return Err("escolha a área primeiro (painel Área de trabalho, ou Área: seleção)".into());
+    }
+    if let Ok(s) = host::run("earthdata.status", json!({}))
+        && s["token"].as_bool() == Some(false)
+    {
+        return Err(format!(
+            "{} (GEDI, ORNL DAAC da NASA) pede o login Earthdata, que é grátis: crie um token em urs.earthdata.nasa.gov (Generate Token) e cole-o no RustGIS, em Início › Dados web › NASA Earthaccess › Earthdata Login",
+            v.titulo()
+        ));
+    }
+    let resposta = match buscar_varios(&[gedi::url_busca(c)])? {
+        Ok(mut r) => r.remove(0),
+        Err(p) => return Ok(p),
+    };
+    let urls = gedi::arquivos(&resposta, v);
+    if urls.is_empty() {
+        return Err(format!("o GEDI L4D não tem {} na área (a coleção cobre de 51,6° N a 51,6° S)", v.titulo().to_lowercase()));
+    }
+    // As janelas de um clique anterior servem se cobrem a área (no desktop, o comando roda de novo
+    // quando cada uma chega).
+    let ha = nomes()?;
+    let mut janelas: Vec<String> = Vec::new();
+    let mut lendo = 0;
+    for url in &urls {
+        let nome = format!("{PREFIXO}GEDI {} {} (janela)", gedi::fuso(url), v.titulo());
+        if ha.contains(&nome) && extensao(&nome)?.is_some_and(|e| retangulo_cabe(c, e)) {
+            janelas.push(nome);
+            continue;
+        }
+        remover(&[&nome])?;
+        let mut p = json!({"url": url, "name": nome, "bbox": gedi::janela(c), "zoom": false});
+        if let Some(m) = gedi::celula_da_janela(c) {
+            p["cellSize"] = json!(m);
+        }
+        let r = host::run("layer.addUrl", p)?;
+        if r.get("pending").and_then(Value::as_bool) == Some(true) {
+            lendo += 1;
+            continue;
+        }
+        if r.get("inPlace").and_then(Value::as_bool) == Some(true) || r.get("window").is_none() {
+            // A 0.5.0 ignora o `bbox` e põe o arquivo inteiro (um fuso a 30 m) como camada de
+            // mosaicos, que o `layer.remove` não vê.
+            if mosaicos_no_mapa()?.contains(&nome) {
+                host::run("map.removeTiles", json!({"name": nome}))?;
+            }
+            remover(&[&nome])?;
+            return Err(format!(
+                "{} (GEDI L4D) precisa de um RustGIS que leia só a janela da área de um arquivo remoto (depois da 0.5.0): cada arquivo cobre um fuso UTM inteiro",
+                v.titulo()
+            ));
+        }
+        janelas.push(nome);
+    }
+    if lendo > 0 {
+        host::notify(&format!("{} (GEDI L4D): lendo a área em {lendo} arquivo(s) da NASA; a camada vem quando chegarem", v.titulo()));
+        return Ok(json!({"pending": lendo, "files": urls.len()}));
+    }
+    let g = grade_para(c, celula)?;
+    let saida = v.camada();
+    let limpas: Vec<String> = (0..janelas.len()).map(|i| format!("{PREFIXO}GEDI limpo {i}")).collect();
+    let na_grade: Vec<String> = (0..janelas.len()).map(|i| format!("{PREFIXO}GEDI na grade {i}")).collect();
+    let junto = format!("{PREFIXO}GEDI junto");
+    let mut temporarias: Vec<&str> = janelas.iter().chain(&limpas).chain(&na_grade).map(String::as_str).collect();
+    temporarias.push(junto.as_str());
+    remover(&[saida])?;
+    let feito = (|| -> Result<(), String> {
+        // Até 45 m, o valor do pixel imputado (o mais próximo); acima, a média.
+        let resampling = if g.celula > 45.0 { "average" } else { "nearest" };
+        for ((j, l), n) in janelas.iter().zip(&limpas).zip(&na_grade) {
+            // Os negativos (o -9999 e as médias com ele nas pirâmides) viram sem dado antes da
+            // grade, para não entrarem nas médias: a conta de bandas só tem + - * /, então o
+            // valor sobe 1, o que ficou até 0,5 vira 0 (`remap`), e (b1 / b1) dá sem dado no 0.
+            host::run(
+                "raster.functionChain",
+                json!({"layer": j, "name": l, "steps": [
+                    {"function": "bandMath", "expression": "b1 + 1"},
+                    {"function": "remap", "ranges": [[-1e9, 0.5, 0]], "keep": true},
+                    {"function": "bandMath", "expression": v.conta()},
+                ]}),
+            )?;
+            host::run(
+                "raster.project",
+                json!({"layer": l, "crs": g.epsg, "cellSize": g.celula, "extent": GRADE, "resampling": resampling, "name": n}),
+            )?;
+        }
+        let mosaico = if na_grade.len() == 1 {
+            na_grade[0].clone()
+        } else {
+            host::run("raster.mosaic", json!({"inputs": na_grade, "name": junto}))?;
+            junto.clone()
+        };
+        host::run("raster.process", json!({"layer": mosaico, "operation": "clip", "polygon": AREA, "name": saida}))?;
+        let (min, max) = v.validos();
+        host::run("raster.mask", json!({"layer": saida, "min": min, "max": max}))?;
+        let (a, b) = v.escala();
+        host::run("raster.symbology", json!({"layer": saida, "type": "stretch", "ramp": "YlGn"}))?;
+        let _ = host::run("raster.stretch", json!({"layer": saida, "type": "custom", "min": a, "max": b}));
+        Ok(())
+    })();
+    remover(&temporarias)?;
+    feito?;
+    // A média na área, para o aviso.
+    let media = host::run("raster.info", json!({"layer": saida}))
+        .ok()
+        .and_then(|i| i["bands"][0]["mean"].as_f64())
+        .map(|m| format!("; média na área: {} {}", formatar_decimal(m), v.unidade()))
+        .unwrap_or_default();
+    let piramide = gedi::celula_da_janela(c).map(|m| format!(", lida da pirâmide de {} m do arquivo", m - 1.0)).unwrap_or_default();
+    host::notify(&format!(
+        "{saida}: em {}, de 2019 a 2023 (GEDI imputado com o Landsat), na grade do projeto, {}{piramide}{media}",
+        v.unidade(),
+        g.texto()
+    ));
+    Ok(json!({"layer": saida, "files": urls.len(), "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula}))
+}
+
+/// Um número com uma casa decimal e vírgula.
+fn formatar_decimal(x: f64) -> String {
+    format!("{x:.1}").replace('.', ",")
 }
 
 /// O que [`cobertura_recortada`] fez.

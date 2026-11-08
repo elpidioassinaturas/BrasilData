@@ -22,6 +22,7 @@ pub mod indicadores;
 // RustGIS ficariam sem resolver no linker do Windows.
 #[cfg(target_arch = "wasm32")]
 mod comandos;
+pub mod gedi;
 pub mod malhas;
 pub mod mapbiomas;
 pub mod municipios;

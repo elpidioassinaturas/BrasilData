@@ -353,6 +353,39 @@ EM_MENUS = [
     ),
     (
         "Vegetação e meio ambiente",
+        "Vegetação",
+        {
+            "id": "gedi-altura",
+            "label": "Altura do dossel (GEDI)",
+            "help": "A altura do dossel em metros: a altura relativa em que volta 98% da energia da onda do laser (rh98), perto do topo das copas. Do GEDI L4D (ORNL DAAC da NASA): os disparos do laser do GEDI de 2019 a 2023 imputados a cada pixel de 30 m com séries do Landsat. Só a área, lida dos arquivos dos fusos UTM que ela cruza, posta na grade do projeto e recortada pelo contorno. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área); áreas grandes vêm de uma pirâmide do arquivo, com células maiores.",
+            "icon": "raster_layer",
+            "params": "{\"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+        },
+    ),
+    (
+        "Vegetação e meio ambiente",
+        "Vegetação",
+        {
+            "id": "gedi-biomassa",
+            "label": "Biomassa acima do solo (GEDI)",
+            "help": "A densidade de biomassa acima do solo em Mg/ha (toneladas por hectare), do modelo do GEDI L4A. Do GEDI L4D (ORNL DAAC da NASA): os disparos do laser do GEDI de 2019 a 2023 imputados a cada pixel de 30 m com séries do Landsat. Só a área, lida dos arquivos dos fusos UTM que ela cruza, posta na grade do projeto e recortada pelo contorno. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área); áreas grandes vêm de uma pirâmide do arquivo, com células maiores.",
+            "icon": "raster_layer",
+            "params": "{\"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+        },
+    ),
+    (
+        "Vegetação e meio ambiente",
+        "Vegetação",
+        {
+            "id": "gedi-cobertura",
+            "label": "Cobertura do dossel (GEDI)",
+            "help": "A cobertura do dossel em %, a fração do chão coberta pelas copas, do GEDI L2B. Do GEDI L4D (ORNL DAAC da NASA): os disparos do laser do GEDI de 2019 a 2023 imputados a cada pixel de 30 m com séries do Landsat. Só a área, lida dos arquivos dos fusos UTM que ela cruza, posta na grade do projeto e recortada pelo contorno. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área); áreas grandes vêm de uma pirâmide do arquivo, com células maiores.",
+            "icon": "raster_layer",
+            "params": "{\"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+        },
+    ),
+    (
+        "Vegetação e meio ambiente",
         "Uso e cobertura",
         {
             "id": "radar-vv",

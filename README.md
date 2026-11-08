@@ -303,6 +303,11 @@ Fora da tabela, com a citação no comando **Fontes**:
   área, recortada pelo contorno e posta na grade do projeto com a classe mais frequente. Os valores
   são os códigos da legenda do MapBiomas, para medir áreas por classe. Áreas grandes vêm de uma
   pirâmide do arquivo, com células maiores;
+- **Estrutura da vegetação (GEDI):** Seo, E., S.P. Healey, Z. Yang, R.O. Dubayah, T. De Conto e
+  J. Armston. 2025. GEDI L4D Imputed Waveforms, Version 2. ORNL DAAC.
+  https://doi.org/10.3334/ORNLDAAC/2455. Altura do dossel (rh98), biomassa acima do solo e cobertura
+  do dossel a 30 m, dos disparos do laser do GEDI de 2019 a 2023 imputados com o Landsat. Pede o login
+  Earthdata e um RustGIS que leia só a janela da área (depois da 0.5.0): cada arquivo cobre um fuso UTM;
 - **Estabelecimentos de saúde:** Ministério da Saúde, CNES, competência 04/2026, pelo
   [geobr](https://github.com/ipea/geobr) do Ipea (GeoParquet do Brasil, 98 MB, lido aos pedaços).
   Ficam os ativos, sem os de pessoa física e de empresário individual, cujo nome é o de uma
