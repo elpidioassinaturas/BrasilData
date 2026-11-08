@@ -76,9 +76,21 @@ fn devolver_estilos() {
     }
 }
 
-/// Os comandos que não recortam nada pela área: a área, o painel, a grade e os textos.
-const SEM_RECORTE: &[&str] =
-    &["painel", "escolher-area", "area-municipio", "area-selecao", "area-desenho", "grade", "fontes", "atualizacao", "sobre"];
+/// Os comandos que não recortam nada pela área: a área, o painel, a grade, os textos e o mapa do
+/// MapBiomas.
+const SEM_RECORTE: &[&str] = &[
+    "painel",
+    "escolher-area",
+    "area-municipio",
+    "area-selecao",
+    "area-desenho",
+    "grade",
+    "fontes",
+    "atualizacao",
+    "sobre",
+    // O mapa do MapBiomas é do Brasil inteiro: a área não muda nada nele.
+    "mapbiomas-cobertura",
+];
 
 fn executar(req: Request) -> Result<Value, String> {
     if !SEM_RECORTE.contains(&req.id.as_str())
@@ -118,7 +130,7 @@ fn executar(req: Request) -> Result<Value, String> {
         "indicadores-caged" => indicadores(&[Fonte::Caged]),
         "censo-setores" => censo_setores(),
         "saude-estabelecimentos" => estabelecimentos_de_saude(),
-        "mapbiomas-cobertura" => cobertura_mapbiomas(req.f64("ano").map_or(mapbiomas::ULTIMO_ANO, |a| a as i64)),
+        "mapbiomas-cobertura" => cobertura_mapbiomas(ano_do_mapbiomas(&req)),
         "inpe-focos-periodo" => focos_no_periodo(&req),
         other => Err(format!("o BrasilData não tem o comando '{other}'")),
     }
@@ -2327,6 +2339,11 @@ fn camada_de_cobertura(ano: i64) -> String {
 /// Os nomes das camadas de mosaicos do mapa (o `host.layers` não as lista).
 fn mosaicos_no_mapa() -> Result<Vec<String>, String> {
     Ok(host::run("map.tiles", json!({}))?.as_array().into_iter().flatten().filter_map(|t| t["name"].as_str().map(str::to_string)).collect())
+}
+
+/// O ano do MapBiomas: o do script, o do controle do painel ou o último da coleção.
+fn ano_do_mapbiomas(req: &Request) -> i64 {
+    req.f64("ano").map(|a| a as i64).or_else(|| req.panel.get(mapbiomas::CONTROLE).and_then(Value::as_i64)).unwrap_or(mapbiomas::ULTIMO_ANO)
 }
 
 /// O uso e a cobertura do MapBiomas em `ano`, como mapa de mosaicos com as cores da legenda.

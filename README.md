@@ -295,7 +295,8 @@ Fora da tabela, com a citação no comando **Fontes**:
   MapBiomas, como mapa de mosaicos com as cores da legenda oficial. É um mapa para ver, do Brasil
   inteiro: não é recortado pela área nem traz os valores das classes, porque o RustGIS 0.5.0 não
   lê só a janela da área de um COG remoto (opengeos/RustGIS#1204). O endereço do Earth Engine
-  vale por algumas horas; um novo clique pede outro. Abre também no app web;
+  vale por algumas horas; um novo clique pede outro. O ano, de 1985 a 2025, se escolhe no controle
+  MapBiomas: ano, no painel Área de trabalho, e cada ano vira uma camada. Abre também no app web;
 - **Estabelecimentos de saúde:** Ministério da Saúde, CNES, competência 04/2026, pelo
   [geobr](https://github.com/ipea/geobr) do Ipea (GeoParquet do Brasil, 98 MB, lido aos pedaços).
   Ficam os ativos, sem os de pessoa física e de empresário individual, cujo nome é o de uma

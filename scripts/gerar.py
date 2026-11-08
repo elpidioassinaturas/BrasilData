@@ -30,7 +30,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.23"
+VERSAO = "0.1.24"
 
 # Os comandos que não vêm da tabela, com o grupo da aba em que ficam. Na aba, o grupo Área
 # tem o painel (a escolha do território pelo nome), a área pela seleção e o desenho; o comando
@@ -88,7 +88,7 @@ ARVORE = "Clique no Brasil, numa grande região, estado, mesorregião, microrreg
 PAINEL = {
     "title": "Área de trabalho",
     "icon": "polygon_layer",
-    "help": "Escolha a área de trabalho nos limites políticos (Brasil, grandes regiões, estados, meso e microrregiões, municípios), a seleção ou um desenho, e a grade dos rasters.",
+    "help": "Escolha a área de trabalho nos limites políticos (Brasil, grandes regiões, estados, meso e microrregiões, municípios), a seleção ou um desenho, a grade dos rasters e o ano do MapBiomas.",
     "state": "painel",
     "items": [
         {"kind": "text", "id": "area", "label": "Área de trabalho"},
@@ -124,6 +124,17 @@ PAINEL = {
             "steps": True,
         },
         {"kind": "button", "command": "grade"},
+        {
+            "kind": "slider",
+            "id": "mapbiomas-ano",
+            "label": "MapBiomas: ano",
+            "help": "O ano do mapa de uso e cobertura do MapBiomas (Coleção 11), de 1985 a 2025. Vale quando você clicar em Uso e cobertura (MapBiomas), aqui ou na aba.",
+            "min": 1985,
+            "max": 2025,
+            "default": 2025,
+            "steps": True,
+        },
+        {"kind": "button", "command": "mapbiomas-cobertura"},
     ],
 }
 # Os comandos que vão no fim de um grupo da aba: as fontes, com a área.
@@ -334,10 +345,10 @@ EM_MENUS = [
         "Uso e cobertura",
         {
             "id": "mapbiomas-cobertura",
-            "label": "Uso e cobertura 2025 (MapBiomas)",
-            "help": "O uso e a cobertura da terra do MapBiomas (Coleção 11, 30 m), com as cores da legenda oficial: um mapa para ver, do Brasil inteiro, não recortado pela área. Por script, outro ano de 1985 a 2025. O mapa vale por algumas horas; um novo clique pede outro.",
+            "label": "Uso e cobertura (MapBiomas)",
+            "help": "O uso e a cobertura da terra do MapBiomas (Coleção 11, 30 m), com as cores da legenda oficial: um mapa para ver, do Brasil inteiro, não recortado pela área. O ano, de 1985 a 2025, é o do controle MapBiomas: ano, no painel Área de trabalho (2025 até você mudar). Cada ano vira uma camada; o mapa vale por algumas horas, e um novo clique pede outro.",
             "icon": "raster_layer",
-            "params": "{\"ano\"?: de 1985 a 2025 (padrão 2025)}",
+            "params": "{\"ano\"?: de 1985 a 2025 (padrão: o do painel, ou 2025)}",
         },
     ),
     (

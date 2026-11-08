@@ -23,6 +23,9 @@ const LEGENDA: &str = "coverage-bypu14";
 pub const PRIMEIRO_ANO: i64 = 1985;
 pub const ULTIMO_ANO: i64 = 2025;
 
+/// O controle do painel que escolhe o ano (de `PRIMEIRO_ANO` a `ULTIMO_ANO`).
+pub const CONTROLE: &str = "mapbiomas-ano";
+
 /// As classes da legenda de cobertura que vão para o mapa (as folhas da legenda, pelo valor do
 /// pixel): pedir uma classe-mãe não pinta as filhas.
 const CLASSES: [u32; 33] =

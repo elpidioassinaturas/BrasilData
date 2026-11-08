@@ -1,7 +1,7 @@
 {
   "id": "brasildata",
   "name": "BrasilData",
-  "version": "0.1.23",
+  "version": "0.1.24",
   "description": "Dados públicos do Brasil para a área do usuário (IBGE, MMA, ICMBio, INPE, ANA, ANEEL, ANP, SFB/CAR, INCRA, FUNAI, IBAMA, ANM, DNIT, Ministério da Saúde, Copernicus, NASA/ASF): só o que cruza a área, recortado por ela, com a fonte e a licença de cada camada.",
   "author": "Elpídio Filho",
   "homepage": "https://github.com/elpidioassinaturas/BrasilData",
@@ -717,10 +717,10 @@
     },
     {
       "id": "mapbiomas-cobertura",
-      "label": "Uso e cobertura 2025 (MapBiomas)",
-      "help": "O uso e a cobertura da terra do MapBiomas (Coleção 11, 30 m), com as cores da legenda oficial: um mapa para ver, do Brasil inteiro, não recortado pela área. Por script, outro ano de 1985 a 2025. O mapa vale por algumas horas; um novo clique pede outro.",
+      "label": "Uso e cobertura (MapBiomas)",
+      "help": "O uso e a cobertura da terra do MapBiomas (Coleção 11, 30 m), com as cores da legenda oficial: um mapa para ver, do Brasil inteiro, não recortado pela área. O ano, de 1985 a 2025, é o do controle MapBiomas: ano, no painel Área de trabalho (2025 até você mudar). Cada ano vira uma camada; o mapa vale por algumas horas, e um novo clique pede outro.",
       "icon": "raster_layer",
-      "params": "{\"ano\"?: de 1985 a 2025 (padrão 2025)}"
+      "params": "{\"ano\"?: de 1985 a 2025 (padrão: o do painel, ou 2025)}"
     },
     {
       "id": "radar-vv",
@@ -803,7 +803,7 @@
   "panel": {
     "title": "Área de trabalho",
     "icon": "polygon_layer",
-    "help": "Escolha a área de trabalho nos limites políticos (Brasil, grandes regiões, estados, meso e microrregiões, municípios), a seleção ou um desenho, e a grade dos rasters.",
+    "help": "Escolha a área de trabalho nos limites políticos (Brasil, grandes regiões, estados, meso e microrregiões, municípios), a seleção ou um desenho, a grade dos rasters e o ano do MapBiomas.",
     "state": "painel",
     "items": [
       {
@@ -857,10 +857,24 @@
         "command": "grade"
       },
       {
+        "kind": "slider",
+        "id": "mapbiomas-ano",
+        "label": "MapBiomas: ano",
+        "help": "O ano do mapa de uso e cobertura do MapBiomas (Coleção 11), de 1985 a 2025. Vale quando você clicar em Uso e cobertura (MapBiomas), aqui ou na aba.",
+        "min": 1985,
+        "max": 2025,
+        "default": 2025,
+        "steps": true
+      },
+      {
+        "kind": "button",
+        "command": "mapbiomas-cobertura"
+      },
+      {
         "kind": "text",
         "id": "sobre",
         "label": "Sobre o BrasilData",
-        "text": "BrasilData 0.1.23, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Elpídio Filho, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nFontes dos dados: IBGE, INPE, ANA, ANP, ANEEL, INCRA, ANM, MMA, ICMBio, FUNAI, Serviço Florestal Brasileiro, IBAMA, DNIT e MapBiomas, pelos serviços de cada órgão; Copernicus DEM GLO-30 (DLR e Airbus, pelo espelho da OpenTopography); Banco Central (Pix e crédito rural); TSE; Novo CAGED (IPEA Data) e Ministério da Saúde (CNES, pelo geobr do Ipea).\n\nComo contribuir: sentiu falta de algum dado? Abra uma issue em https://github.com/elpidioassinaturas/BrasilData/issues com o nome do dado, o órgão que o publica, o endereço do serviço (WFS, ArcGIS REST, API ou arquivo) e para que você o usaria. Para trazer a fonte você mesmo, acrescente uma linha ao fontes.csv, rode python scripts/gerar.py e abra um pull request. Correções, avisos de serviço fora do ar e relatos de uso também são bem-vindos."
+        "text": "BrasilData 0.1.24, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Elpídio Filho, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nFontes dos dados: IBGE, INPE, ANA, ANP, ANEEL, INCRA, ANM, MMA, ICMBio, FUNAI, Serviço Florestal Brasileiro, IBAMA, DNIT e MapBiomas, pelos serviços de cada órgão; Copernicus DEM GLO-30 (DLR e Airbus, pelo espelho da OpenTopography); Banco Central (Pix e crédito rural); TSE; Novo CAGED (IPEA Data) e Ministério da Saúde (CNES, pelo geobr do Ipea).\n\nComo contribuir: sentiu falta de algum dado? Abra uma issue em https://github.com/elpidioassinaturas/BrasilData/issues com o nome do dado, o órgão que o publica, o endereço do serviço (WFS, ArcGIS REST, API ou arquivo) e para que você o usaria. Para trazer a fonte você mesmo, acrescente uma linha ao fontes.csv, rode python scripts/gerar.py e abra um pull request. Correções, avisos de serviço fora do ar e relatos de uso também são bem-vindos."
       }
     ]
   },
