@@ -366,32 +366,82 @@ fn area_municipio(req: &Request) -> Result<Value, String> {
     area_de(&m.into())
 }
 
-/// Troca o contorno dos municípios da área que estão na malha intermediária embutida pela malha
-/// máxima do IBGE ([`malhas::a_afinar`]), antes de um comando que recorta: com ela, o recorte de um
-/// raster não deixa células faltando nem sobrando na divisa. Uma vez só por área (a feição fica com
-/// `"malha": "maxima"`). Sem área, ou sem rede, segue com o que há; no app, o pedido pendente.
+/// Se a camada `camada` (como [`camada_no_projeto`] a descreve) tem o campo `campo`.
+fn tem_campo(camada: &Value, campo: &str) -> bool {
+    let prefixo = format!("{campo} ");
+    camada["fields"].as_array().is_some_and(|f| f.iter().any(|c| c.as_str().is_some_and(|c| c == campo || c.starts_with(&prefixo))))
+}
+
+/// Põe na camada `camada` o campo de texto `campo` com o valor `valor` em todas as feições.
+fn campo_fixo(camada: &str, campo: &str, valor: &str) -> Result<(), String> {
+    host::run("edit.addField", json!({"layer": camada, "name": campo, "type": "text"}))?;
+    host::run("edit.calculateField", json!({"layer": camada, "field": campo, "expression": format!("'{}'", valor.replace('\'', "''"))}))?;
+    Ok(())
+}
+
+/// Troca o contorno de um município escolhido como área pelo limite oficial do IBGE (a Malha
+/// Municipal 2025, o WFS da camada Municípios), antes de um comando que recorta. O plugin leva os
+/// municípios na malha intermediária, que se afasta da oficial até centenas de metros (815 m em
+/// Viçosa): o recorte por ela deixava células faltando ou sobrando na divisa, e os temas não
+/// batiam com a camada de Limites.
+///
+/// O limite oficial chega como camada pelo próprio RustGIS (`layer.addUrl`): lido pelo plugin, o
+/// de um município grande passa da cota de instruções (Manaus, 457 KB; o Rio de Janeiro, 754 KB).
+/// Pelo mesmo motivo, a área tratada é reconhecida pelo campo `malha` (`info.project`), sem ler as
+/// feições. Se o WFS falhar, vale a malha máxima da API do IBGE (até 144 m da oficial em Viçosa,
+/// e pequena); sem rede, segue com a embutida. As outras áreas (estado, meso e microrregião, que já
+/// vêm na malha máxima; seleção e desenho) ficam como estão. No app, o pedido pendente: o limite
+/// chega depois do clique.
 fn afinar_area() -> Result<Option<Value>, String> {
-    // A camada direto, sem `host.layers` (caro com rasters no mapa): sem área, não há o que afinar.
-    let Ok(fc) = host::features(AREA, false) else {
+    let Some(camada) = camada_no_projeto(AREA)? else {
         return Ok(None);
     };
-    let codigos = malhas::a_afinar(&fc);
-    if codigos.is_empty() || codigos.len() > malhas::MAX_AFINAR {
+    if tem_campo(&camada, "malha") || !tem_campo(&camada, "codigo") {
         return Ok(None);
     }
-    let urls: Vec<String> = codigos.iter().map(|c| malhas::url_maxima(c)).collect();
-    let respostas = match buscar_varios(&urls) {
-        Ok(Ok(r)) => r,
-        Ok(Err(p)) => return Ok(Some(p)),
-        Err(e) => {
-            host::log(&format!("área: a malha máxima do IBGE não veio ({e}); o recorte segue com a intermediária"));
-            return Ok(None);
-        }
+    // Uma área do painel, ainda na malha embutida: leve, o plugin a lê.
+    let fc = host::features(AREA, false)?;
+    let codigos = malhas::a_afinar(&fc, &[]);
+    let [codigo] = codigos.as_slice() else {
+        // Estado, meso ou microrregião (ou mais de um município): fica, e não se olha de novo.
+        campo_fixo(AREA, "malha", "embutida")?;
+        return Ok(None);
     };
-    let novo = malhas::com_maximas(&fc, &codigos.into_iter().zip(respostas).collect::<Vec<_>>());
-    remover(&[AREA])?;
-    host::add_layer(AREA, novo)?;
-    host::log("área: contorno trocado pela malha máxima do IBGE");
+    let oficial = format!("{AREA} (limite oficial {codigo})");
+    if camada_no_projeto(&oficial)?.is_none() {
+        match host::run("layer.addUrl", json!({"url": malhas::url_oficial(codigo), "name": oficial, "zoom": false})) {
+            Ok(a) if a.get("pending").and_then(Value::as_bool) == Some(true) => {
+                host::notify("Área: baixando o limite oficial do município (IBGE). Quando ele chegar, clique de novo");
+                return Ok(Some(a));
+            }
+            Ok(_) => {}
+            Err(e) => host::log(&format!("área: o limite oficial do IBGE não veio ({e})")),
+        }
+    }
+    if camada_no_projeto(&oficial)?.is_some_and(|l| l["features"].as_u64().unwrap_or(0) > 0) {
+        campo_fixo(&oficial, "codigo", codigo)?;
+        campo_fixo(&oficial, "malha", "oficial")?;
+        remover(&[AREA])?;
+        host::run("layer.rename", json!({"layer": oficial, "name": AREA}))?;
+        host::log("área: contorno trocado pelo limite oficial do IBGE");
+        return Ok(None);
+    }
+    remover(&[&oficial])?;
+    // A reserva: a malha máxima da API, pequena, lida pelo plugin.
+    match buscar_varios(&[malhas::url_maxima(codigo)]) {
+        Ok(Ok(r)) => {
+            let novo = malhas::com_malhas(&fc, &[(codigo.clone(), r.into_iter().next().unwrap_or_default())], "maxima");
+            if novo != fc {
+                remover(&[AREA])?;
+                host::add_layer(AREA, novo)?;
+                host::log("área: contorno trocado pela malha máxima do IBGE");
+                return Ok(None);
+            }
+        }
+        Ok(Err(p)) => return Ok(Some(p)),
+        Err(e) => host::log(&format!("área: a malha máxima do IBGE não veio ({e})")),
+    }
+    host::log("área: o recorte segue com a malha embutida");
     Ok(None)
 }
 
@@ -1598,7 +1648,18 @@ fn dist_na_grade(
                 host::run("style.importQgis", json!({"layer": nome, "text": paleta.qml()}))?;
                 // Sem perturbação: transparente.
                 host::run("raster.mask", json!({"layer": nome, "values": [0]}))?;
-                manchas_da_situacao(nome, ate, paleta)?;
+                // Sem as manchas, a situação fica no raster, visível: o comando não cai por elas.
+                if !dist::manchas_cabem(c, g.celula) {
+                    host::notify(&format!(
+                        "Perturbação da vegetação: área grande demais para as manchas com borda (até cerca de {:.0} milhões de células da grade); fica o raster",
+                        dist::MAX_CELULAS_MANCHAS / 1e6
+                    ));
+                } else if let Err(e) = manchas_da_situacao(&junto, nome, ate, paleta, g.celula) {
+                    let manchas = dist::nome_das_manchas(ate);
+                    let _ = remover(&[&manchas, &format!("{manchas} (sem recorte)"), &format!("{manchas} (em graus)")]);
+                    host::log(&format!("manchas: {e}"));
+                    host::notify(&format!("Perturbação da vegetação: as manchas com borda não saíram ({e}); fica o raster"));
+                }
             }
             dist::Camada::Data => {
                 temporarias.push(na_rede.clone());
@@ -1632,15 +1693,38 @@ fn dist_na_grade(
     resultado.map(|()| None)
 }
 
-/// As manchas da situação `raster` como polígonos, com o nome da classe (campo `situacao`, que a
-/// legenda mostra no lugar do código) e uma borda fina da própria cor ([`dist::Paleta::estilo_das_manchas`]):
-/// sobre um mapa claro, a mancha amarelo-clara sem borda quase some. O raster, que está na grade e
-/// serve à análise, fica no mapa, escondido.
-fn manchas_da_situacao(raster: &str, ate: Data, paleta: dist::Paleta) -> Result<(), String> {
+/// As manchas da situação como polígonos, com o nome da classe (campo `situacao`, que a legenda
+/// mostra no lugar do código) e uma borda fina da própria cor ([`dist::Paleta::estilo_das_manchas`]):
+/// sobre um mapa claro, a mancha amarelo-clara sem borda quase some.
+///
+/// Elas vêm do mosaico `retangulo` (cortado só pelo retângulo da área, nas células da grade) e são
+/// recortadas depois pelo polígono da área, como os temas: na divisa, seguem o limite, e não os
+/// degraus de 30 m das células que o raster `raster` tem. O raster, que está na grade e serve à
+/// análise, fica no mapa, escondido.
+fn manchas_da_situacao(retangulo: &str, raster: &str, ate: Data, paleta: dist::Paleta, celula: f64) -> Result<(), String> {
     let manchas = dist::nome_das_manchas(ate);
-    remover(&[&manchas])?;
-    // As regiões diferentes de 0 (sem perturbação) e do sem dado, com o código em `VALUE`.
-    ferramenta("geolibre:raster_to_vector_polygons", json!({"input": raster}), &manchas)?;
+    let bruto = format!("{manchas} (sem recorte)");
+    let em_graus = format!("{manchas} (em graus)");
+    remover(&[&manchas, &bruto, &em_graus])?;
+    // As regiões diferentes de 0 (sem perturbação) e do sem dado, com o código em `VALUE`. A
+    // ferramenta do GeoLibre não grava em todo sistema (o Albers do IBGE, EPSG:10857, que a grade
+    // usa quando a área passa de um fuso, ela recusa): então as manchas saem de uma cópia em graus,
+    // com as mesmas células.
+    if let Err(e) = ferramenta("geolibre:raster_to_vector_polygons", json!({"input": retangulo}), &bruto) {
+        host::log(&format!("manchas: no sistema da grade não deu ({e}); vão em graus"));
+        remover(&[&bruto])?;
+        host::run(
+            "raster.project",
+            json!({"layer": retangulo, "crs": 4326, "cellSize": celula / 111_320.0, "resampling": "nearest", "name": em_graus}),
+        )?;
+        let feito = ferramenta("geolibre:raster_to_vector_polygons", json!({"input": em_graus}), &bruto);
+        remover(&[&em_graus])?;
+        feito?;
+    }
+    let r = host::run("gp.run", json!({"tool": "clip", "params": {"input": bruto, "clip": AREA}}))?;
+    let recortada = r.get("layer").cloned().ok_or("o clip não disse a camada que fez")?;
+    host::run("layer.rename", json!({"layer": recortada, "name": manchas}))?;
+    remover(&[&bruto])?;
     host::run("edit.addField", json!({"layer": manchas, "name": "situacao", "type": "text"}))?;
     host::run("edit.calculateField", json!({"layer": manchas, "field": "situacao", "expression": dist::expressao_dos_nomes()}))?;
     let _ = host::run("style.remove", json!({"name": paleta.nome_do_estilo()}));
@@ -1773,6 +1857,13 @@ fn area_que_ha() -> Result<String, String> {
     let do_painel = camada["fields"].as_array().is_some_and(|f| f.iter().any(|c| c.as_str().is_some_and(|c| c.starts_with("nome "))));
     if do_painel && n <= 50 {
         return Ok(descrever(&host::features(AREA, false)?));
+    }
+    // O limite oficial de um município ([`afinar_area`]) pode ser pesado demais para o plugin ler:
+    // os nomes vêm de uma cópia simplificada.
+    if tem_campo(&camada, "malha")
+        && let Some(c) = extensao(AREA)?
+    {
+        return Ok(texto_da_area(&nomes_da_area(c)?, n, Some(c)));
     }
     Ok(texto_da_area(&[], n, extensao(AREA)?))
 }

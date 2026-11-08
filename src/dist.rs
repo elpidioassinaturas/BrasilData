@@ -243,6 +243,19 @@ pub fn expressao_dos_nomes() -> String {
     format!("CASE{casos} ELSE '' END")
 }
 
+/// Quantas células, no máximo, o retângulo da área pode ter para as manchas virem como polígonos:
+/// cerca de 4.500 km² a 30 m (de um município a uma microrregião). Na Zona da Mata (cerca de 90
+/// milhões de células), a vetorização levou minutos e não terminou.
+pub const MAX_CELULAS_MANCHAS: f64 = 5.0e6;
+
+/// Se as manchas do retângulo `c` ([oeste, sul, leste, norte], em graus) com células de `celula`
+/// metros cabem em polígonos ([`MAX_CELULAS_MANCHAS`]).
+pub fn manchas_cabem(c: [f64; 4], celula: f64) -> bool {
+    let lat = ((c[1] + c[3]) / 2.0).to_radians();
+    let (largura, altura) = ((c[2] - c[0]) * 111_320.0 * lat.cos(), (c[3] - c[1]) * 110_570.0);
+    largura * altura / (celula * celula) <= MAX_CELULAS_MANCHAS
+}
+
 /// O nome da camada das manchas, ao lado do raster da situação.
 pub fn nome_das_manchas(ate: Data) -> String {
     format!("{}Perturbação da vegetação, manchas (OPERA DIST-S1, até {})", crate::PREFIXO, ate.texto())
@@ -430,5 +443,8 @@ mod tests {
         assert_eq!(classes[5][1]["stroke"], json!([111, 11, 18, 255]), "a borda é a cor × 0,62");
         assert_eq!(Paleta::Oficial.estilo_das_manchas().matches("\"stroke_width\":0.5").count(), 8);
         assert!(eh_do_dist(&nome_das_manchas(d)));
+        assert!(manchas_cabem([-43.003, -20.858, -42.754, -20.655], 30.0), "Viçosa cabe");
+        assert!(!manchas_cabem([-44.235, -22.259, -41.411, -19.828], 30.0), "a Zona da Mata não");
+        assert!(manchas_cabem([-44.235, -22.259, -41.411, -19.828], 150.0), "com células de 150 m, sim");
     }
 }

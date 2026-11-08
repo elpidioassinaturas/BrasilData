@@ -89,17 +89,19 @@ pub fn se_cruza(geometria: &Value) -> bool {
 /// vem com o contorno de quem a desenhou.
 pub const MAX_AFINAR: usize = 10;
 
-/// Os códigos dos municípios da área `fc` (as feições da camada da área) que ainda estão na malha
-/// intermediária embutida, para buscar a máxima do IBGE. O plugin leva os municípios na
-/// intermediária (Viçosa: 70 vértices, contra 389 na máxima) para caber no pacote; o recorte de um
-/// raster por ela deixa células faltando ou sobrando na divisa. Estados, meso e microrregiões já
-/// vêm na máxima; uma seleção ou um desenho não têm código.
-pub fn a_afinar(fc: &Value) -> Vec<String> {
+/// Os códigos dos municípios da área `fc` (as feições da camada da área) cuja malha não é uma de
+/// `prontas` (o campo `malha` da feição), para buscar uma mais detalhada. O plugin leva os municípios
+/// na malha intermediária do IBGE (Viçosa: 70 vértices) para caber no pacote; o recorte por ela
+/// deixava células faltando ou sobrando na divisa. Medido em Viçosa contra a Malha Municipal 2025
+/// (3.786 vértices): a intermediária se afasta até 815 m (693 ha de diferença), a máxima da API até
+/// 144 m (85 ha). Estados, meso e microrregiões vêm na máxima da API; uma seleção ou um desenho não
+/// têm código.
+pub fn a_afinar(fc: &Value, prontas: &[&str]) -> Vec<String> {
     let mut codigos: Vec<String> = fc["features"]
         .as_array()
         .into_iter()
         .flatten()
-        .filter(|f| f["properties"]["malha"].as_str() != Some("maxima"))
+        .filter(|f| !f["properties"]["malha"].as_str().is_some_and(|m| prontas.contains(&m)))
         .filter_map(|f| f["properties"]["codigo"].as_str())
         .filter(|c| c.len() == 7 && c.bytes().all(|b| b.is_ascii_digit()))
         .map(str::to_string)
@@ -108,25 +110,33 @@ pub fn a_afinar(fc: &Value) -> Vec<String> {
     codigos
 }
 
-/// O endereço da malha máxima do município `codigo` na API do IBGE (GeoJSON, com CORS; 10 KB em
-/// Viçosa, 117 KB em Altamira, o maior município).
+/// O endereço do município `codigo` na Malha Municipal 2025 do IBGE (o WFS da camada Municípios,
+/// em Limites; GeoJSON, com CORS): o limite oficial, o mesmo dos temas. 91 KB em Viçosa, 146 KB em
+/// Altamira, 754 KB no Rio de Janeiro (o `host.fetch` aceita até 2 MB).
+pub fn url_oficial(codigo: &str) -> String {
+    format!(
+        "https://geoservicos.ibge.gov.br/geoserver/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=CGMAT:qg_2025_030_munic&outputFormat=application/json&CQL_FILTER=cd_mun%3D%27{codigo}%27"
+    )
+}
+
+/// O endereço da malha máxima do município `codigo` na API do IBGE, a reserva quando o WFS falha
+/// (GeoJSON, com CORS; 10 KB em Viçosa, 117 KB em Altamira).
 pub fn url_maxima(codigo: &str) -> String {
     format!("https://servicodados.ibge.gov.br/api/v4/malhas/municipios/{codigo}?formato=application/vnd.geo+json&qualidade=maxima")
 }
 
-/// `fc` com a geometria de cada município de `maximas` (código, resposta da API) trocada pela
-/// malha máxima, marcada com `"malha": "maxima"`. Uma resposta sem geometria deixa a feição como
-/// estava.
-pub fn com_maximas(fc: &Value, maximas: &[(String, Value)]) -> Value {
+/// `fc` com a geometria de cada município de `respostas` (código, resposta do IBGE) trocada pela
+/// da resposta, marcada com `"malha": malha`. Uma resposta sem geometria deixa a feição como estava.
+pub fn com_malhas(fc: &Value, respostas: &[(String, Value)], malha: &str) -> Value {
     let mut novo = fc.clone();
     for f in novo["features"].as_array_mut().into_iter().flatten() {
         let Some(codigo) = f["properties"]["codigo"].as_str().map(str::to_string) else {
             continue;
         };
-        let geometria = maximas.iter().find(|(c, _)| *c == codigo).map(|(_, r)| r["features"][0]["geometry"].clone());
+        let geometria = respostas.iter().find(|(c, _)| *c == codigo).map(|(_, r)| r["features"][0]["geometry"].clone());
         if let Some(g) = geometria.filter(|g| matches!(g["type"].as_str(), Some("Polygon" | "MultiPolygon"))) {
             f["geometry"] = g;
-            f["properties"]["malha"] = json!("maxima");
+            f["properties"]["malha"] = json!(malha);
         }
     }
     novo
@@ -138,23 +148,29 @@ mod tests {
     use crate::municipios;
 
     #[test]
-    fn so_o_municipio_na_intermediaria_e_afinado() {
+    fn so_o_municipio_sem_a_malha_oficial_e_afinado() {
         let f = |p: Value| json!({"type": "Feature", "properties": p, "geometry": {"type": "Polygon", "coordinates": [[[0, 0], [1, 0], [1, 1], [0, 0]]]}});
         let fc = json!({"features": [
             f(json!({"codigo": "3171303", "nome": "Viçosa"})),
             f(json!({"codigo": "3112", "nome": "Zona da Mata"})),
             f(json!({"codigo": "2211001", "malha": "maxima"})),
+            f(json!({"codigo": "1500602", "malha": "oficial"})),
             f(json!({"nome": "Desenho livre"})),
         ]});
-        assert_eq!(a_afinar(&fc), vec!["3171303".to_string()]);
+        assert_eq!(a_afinar(&fc, &["oficial"]), vec!["3171303".to_string(), "2211001".to_string()], "a máxima de antes também sobe");
+        assert_eq!(a_afinar(&fc, &["oficial", "maxima"]), vec!["3171303".to_string()]);
+        assert!(
+            url_oficial("3171303").contains("typeNames=CGMAT:qg_2025_030_munic")
+                && url_oficial("3171303").ends_with("cd_mun%3D%273171303%27")
+        );
         assert!(url_maxima("3171303").contains("/v4/malhas/municipios/3171303?") && url_maxima("1").ends_with("qualidade=maxima"));
-        let resposta = json!({"features": [{"geometry": {"type": "Polygon", "coordinates": [[[0, 0], [2, 0], [2, 2], [0, 0]]]}}]});
-        let novo = com_maximas(&fc, &[("3171303".into(), resposta), ("3112".into(), json!({}))]);
-        assert_eq!(novo["features"][0]["geometry"]["coordinates"][0][1], json!([2, 0]));
-        assert_eq!(novo["features"][0]["properties"]["malha"], "maxima");
+        let resposta = json!({"features": [{"geometry": {"type": "MultiPolygon", "coordinates": [[[[0, 0], [2, 0], [2, 2], [0, 0]]]]}}]});
+        let novo = com_malhas(&fc, &[("3171303".into(), resposta), ("2211001".into(), json!({"features": []}))], "oficial");
+        assert_eq!(novo["features"][0]["geometry"]["type"], "MultiPolygon");
+        assert_eq!(novo["features"][0]["properties"]["malha"], "oficial");
         assert_eq!(novo["features"][0]["properties"]["nome"], "Viçosa", "as outras propriedades ficam");
-        assert!(novo["features"][1]["properties"]["malha"].is_null(), "resposta sem geometria: fica como estava");
-        assert!(a_afinar(&novo).is_empty());
+        assert_eq!(novo["features"][2]["properties"]["malha"], "maxima", "resposta sem geometria: fica como estava");
+        assert_eq!(a_afinar(&novo, &["oficial"]), vec!["2211001".to_string()]);
     }
 
     #[test]

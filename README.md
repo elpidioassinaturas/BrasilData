@@ -40,11 +40,13 @@ A área de trabalho pode ser:
   sem internet. Meso e microrregiões são as da divisão do IBGE de 1989. Uma grande região é o
   conjunto dos seus estados; o Brasil é o contorno do país do IBGE, mais simples (cerca de 4.000
   vértices), porque os 27 estados detalhados não cabem numa chamada de plugin. Os municípios vêm
-  embutidos na malha intermediária do IBGE, mais leve; no primeiro tema ou raster pedido para um
-  município, o plugin busca a malha máxima dele na API do IBGE (Viçosa: 455 vértices, contra 70) e
-  troca o contorno da área, para o recorte não deixar células faltando nem sobrando na divisa.
-  Sem rede, segue com a intermediária. Para o contorno exato de uma grande região ou do Brasil,
-  traga a camada de **Limites** e use a seleção. Por script:
+  embutidos na malha intermediária do IBGE, mais leve. No primeiro tema ou raster pedido para um
+  município, o RustGIS baixa o limite oficial dele, o da Malha Municipal 2025 (a mesma camada de
+  **Limites › Municípios**), e o plugin troca o contorno da área por ele: tudo o que se recorta
+  depois segue a divisa oficial. Em Viçosa, a malha intermediária se afastava dela até 815 m. Se o
+  WFS do IBGE falhar, vale a malha máxima da API do IBGE (até 144 m da oficial em Viçosa); sem rede,
+  a intermediária. Na janela, o limite chega depois do clique: clique de novo. Para o contorno
+  oficial de um estado, meso ou microrregião, traga a camada de **Limites** e use a seleção. Por script:
   `plugin:brasildata/escolher-area={"no": "reg:2"}` (`br`, `reg:1` a `reg:5`, `uf:PI`,
   `meso:2202`, `micro:22003`, `mun:2211001`);
 - **um desenho**: **Área: desenho** liga a ferramenta (clique nos cantos e dê um duplo clique para
@@ -117,7 +119,11 @@ alerta, que as passagens seguintes confirmam ou encerram. São quatro camadas:
   translúcida, e o 4 e o 7 quase se confundem na protanopia, ΔE 5,9). As manchas vêm também
   como polígonos (**Perturbação da vegetação, manchas**), com a cor da classe, uma borda fina da
   própria cor mais escura, que deixa as manchas claras legíveis sobre um mapa claro, e o nome da
-  classe na legenda ("6 · Confirmada, alta confiança"). O raster, na grade, fica no projeto,
+  classe na legenda ("6 · Confirmada, alta confiança"). Elas saem do mosaico cortado só pelo
+  retângulo da área e são recortadas depois pelo limite, como os temas: na divisa, seguem a linha,
+  e não os degraus de 30 m das células. As manchas com borda saem para áreas de até cerca de 5
+  milhões de células da grade (uns 4.500 km² a 30 m, de um município a uma microrregião); numa
+  área maior, fica só o raster. O raster, na grade, fica no projeto,
   escondido; a legenda dele mostra só os códigos, porque o RustGIS 0.5.0 ainda não dá nomes às
   classes de um raster. Uma legenda com os
   nomes sai de `scripts/legenda_dist.py <saída> [brasildata|oficial]` (PNG e SVG);
