@@ -14,6 +14,7 @@
 mod catalogo;
 pub mod censo;
 pub mod datas;
+pub mod dist;
 pub mod estilo;
 pub mod grade;
 pub mod indicadores;

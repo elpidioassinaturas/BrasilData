@@ -4,6 +4,7 @@ use rustgis_plugin::{Request, Value, geojson, host, json};
 
 use crate::censo;
 use crate::datas::{self, Data};
+use crate::dist;
 use crate::estilo;
 use crate::grade::{self, Escolha, GRADE, Grade};
 use crate::indicadores::{self, Fonte};
@@ -53,7 +54,7 @@ fn handle(req: Request) -> Result<Value, String> {
 
 /// As camadas do BrasilData no mapa cujo estilo é do usuário ([`estilo::com_estilo`]).
 fn camadas_com_estilo() -> Vec<String> {
-    host::layers().map(|c| estilo::com_estilo(&c, &[DESENHO, CONTORNOS_RADAR, FONTES])).unwrap_or_default()
+    host::layers().map(|c| estilo::com_estilo(&c, &[DESENHO, CONTORNOS_RADAR, CONTORNOS_DIST, FONTES])).unwrap_or_default()
 }
 
 /// Guarda, como estilos do projeto, o estilo de cada camada do BrasilData no mapa. Uma falha aqui
@@ -89,6 +90,10 @@ fn executar(req: Request) -> Result<Value, String> {
         "radar-vv" => radar(&req, Some(radar::Pol::Vv)),
         "radar-vh" => radar(&req, Some(radar::Pol::Vh)),
         "radar-razao" => radar(&req, None),
+        "dist-situacao" => perturbacao(&req, dist::Camada::Situacao),
+        "dist-data" => perturbacao(&req, dist::Camada::Data),
+        "dist-confianca" => perturbacao(&req, dist::Camada::Confianca),
+        "dist-intensidade" => perturbacao(&req, dist::Camada::Intensidade),
         "grade" => grade_do_projeto(&req),
         "fontes" => fontes(),
         "atualizacao" => atualizacao(),
@@ -1087,6 +1092,8 @@ fn citacoes() -> Result<(Vec<Value>, String), String> {
             lista.push(json!({"layer": n, "source": saude::CITACAO, "license": saude::LICENCA}));
         } else if radar::eh_do_radar(&n) {
             lista.push(json!({"layer": n, "source": radar::CITACAO, "license": radar::LICENCA}));
+        } else if dist::eh_do_dist(&n) {
+            lista.push(json!({"layer": n, "source": dist::CITACAO, "license": radar::LICENCA}));
         } else if n == ELEVACAO {
             lista.push(json!({"layer": n, "source": CITACAO_ELEVACAO, "license": "licença do Copernicus DEM: uso livre e gratuito, com esta citação"}));
         } else if n.starts_with(&format!("{PREFIXO}{CENSO_SETORES}")) {
@@ -1309,26 +1316,9 @@ fn radar_na_grade(recortes: &[radar::Recorte], p: radar::Pol, g: &Grade, c: [f64
     if !velhas.is_empty() {
         host::run("layer.remove", json!({"layer": velhas}))?;
     }
-    // Os recortes inteiros (cerca de 7 MB cada): um COG lido no lugar fica fora do alcance dos
-    // comandos `raster.*`. Os que já chegaram, de um clique anterior, ficam; os outros são pedidos
-    // todos de uma vez. A janela do RustGIS (e o app web) não espera o download: eles chegam
-    // depois, com estes nomes, e o próximo clique os encontra.
-    let mut baixando = 0;
-    for (r, bruto) in recortes.iter().zip(&brutos) {
-        if ha.contains(bruto) {
-            continue;
-        }
-        let a = host::run("layer.addUrl", json!({"url": r.url(p), "name": bruto, "whole": true, "zoom": false})).map_err(|e| {
-            if e.contains("token") || e.contains("401") || e.contains("Earthdata") {
-                format!("{e}. O radar do ASF pede o login Earthdata: Início › Dados web › NASA Earthaccess › Earthdata Login")
-            } else {
-                e
-            }
-        })?;
-        if a.get("pending").and_then(Value::as_bool) == Some(true) {
-            baixando += 1;
-        }
-    }
+    // Os recortes inteiros (cerca de 7 MB cada).
+    let pedidos: Vec<(&str, &str)> = recortes.iter().zip(&brutos).map(|(r, b)| (r.url(p), b.as_str())).collect();
+    let baixando = baixar_inteiros(&pedidos, &ha)?;
     if baixando > 0 {
         let n = if baixando == 1 { "1 recorte".to_string() } else { format!("{baixando} recortes") };
         host::notify(&format!(
@@ -1387,18 +1377,35 @@ fn radar_na_grade(recortes: &[radar::Recorte], p: radar::Pol, g: &Grade, c: [f64
     resultado.map(|()| None)
 }
 
-/// Roda uma ferramenta do RustGIS (`gp.run`) e dá à camada que ela cria o nome `nome`.
-fn ferramenta(tool: &str, params: Value, nome: &str) -> Result<(), String> {
-    let r = host::run("gp.run", json!({"tool": tool, "params": params}))?;
-    let id = r["layers"].get(0).cloned().ok_or(format!("{tool} não criou camada"))?;
-    host::run("layer.rename", json!({"layer": id, "name": nome}))?;
-    Ok(())
+/// Pede ao RustGIS os arquivos do ASF `pedidos` (endereço, nome da camada) inteiros, como
+/// camadas raster: um COG lido no lugar fica fora do alcance dos comandos `raster.*`. Os que já
+/// estão no mapa (`ha`), de um clique anterior, ficam; os outros são pedidos todos de uma vez. A
+/// janela do RustGIS (e o app web) não espera o download: eles chegam depois, com estes nomes, e
+/// o próximo clique os encontra. Devolve quantos ficaram baixando.
+fn baixar_inteiros(pedidos: &[(&str, &str)], ha: &[String]) -> Result<usize, String> {
+    let mut baixando = 0;
+    for (url, nome) in pedidos {
+        if ha.iter().any(|h| h == nome) {
+            continue;
+        }
+        let a = host::run("layer.addUrl", json!({"url": url, "name": nome, "whole": true, "zoom": false})).map_err(|e| {
+            if e.contains("token") || e.contains("401") || e.contains("Earthdata") {
+                format!("{e}. Os dados do ASF pedem o login Earthdata: Início › Dados web › NASA Earthaccess › Earthdata Login")
+            } else {
+                e
+            }
+        })?;
+        if a.get("pending").and_then(Value::as_bool) == Some(true) {
+            baixando += 1;
+        }
+    }
+    Ok(baixando)
 }
 
-/// O radar do Sentinel-1 (OPERA RTC-S1) na área: uma polarização, ou a razão VH/VV (que deixa
-/// as duas no mapa também). Por padrão, a passagem mais recente que cobre a área; por script,
-/// a de um dia.
-fn radar(req: &Request, qual: Option<radar::Pol>) -> Result<Value, String> {
+/// O que o radar e o DIST-S1 conferem antes de buscar: a célula pedida, a data (até o #1547, só
+/// por script), a área (que tem de existir e caber, `o_que` diz de quem é o limite) e o login
+/// Earthdata.
+fn area_do_asf(req: &Request, o_que: &str) -> Result<PedidoAsf, String> {
     let celula = req.f64("celula");
     if let Some(m) = celula {
         grade::conferir_celula(m)?;
@@ -1413,7 +1420,7 @@ fn radar(req: &Request, qual: Option<radar::Pol>) -> Result<Value, String> {
     }
     if !radar::cabe(c) {
         return Err(format!(
-            "a área passa de {:.1}° de lado; o radar lê no máximo cerca de 400 km (uma mesorregião). Escolha uma área menor",
+            "a área passa de {:.1}° de lado; {o_que} lê no máximo cerca de 400 km (uma mesorregião). Escolha uma área menor",
             radar::MAX_GRAUS
         ));
     }
@@ -1421,8 +1428,221 @@ fn radar(req: &Request, qual: Option<radar::Pol>) -> Result<Value, String> {
     if let Ok(s) = host::run("earthdata.status", json!({}))
         && s["token"].as_bool() == Some(false)
     {
-        return Err("o radar do ASF pede o login Earthdata, que é grátis: crie um token em urs.earthdata.nasa.gov (Generate Token) e cole-o no RustGIS, em Início › Dados web › NASA Earthaccess › Earthdata Login".into());
+        return Err(format!(
+            "{o_que} do ASF pede o login Earthdata, que é grátis: crie um token em urs.earthdata.nasa.gov (Generate Token) e cole-o no RustGIS, em Início › Dados web › NASA Earthaccess › Earthdata Login"
+        ));
     }
+    Ok(PedidoAsf { c, celula, dia })
+}
+
+/// O que [`area_do_asf`] conferiu: o retângulo da área, a célula pedida e a data.
+struct PedidoAsf {
+    c: [f64; 4],
+    celula: Option<f64>,
+    dia: Option<Data>,
+}
+
+/// A camada temporária dos contornos dos produtos do DIST-S1.
+const CONTORNOS_DIST: &str = "BrasilData: contornos do DIST-S1";
+
+/// O produto mais recente de cada tile do DIST-S1 que cruza o polígono da área (até o dia `ate`,
+/// se dado), ou o pedido pendente (app web).
+fn produtos_do_dist(c: [f64; 4], ate: Option<Data>) -> Result<Result<Vec<dist::Produto>, Value>, String> {
+    let resposta = match buscar_varios(&[dist::url_busca(c, ate)])? {
+        Ok(mut r) => r.remove(0),
+        Err(p) => return Ok(Err(p)),
+    };
+    let todos = dist::mais_recentes(&resposta);
+    let quando = ate.map(|d| format!(" até {}", d.texto())).unwrap_or_default();
+    if todos.is_empty() {
+        return Err(format!("o ASF não tem alertas do OPERA DIST-S1 na área{quando} (o monitoramento começou em 04/01/2026)"));
+    }
+    // Os contornos numa camada, e o RustGIS seleciona os tiles que cruzam o polígono da área.
+    remover(&[CONTORNOS_DIST])?;
+    host::add_layer(CONTORNOS_DIST, dist::camada_dos_contornos(&todos))?;
+    let selecao = host::run("gp.run", json!({"tool": "selectByLocation", "params": {"input": CONTORNOS_DIST, "select": AREA}}))
+        .and_then(|_| host::features(CONTORNOS_DIST, true));
+    remover(&[CONTORNOS_DIST])?;
+    let mut indices: Vec<usize> =
+        selecao?["features"].as_array().into_iter().flatten().filter_map(|f| f["properties"]["i"].as_u64().map(|i| i as usize)).collect();
+    // Na ordem de `todos` (o mais recente primeiro), que o mosaico respeita.
+    indices.sort_unstable();
+    let escolhidos: Vec<dist::Produto> = indices.iter().filter_map(|i| todos.get(*i)).cloned().collect();
+    if escolhidos.is_empty() {
+        return Err(format!("nenhum tile do OPERA DIST-S1 cruza a área{quando}"));
+    }
+    if escolhidos.len() > dist::MAX_TILES {
+        return Err(format!("a área cruza {} tiles do DIST-S1; o limite é {}: escolha uma área menor", escolhidos.len(), dist::MAX_TILES));
+    }
+    host::log(&format!(
+        "dist: {} tiles cruzam a área: {}",
+        escolhidos.len(),
+        escolhidos.iter().map(|p| format!("{} de {}", p.tile, p.data.texto())).collect::<Vec<_>>().join(", ")
+    ));
+    Ok(Ok(escolhidos))
+}
+
+/// Uma camada dos `produtos` na grade `g`, recortada pela área, como a camada `nome`; ou o
+/// pedido pendente. `ate` é a data do produto mais recente (para a camada da data).
+fn dist_na_grade(
+    produtos: &[dist::Produto],
+    camada: dist::Camada,
+    g: &Grade,
+    c: [f64; 4],
+    nome: &str,
+    ate: Data,
+) -> Result<Option<Value>, String> {
+    // Lida uma vez: a lista de camadas custa caro ao plugin com rasters no mapa (ver o radar).
+    let ha = nomes()?;
+    let base = format!("{PREFIXO}DIST-S1 {}", camada.curto());
+    let (mosaico, recorte, na_rede) = (format!("{base}: mosaico"), format!("{base}: recorte"), format!("{base}: na grade"));
+    let brutos: Vec<String> = produtos.iter().map(|p| format!("{base} {}", p.rotulo())).collect();
+    let na_grade: Vec<String> = brutos.iter().map(|b| format!("{b} na grade")).collect();
+    let na_area: Vec<String> = brutos.iter().map(|b| format!("{b} na área")).collect();
+    // As intermediárias de uma vez anterior que tenha parado no meio.
+    let velhas: Vec<&str> = na_grade
+        .iter()
+        .chain(&na_area)
+        .map(String::as_str)
+        .chain([mosaico.as_str(), recorte.as_str(), na_rede.as_str()])
+        .filter(|n| ha.iter().any(|h| h == n))
+        .collect();
+    if !velhas.is_empty() {
+        host::run("layer.remove", json!({"layer": velhas}))?;
+    }
+    let urls: Vec<String> = produtos.iter().map(|p| p.url(camada)).collect();
+    let pedidos: Vec<(&str, &str)> = urls.iter().map(String::as_str).zip(brutos.iter().map(String::as_str)).collect();
+    let baixando = baixar_inteiros(&pedidos, &ha)?;
+    if baixando > 0 {
+        let n = if baixando == 1 { "1 tile".to_string() } else { format!("{baixando} tiles") };
+        host::notify(&format!(
+            "Perturbação da vegetação ({}): baixando {n} do ASF (cerca de {} MB cada). Quando aparecerem no mapa como \"{base}\", clique de novo",
+            camada.curto(),
+            camada.megas()
+        ));
+        return Ok(Some(json!({"pending": baixando, "tiles": produtos.len()})));
+    }
+    // Códigos e dias não se misturam: o vizinho mais próximo, ou o mais frequente em células
+    // maiores; a confiança e a intensidade, a média em células maiores.
+    let resampling = match (g.celula > 45.0, camada.discreta()) {
+        (false, _) => "nearest",
+        (true, true) => "mode",
+        (true, false) => "average",
+    };
+    let mut temporarias: Vec<String> = Vec::new();
+    let resultado = (|| -> Result<(), String> {
+        for ((bruto, q), a) in brutos.iter().zip(&na_grade).zip(&na_area) {
+            // Cada tile na rede da grade (os tiles podem estar em fusos UTM diferentes), só no
+            // retângulo da área, como no radar.
+            host::run("raster.project", json!({"layer": bruto, "crs": g.epsg, "cellSize": g.celula, "resampling": resampling, "name": q}))?;
+            host::run("raster.process", json!({"layer": q, "operation": "clip", "extent": c, "name": a}))?;
+            temporarias.push(a.clone());
+            host::run("layer.remove", json!({"layer": [bruto, q]}))?;
+        }
+        // Onde dois tiles se sobrepõem, o mosaico fica com o primeiro: o mais recente.
+        let junto = if na_area.len() == 1 {
+            na_area[0].clone()
+        } else {
+            host::run("raster.mosaic", json!({"inputs": na_area, "name": mosaico}))?;
+            temporarias.push(mosaico.clone());
+            mosaico.clone()
+        };
+        host::run("raster.process", json!({"layer": junto, "operation": "clip", "polygon": AREA, "name": recorte}))?;
+        temporarias.push(recorte.clone());
+        let saida = if camada == dist::Camada::Data { &na_rede } else { &nome.to_string() };
+        host::run(
+            "raster.project",
+            json!({"layer": recorte, "crs": g.epsg, "cellSize": g.celula, "extent": GRADE, "resampling": "nearest", "name": saida}),
+        )?;
+        match camada {
+            dist::Camada::Situacao => {
+                host::run("style.importQgis", json!({"layer": nome, "text": dist::QML_DA_SITUACAO}))?;
+                // Sem perturbação: transparente.
+                host::run("raster.mask", json!({"layer": nome, "values": [0]}))?;
+            }
+            dist::Camada::Data => {
+                temporarias.push(na_rede.clone());
+                // Quantos dias antes do produto mais recente a perturbação foi vista: o arquivo
+                // conta os dias desde 31/12/2020, e 0 é "sem perturbação".
+                let n = dist::dia_do_dist(ate);
+                host::run(
+                    "raster.function",
+                    json!({"layer": na_rede, "function": "bandMath", "expression": format!("{n} - b1"), "name": nome}),
+                )?;
+                let ate_o_inicio = (n - dist::dia_do_dist(dist::INICIO)).max(1);
+                // O "sem perturbação" (0) vira `n` dias: fora da escala, escondido.
+                host::run("raster.symbology", json!({"layer": nome, "type": "stretch", "ramp": "Ember", "invert": true}))?;
+                let _ = host::run("raster.stretch", json!({"layer": nome, "type": "custom", "min": 0, "max": ate_o_inicio}));
+                host::run("raster.mask", json!({"layer": nome, "min": 0, "max": ate_o_inicio}))?;
+            }
+            dist::Camada::Confianca | dist::Camada::Intensidade => {
+                host::run("raster.symbology", json!({"layer": nome, "type": "stretch", "ramp": "Ember"}))?;
+                if let Some((min, max)) = camada.escala() {
+                    let _ = host::run("raster.stretch", json!({"layer": nome, "type": "custom", "min": min, "max": max}));
+                }
+                host::run("raster.mask", json!({"layer": nome, "values": [0]}))?;
+            }
+        }
+        Ok(())
+    })();
+    let fora: Vec<&str> = temporarias.iter().map(String::as_str).collect();
+    if !fora.is_empty() {
+        host::run("layer.remove", json!({"layer": fora})).map(|_| ()).or_else(|e| if resultado.is_err() { Ok(()) } else { Err(e) })?;
+    }
+    resultado.map(|()| None)
+}
+
+/// Uma camada dos alertas de perturbação da vegetação (OPERA DIST-S1) na área: a do produto mais
+/// recente de cada tile, que acumula os alertas desde o começo do monitoramento; por script, até
+/// um dia.
+fn perturbacao(req: &Request, camada: dist::Camada) -> Result<Value, String> {
+    let PedidoAsf { c, celula, dia: ate } = area_do_asf(req, "o DIST-S1")?;
+    let g = grade_para(c, celula)?;
+    let produtos = match produtos_do_dist(c, ate)? {
+        Ok(p) => p,
+        Err(p) => return Ok(p),
+    };
+    // O nome leva a data do mais recente; os outros tiles podem ser de alguns dias antes.
+    let (mais_novo, mais_velho) = (produtos.iter().map(|p| p.data).max(), produtos.iter().map(|p| p.data).min());
+    let (Some(mais_novo), Some(mais_velho)) = (mais_novo, mais_velho) else {
+        return Err("nenhum tile do DIST-S1".into());
+    };
+    let nome = camada.nome(mais_novo);
+    remover(&[&nome])?;
+    if let Some(pendente) = dist_na_grade(&produtos, camada, &g, c, &nome, mais_novo)? {
+        return Ok(pendente);
+    }
+    let datas = if mais_velho == mais_novo {
+        format!("de {}", mais_novo.texto())
+    } else {
+        format!("de {} a {}", mais_velho.texto(), mais_novo.texto())
+    };
+    let codigos = if camada == dist::Camada::Situacao { format!(". Códigos: {}", dist::CODIGOS) } else { String::new() };
+    host::notify(&format!(
+        "{}: {} tiles {datas}, na grade do projeto, {}{codigos}",
+        nome.trim_start_matches(PREFIXO),
+        produtos.len(),
+        g.texto()
+    ));
+    Ok(json!({
+        "layer": nome, "date": mais_novo.texto(), "products": produtos.iter().map(|p| p.nome.clone()).collect::<Vec<_>>(),
+        "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula,
+    }))
+}
+
+/// Roda uma ferramenta do RustGIS (`gp.run`) e dá à camada que ela cria o nome `nome`.
+fn ferramenta(tool: &str, params: Value, nome: &str) -> Result<(), String> {
+    let r = host::run("gp.run", json!({"tool": tool, "params": params}))?;
+    let id = r["layers"].get(0).cloned().ok_or(format!("{tool} não criou camada"))?;
+    host::run("layer.rename", json!({"layer": id, "name": nome}))?;
+    Ok(())
+}
+
+/// O radar do Sentinel-1 (OPERA RTC-S1) na área: uma polarização, ou a razão VH/VV (que deixa
+/// as duas no mapa também). Por padrão, a passagem mais recente que cobre a área; por script,
+/// a de um dia.
+fn radar(req: &Request, qual: Option<radar::Pol>) -> Result<Value, String> {
+    let PedidoAsf { c, celula, dia } = area_do_asf(req, "o radar")?;
     let g = grade_para(c, celula)?;
     let recortes = match recortes_do_radar(c, dia)? {
         Ok(r) => r,

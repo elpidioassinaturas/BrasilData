@@ -129,7 +129,7 @@ pub fn url_busca(c: [f64; 4], dia: Option<Data>) -> String {
 }
 
 /// A data de um `startTime` ("2026-10-26T08:21:21Z").
-fn data_de(t: &str) -> Option<Data> {
+pub(crate) fn data_de(t: &str) -> Option<Data> {
     let mut p = t.get(..10)?.split('-');
     let (ano, mes, dia) = (p.next()?.parse().ok()?, p.next()?.parse().ok()?, p.next()?.parse().ok()?);
     Some(Data { ano, mes, dia })
@@ -137,7 +137,7 @@ fn data_de(t: &str) -> Option<Data> {
 
 /// O polígono de um WKT `POLYGON ((x y, …))`, em GeoJSON (só o anel externo, que é o que um
 /// recorte tem).
-fn poligono(wkt: &str) -> Option<Value> {
+pub(crate) fn poligono(wkt: &str) -> Option<Value> {
     let dentro = wkt.trim().strip_prefix("POLYGON")?.trim().strip_prefix("((")?.split(')').next()?;
     let anel: Vec<Value> = dentro
         .split(',')

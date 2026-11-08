@@ -49,7 +49,7 @@ A área de trabalho pode ser:
 - **a vista**: sem área, os temas pedem o que está na vista do mapa.
 
 A **Grade do projeto** é o sistema de coordenadas e o tamanho das células em que os rasters chegam
-(hoje, a Elevação e o Radar). No painel, escolha a célula (de 10 m a 1 km) e o sistema e clique em **Grade do
+(hoje, a Elevação, o Radar e a Perturbação da vegetação). No painel, escolha a célula (de 10 m a 1 km) e o sistema e clique em **Grade do
 projeto**:
 
 - **Automático:** o UTM SIRGAS 2000 do fuso da área, ou o Albers do IBGE (EPSG:10857) quando a
@@ -92,6 +92,30 @@ token fica com o RustGIS, que o manda só aos servidores da NASA; o plugin nunca
 recortes (cerca de 7 MB cada) chegam depois do clique: quando aparecerem no mapa, clique de novo.
 Áreas de até cerca de 400 km de lado (uma mesorregião). Só no app desktop, por enquanto.
 
+A **Perturbação da vegetação (OPERA DIST-S1)**, em Desmatamento, traz os alertas de perturbação
+da vegetação que o JPL tira do mesmo radar: cada passagem do Sentinel-1 é comparada com o histórico
+do lugar, e onde o sinal muda além do normal (desmate, queimada, tempestade, colheita) nasce um
+alerta, que as passagens seguintes confirmam ou encerram. São quatro camadas:
+
+- **situação**, com as cores oficiais da OPERA: 1 a 3 de baixa confiança (primeira detecção,
+  provisória, confirmada), 4 a 6 de alta confiança, 7 e 8 encerrada (a vegetação voltou ao
+  normal). A primeira detecção, ainda não confirmada, fica translúcida: num tile de Viçosa (MG) em
+  28/02/2026, ela cobria 12% da área, contra 0,35% de alertas confirmados. A legenda mostra os
+  códigos: o RustGIS 0.5.0 ainda não dá nomes às classes de um raster;
+- **data**: quantos dias antes do produto mais recente a perturbação foi vista pela primeira vez;
+- **confiança**, que cresce a cada passagem que confirma o alerta (escala fixa de 2,5 a 100);
+- **intensidade**: o maior desvio do sinal em relação ao histórico (escala fixa de 2,5 a 12).
+
+Cada produto cobre um tile MGRS (cerca de 110 × 110 km) e acumula os alertas desde o começo do
+monitoramento até a data dele: vale o mais recente de cada tile que cruza o polígono da área. Por
+script, os produtos até um dia: `plugin:brasildata/dist-situacao={"data": "15/02/2026"}`. Os tiles
+vizinhos podem ser de dias diferentes; o nome da camada leva a data do mais recente, e o aviso diz o
+intervalo. Como a primeira detecção é a da última passagem de cada tile, os tiles aparecem às vezes
+como retângulos na camada da situação. **O ASF só tem produtos de 04/01 a 28/02/2026 por
+enquanto** (conferido em 08/11/2026). Como o radar, pede o login Earthdata e é só para o app
+desktop; na janela, os tiles (cerca de 2 MB cada na situação e na data, 9 MB na confiança e na
+intensidade) chegam depois do clique.
+
 Os **Trechos de drenagem (BHO 2017, ANA)** mostram os rios conforme o zoom. De longe aparecem só os
 rios principais; à medida que o mapa aproxima, os menores aparecem também. A hierarquia é a área de
 drenagem a montante de cada trecho (`nuareamont`): de 1:20 milhões para longe, os rios com 50 mil
@@ -105,7 +129,7 @@ O estilo que você der a uma camada do BrasilData fica com ela: a legenda (o cam
 paleta), as cores, os rótulos e a transparência. Quando o tema vem de novo, para outra área ou outra
 vista, a camada nova recebe o estilo da antiga; o estilo também fica salvo no projeto, com a camada.
 Numa legenda por classes, os limites das classes ficam como estavam: para recalculá-los com os dados
-novos, aplique a simbologia de novo. Os rasters (MapBiomas, relevo, radar) ainda não guardam o
+novos, aplique a simbologia de novo. Os rasters (MapBiomas, relevo, radar, perturbação) ainda não guardam o
 estilo.
 
 | Tópico | Subtópicos |
@@ -115,7 +139,7 @@ estilo.
 | Saúde | Estabelecimentos (CNES, DATASUS) |
 | Meio físico | Geologia e recursos minerais (IBGE, ANM, MapBiomas), Relevo (IBGE, Copernicus), Solos (IBGE) |
 | Água | Hidrografia (IBGE, ANA), Bacias (IBGE, ANA), Recursos hídricos (ANA) |
-| Vegetação e meio ambiente | Vegetação (IBGE), Uso e cobertura (MapBiomas; radar Sentinel-1 do ASF/NASA), Desmatamento (INPE: PRODES e DETER), Queimadas (INPE: focos de calor das últimas 48 horas, dos últimos 7 dias e do mês corrente; um período com datas, por script: `plugin:brasildata/inpe-focos-periodo={"de": "01/11/2026", "ate": "06/11/2026"}`), Áreas protegidas (MMA, ICMBio), Fiscalização (IBAMA) |
+| Vegetação e meio ambiente | Vegetação (IBGE), Uso e cobertura (MapBiomas; radar Sentinel-1 do ASF/NASA), Desmatamento (INPE: PRODES e DETER; alertas de perturbação OPERA DIST-S1 do ASF/NASA), Queimadas (INPE: focos de calor das últimas 48 horas, dos últimos 7 dias e do mês corrente; um período com datas, por script: `plugin:brasildata/inpe-focos-periodo={"de": "01/11/2026", "ate": "06/11/2026"}`), Áreas protegidas (MMA, ICMBio), Fiscalização (IBAMA) |
 | Infraestrutura | Energia (ANEEL), Petróleo e gás (ANP), Transportes (DNIT) |
 
 As camadas vetoriais estão listadas em [`fontes.csv`](fontes.csv) e na tabela [Fontes](#fontes),
@@ -228,6 +252,11 @@ Fora da tabela, com a citação no comando **Fontes**:
   [ASF DAAC](https://asf.alaska.edu) da NASA
   ([doi:10.5067/SNWG/OPERA_L2_RTC-S1_V1](https://doi.org/10.5067/SNWG/OPERA_L2_RTC-S1_V1)), com
   dados Copernicus Sentinel-1 modificados (ESA);
+- **Perturbação da vegetação:** OPERA Land Surface Disturbance Alert from Sentinel-1, versão 1
+  (OPERA_L3_DIST-ALERT-S1_V1), do projeto OPERA do JPL, distribuído pelo
+  [ASF DAAC](https://asf.alaska.edu) da NASA
+  ([doi:10.5067/SNWG/OPL3DISTALS1-V1](https://doi.org/10.5067/SNWG/OPL3DISTALS1-V1)), com dados
+  Copernicus Sentinel-1 modificados (ESA);
 - **Indicadores por município:** IBGE (Censo Demográfico 2022, Censo Agropecuário 2017), Banco
   Central (Pix, crédito rural), TSE e Novo CAGED. O **Censo Agropecuário 2017** (Agricultura) traz
   os estabelecimentos e a agricultura familiar, a utilização das terras (lavouras, pastagens e

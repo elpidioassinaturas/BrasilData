@@ -45,6 +45,18 @@ impl Data {
         format!("{}-{:02}-{:02}", self.ano, self.mes, self.dia)
     }
 
+    /// Quantos dias desde 01/01/1970 (o `days_from_civil` de Howard Hinnant, o inverso de
+    /// [`Data::de_milissegundos`]).
+    pub fn dias(&self) -> i64 {
+        let (m, d) = (i64::from(self.mes), i64::from(self.dia));
+        let a = if m <= 2 { self.ano - 1 } else { self.ano };
+        let era = a.div_euclid(400);
+        let yoe = a - era * 400;
+        let doy = (153 * (if m > 2 { m - 3 } else { m + 9 }) + 2) / 5 + d - 1;
+        let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+        era * 146_097 + doe - 719_468
+    }
+
     /// O dia seguinte.
     pub fn seguinte(&self) -> Data {
         if self.dia < dias_no_mes(self.ano, self.mes) {
@@ -85,5 +97,11 @@ mod tests {
         assert_eq!(Data::ler("30/11/2026").unwrap().seguinte().iso(), "2026-12-01");
         assert_eq!(Data::ler("31/12/2026").unwrap().seguinte().iso(), "2027-01-01");
         assert_eq!(dias_no_mes(2026, 11), 30);
+        assert_eq!(Data { ano: 1970, mes: 1, dia: 1 }.dias(), 0);
+        for ms in [1_793_563_200_000_i64, 951_782_400_000, 0] {
+            assert_eq!(Data::de_milissegundos(ms).dias(), ms / 86_400_000);
+        }
+        let d = |t| Data::ler(t).unwrap().dias();
+        assert_eq!(d("28/02/2026") - d("31/12/2020"), 1885, "o dia do DIST-S1 de 28/02/2026");
     }
 }
