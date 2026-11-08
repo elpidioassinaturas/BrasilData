@@ -2363,6 +2363,17 @@ fn le_janela_remota() -> Result<bool, String> {
         .is_some_and(|p| p.contains("\"bbox\"")))
 }
 
+/// O erro de um pedido que o RustGIS cancelou porque o token Earthdata guardado neste computador
+/// foi lido durante o comando: o RustGIS toma a leitura por uma troca de conta e cancela os
+/// pedidos que o comando ainda faria. No clique seguinte o token já está lido.
+fn token_recem_lido(e: String) -> String {
+    if e.contains("cancelled before it was sent") || e.contains("active account changed") {
+        "o RustGIS acabou de ler o token Earthdata guardado neste computador e, por segurança, cancelou o pedido deste clique: clique de novo".into()
+    } else {
+        e
+    }
+}
+
 /// Uma "janela" que é o arquivo inteiro: muito maior que a `pedida` (uma camada de um clique
 /// numa versão que ignorou o `bbox`).
 fn janela_inteira(e: [f64; 4], pedida: [f64; 4]) -> bool {
@@ -2482,7 +2493,7 @@ fn gedi_na_area(v: gedi::Variavel, celula: Option<f64>) -> Result<Value, String>
         host::notify(&format!("{}; saiu do mapa o arquivo inteiro que uma tentativa anterior trouxe", sem_janela()));
         return Ok(json!({"removed": tiradas}));
     }
-    let resposta = match buscar_varios(&[gedi::url_busca(c)])? {
+    let resposta = match buscar_varios(&[gedi::url_busca(c)]).map_err(token_recem_lido)? {
         Ok(mut r) => r.remove(0),
         Err(p) => return Ok(p),
     };
@@ -2516,7 +2527,7 @@ fn gedi_na_area(v: gedi::Variavel, celula: Option<f64>) -> Result<Value, String>
         if let Some(m) = gedi::celula_da_janela(c) {
             p["cellSize"] = json!(m);
         }
-        let r = host::run("layer.addUrl", p)?;
+        let r = host::run("layer.addUrl", p).map_err(token_recem_lido)?;
         if r.get("pending").and_then(Value::as_bool) == Some(true) {
             lendo += 1;
             continue;
