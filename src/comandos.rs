@@ -2667,9 +2667,12 @@ fn layout_do_mapa(req: &Request) -> Result<Value, String> {
     for f in citacoes()?.0 {
         if f["layer"].as_str().is_some_and(|l| visiveis.iter().any(|v| v == l))
             && let Some(s) = f["source"].as_str()
-            && !fontes.iter().any(|x| x == s)
         {
-            fontes.push(s.to_string());
+            // Na folha, a fonte sem o dicionário de campos (que fica na tabela Fontes).
+            let s = s.split(" Campos").next().unwrap_or(s).trim_end_matches(['.', ' ']).to_string();
+            if !fontes.contains(&s) {
+                fontes.push(s);
+            }
         }
     }
     fontes.push("Limite da área: IBGE · dados trazidos e recortados pelo plugin BrasilData".into());
