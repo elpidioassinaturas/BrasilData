@@ -550,35 +550,35 @@
     {
       "id": "amazonia-legal",
       "label": "Amazônia Legal (IBGE)",
-      "help": "Amazônia Legal (IBGE 2024): IBGE, Amazônia Legal, Malha Municipal 2024. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "help": "Amazônia Legal (IBGE 2024): IBGE, Amazônia Legal, Malha Municipal 2024. Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "semiarido",
       "label": "Semiárido (IBGE)",
-      "help": "Semiárido (IBGE 2025): IBGE, Semiárido, Malha Municipal 2025. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "help": "Semiárido (IBGE 2025): IBGE, Semiárido, Malha Municipal 2025. Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "matopiba",
       "label": "MATOPIBA (IBGE)",
-      "help": "MATOPIBA (IBGE 2025): IBGE, MATOPIBA, Malha Municipal 2025. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "help": "MATOPIBA (IBGE 2025): IBGE, MATOPIBA, Malha Municipal 2025. Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "area-sudene",
       "label": "Área de atuação da SUDENE (IBGE)",
-      "help": "Área de atuação da SUDENE (IBGE 2025): IBGE, Área de atuação da SUDENE, Malha Municipal 2025. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "help": "Área de atuação da SUDENE (IBGE 2025): IBGE, Área de atuação da SUDENE, Malha Municipal 2025. Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "municipios-costeiros",
       "label": "Municípios costeiros (IBGE)",
-      "help": "Municípios costeiros (IBGE 2025): IBGE, Municípios costeiros, Malha Municipal 2025. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "help": "Municípios costeiros (IBGE 2025): IBGE, Municípios costeiros, Malha Municipal 2025. Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
     },
