@@ -112,7 +112,12 @@ pub fn receita(nome: &str) -> Option<Receita> {
         });
     }
     // Um tema vetorial: o subtítulo é o nome dele, e as classes vão para a legenda.
-    crate::tema_da_camada(nome).map(|t| Receita { subtitulo: t.nome.to_string(), barra: None, legenda: None, nota: None })
+    if let Some(t) = crate::tema_da_camada(nome) {
+        return Some(Receita { subtitulo: t.nome.to_string(), barra: None, legenda: None, nota: None });
+    }
+    // Qualquer outro dado do BrasilData (setores e indicadores do censo, saúde, focos...): o
+    // subtítulo é o nome da camada, e ela vai para a legenda como está.
+    Some(Receita { subtitulo: n.to_string(), barra: None, legenda: None, nota: None })
 }
 
 /// O passo da grade em metros: o redondo que dá até 6 linhas no lado maior do retângulo `c`.
@@ -163,7 +168,7 @@ mod tests {
         assert_eq!(receita(AREA), None);
         assert_eq!(receita(GRADE), None);
         assert_eq!(receita("Countries"), None);
-        assert_eq!(receita("BrasilData: algo que não existe"), None);
+        assert_eq!(receita("BrasilData: Setores censitários 2022 (MG)").unwrap().subtitulo, "Setores censitários 2022 (MG)");
     }
 
     #[test]

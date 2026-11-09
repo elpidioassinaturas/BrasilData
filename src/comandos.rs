@@ -2651,7 +2651,7 @@ fn layout_do_mapa(req: &Request) -> Result<Value, String> {
     let (principal, r) = visiveis
         .iter()
         .find_map(|n| layout::receita(n).map(|r| (n.clone(), r)))
-        .ok_or("nenhum dado do BrasilData visível no mapa para o layout: traga um tema, a elevação, o radar, a perturbação ou o GEDI")?;
+        .ok_or("nenhum dado do BrasilData visível no mapa para o layout: traga um dado (um tema, o censo, a elevação, o radar, o GEDI...) e deixe-o visível")?;
     let titulo = layout::titulo(&area_que_ha()?);
     // As fontes das camadas visíveis, sem repetir, e a do limite.
     let mut fontes: Vec<String> = Vec::new();
