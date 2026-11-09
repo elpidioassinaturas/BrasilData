@@ -324,8 +324,10 @@ Fora da tabela, com a citação no comando **Fontes**:
   avisa e traz o mapa de mosaicos. O raster é o da Coleção 10, 30 m,
   do espelho do Source Cooperative (o bucket oficial recusa acesso anônimo), só a janela da
   área, recortada pelo contorno e posta na grade do projeto com a classe mais frequente. Os valores
-  são os códigos da legenda do MapBiomas, para medir áreas por classe. Áreas grandes vêm de uma
-  pirâmide do arquivo, com células maiores;
+  são os códigos da legenda do MapBiomas, para medir áreas por classe. Logo abaixo do raster vem a
+  camada das classes, com um polígono por classe, o nome e a cor da legenda oficial: é ela que põe
+  os nomes na legenda do Layout e no identificar, porque a legenda do RustGIS não lista as classes
+  de um raster. Áreas grandes vêm de uma pirâmide do arquivo, com células maiores;
 - **Estrutura da vegetação (GEDI):** Seo, E., S.P. Healey, Z. Yang, R.O. Dubayah, T. De Conto e
   J. Armston. 2025. GEDI L4D Imputed Waveforms, Version 2. ORNL DAAC.
   https://doi.org/10.3334/ORNLDAAC/2455. Altura do dossel (rh98), biomassa acima do solo e cobertura

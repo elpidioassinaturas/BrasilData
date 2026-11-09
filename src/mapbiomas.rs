@@ -16,7 +16,7 @@
 //! contorno e posta na grade do projeto com a classe mais frequente (`mode`). O bucket oficial
 //! do MapBiomas recusa acesso anônimo desde outubro de 2026. Fora disso, o mapa de mosaicos.
 
-use serde_json::Value;
+use serde_json::{Value, json};
 
 /// A API da plataforma, com a organização pública (`tenantId`), que ela exige.
 const API: &str = "https://prd.plataforma.mapbiomas.org/api/v1/brazil";
@@ -99,6 +99,101 @@ pub fn url_do_mapa(ano: i64) -> String {
     format!("{API}/maps/map?subthemeKey={SUBTEMA}&legendKey={LEGENDA}&year={ano}{classes}&{ORGANIZACAO}")
 }
 
+/// As classes da Coleção 10 no COG do espelho, na ordem da legenda oficial: o código, o nome em
+/// português (Legenda-Colecao-10-Legend-Code.pdf, que o arquivo cita) e a cor da tabela de cores do
+/// próprio arquivo (lida com o gdalinfo em 09/11/2026), a mesma que o raster usa no mapa.
+pub const CLASSES_10: [(u8, &str, &str); 38] = [
+    (1, "Floresta", "#1f8d49"),
+    (3, "Formação Florestal", "#1f8d49"),
+    (4, "Formação Savânica", "#7dc975"),
+    (5, "Mangue", "#04381d"),
+    (6, "Floresta Alagável", "#007785"),
+    (49, "Restinga Arbórea", "#02d659"),
+    (10, "Vegetação Herbácea e Arbustiva", "#d6bc74"),
+    (11, "Campo Alagado e Área Pantanosa", "#519799"),
+    (12, "Formação Campestre", "#d6bc74"),
+    (32, "Apicum", "#fc8114"),
+    (29, "Afloramento Rochoso", "#ffaa5f"),
+    (50, "Restinga Herbácea", "#ad5100"),
+    (14, "Agropecuária", "#ffefc3"),
+    (15, "Pastagem", "#edde8e"),
+    (18, "Agricultura", "#e974ed"),
+    (19, "Lavoura Temporária", "#c27ba0"),
+    (39, "Soja", "#f5b3c8"),
+    (20, "Cana", "#db7093"),
+    (40, "Arroz", "#c71585"),
+    (62, "Algodão (beta)", "#ff69b4"),
+    (41, "Outras Lavouras Temporárias", "#f54ca9"),
+    (36, "Lavoura Perene", "#d082de"),
+    (46, "Café", "#d68fe2"),
+    (47, "Citrus", "#9932cc"),
+    (35, "Dendê", "#9065d0"),
+    (48, "Outras Lavouras Perenes", "#e6ccff"),
+    (9, "Silvicultura", "#7a5900"),
+    (21, "Mosaico de Usos", "#ffefc3"),
+    (22, "Área não Vegetada", "#d4271e"),
+    (23, "Praia, Duna e Areal", "#ffa07a"),
+    (24, "Área Urbanizada", "#d4271e"),
+    (30, "Mineração", "#9c0027"),
+    (75, "Usina Fotovoltaica (beta)", "#c12100"),
+    (25, "Outras Áreas não Vegetadas", "#db4d4f"),
+    (26, "Corpo d’Água", "#2532e4"),
+    (33, "Rio, Lago e Oceano", "#2532e4"),
+    (31, "Aquicultura", "#091077"),
+    (27, "Não Observado", "#ffffff"),
+];
+
+/// O nome do estilo das classes no projeto.
+pub const ESTILO_DAS_CLASSES: &str = "BrasilData: classes do MapBiomas";
+
+/// Quantas células, no máximo, a camada das classes vetoriza: acima disso, uma cópia de células
+/// maiores, com a classe mais frequente (o mesmo teto das manchas do DIST).
+pub const MAX_CELULAS_CLASSES: f64 = 5.0e6;
+
+/// A camada das classes de `ano`, polígonos logo abaixo do raster recortado.
+pub fn nome_das_classes(ano: i64) -> String {
+    format!("{}Uso e cobertura {ano} (MapBiomas, classes)", crate::PREFIXO)
+}
+
+/// A célula, em metros, que a camada das classes vetoriza num retângulo `c` ([oeste, sul, leste,
+/// norte], em graus) com células de `celula` metros: a própria, ou um múltiplo dela que deixe o
+/// retângulo abaixo de [`MAX_CELULAS_CLASSES`].
+pub fn celula_das_classes(c: [f64; 4], celula: f64) -> f64 {
+    let lat = ((c[1] + c[3]) / 2.0).to_radians();
+    let (largura, altura) = ((c[2] - c[0]) * 111_320.0 * lat.cos(), (c[3] - c[1]) * 110_570.0);
+    let n = largura * altura / (celula * celula);
+    if n <= MAX_CELULAS_CLASSES { celula } else { celula * (n / MAX_CELULAS_CLASSES).sqrt().ceil() }
+}
+
+/// A expressão do `edit.calculateField` que dá ao campo `classe` o nome da classe de `VALUE`.
+pub fn expressao_das_classes() -> String {
+    let casos: String = CLASSES_10.iter().map(|(v, nome, _)| format!(" WHEN VALUE = {v} THEN '{nome}'")).collect();
+    format!("CASE{casos} ELSE '' END")
+}
+
+/// O estilo das classes (polígonos, campo `classe`), no formato do `style.add`: a cor da legenda
+/// oficial, sem borda, na ordem da legenda. A legenda do layout lista só as classes que o mapa
+/// desenha.
+pub fn estilo_das_classes() -> String {
+    let rgba = |h: &str| {
+        let c = |i: usize| u8::from_str_radix(&h[i..i + 2], 16).unwrap_or(0);
+        json!([c(1), c(3), c(5), 255])
+    };
+    let classes: Vec<Value> = CLASSES_10
+        .iter()
+        .map(|(_, nome, cor)| {
+            json!([nome, {"fill": rgba(cor), "stroke": [0, 0, 0, 0], "stroke_width": 0.0, "size": 0.0, "marker": "Circle"}])
+        })
+        .collect();
+    let nada = json!({"fill": [0, 0, 0, 0], "stroke": [0, 0, 0, 0], "stroke_width": 0.0, "size": 0.0, "marker": "Circle"});
+    json!([{"name": ESTILO_DAS_CLASSES, "geometry": "Polygon",
+        "renderer": {"Unique": {"field": "classe", "classes": classes, "other": nada, "ramp": "Harbour"}},
+        "labels": {"enabled": false, "field": "classe", "size": 7.5, "color": [59, 50, 38, 255], "halo": true, "bold": false,
+            "min_scale": null, "max_scale": null, "closest": null, "farthest": null, "placement": "Center"},
+        "transparency": 0.0}])
+    .to_string()
+}
+
 /// O endereço dos mosaicos na resposta da API (`{"url": "https://…/{z}/{x}/{y}"}`).
 pub fn mosaicos(resposta: &Value) -> Option<String> {
     let url = resposta.get("url")?.as_str()?;
@@ -149,5 +244,45 @@ mod tests {
         assert_eq!(mosaicos(&ok).as_deref(), Some("https://earthengine.googleapis.com/v1/projects/mapbiomas/maps/abc/tiles/{z}/{x}/{y}"));
         assert_eq!(mosaicos(&json!({"url": "http://x/{z}/{x}/{y}"})), None);
         assert_eq!(mosaicos(&json!({"erro": "x"})), None);
+    }
+
+    #[test]
+    fn as_classes_tem_codigo_unico_e_a_cor_do_arquivo() {
+        let mut codigos: Vec<u8> = CLASSES_10.iter().map(|c| c.0).collect();
+        codigos.sort_unstable();
+        codigos.dedup();
+        assert_eq!(codigos.len(), CLASSES_10.len());
+        // Algumas cores da tabela do COG de 2024.
+        let cor = |v: u8| CLASSES_10.iter().find(|c| c.0 == v).map(|c| c.2);
+        assert_eq!(cor(3), Some("#1f8d49"));
+        assert_eq!(cor(15), Some("#edde8e"));
+        assert_eq!(cor(24), Some("#d4271e"));
+        assert_eq!(cor(33), Some("#2532e4"));
+        assert!(CLASSES_10.iter().all(|c| c.2.len() == 7 && c.2.starts_with('#') && !c.1.contains('\'')));
+    }
+
+    #[test]
+    fn a_expressao_e_o_estilo_dao_nome_e_cor_a_cada_classe() {
+        let e = expressao_das_classes();
+        assert!(e.starts_with("CASE WHEN VALUE = 1 THEN 'Floresta' WHEN VALUE = 3 THEN 'Formação Florestal'"));
+        assert!(e.ends_with(" ELSE '' END"));
+        let s: Value = serde_json::from_str(&estilo_das_classes()).unwrap();
+        let u = &s[0]["renderer"]["Unique"];
+        assert_eq!(u["field"], "classe");
+        assert_eq!(u["classes"].as_array().unwrap().len(), CLASSES_10.len());
+        assert_eq!(u["classes"][1], json!(["Formação Florestal", {"fill": [31, 141, 73, 255], "stroke": [0, 0, 0, 0],
+            "stroke_width": 0.0, "size": 0.0, "marker": "Circle"}]));
+        assert_eq!(s[0]["name"], ESTILO_DAS_CLASSES);
+    }
+
+    #[test]
+    fn as_classes_de_uma_area_grande_vem_de_celulas_maiores() {
+        // Viçosa (MG), 30 m: cerca de 700 mil células, a própria célula.
+        assert_eq!(celula_das_classes([-43.0, -20.85, -42.75, -20.62], 30.0), 30.0);
+        // A Zona da Mata (MG), 30 m: cerca de 90 milhões de células; 5 vezes a célula (150 m) fica
+        // abaixo de 5 milhões.
+        let z = celula_das_classes([-43.37, -22.92, -40.56, -20.52], 30.0);
+        assert_eq!(z, 150.0);
+        assert_eq!(nome_das_classes(2024), "BrasilData: Uso e cobertura 2024 (MapBiomas, classes)");
     }
 }

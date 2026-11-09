@@ -1196,7 +1196,9 @@ fn citacoes() -> Result<(Vec<Value>, String), String> {
             lista.push(json!({"layer": n, "source": t.fonte, "license": t.licenca, "service": t.servico, "featureType": t.camada}));
         } else if n.starts_with(&format!("{PREFIXO}Uso e cobertura ")) && n.ends_with(" (MapBiomas)") {
             lista.push(json!({"layer": n, "source": mapbiomas::CITACAO, "license": mapbiomas::LICENCA}));
-        } else if n.starts_with(&format!("{PREFIXO}Uso e cobertura ")) && n.ends_with(" (MapBiomas, recortado)") {
+        } else if n.starts_with(&format!("{PREFIXO}Uso e cobertura "))
+            && (n.ends_with(" (MapBiomas, recortado)") || n.ends_with(" (MapBiomas, classes)"))
+        {
             lista.push(json!({"layer": n, "source": mapbiomas::CITACAO_RECORTE, "license": mapbiomas::LICENCA_RECORTE}));
         } else if n == camada_de_saude() {
             lista.push(json!({"layer": n, "source": saude::CITACAO, "license": saude::LICENCA}));
@@ -2866,7 +2868,8 @@ fn cobertura_recortada(ano: i64) -> Result<Recorte, String> {
         }
     }
     let g = grade_para(c, None)?;
-    remover(&[&recorte, &nome])?;
+    let classes = mapbiomas::nome_das_classes(ano);
+    remover(&[&recorte, &nome, &classes])?;
     let feito =
         host::run("raster.process", json!({"layer": bruto, "operation": "clip", "polygon": AREA, "name": recorte})).and_then(|_| {
             host::run(
@@ -2880,14 +2883,75 @@ fn cobertura_recortada(ano: i64) -> Result<Recorte, String> {
     let piramide = mapbiomas::celula_da_janela(c)
         .map(|m| format!(" A área é grande para 30 m: a janela veio da pirâmide de {} m do arquivo.", m - 1.0))
         .unwrap_or_default();
+    // Os nomes das classes, para a legenda do layout e o identificar. Sem eles o raster serve igual.
+    let nomes_das_classes = match poligonos_das_classes(&nome, &classes, c, g.epsg, g.celula) {
+        Ok(()) => format!(" Os nomes das classes estão na camada {classes}, logo abaixo."),
+        Err(e) => {
+            host::log(&format!("classes do MapBiomas: {e}"));
+            let _ = remover(&[&classes]);
+            String::new()
+        }
+    };
     host::notify(&format!(
-        "{nome}: classes do MapBiomas (Coleção 10) na grade do projeto, {}, com a classe mais frequente; as cores são as da legenda oficial.{piramide}",
+        "{nome}: classes do MapBiomas (Coleção 10) na grade do projeto, {}, com a classe mais frequente; as cores são as da legenda oficial.{piramide}{nomes_das_classes}",
         g.texto()
     ));
     Ok(Recorte::Feito(json!({
         "layer": nome, "year": ano, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula,
         "width": r["width"], "height": r["height"],
     })))
+}
+
+/// As classes do raster `raster` do MapBiomas como polígonos, uma feição por classe, com o nome da
+/// classe (campo `classe`) e a cor da legenda oficial, na camada `nome`, logo abaixo do raster, que
+/// a cobre. A legenda do layout do RustGIS lista só camadas vetoriais, e não as classes de um
+/// raster: é esta camada que põe os nomes nela (e no painel Camadas e no identificar).
+///
+/// Um retângulo acima de [`mapbiomas::MAX_CELULAS_CLASSES`] vetoriza uma cópia de células maiores,
+/// com a classe mais frequente: uma classe que só ocupa manchas pequenas pode ficar de fora. Como as
+/// manchas do DIST, os polígonos saem de uma cópia em graus quando a ferramenta do GeoLibre recusa o
+/// sistema da grade (o Albers do IBGE, EPSG:10857).
+fn poligonos_das_classes(raster: &str, nome: &str, c: [f64; 4], epsg: u32, celula: f64) -> Result<(), String> {
+    let poligonos = format!("{nome} (polígonos)");
+    let maiores = format!("{nome} (células maiores)");
+    let em_graus = format!("{nome} (em graus)");
+    remover(&[nome, &poligonos, &maiores, &em_graus])?;
+    let feito = (|| {
+        let grossa = mapbiomas::celula_das_classes(c, celula);
+        let origem = if grossa > celula {
+            host::run(
+                "raster.project",
+                json!({"layer": raster, "crs": epsg, "cellSize": grossa, "resampling": "mode", "name": maiores}),
+            )?;
+            maiores.as_str()
+        } else {
+            raster
+        };
+        if let Err(e) = ferramenta("geolibre:raster_to_vector_polygons", json!({"input": origem}), &poligonos) {
+            host::log(&format!("classes: no sistema da grade não deu ({e}); vão em graus"));
+            remover(&[&poligonos])?;
+            host::run(
+                "raster.project",
+                json!({"layer": origem, "crs": 4326, "cellSize": grossa / 111_320.0, "resampling": "nearest", "name": em_graus}),
+            )?;
+            ferramenta("geolibre:raster_to_vector_polygons", json!({"input": em_graus}), &poligonos)?;
+        }
+        let r = host::run("gp.run", json!({"tool": "dissolve", "params": {"input": poligonos, "field": "VALUE"}}))?;
+        let id = r.get("layer").or_else(|| r["layers"].get(0)).cloned().ok_or("o dissolve não disse a camada que fez")?;
+        host::run("layer.rename", json!({"layer": id, "name": nome}))?;
+        // Antes de descer a camada: as do meio, acima do raster, a deixariam sobre ele.
+        remover(&[&poligonos, &maiores, &em_graus])?;
+        host::run("edit.addField", json!({"layer": nome, "name": "classe", "type": "text"}))?;
+        host::run("edit.calculateField", json!({"layer": nome, "field": "classe", "expression": mapbiomas::expressao_das_classes()}))?;
+        let _ = host::run("style.remove", json!({"name": mapbiomas::ESTILO_DAS_CLASSES}));
+        host::run("style.add", json!({"text": mapbiomas::estilo_das_classes()}))?;
+        host::run("style.apply", json!({"layer": nome, "name": mapbiomas::ESTILO_DAS_CLASSES}))?;
+        // A camada nova chega no topo, logo acima do raster: uma posição abaixo, fica sob ele.
+        host::run("layer.moveDown", json!({"layer": nome}))?;
+        Ok(())
+    })();
+    remover(&[&poligonos, &maiores, &em_graus])?;
+    feito
 }
 
 /// A autoria e o resto da seção Sobre: o resumo no aviso e o texto inteiro na resposta (a da
