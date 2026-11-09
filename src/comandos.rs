@@ -2694,6 +2694,23 @@ fn layout_do_mapa(req: &Request) -> Result<Value, String> {
     // área passa a ser este.
     let _ = host::run("style.remove", json!({"name": estilo::guardado(AREA)}));
     let _ = host::run("style.new", json!({"layer": AREA, "name": estilo::guardado(AREA)}));
+    // Um polígono de referência maior que a área (municípios, regiões, bacias...) pintaria a folha
+    // inteira de uma cor: fica com um véu claro, o contorno e o nome de cada feição.
+    let dados = info["layers"].as_array().into_iter().flatten().find(|l| l["name"].as_str() == Some(principal.as_str()));
+    if let Some(l) = dados
+        && layout::referencia_maior(l, c)
+    {
+        host::run("layer.color", json!({"layer": principal, "color": "#B07AA133"}))?;
+        host::run("layer.outline", json!({"layer": principal, "color": "#7A3E6C", "width": 0.8}))?;
+        if let Some(campo) = layout::campo_do_nome(l)
+            && l["features"].as_u64().is_some_and(|n| n <= 300)
+        {
+            let _ = host::run("labels.field", json!({"layer": principal, "field": campo}));
+            let _ = host::run("labels.enable", json!({"layer": principal, "on": true}));
+        }
+        let _ = host::run("style.remove", json!({"name": estilo::guardado(&principal)}));
+        let _ = host::run("style.new", json!({"layer": principal, "name": estilo::guardado(&principal)}));
+    }
     if nomes()?.iter().any(|n| n == GRADE) {
         host::run("layer.visibility", json!({"layer": [GRADE], "visible": false}))?;
     }

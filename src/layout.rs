@@ -120,6 +120,33 @@ pub fn receita(nome: &str) -> Option<Receita> {
     Some(Receita { subtitulo: n.to_string(), barra: None, legenda: None, nota: None })
 }
 
+/// Se a camada `l` (uma do `info.project`) é um polígono de referência maior que o retângulo `c`
+/// da área, de um símbolo só: municípios, regiões, bacias, distritos. Pintado como veio, cobriria a
+/// folha inteira de uma cor. Um tema com classes de cor fica como está.
+pub fn referencia_maior(l: &serde_json::Value, c: [f64; 4]) -> bool {
+    let poligono = l["type"].as_str().is_some_and(|t| t.contains("Polygon"));
+    let simples = l["renderer"].as_str() == Some("Single Symbol");
+    let e: Vec<f64> = l["extent"].as_array().into_iter().flatten().filter_map(serde_json::Value::as_f64).collect();
+    let [x0, y0, x1, y1] = e[..] else { return false };
+    let (dx, dy) = ((c[2] - c[0]) * 0.02, (c[3] - c[1]) * 0.02);
+    poligono && simples && (x0 < c[0] - dx || y0 < c[1] - dy || x1 > c[2] + dx || y1 > c[3] + dy)
+}
+
+/// O campo com o nome de cada feição (`nm_mun`, `NM_UF`, `nome`...), para os rótulos: da lista
+/// `fields` do `info.project` ("nm_mun (Text)").
+pub fn campo_do_nome(l: &serde_json::Value) -> Option<String> {
+    l["fields"]
+        .as_array()?
+        .iter()
+        .filter_map(|f| f.as_str())
+        .map(|f| f.split(" (").next().unwrap_or(f))
+        .find(|f| {
+            let f = f.to_ascii_lowercase();
+            f.starts_with("nm_") || f == "nome" || f.starts_with("nome_")
+        })
+        .map(str::to_string)
+}
+
 /// O passo da grade em metros: o redondo que dá até 6 linhas no lado maior do retângulo `c`.
 pub fn passo_da_grade(c: [f64; 4]) -> f64 {
     let lat = ((c[1] + c[3]) / 2.0).to_radians();
@@ -169,6 +196,23 @@ mod tests {
         assert_eq!(receita(GRADE), None);
         assert_eq!(receita("Countries"), None);
         assert_eq!(receita("BrasilData: Setores censitários 2022 (MG)").unwrap().subtitulo, "Setores censitários 2022 (MG)");
+    }
+
+    #[test]
+    fn os_poligonos_de_referencia_maiores_que_a_area() {
+        let c = [-43.005, -20.839, -42.754, -20.655];
+        let municipios = serde_json::json!({"type": "Polygon", "renderer": "Single Symbol", "extent": [-43.19, -20.99, -42.63, -20.45],
+            "fields": ["cd_mun (Text)", "nm_mun (Text)", "sigla_uf (Text)"]});
+        assert!(referencia_maior(&municipios, c));
+        assert_eq!(campo_do_nome(&municipios).as_deref(), Some("nm_mun"));
+        // Recortada pela área, ou com classes de cor, fica como está.
+        let solos = serde_json::json!({"type": "Polygon", "renderer": "Single Symbol", "extent": c, "fields": ["legenda (Text)"]});
+        assert!(!referencia_maior(&solos, c));
+        assert_eq!(campo_do_nome(&solos), None);
+        let dist = serde_json::json!({"type": "Polygon", "renderer": "Unique Values", "extent": [-44.0, -21.0, -42.0, -20.0]});
+        assert!(!referencia_maior(&dist, c));
+        let focos = serde_json::json!({"type": "Point", "renderer": "Single Symbol", "extent": [-44.0, -21.0, -42.0, -20.0]});
+        assert!(!referencia_maior(&focos, c));
     }
 
     #[test]
