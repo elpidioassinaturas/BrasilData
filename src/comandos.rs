@@ -1196,8 +1196,8 @@ fn citacoes() -> Result<(Vec<Value>, String), String> {
             lista.push(json!({"layer": n, "source": t.fonte, "license": t.licenca, "service": t.servico, "featureType": t.camada}));
         } else if n.starts_with(&format!("{PREFIXO}Uso e cobertura ")) && n.ends_with(" (MapBiomas)") {
             lista.push(json!({"layer": n, "source": mapbiomas::CITACAO, "license": mapbiomas::LICENCA}));
-        } else if n.starts_with(&format!("{PREFIXO}Uso e cobertura "))
-            && (n.ends_with(" (MapBiomas, recortado)") || n.ends_with(" (MapBiomas, classes)"))
+        } else if (n.starts_with(&format!("{PREFIXO}Uso e cobertura ")) && n.ends_with(" (MapBiomas, recortado)"))
+            || mapbiomas::eh_das_classes(&n)
         {
             lista.push(json!({"layer": n, "source": mapbiomas::CITACAO_RECORTE, "license": mapbiomas::LICENCA_RECORTE}));
         } else if n == camada_de_saude() {

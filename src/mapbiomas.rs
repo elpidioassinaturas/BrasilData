@@ -150,9 +150,18 @@ pub const ESTILO_DAS_CLASSES: &str = "BrasilData: classes do MapBiomas";
 /// maiores, com a classe mais frequente (o mesmo teto das manchas do DIST).
 pub const MAX_CELULAS_CLASSES: f64 = 5.0e6;
 
-/// A camada das classes de `ano`, polígonos logo abaixo do raster recortado.
+/// A camada das classes de `ano`, polígonos logo abaixo do raster recortado. O nome dela é o
+/// título das classes na legenda do layout, que mostra o nome da camada (opengeos/RustGIS#1654):
+/// por isso vai sem o prefixo do plugin e diz o que o mapa mostra.
 pub fn nome_das_classes(ano: i64) -> String {
-    format!("{}Uso e cobertura {ano} (MapBiomas, classes)", crate::PREFIXO)
+    format!("Uso e cobertura da terra em {ano} (MapBiomas)")
+}
+
+/// Se `nome` é o de uma camada de classes ([`nome_das_classes`]).
+pub fn eh_das_classes(nome: &str) -> bool {
+    nome.strip_prefix("Uso e cobertura da terra em ")
+        .and_then(|r| r.strip_suffix(" (MapBiomas)"))
+        .is_some_and(|ano| ano.len() == 4 && ano.bytes().all(|b| b.is_ascii_digit()))
 }
 
 /// A célula, em metros, que a camada das classes vetoriza num retângulo `c` ([oeste, sul, leste,
@@ -283,6 +292,9 @@ mod tests {
         // abaixo de 5 milhões.
         let z = celula_das_classes([-43.37, -22.92, -40.56, -20.52], 30.0);
         assert_eq!(z, 150.0);
-        assert_eq!(nome_das_classes(2024), "BrasilData: Uso e cobertura 2024 (MapBiomas, classes)");
+        assert_eq!(nome_das_classes(2024), "Uso e cobertura da terra em 2024 (MapBiomas)");
+        assert!(eh_das_classes(&nome_das_classes(2019)));
+        assert!(!eh_das_classes("Uso e cobertura da terra em 2024 (outra fonte)"));
+        assert!(!eh_das_classes("BrasilData: Uso e cobertura 2024 (MapBiomas)"));
     }
 }

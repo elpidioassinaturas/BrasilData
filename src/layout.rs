@@ -101,7 +101,7 @@ pub fn receita(nome: &str) -> Option<Receita> {
         });
     }
     if let Some(resto) = n.strip_prefix("Uso e cobertura ")
-        && (resto.ends_with(" (MapBiomas, recortado)") || resto.ends_with(" (MapBiomas, classes)"))
+        && resto.ends_with(" (MapBiomas, recortado)")
     {
         let ano = resto.split(' ').next().unwrap_or("");
         return Some(Receita {
@@ -218,8 +218,6 @@ mod tests {
         assert_eq!(r.barra, Some(("Razão VH/VV (dB)".into(), 6)));
         let r = receita("BrasilData: Uso e cobertura 2024 (MapBiomas, recortado)").unwrap();
         assert_eq!(r.subtitulo, "Uso e cobertura da terra em 2024 (MapBiomas, Coleção 10)");
-        let r = receita("BrasilData: Uso e cobertura 2024 (MapBiomas, classes)").unwrap();
-        assert_eq!((r.subtitulo.as_str(), r.legenda), ("Uso e cobertura da terra em 2024 (MapBiomas, Coleção 10)", None));
         assert_eq!(receita(AREA), None);
         assert_eq!(receita(GRADE), None);
         assert_eq!(receita("Countries"), None);
