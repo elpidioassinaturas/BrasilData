@@ -2298,6 +2298,22 @@ fn nomear_campos_dos_setores(camada: &str) -> Result<(), String> {
         host::run("edit.calculateField", json!({"layer": camada, "field": novo, "expression": codigo}))?;
         host::run("edit.deleteField", json!({"layer": camada, "field": codigo}))?;
     }
+    // A densidade, para comparar setores de tamanhos tão diferentes (o mapa do layout é dela), com
+    // os campos de agora.
+    let agora = host::run("layer.fields", json!({"layer": camada}))?;
+    let tem = |n: &str| {
+        agora.as_array().into_iter().flatten().filter_map(|f| f["name"].as_str()).find(|x| x.eq_ignore_ascii_case(n)).map(str::to_string)
+    };
+    if let Some(area) = tem("area_km2")
+        && tem("pessoas").is_some()
+        && tem(censo::CAMPO_DENSIDADE_SETOR).is_none()
+    {
+        host::run("edit.addField", json!({"layer": camada, "name": censo::CAMPO_DENSIDADE_SETOR, "type": "double"}))?;
+        host::run(
+            "edit.calculateField",
+            json!({"layer": camada, "field": censo::CAMPO_DENSIDADE_SETOR, "expression": format!("pessoas / {area}")}),
+        )?;
+    }
     Ok(())
 }
 
@@ -2694,20 +2710,44 @@ fn layout_do_mapa(req: &Request) -> Result<Value, String> {
     // área passa a ser este.
     let _ = host::run("style.remove", json!({"name": estilo::guardado(AREA)}));
     let _ = host::run("style.new", json!({"layer": AREA, "name": estilo::guardado(AREA)}));
-    // Um polígono de referência maior que a área (municípios, regiões, bacias...) pintaria a folha
-    // inteira de uma cor: fica com um véu claro, o contorno e o nome de cada feição.
     let dados = info["layers"].as_array().into_iter().flatten().find(|l| l["name"].as_str() == Some(principal.as_str()));
-    if let Some(l) = dados
-        && layout::referencia_maior(l, c)
-    {
-        host::run("layer.color", json!({"layer": principal, "color": "#B07AA133"}))?;
-        host::run("layer.outline", json!({"layer": principal, "color": "#7A3E6C", "width": 0.8}))?;
+    let mut subtitulo = r.subtitulo.clone();
+    let nomes_das_feicoes = |l: &Value, ate: u64| {
         if let Some(campo) = layout::campo_do_nome(l)
-            && l["features"].as_u64().is_some_and(|n| n <= 300)
+            && l["features"].as_u64().is_some_and(|n| n <= ate)
         {
             let _ = host::run("labels.field", json!({"layer": principal, "field": campo}));
             let _ = host::run("labels.enable", json!({"layer": principal, "on": true}));
         }
+    };
+    // Indicadores e setores: um mapa coroplético da variável principal da camada, em 5 classes:
+    // quantis com muitas feições, quebras naturais com poucas (os quantis de 9 municípios repetem
+    // limites). O que a variável é vai no subtítulo: um título na legenda tiraria uma classe da
+    // caixa, que tem a altura das linhas.
+    let metodo = if dados.and_then(|l| l["features"].as_u64()).is_some_and(|n| n >= 30) { "quantile" } else { "naturalBreaks" };
+    if let Some(l) = dados
+        && let Some((campo, o_que_e, rampa)) = layout::coropletico(l)
+        && host::run(
+            "layer.symbology",
+            json!({"layer": principal, "type": "graduated", "field": campo, "classes": 5, "method": metodo, "ramp": rampa}),
+        )
+        .is_ok()
+    {
+        subtitulo = format!("{}: {o_que_e}", r.subtitulo);
+        host::run("layer.outline", json!({"layer": principal, "color": "#FFFFFF", "width": 0.4}))?;
+        // Os nomes dos municípios; os dos setores seriam centenas iguais.
+        nomes_das_feicoes(l, 60);
+        let _ = host::run("style.remove", json!({"name": estilo::guardado(&principal)}));
+        let _ = host::run("style.new", json!({"layer": principal, "name": estilo::guardado(&principal)}));
+    }
+    // Um polígono de referência maior que a área (municípios, regiões, bacias...) pintaria a folha
+    // inteira de uma cor: fica com um véu claro, o contorno e o nome de cada feição.
+    else if let Some(l) = dados
+        && layout::referencia_maior(l, c)
+    {
+        host::run("layer.color", json!({"layer": principal, "color": "#B07AA133"}))?;
+        host::run("layer.outline", json!({"layer": principal, "color": "#7A3E6C", "width": 0.8}))?;
+        nomes_das_feicoes(l, 300);
         let _ = host::run("style.remove", json!({"name": estilo::guardado(&principal)}));
         let _ = host::run("style.new", json!({"layer": principal, "name": estilo::guardado(&principal)}));
     }
@@ -2719,7 +2759,7 @@ fn layout_do_mapa(req: &Request) -> Result<Value, String> {
     let texto = |k: &str, padrao: &str| req.params.get(k).and_then(Value::as_str).unwrap_or(padrao).to_string();
     let mut p = json!({
         "name": nome, "profile": texto("perfil", "a4"), "style": texto("estilo", "classic"), "extent": c,
-        "title": titulo, "subtitle": r.subtitulo, "sources": fontes, "reference": referencia,
+        "title": titulo, "subtitle": subtitulo, "sources": fontes, "reference": referencia,
         "author": "Elaborado com RustGIS e BrasilData · {date}",
         "headings": ["Fonte dos dados", "Referência cartográfica", "Nota"],
         "locator": "globe", "decimal": ",",
@@ -2765,7 +2805,7 @@ fn layout_do_mapa(req: &Request) -> Result<Value, String> {
     }
     host::notify(&format!(
         "Layout \"{nome}\": {} na área, em {}. Abra-o em Publicar para ajustar e exportar; um novo clique o refaz",
-        r.subtitulo,
+        subtitulo,
         grade::nome_do_sistema(epsg)
     ));
     Ok(json!({"layout": nome, "layer": principal, "crs": format!("EPSG:{epsg}")}))

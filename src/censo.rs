@@ -576,9 +576,12 @@ pub const CAMPOS_SETORES: &[(&str, &str, &str)] = &[
     ("v0007", "dom_part_ocupados", "long"),
 ];
 
+/// O campo da densidade dos setores, em habitantes por km² (pessoas / AREA_KM2).
+pub const CAMPO_DENSIDADE_SETOR: &str = "dens_hab_km2";
+
 /// O que são os campos dos setores, com o código do IBGE de cada um (para cruzar com as tabelas
 /// do IBGE). O v0006 o IBGE chama de percentual, mas o valor é a proporção, de 0 a 1.
-pub const CAMPOS_DOS_SETORES: &str = "Campos (código do IBGE): pessoas (V0001), total de pessoas; domicilios (V0002), total de domicílios; dom_particulares (V0003), domicílios particulares; dom_coletivos (V0004), domicílios coletivos; media_moradores (V0005), média de moradores em domicílios particulares ocupados; prop_imputados (V0006), proporção (0 a 1) de domicílios particulares ocupados imputados; dom_part_ocupados (V0007), domicílios particulares ocupados.";
+pub const CAMPOS_DOS_SETORES: &str = "Campos (código do IBGE): pessoas (V0001), total de pessoas; domicilios (V0002), total de domicílios; dom_particulares (V0003), domicílios particulares; dom_coletivos (V0004), domicílios coletivos; media_moradores (V0005), média de moradores em domicílios particulares ocupados; prop_imputados (V0006), proporção (0 a 1) de domicílios particulares ocupados imputados; dom_part_ocupados (V0007), domicílios particulares ocupados; dens_hab_km2, pessoas por km² (calculada pelo plugin).";
 
 #[cfg(test)]
 mod tests {

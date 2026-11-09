@@ -120,6 +120,30 @@ pub fn receita(nome: &str) -> Option<Receita> {
     Some(Receita { subtitulo: n.to_string(), barra: None, legenda: None, nota: None })
 }
 
+/// Os mapas coropléticos das camadas de indicadores e de setores: o campo, o que ele é (vai no
+/// subtítulo, depois do nome da camada) e a rampa de cores. Vale o primeiro que a camada tem (os
+/// campos de cada fonte de indicadores).
+pub const COROPLETICOS: &[(&str, &str, &str)] = &[
+    ("dens_hab_km2", "densidade demográfica (hab/km²)", "YlOrRd"),
+    ("dens_2022", "densidade demográfica em 2022 (hab/km²)", "YlOrRd"),
+    ("estab_2017", "estabelecimentos agropecuários em 2017", "YlGn"),
+    ("estab_organico", "estabelecimentos com produção orgânica em 2017", "Greens"),
+    ("pix_recebido", "Pix recebido no mês (R$)", "Blues"),
+    ("credito_custeio", "crédito rural de custeio no ano (R$)", "Greens"),
+    ("abstencao_2026", "abstenção no 1º turno de 2026 (%)", "Purples"),
+    ("caged_saldo_12m", "saldo de empregos formais em 12 meses (CAGED)", "Oranges"),
+];
+
+/// O mapa coroplético da camada `l` (uma do `info.project`): um polígono com um dos campos de
+/// [`COROPLETICOS`].
+pub fn coropletico(l: &serde_json::Value) -> Option<(&'static str, &'static str, &'static str)> {
+    if !l["type"].as_str().is_some_and(|t| t.contains("Polygon")) {
+        return None;
+    }
+    let campos: Vec<&str> = l["fields"].as_array()?.iter().filter_map(|f| f.as_str()).map(|f| f.split(" (").next().unwrap_or(f)).collect();
+    COROPLETICOS.iter().find(|(c, ..)| campos.contains(c)).copied()
+}
+
 /// Se a camada `l` (uma do `info.project`) é um polígono de referência maior que o retângulo `c`
 /// da área, de um símbolo só: municípios, regiões, bacias, distritos. Pintado como veio, cobriria a
 /// folha inteira de uma cor. Um tema com classes de cor fica como está.
@@ -196,6 +220,16 @@ mod tests {
         assert_eq!(receita(GRADE), None);
         assert_eq!(receita("Countries"), None);
         assert_eq!(receita("BrasilData: Setores censitários 2022 (MG)").unwrap().subtitulo, "Setores censitários 2022 (MG)");
+    }
+
+    #[test]
+    fn o_mapa_coropletico_dos_indicadores() {
+        let todos = serde_json::json!({"type": "Polygon", "fields": ["cd_mun (Text)", "pix_recebido (Double)", "dens_2022 (Double)"]});
+        assert_eq!(coropletico(&todos).map(|c| c.0), Some("dens_2022"), "a densidade vem antes");
+        let pix = serde_json::json!({"type": "Polygon", "fields": ["cd_mun (Text)", "pix_mes (Text)", "pix_recebido (Double)"]});
+        assert_eq!(coropletico(&pix).map(|c| c.0), Some("pix_recebido"));
+        assert_eq!(coropletico(&serde_json::json!({"type": "Polygon", "fields": ["nm_mun (Text)"]})), None);
+        assert_eq!(coropletico(&serde_json::json!({"type": "Point", "fields": ["dens_2022 (Double)"]})), None);
     }
 
     #[test]
