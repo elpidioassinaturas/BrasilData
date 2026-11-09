@@ -2049,6 +2049,9 @@ fn indicadores(fontes: &[Fonte]) -> Result<Value, String> {
     }
     let codigos: Vec<String> = municipios.iter().map(|m| m.0.clone()).collect();
     let nome = format!("{PREFIXO}{INDICADORES}");
+    // Os contornos que vieram agora ainda não estão no mapa: vão com os campos, no fim (pô-los
+    // antes também gastava a cota de instruções do plugin à toa com todas as fontes juntas).
+    let mut contornos_novos = false;
     let mut feicoes = match feicoes_da_camada_de(&nome, &codigos)? {
         Some(f) => f,
         None => {
@@ -2065,9 +2068,7 @@ fn indicadores(fontes: &[Fonte]) -> Result<Value, String> {
                 };
                 f.push(geojson::feature(geometria, json!({"cd_mun": cd, "nm_mun": nm, "sigla_uf": uf})));
             }
-            // Os contornos ficam no mapa já: um novo clique, depois de um limite, os reaproveita.
-            remover(&[&nome])?;
-            host::add_layer(&nome, geojson::collection(f.clone()))?;
+            contornos_novos = true;
             f
         }
     };
@@ -2079,8 +2080,15 @@ fn indicadores(fontes: &[Fonte]) -> Result<Value, String> {
                 indicadores::juntar(&mut campos, m);
                 feitas.push(f.id());
             }
-            // App web: o RustGIS roda o comando de novo quando as respostas chegarem.
-            Ok(Err(pendente)) => return Ok(pendente),
+            // App web: o RustGIS roda o comando de novo quando as respostas chegarem. Os contornos
+            // ficam no mapa, e a nova rodada os reaproveita.
+            Ok(Err(pendente)) => {
+                if contornos_novos {
+                    remover(&[&nome])?;
+                    host::add_layer(&nome, geojson::collection(feicoes))?;
+                }
+                return Ok(pendente);
+            }
             Err(e) if limite_da_chamada(&e) => faltam.push(f.id()),
             Err(e) => {
                 host::log(&format!("{}: {e}", f.id()));
@@ -2105,7 +2113,8 @@ fn indicadores(fontes: &[Fonte]) -> Result<Value, String> {
         }
     }
     let n = feicoes.len();
-    if !feitas.is_empty() {
+    // Sem fonte nenhuma, os contornos novos ficam para um novo clique depois de um limite.
+    if !feitas.is_empty() || contornos_novos {
         remover(&[&nome])?;
         host::add_layer(&nome, geojson::collection(feicoes))?;
     }
