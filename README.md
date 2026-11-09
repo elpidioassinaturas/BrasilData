@@ -72,6 +72,24 @@ mesmas escolhas. Sem grade, a primeira Elevação cria a padrão: 30 m, sistema 
 `plugin:brasildata/grade={"celula": 90, "crs": "albers"}`; o `crs` aceita também um código EPSG em
 metros.
 
+O botão **Layout** (grupo Área) monta uma folha pronta para exportar com o dado principal do
+BrasilData, que é a camada visível mais acima. A folha traz:
+- o nome da área no título e o que é o dado no subtítulo;
+- a barra de cores com a unidade, ou a legenda das classes;
+- as fontes no rodapé;
+- a projeção da grade, a grade em metros e a localização.
+
+Cada tipo de camada recebe o seu tratamento:
+- **Indicadores por município e setores censitários:** saem num mapa coroplético da variável
+  principal, em 5 classes (quantis com 30 feições ou mais, quebras naturais com menos). O
+  subtítulo diz qual é a variável: densidade, estabelecimentos agropecuários, Pix, crédito de
+  custeio, abstenção ou saldo do CAGED.
+- **Polígonos de referência maiores que a área** (municípios vizinhos, regiões, bacias): ficam com
+  um véu claro, o contorno e o nome de cada feição, sem pintar a folha inteira.
+
+Um novo clique refaz a folha. Por script:
+`plugin:brasildata/layout={"perfil": "a3", "estilo": "banner"}`.
+
 O **Radar (Sentinel-1, OPERA)**, em Uso e cobertura, traz o retroespalhamento do Sentinel-1
 corrigido do relevo (OPERA RTC-S1, 30 m), do ASF DAAC da NASA: a polarização **VV**, que responde
 mais à rugosidade e à umidade do solo, a **VH**, que responde mais ao volume da vegetação, e a
@@ -290,7 +308,10 @@ Fora da tabela, com a citação no comando **Fontes**:
   mesmo censo, traz a produção orgânica, a associação a cooperativas e entidades, as práticas de
   conservação, o plantio direto, a adubação orgânica ou química, quem não usou agrotóxicos e a área
   de sistemas agroflorestais. A tabela das fontes diz o que é cada campo;
-- **Setores censitários:** IBGE, Censo Demográfico 2022, agregados por setores;
+- **Setores censitários:** IBGE, Censo Demográfico 2022, agregados por setores. Os campos V0001 a
+  V0007 do IBGE chegam com nomes legíveis: `pessoas`, `domicilios`, `dom_particulares`,
+  `dom_coletivos`, `media_moradores`, `prop_imputados` (proporção de 0 a 1) e `dom_part_ocupados`.
+  O plugin acrescenta a densidade, `dens_hab_km2`;
 - **Uso e cobertura:** Projeto MapBiomas, Coleção 11 (1985 a 2025, 30 m), pela API da plataforma
   MapBiomas, como mapa de mosaicos com as cores da legenda oficial. É um mapa para ver, do Brasil
   inteiro: não é recortado pela área nem traz os valores das classes, porque o RustGIS 0.5.0 não
@@ -298,8 +319,10 @@ Fora da tabela, com a citação no comando **Fontes**:
   vale por algumas horas; um novo clique pede outro. O ano, de 1985 a 2025, se escolhe no controle
   MapBiomas: ano, no painel Área de trabalho, e cada ano vira uma camada. Abre também no app web.
   **Recortado pela área:** com uma área, de 2019 a 2024 e num RustGIS que lê a janela de um COG
-  remoto (depois da 0.5.0, no desktop e na linha de comando), vem o raster das classes: Coleção 10,
-  30 m, do espelho do Source Cooperative (o bucket oficial recusa acesso anônimo), só a janela da
+  remoto, vem o raster das classes. Isso vale na linha de comando desde o RustGIS 0.6.0, e no app
+  desktop a partir da versão com opengeos/RustGIS#1581. Num RustGIS que não lê a janela, o plugin
+  avisa e traz o mapa de mosaicos. O raster é o da Coleção 10, 30 m,
+  do espelho do Source Cooperative (o bucket oficial recusa acesso anônimo), só a janela da
   área, recortada pelo contorno e posta na grade do projeto com a classe mais frequente. Os valores
   são os códigos da legenda do MapBiomas, para medir áreas por classe. Áreas grandes vêm de uma
   pirâmide do arquivo, com células maiores;
@@ -307,7 +330,8 @@ Fora da tabela, com a citação no comando **Fontes**:
   J. Armston. 2025. GEDI L4D Imputed Waveforms, Version 2. ORNL DAAC.
   https://doi.org/10.3334/ORNLDAAC/2455. Altura do dossel (rh98), biomassa acima do solo e cobertura
   do dossel a 30 m, dos disparos do laser do GEDI de 2019 a 2023 imputados com o Landsat. Pede o login
-  Earthdata e um RustGIS que leia só a janela da área (depois da 0.5.0): cada arquivo cobre um fuso UTM;
+  Earthdata e um RustGIS que leia só a janela da área (na linha de comando desde a 0.6.0; no
+  desktop, a partir da versão com opengeos/RustGIS#1581): cada arquivo cobre um fuso UTM;
 - **Estabelecimentos de saúde:** Ministério da Saúde, CNES, competência 04/2026, pelo
   [geobr](https://github.com/ipea/geobr) do Ipea (GeoParquet do Brasil, 98 MB, lido aos pedaços).
   Ficam os ativos, sem os de pessoa física e de empresário individual, cujo nome é o de uma
