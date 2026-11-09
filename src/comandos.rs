@@ -2251,6 +2251,7 @@ fn censo_setores() -> Result<Value, String> {
         let recortada = r.get("layer").cloned().ok_or("o clip não disse a camada que fez")?;
         host::run("layer.rename", json!({"layer": recortada, "name": nome}))?;
         remover(&[&bruto])?;
+        nomear_campos_dos_setores(&nome)?;
         let n = feicoes_da_camada(&nome)?.unwrap_or(0);
         feitas.push(json!({"layer": nome, "features": n}));
     }
@@ -2268,6 +2269,27 @@ fn censo_setores() -> Result<Value, String> {
         ));
     }
     Ok(json!({"layers": feitas, "downloading": baixando}))
+}
+
+/// Troca os códigos `v0001` a `v0007` dos setores pelos nomes de [`censo::CAMPOS_SETORES`]: o
+/// RustGIS não renomeia campos, então cada um ganha o campo novo, o valor e perde o código. Um
+/// campo que não está na camada (o IBGE mudou o arquivo) fica como está.
+fn nomear_campos_dos_setores(camada: &str) -> Result<(), String> {
+    let campos = host::run("layer.fields", json!({"layer": camada}))?;
+    // O nome como está na camada (v0001 ou V0001).
+    let nome_de = |n: &str| {
+        campos.as_array().into_iter().flatten().filter_map(|f| f["name"].as_str()).find(|x| x.eq_ignore_ascii_case(n)).map(str::to_string)
+    };
+    for (codigo, novo, tipo) in censo::CAMPOS_SETORES {
+        let Some(codigo) = nome_de(codigo) else { continue };
+        if nome_de(novo).is_some() {
+            continue;
+        }
+        host::run("edit.addField", json!({"layer": camada, "name": novo, "type": tipo}))?;
+        host::run("edit.calculateField", json!({"layer": camada, "field": novo, "expression": codigo}))?;
+        host::run("edit.deleteField", json!({"layer": camada, "field": codigo}))?;
+    }
+    Ok(())
 }
 
 /// O nome da camada dos estabelecimentos de saúde.

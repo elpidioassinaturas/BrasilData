@@ -648,7 +648,7 @@
     {
       "id": "censo-setores",
       "label": "Setores censitários (IBGE)",
-      "help": "Os setores censitários de 2022 da área, com pessoas e domicílios (IBGE, agregados por setores): o GeoPackage de cada UF, recortado pela área. No app web, um segundo clique recorta.",
+      "help": "Os setores censitários de 2022 da área, com pessoas e domicílios (IBGE, agregados por setores): o GeoPackage de cada UF, recortado pela área, com os campos v0001 a v0007 do IBGE renomeados (pessoas, domicilios, dom_particulares, dom_coletivos, media_moradores, prop_imputados, dom_part_ocupados; o código de cada um fica na tabela Fontes). No app web, um segundo clique recorta.",
       "icon": "polygon_layer",
       "params": "{}"
     },

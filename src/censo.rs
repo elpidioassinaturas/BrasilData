@@ -563,8 +563,22 @@ pub fn url_setores(uf: &str) -> String {
     )
 }
 
-/// O que são os campos `v0001` a `v0007` dos setores (dicionário de dados do IBGE).
-pub const CAMPOS_DOS_SETORES: &str = "v0001: pessoas; v0002: domicílios; v0003: domicílios particulares; v0004: domicílios coletivos; v0005: média de moradores por domicílio particular ocupado; v0006: % de domicílios particulares ocupados imputados; v0007: domicílios particulares ocupados.";
+/// Os campos `v0001` a `v0007` dos setores e o nome que ganham no mapa: o código do IBGE, o nome
+/// novo e o tipo (`edit.addField`). O significado é o do dicionário de dados da malha com atributos
+/// (Dicionario_de_dados_malha_agregados.xlsx).
+pub const CAMPOS_SETORES: &[(&str, &str, &str)] = &[
+    ("v0001", "pessoas", "long"),
+    ("v0002", "domicilios", "long"),
+    ("v0003", "dom_particulares", "long"),
+    ("v0004", "dom_coletivos", "long"),
+    ("v0005", "media_moradores", "double"),
+    ("v0006", "prop_imputados", "double"),
+    ("v0007", "dom_part_ocupados", "long"),
+];
+
+/// O que são os campos dos setores, com o código do IBGE de cada um (para cruzar com as tabelas
+/// do IBGE). O v0006 o IBGE chama de percentual, mas o valor é a proporção, de 0 a 1.
+pub const CAMPOS_DOS_SETORES: &str = "Campos (código do IBGE): pessoas (V0001), total de pessoas; domicilios (V0002), total de domicílios; dom_particulares (V0003), domicílios particulares; dom_coletivos (V0004), domicílios coletivos; media_moradores (V0005), média de moradores em domicílios particulares ocupados; prop_imputados (V0006), proporção (0 a 1) de domicílios particulares ocupados imputados; dom_part_ocupados (V0007), domicílios particulares ocupados.";
 
 #[cfg(test)]
 mod tests {
