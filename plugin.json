@@ -802,7 +802,7 @@
     {
       "id": "amostra-aleatoria",
       "label": "Aleatória simples",
-      "help": "Amostragem aleatória simples: pontos para ir a campo, sorteados dentro da área de trabalho, todos com a mesma chance, na camada BrasilData: amostragem aleatória (rótulo, método, sorteio, longitude e latitude SIRGAS 2000). O número de pontos e o sorteio vêm do painel Área de trabalho.",
+      "help": "Amostragem aleatória simples: pontos para ir a campo, sorteados dentro da área de trabalho, todos com a mesma chance, na camada BrasilData: amostragem aleatória (rótulo, método, sorteio, longitude e latitude SIRGAS 2000). O número de pontos, o sorteio e o arquivo de pontos vêm da janela do comando; num RustGIS sem janelas de plugin, do painel Área de trabalho.",
       "icon": "point_layer",
       "params": "{\"pontos\"?: de 1 a 500 (padrão: o do painel, ou 30), \"sorteio\"?: número a partir de 1 (padrão: o do painel, ou 1), \"arquivo\"?: arquivo em que os pontos são gravados (.gpkg, .shp, .geojson, .csv, .kml, .gpx; só o nome vai para a pasta do projeto)}",
       "form": [
@@ -833,7 +833,7 @@
     {
       "id": "amostra-estratificada",
       "label": "Estratificada",
-      "help": "Amostragem aleatória estratificada: os estratos são as classes de uma camada de polígonos (clique antes nela no painel Camadas, por exemplo BrasilData: Solos). Cada estrato recebe pontos na proporção da sua área dentro da área de trabalho, com pelo menos um, e os pontos caem ao acaso dentro dele. O campo das classes é o que tem menos classes (de 2 a 30); por script, outro.",
+      "help": "Amostragem aleatória estratificada: os estratos são as classes de uma camada de polígonos (clique antes nela no painel Camadas, por exemplo BrasilData: Solos). Cada estrato recebe pontos na proporção da sua área dentro da área de trabalho, com pelo menos um, e os pontos caem ao acaso dentro dele. Na janela do comando ficam a camada e o campo dos estratos, o número de pontos, o mínimo por estrato, o sorteio e o arquivo de pontos; sem janela, o campo é o que tem menos classes (de 2 a 30).",
       "icon": "polygon_layer",
       "params": "{\"pontos\"?: de 1 a 500, \"sorteio\"?: número a partir de 1, \"camada\"?: a camada dos estratos (padrão: a ativa), \"campo\"?: o campo das classes (padrão: o de menos classes, de 2 a 30), \"minimo\"?: pontos por estrato (padrão 1), \"arquivo\"?: arquivo em que os pontos são gravados (.gpkg, .shp, .geojson, .csv, .kml, .gpx; só o nome vai para a pasta do projeto)}",
       "form": [
@@ -884,7 +884,7 @@
     {
       "id": "amostra-sistematica",
       "label": "Sistemática (grade)",
-      "help": "Amostragem sistemática: uma grade de pontos dentro da área de trabalho, com o espaçamento do painel (de 50 m a 10 km) e a origem sorteada, numerada em zigue-zague de norte a sul, na camada BrasilData: amostragem sistemática.",
+      "help": "Amostragem sistemática: uma grade de pontos dentro da área de trabalho, com o espaçamento escolhido e a origem sorteada, numerada em zigue-zague de norte a sul, na camada BrasilData: amostragem sistemática. O espaçamento, o sorteio e o arquivo de pontos vêm da janela do comando; num RustGIS sem janelas de plugin, do painel.",
       "icon": "graticule",
       "params": "{\"espacamento\"?: metros, de 1 a 100.000 (padrão: o do painel, ou 500), \"sorteio\"?: número a partir de 1 (a origem da grade), \"arquivo\"?: arquivo em que os pontos são gravados (.gpkg, .shp, .geojson, .csv, .kml, .gpx; só o nome vai para a pasta do projeto)}",
       "form": [

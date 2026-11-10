@@ -3159,7 +3159,8 @@ fn resposta_da_amostra(req: &Request, nome: &str, pontos: u64, texto: &str, mais
         host::notify(&sobre_o_arquivo);
     }
     let texto = if sobre_o_arquivo.is_empty() { texto.to_string() } else { format!("{texto}\n\n{sobre_o_arquivo}") };
-    let mut r = json!({"layer": nome, "points": pontos, "panel": {"items": {AMOSTRA_TEXTO: {"text": texto}}}});
+    // `report`: o texto que a janela do comando mostra depois de executar (opengeos/RustGIS#1547).
+    let mut r = json!({"layer": nome, "points": pontos, "report": texto, "panel": {"items": {AMOSTRA_TEXTO: {"text": texto}}}});
     if let Some(c) = arquivo {
         r["file"] = json!(c);
     }
@@ -3195,7 +3196,18 @@ fn gravar_amostra(req: &Request, nome: &str) -> Result<Option<String>, String> {
         }
         p["mode"] = json!("replaceTable");
     }
-    host::run("share.exportLayer", p).map_err(|e| format!("o RustGIS não gravou {caminho} ({e})"))?;
+    // O GPX e o KML dão a cada ponto o nome do campo `name` (senão, o número da feição): o rótulo
+    // P01, P02…, num campo que só existe durante a gravação.
+    let com_nome = ["gpx", "kml"].contains(&ext.as_str());
+    if com_nome {
+        host::run("edit.addField", json!({"layer": nome, "name": "name", "type": "text"}))?;
+        host::run("edit.calculateField", json!({"layer": nome, "field": "name", "expression": "\"ponto\""}))?;
+    }
+    let gravado = host::run("share.exportLayer", p).map_err(|e| format!("o RustGIS não gravou {caminho} ({e})"));
+    if com_nome {
+        host::run("edit.deleteField", json!({"layer": nome, "field": "name"}))?;
+    }
+    gravado?;
     Ok(Some(caminho))
 }
 
