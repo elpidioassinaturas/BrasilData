@@ -184,21 +184,39 @@ AMOSTRAGEM = [
         "label": "Aleatória simples",
         "help": "Amostragem aleatória simples: pontos para ir a campo, sorteados dentro da área de trabalho, todos com a mesma chance, na camada BrasilData: amostragem aleatória (rótulo, método, sorteio, longitude e latitude SIRGAS 2000). O número de pontos e o sorteio vêm do painel Área de trabalho.",
         "icon": "point_layer",
-        "params": "{\"pontos\"?: de 1 a 2000 (padrão: o do painel, ou 30), \"sorteio\"?: número a partir de 1 (padrão: o do painel, ou 1)}",
+        "params": "{\"pontos\"?: de 1 a 500 (padrão: o do painel, ou 30), \"sorteio\"?: número a partir de 1 (padrão: o do painel, ou 1), \"arquivo\"?: arquivo em que os pontos são gravados (.gpkg, .shp, .geojson, .csv, .kml, .gpx; só o nome vai para a pasta do projeto)}",
+        "form": [
+            {"name": "pontos", "label": "Número de pontos", "kind": "number", "required": True, "default": 30, "help": "De 1 a 500 pontos, sorteados dentro da área de trabalho."},
+            {"name": "sorteio", "label": "Sorteio", "kind": "number", "default": 1, "help": "O número do sorteio, a partir de 1. O mesmo número, na mesma área e com o mesmo método, dá os mesmos pontos; outro número dá outra amostra."},
+            {"name": "arquivo", "label": "Arquivo de pontos", "kind": "text", "default": "amostragem_aleatoria.gpkg", "help": "O arquivo em que os pontos são gravados: só o nome vai para a pasta do projeto; também aceita um caminho completo. Formatos: .gpkg (o padrão), .shp, .geojson, .csv, .kml ou .gpx (para o GPS). Vazio: os pontos ficam só no mapa."},
+        ],
     },
     {
         "id": "amostra-estratificada",
         "label": "Estratificada",
         "help": "Amostragem aleatória estratificada: os estratos são as classes de uma camada de polígonos (clique antes nela no painel Camadas, por exemplo BrasilData: Solos). Cada estrato recebe pontos na proporção da sua área dentro da área de trabalho, com pelo menos um, e os pontos caem ao acaso dentro dele. O campo das classes é o que tem menos classes (de 2 a 30); por script, outro.",
         "icon": "polygon_layer",
-        "params": "{\"pontos\"?: de 1 a 2000, \"sorteio\"?: número a partir de 1, \"camada\"?: a camada dos estratos (padrão: a ativa), \"campo\"?: o campo das classes (padrão: o de menos classes, de 2 a 30), \"minimo\"?: pontos por estrato (padrão 1)}",
+        "params": "{\"pontos\"?: de 1 a 500, \"sorteio\"?: número a partir de 1, \"camada\"?: a camada dos estratos (padrão: a ativa), \"campo\"?: o campo das classes (padrão: o de menos classes, de 2 a 30), \"minimo\"?: pontos por estrato (padrão 1), \"arquivo\"?: arquivo em que os pontos são gravados (.gpkg, .shp, .geojson, .csv, .kml, .gpx; só o nome vai para a pasta do projeto)}",
+        "form": [
+            {"name": "camada", "label": "Camada dos estratos", "kind": "polygonLayer", "required": True, "help": "Os polígonos que dividem a área em estratos, como BrasilData: Solos ou a camada das classes do MapBiomas."},
+            {"name": "campo", "label": "Campo das classes", "kind": "field", "help": "O campo que dá o estrato de cada polígono. Vazio: o que tem menos classes, de 2 a 30."},
+            {"name": "pontos", "label": "Número de pontos", "kind": "number", "required": True, "default": 30, "help": "De 1 a 500 pontos no total, repartidos entre os estratos na proporção da área de cada um."},
+            {"name": "minimo", "label": "Mínimo por estrato", "kind": "number", "default": 1, "help": "Quantos pontos cada estrato recebe pelo menos, mesmo os pequenos."},
+            {"name": "sorteio", "label": "Sorteio", "kind": "number", "default": 1, "help": "O número do sorteio, a partir de 1. O mesmo número, na mesma área e com o mesmo método, dá os mesmos pontos; outro número dá outra amostra."},
+            {"name": "arquivo", "label": "Arquivo de pontos", "kind": "text", "default": "amostragem_estratificada.gpkg", "help": "O arquivo em que os pontos são gravados: só o nome vai para a pasta do projeto; também aceita um caminho completo. Formatos: .gpkg (o padrão), .shp, .geojson, .csv, .kml ou .gpx (para o GPS). Vazio: os pontos ficam só no mapa."},
+        ],
     },
     {
         "id": "amostra-sistematica",
         "label": "Sistemática (grade)",
         "help": "Amostragem sistemática: uma grade de pontos dentro da área de trabalho, com o espaçamento do painel (de 50 m a 10 km) e a origem sorteada, numerada em zigue-zague de norte a sul, na camada BrasilData: amostragem sistemática.",
         "icon": "graticule",
-        "params": "{\"espacamento\"?: metros, de 1 a 100.000 (padrão: o do painel, ou 500), \"sorteio\"?: número a partir de 1 (a origem da grade)}",
+        "params": "{\"espacamento\"?: metros, de 1 a 100.000 (padrão: o do painel, ou 500), \"sorteio\"?: número a partir de 1 (a origem da grade), \"arquivo\"?: arquivo em que os pontos são gravados (.gpkg, .shp, .geojson, .csv, .kml, .gpx; só o nome vai para a pasta do projeto)}",
+        "form": [
+            {"name": "espacamento", "label": "Espaçamento (m)", "kind": "number", "required": True, "default": 500, "help": "A distância entre os pontos da grade, em metros, de 1 a 100.000. A grade tem no máximo 2.000 pontos no retângulo da área."},
+            {"name": "sorteio", "label": "Sorteio", "kind": "number", "default": 1, "help": "O número do sorteio, a partir de 1: ele sorteia a origem da grade. O mesmo número, na mesma área, dá a mesma grade."},
+            {"name": "arquivo", "label": "Arquivo de pontos", "kind": "text", "default": "amostragem_sistematica.gpkg", "help": "O arquivo em que os pontos são gravados: só o nome vai para a pasta do projeto; também aceita um caminho completo. Formatos: .gpkg (o padrão), .shp, .geojson, .csv, .kml ou .gpx (para o GPS). Vazio: os pontos ficam só no mapa."},
+        ],
     },
 ]
 # Os comandos que vão no fim de um grupo da aba: as fontes, com a área.

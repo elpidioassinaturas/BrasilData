@@ -3144,15 +3144,59 @@ fn amostra_da_selecao(
     Ok(n)
 }
 
-/// O texto no aviso e no painel, e a resposta de uma amostra.
-fn resposta_da_amostra(nome: &str, pontos: u64, texto: &str, mais: Value) -> Value {
+/// O texto no aviso e no painel, e a resposta de uma amostra. Com `arquivo` no pedido (a janela do
+/// comando, ou um script), a amostra também vai para esse arquivo ([`gravar_amostra`]); se não der,
+/// a camada fica no mapa e o aviso diz por quê.
+fn resposta_da_amostra(req: &Request, nome: &str, pontos: u64, texto: &str, mais: Value) -> Value {
     let curto: String = texto.chars().take(480).collect();
     host::notify(&curto);
+    let (arquivo, sobre_o_arquivo) = match gravar_amostra(req, nome) {
+        Ok(None) => (None, String::new()),
+        Ok(Some(c)) => (Some(c.clone()), format!("Os pontos foram gravados em {c}.")),
+        Err(e) => (None, format!("Os pontos ficaram só no mapa: {e}.")),
+    };
+    if !sobre_o_arquivo.is_empty() {
+        host::notify(&sobre_o_arquivo);
+    }
+    let texto = if sobre_o_arquivo.is_empty() { texto.to_string() } else { format!("{texto}\n\n{sobre_o_arquivo}") };
     let mut r = json!({"layer": nome, "points": pontos, "panel": {"items": {AMOSTRA_TEXTO: {"text": texto}}}});
+    if let Some(c) = arquivo {
+        r["file"] = json!(c);
+    }
     if let (Some(r), Some(m)) = (r.as_object_mut(), mais.as_object()) {
         r.extend(m.clone());
     }
     r
+}
+
+/// Grava a camada da amostra `nome` no arquivo do pedido (`arquivo`), se houver, e devolve o
+/// caminho ([`amostragem::caminho_do_arquivo`]: só o nome vai para a pasta do projeto). Os pontos
+/// vão em SIRGAS 2000 (EPSG:4674), como as colunas lon e lat; o GeoJSON, o KML e o GPX ficam no
+/// WGS 84 que o formato pede. Um GeoPackage que já existe ganha a tabela de novo; os outros
+/// formatos não sobrescrevem um arquivo.
+fn gravar_amostra(req: &Request, nome: &str) -> Result<Option<String>, String> {
+    let arquivo = req.str("arquivo").unwrap_or("").trim().to_string();
+    if arquivo.is_empty() {
+        return Ok(None);
+    }
+    let projeto = host::run("info.project", json!({"nameFilter": nome}))?;
+    let Some(caminho) = amostragem::caminho_do_arquivo(&arquivo, projeto["path"].as_str())? else {
+        return Ok(None);
+    };
+    let ext = caminho.rsplit_once('.').map(|(_, e)| e.to_lowercase()).unwrap_or_default();
+    let mut p = json!({"layer": nome, "path": caminho});
+    if ["gpkg", "shp", "fgb"].contains(&ext.as_str()) {
+        p["crs"] = json!("EPSG:4674");
+    }
+    if ext == "gpkg" {
+        p["tableName"] = json!(amostragem::tabela_do_arquivo(&caminho));
+        if host::run("share.exportLayer", p.clone()).is_ok() {
+            return Ok(Some(caminho));
+        }
+        p["mode"] = json!("replaceTable");
+    }
+    host::run("share.exportLayer", p).map_err(|e| format!("o RustGIS não gravou {caminho} ({e})"))?;
+    Ok(Some(caminho))
 }
 
 /// Amostragem aleatória simples: `pontos` ao acaso na área, todos com a mesma chance.
@@ -3168,7 +3212,7 @@ fn amostra_aleatoria(req: &Request) -> Result<Value, String> {
     remover(&[amostragem::NA_AREA])?;
     let n = feito?;
     let texto = format!("Amostragem aleatória simples: {n} pontos na área, sorteio {sorteio}. Outro sorteio dá outros pontos");
-    Ok(resposta_da_amostra(amostragem::ALEATORIA, n, &texto, json!({})))
+    Ok(resposta_da_amostra(req, amostragem::ALEATORIA, n, &texto, json!({})))
 }
 
 /// A camada dos estratos: a do `camada` do script, ou a ativa. Precisa ser de polígonos, e não a
@@ -3176,7 +3220,7 @@ fn amostra_aleatoria(req: &Request) -> Result<Value, String> {
 fn camada_dos_estratos(req: &Request) -> Result<String, String> {
     let camadas = host::layers()?;
     let lista = camadas.as_array().cloned().unwrap_or_default();
-    let escolhida = match req.str("camada") {
+    let escolhida = match req.str("camada").map(str::trim).filter(|c| !c.is_empty()) {
         Some(nome) => lista.iter().find(|l| l["name"].as_str() == Some(nome)).ok_or_else(|| format!("não há camada '{nome}' no mapa"))?,
         None => lista.iter().find(|l| l["active"].as_bool() == Some(true)).ok_or(
             "escolha a camada dos estratos: clique nela no painel Camadas (por exemplo, BrasilData: Solos) e de novo em Amostragem estratificada",
@@ -3284,7 +3328,7 @@ fn estratificar(req: &Request, estratos: &str, n: u64, minimo: usize, sorteio: i
     // O campo: o do script, ou o de menos classes (de 2 a 30) nos 120 primeiros pontos.
     let primeiros = primeiras(camada, None, 120, sorteados)?;
     let campos = amostragem::campos_dos_estratos(&primeiros);
-    let campo = match req.str("campo") {
+    let campo = match req.str("campo").map(str::trim).filter(|c| !c.is_empty()) {
         Some(c) => host::run("layer.fields", json!({"layer": camada}))?
             .as_array()
             .into_iter()
@@ -3348,7 +3392,7 @@ fn estratificar(req: &Request, estratos: &str, n: u64, minimo: usize, sorteio: i
         texto.push_str(&format!(". Outros campos, por script (\"campo\"): {}", outros.join(", ")));
     }
     let nomes: Vec<&str> = lista.iter().map(|e| e.nome.as_str()).collect();
-    Ok(resposta_da_amostra(amostragem::ESTRATIFICADA, total, &texto, json!({"field": legivel, "strata": nomes, "allocation": alocacao})))
+    Ok(resposta_da_amostra(req, amostragem::ESTRATIFICADA, total, &texto, json!({"field": legivel, "strata": nomes, "allocation": alocacao})))
 }
 
 /// Amostragem sistemática: uma grade de pontos com o espaçamento em metros e a origem sorteada,
@@ -3380,7 +3424,7 @@ fn amostra_sistematica(req: &Request) -> Result<Value, String> {
     let texto = format!(
         "Amostragem sistemática: {n} pontos a cada {esp} na área, origem do sorteio {sorteio}, numerados em zigue-zague de norte a sul"
     );
-    Ok(resposta_da_amostra(amostragem::SISTEMATICA, n, &texto, json!({})))
+    Ok(resposta_da_amostra(req, amostragem::SISTEMATICA, n, &texto, json!({})))
 }
 
 /// A autoria e o resto da seção Sobre: o resumo no aviso e o texto inteiro na resposta (a da

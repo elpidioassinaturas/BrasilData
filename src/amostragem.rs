@@ -63,6 +63,50 @@ pub const SORTEIOS: i64 = 20;
 /// O mínimo de pontos por estrato, quando o script não diz outro.
 pub const MINIMO_PADRAO: usize = 1;
 
+/// Os formatos em que a amostra pode ser gravada: o GeoPackage (o padrão), os de troca e os de
+/// GPS (KML e GPX), para levar a campo.
+pub const FORMATOS: [&str; 7] = ["gpkg", "shp", "geojson", "csv", "kml", "gpx", "fgb"];
+
+/// O arquivo em que a amostra é gravada, a partir do que a pessoa escreveu (`arquivo`) e do
+/// projeto salvo (`projeto`, o caminho do `.rgis`):
+/// - vazio: nenhum (`Ok(None)`), só a camada no mapa;
+/// - sem extensão: `.gpkg`;
+/// - um caminho completo (`C:\…`, `/…`, `\\servidor\…`) vale como está;
+/// - só o nome (ou um caminho relativo): na pasta do projeto. Sem projeto salvo, não há pasta, e
+///   o erro diz como resolver.
+pub fn caminho_do_arquivo(arquivo: &str, projeto: Option<&str>) -> Result<Option<String>, String> {
+    let a = arquivo.trim();
+    if a.is_empty() {
+        return Ok(None);
+    }
+    let nome = a.rsplit(['/', '\\']).next().unwrap_or(a);
+    let a = match nome.rsplit_once('.') {
+        Some((base, ext)) if !base.is_empty() => {
+            let ext = ext.to_lowercase();
+            if !FORMATOS.contains(&ext.as_str()) {
+                return Err(format!("o arquivo .{ext} não é um dos formatos aceitos ({})", FORMATOS.map(|f| format!(".{f}")).join(", ")));
+            }
+            a.to_string()
+        }
+        _ => format!("{a}.gpkg"),
+    };
+    let completo = a.starts_with('/') || a.starts_with('\\') || a.as_bytes().get(1) == Some(&b':');
+    if completo {
+        return Ok(Some(a));
+    }
+    let projeto = projeto.map(str::trim).filter(|p| !p.is_empty()).ok_or_else(|| {
+        format!("o projeto ainda não foi salvo, e o arquivo {a} vai para a pasta dele: salve o projeto ou dê o caminho completo")
+    })?;
+    let pasta = projeto.rfind(['/', '\\']).map_or("", |i| &projeto[..=i]);
+    Ok(Some(format!("{pasta}{a}")))
+}
+
+/// O nome da tabela de um GeoPackage: o nome do arquivo, sem a extensão.
+pub fn tabela_do_arquivo(caminho: &str) -> String {
+    let nome = caminho.rsplit(['/', '\\']).next().unwrap_or(caminho);
+    nome.rsplit_once('.').map_or(nome, |(b, _)| b).to_string()
+}
+
 /// Os pontos da grade sistemática no retângulo da área: mais que isto passa da cota de instruções
 /// do plugin ao montar a camada deles.
 pub const MAX_CANDIDATOS: usize = 2_000;
@@ -336,6 +380,21 @@ mod tests {
     use super::*;
 
     const TERESINA: [f64; 4] = [-42.9707, -5.5866, -42.599, -4.7863];
+
+    #[test]
+    fn o_arquivo_vai_para_a_pasta_do_projeto_ou_para_o_caminho_dado() {
+        let p = Some(r"C:\dados\vicosa\vicosa.rgis");
+        assert_eq!(caminho_do_arquivo("", p), Ok(None));
+        assert_eq!(caminho_do_arquivo("  ", None), Ok(None));
+        assert_eq!(caminho_do_arquivo("pontos", p), Ok(Some(r"C:\dados\vicosa\pontos.gpkg".into())));
+        assert_eq!(caminho_do_arquivo("campo.GPX", p), Ok(Some(r"C:\dados\vicosa\campo.GPX".into())));
+        assert_eq!(caminho_do_arquivo("saida/pontos.shp", Some("/home/a/p.rgis")), Ok(Some("/home/a/saida/pontos.shp".into())));
+        assert_eq!(caminho_do_arquivo(r"D:\campo\pts.kml", None), Ok(Some(r"D:\campo\pts.kml".into())));
+        assert_eq!(caminho_do_arquivo("/tmp/pts", None), Ok(Some("/tmp/pts.gpkg".into())));
+        assert!(caminho_do_arquivo("pontos.xlsx", p).unwrap_err().contains(".xlsx"));
+        assert!(caminho_do_arquivo("pontos", None).unwrap_err().contains("salve o projeto"));
+        assert_eq!(tabela_do_arquivo(r"C:\dados\amostra 1.gpkg"), "amostra 1");
+    }
 
     #[test]
     fn o_sorteio_se_repete_e_cada_numero_da_outra_amostra() {

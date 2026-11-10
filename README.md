@@ -95,6 +95,21 @@ pontos por amostra, e até 2.000 pontos da grade no retângulo da área. Por scr
 `plugin:brasildata/amostra-estratificada={"pontos": 60, "camada": "BrasilData: Solos (BDiA 1:250.000)", "campo": "legenda", "minimo": 2, "sorteio": 3}`
 e `plugin:brasildata/amostra-sistematica={"espacamento": 2000}`.
 
+Cada método abre uma **janela** com os seus parâmetros:
+- **Aleatória simples:** o número de pontos e o sorteio;
+- **Estratificada:** a camada e o campo dos estratos, o número de pontos, o mínimo por estrato e o
+  sorteio;
+- **Sistemática:** o espaçamento em metros e o sorteio.
+
+Todas têm também o **arquivo de pontos**. Só o nome (`amostragem_aleatoria.gpkg`, o padrão) grava o
+arquivo na pasta do projeto; um caminho completo grava onde ele diz. Os formatos são .gpkg, .shp,
+.geojson, .csv, .kml e .gpx, este para o GPS. O GeoPackage e o Shapefile saem em SIRGAS 2000, e um
+GeoPackage que já existe recebe a amostra nova. Num projeto ainda não salvo, só o nome não tem
+pasta: os pontos ficam no mapa, e o aviso pede para salvar o projeto ou dar o caminho completo.
+Vazio, os pontos ficam só no mapa. A janela vem num RustGIS com as janelas de comando de plugin
+(opengeos/RustGIS#1547); no RustGIS 0.6.0, os botões usam o painel, e o arquivo vai por script:
+`plugin:brasildata/amostra-aleatoria={"pontos": 40, "arquivo": "campo.gpx"}`.
+
 O botão **Layout** (grupo Área) monta uma folha pronta para exportar com o dado principal do
 BrasilData, que é a camada visível mais acima. A folha traz:
 - o nome da área no título e o que é o dado no subtítulo;
