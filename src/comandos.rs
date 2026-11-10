@@ -2,6 +2,7 @@
 
 use rustgis_plugin::{Request, Value, geojson, host, json};
 
+use crate::amostragem::{self, Candidato, Sorteio};
 use crate::censo;
 use crate::datas::{self, Data};
 use crate::dist;
@@ -121,6 +122,9 @@ fn executar(req: Request) -> Result<Value, String> {
         "fontes" => fontes(),
         "atualizacao" => atualizacao(),
         "sobre" => sobre(),
+        "amostra-aleatoria" => amostra_aleatoria(&req),
+        "amostra-estratificada" => amostra_estratificada(&req),
+        "amostra-sistematica" => amostra_sistematica(&req),
         "indicadores" => indicadores(&fontes_de(&req)?),
         "indicadores-todos" => indicadores(&indicadores::TODAS),
         "censo-municipios" => indicadores(&[Fonte::Censo]),
@@ -1906,6 +1910,11 @@ fn painel(req: &Request) -> Result<Value, String> {
     let sistemas: Vec<String> = Escolha::DO_PAINEL.iter().map(|e| e.rotulo()).collect();
     r["panel"]["items"]["grade-celula"] = json!({"labels": celulas});
     r["panel"]["items"]["grade-sistema"] = json!({"labels": sistemas});
+    // A amostragem: os números de pontos e os espaçamentos das posições dos controles.
+    let pontos: Vec<String> = amostragem::PONTOS.iter().map(|n| format!("{n} pontos")).collect();
+    let espacamentos: Vec<String> = amostragem::ESPACAMENTOS.iter().map(|m| amostragem::texto_do_espacamento(*m)).collect();
+    r["panel"]["items"][AMOSTRA_PONTOS] = json!({"labels": pontos});
+    r["panel"]["items"][AMOSTRA_ESPACAMENTO] = json!({"labels": espacamentos});
     if let Some(g) = g {
         if let Some(i) = g.no_controle_da_celula() {
             r["panel"]["values"]["grade-celula"] = json!(i);
@@ -2919,10 +2928,7 @@ fn poligonos_das_classes(raster: &str, nome: &str, c: [f64; 4], epsg: u32, celul
     let feito = (|| {
         let grossa = mapbiomas::celula_das_classes(c, celula);
         let origem = if grossa > celula {
-            host::run(
-                "raster.project",
-                json!({"layer": raster, "crs": epsg, "cellSize": grossa, "resampling": "mode", "name": maiores}),
-            )?;
+            host::run("raster.project", json!({"layer": raster, "crs": epsg, "cellSize": grossa, "resampling": "mode", "name": maiores}))?;
             maiores.as_str()
         } else {
             raster
@@ -2952,6 +2958,429 @@ fn poligonos_das_classes(raster: &str, nome: &str, c: [f64; 4], epsg: u32, celul
     })();
     remover(&[&poligonos, &maiores, &em_graus])?;
     feito
+}
+
+/// Os controles da amostragem no painel.
+const AMOSTRA_TEXTO: &str = "amostra-texto";
+const AMOSTRA_PONTOS: &str = "amostra-pontos";
+const AMOSTRA_ESPACAMENTO: &str = "amostra-espacamento";
+const AMOSTRA_SORTEIO: &str = "amostra-sorteio";
+
+/// Os métodos, para o gerador do sorteio: a mesma área e o mesmo número de sorteio dão
+/// candidatos diferentes em cada método.
+const ALEATORIA: u64 = 1;
+const ESTRATIFICADA: u64 = 2;
+const SISTEMATICA: u64 = 3;
+
+/// O número do sorteio: o `sorteio` do script, o do controle do painel, ou 1.
+fn sorteio_de(req: &Request) -> Result<i64, String> {
+    let n = req.f64("sorteio").map(|x| x as i64).or_else(|| req.panel.get(AMOSTRA_SORTEIO).and_then(Value::as_i64)).unwrap_or(1);
+    if n < 1 {
+        return Err(format!("o sorteio é um número a partir de 1, não {n}"));
+    }
+    Ok(n)
+}
+
+/// Quantos pontos: o `pontos` do script, o do controle do painel, ou o padrão.
+fn pontos_de(req: &Request) -> Result<u64, String> {
+    let n = match req.f64("pontos") {
+        Some(n) => n,
+        None => req
+            .panel
+            .get(AMOSTRA_PONTOS)
+            .and_then(Value::as_u64)
+            .and_then(|i| amostragem::PONTOS.get(i as usize))
+            .copied()
+            .unwrap_or(amostragem::PONTOS_PADRAO)
+            .into(),
+    };
+    if n.fract() != 0.0 || !(1.0..=f64::from(amostragem::MAX_PONTOS)).contains(&n) {
+        return Err(format!("os pontos vão de 1 a {}, não {n}", amostragem::MAX_PONTOS));
+    }
+    Ok(n as u64)
+}
+
+/// O espaçamento da grade, em metros: o `espacamento` do script, o do controle, ou o padrão.
+fn espacamento_de(req: &Request) -> f64 {
+    req.f64("espacamento").unwrap_or_else(|| {
+        req.panel
+            .get(AMOSTRA_ESPACAMENTO)
+            .and_then(Value::as_u64)
+            .and_then(|i| amostragem::ESPACAMENTOS.get(i as usize))
+            .copied()
+            .unwrap_or(amostragem::ESPACAMENTO_PADRAO)
+    })
+}
+
+/// O retângulo da área. A amostra é sempre dentro dela: sem área, não há o que sortear.
+fn area_da_amostra() -> Result<[f64; 4], String> {
+    if !nomes()?.iter().any(|n| n == AREA) {
+        return Err("escolha a área de trabalho primeiro (painel Área de trabalho): os pontos são sorteados dentro dela".into());
+    }
+    extensao(AREA)?.ok_or_else(|| "a camada da área está vazia".to_string())
+}
+
+/// A camada que uma ferramenta do `gp.run` fez: o RustGIS 0.5.0 a diz em `layer`; outras
+/// versões, numa lista `layers`.
+fn camada_feita(r: &Value) -> Option<Value> {
+    r.get("layer").filter(|v| !v.is_null()).or_else(|| r["layers"].get(0)).cloned()
+}
+
+/// Roda a ferramenta `tool` e dá o nome `nome` à camada que ela fizer, no lugar de uma anterior.
+fn ferramenta_em(tool: &str, params: Value, nome: &str) -> Result<(), String> {
+    let r = host::run("gp.run", json!({"tool": tool, "params": params}))?;
+    let id = camada_feita(&r).ok_or_else(|| format!("{tool} não disse a camada que fez"))?;
+    remover(&[nome])?;
+    host::run("layer.rename", json!({"layer": id, "name": nome}))?;
+    Ok(())
+}
+
+/// Recorta os candidatos pela área, na camada `destino`, e diz quantos ficaram.
+fn recortar_pela_area(candidatos: &[Candidato], destino: &str) -> Result<u64, String> {
+    remover(&[amostragem::CANDIDATOS, destino])?;
+    host::add_layer(amostragem::CANDIDATOS, amostragem::camada_de_candidatos(candidatos))?;
+    let feito = ferramenta_em("clip", json!({"input": amostragem::CANDIDATOS, "clip": AREA}), destino);
+    remover(&[amostragem::CANDIDATOS])?;
+    feito.map_err(|e| format!("o recorte dos pontos pela área falhou: {e}"))?;
+    Ok(feicoes_da_camada(destino)?.unwrap_or(0))
+}
+
+/// A área num polígono só, para o sorteio: a de um estado ou região vem em várias feições.
+const AREA_UNICA: &str = "BrasilData: amostragem (área)";
+
+/// `m` pontos ao acaso dentro da área, sorteados pelo RustGIS (`analysis.simulate`, com a
+/// semente do método e do sorteio), na camada [`amostragem::NA_AREA`], cada um com a ordem do
+/// sorteio (de 1 a `m`). Devolve quantos vieram (uma área muito fina pode dar menos).
+fn sortear_na_area(m: u64, metodo: u64, sorteio: i64) -> Result<u64, String> {
+    remover(&[amostragem::NA_AREA, AREA_UNICA])?;
+    ferramenta_em("dissolve", json!({"input": AREA}), AREA_UNICA)?;
+    let r = host::run(
+        "analysis.simulate",
+        json!({"layer": AREA_UNICA, "count": m, "seed": amostragem::semente(metodo, sorteio as u64), "name": amostragem::NA_AREA}),
+    );
+    remover(&[AREA_UNICA])?;
+    let id = camada_feita(&r?).ok_or("o sorteio dos pontos não disse a camada que fez")?;
+    host::run("layer.rename", json!({"layer": id, "name": amostragem::NA_AREA}))?;
+    host::run("edit.addField", json!({"layer": amostragem::NA_AREA, "name": amostragem::ORDEM, "type": "long"}))?;
+    host::run("edit.calculateField", json!({"layer": amostragem::NA_AREA, "field": amostragem::ORDEM, "expression": "@row_number"}))?;
+    Ok(feicoes_da_camada(amostragem::NA_AREA)?.unwrap_or(0))
+}
+
+/// Quantas feições de `camada` atendem `onde` (selecionando-as).
+fn contar(camada: &str, onde: &str) -> Result<u64, String> {
+    host::run("select.byAttributes", json!({"layer": camada, "where": onde}))?["selected"]
+        .as_u64()
+        .ok_or_else(|| format!("a seleção em '{camada}' não disse quantas feições"))
+}
+
+/// A cláusula `condicao` (se houver) com a ordem do sorteio abaixo de `corte`.
+fn antes_de(condicao: Option<&str>, corte: u64) -> String {
+    let ordem = format!("{} < {corte}", amostragem::sql_campo(amostragem::ORDEM));
+    condicao.map_or_else(|| ordem.clone(), |c| format!("({c}) AND {ordem}"))
+}
+
+/// O menor corte da ordem do sorteio em que `condicao` tem `k` pontos de `camada` antes dele:
+/// uma busca binária com seleções por atributo, que só devolvem a contagem (a ordem vai de 0 a
+/// `sorteados`). Como as ordens não se repetem, a contagem cresce de um em um, e o corte dá
+/// exatamente `k`.
+fn corte_para(camada: &str, condicao: Option<&str>, k: u64, sorteados: usize) -> Result<u64, String> {
+    let (mut baixo, mut alto) = (0u64, sorteados as u64);
+    while baixo < alto {
+        let meio = (baixo + alto) / 2;
+        if contar(camada, &antes_de(condicao, meio))? >= k {
+            alto = meio;
+        } else {
+            baixo = meio + 1;
+        }
+    }
+    Ok(baixo)
+}
+
+/// Faz da seleção de [`amostragem::NA_AREA`] (ou de `origem`) por `onde` a camada da amostra
+/// `nome`: o rótulo de cada ponto pela linha, o método, o sorteio, os `extras` (campo, tipo e
+/// expressão) e as coordenadas em graus (SIRGAS 2000, 6 casas). Os outros campos saem. A amostra
+/// fica com pontos vermelhos e o rótulo, e a tabela aberta (na janela). Devolve quantos pontos.
+fn amostra_da_selecao(
+    origem: &str,
+    onde: &str,
+    nome: &str,
+    metodo: &str,
+    sorteio: i64,
+    extras: &[(&str, &str, String)],
+) -> Result<u64, String> {
+    contar(origem, onde)?;
+    let r = host::run("select.layerFromSelection", json!({"layer": origem}))?;
+    let selecao = r.get("layer").cloned().ok_or("a seleção não virou camada")?;
+    remover(&[nome])?;
+    host::run("layer.rename", json!({"layer": selecao, "name": nome}))?;
+    // Os campos point_x e point_y, na própria camada.
+    host::run("gp.run", json!({"tool": "calculateGeometry", "params": {"input": nome}}))?;
+    let n = feicoes_da_camada(nome)?.unwrap_or(0);
+    let antes: Vec<String> = host::run("layer.fields", json!({"layer": nome}))?
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|f| f["name"].as_str().map(str::to_string))
+        .collect();
+    let mut campos: Vec<(&str, &str, String)> = vec![
+        ("ponto", "text", amostragem::expressao_do_rotulo(n as usize)),
+        ("metodo", "text", format!("'{metodo}'")),
+        ("sorteio", "long", sorteio.to_string()),
+    ];
+    campos.extend(extras.iter().cloned());
+    campos.push(("lon", "double", "round(\"point_x\", 6)".into()));
+    campos.push(("lat", "double", "round(\"point_y\", 6)".into()));
+    for (campo, tipo, expressao) in &campos {
+        host::run("edit.addField", json!({"layer": nome, "name": campo, "type": tipo}))?;
+        host::run("edit.calculateField", json!({"layer": nome, "field": campo, "expression": expressao}))?;
+    }
+    for campo in antes {
+        host::run("edit.deleteField", json!({"layer": nome, "field": campo}))?;
+    }
+    let _ = host::run("select.clear", json!({"layer": nome}));
+    let _ = host::run("layer.color", json!({"layer": nome, "color": "#e31a1c"}));
+    let _ = host::run("labels.field", json!({"layer": nome, "field": "ponto"}));
+    let _ = host::run("table.open", json!({"layer": nome}));
+    Ok(n)
+}
+
+/// O texto no aviso e no painel, e a resposta de uma amostra.
+fn resposta_da_amostra(nome: &str, pontos: u64, texto: &str, mais: Value) -> Value {
+    let curto: String = texto.chars().take(480).collect();
+    host::notify(&curto);
+    let mut r = json!({"layer": nome, "points": pontos, "panel": {"items": {AMOSTRA_TEXTO: {"text": texto}}}});
+    if let (Some(r), Some(m)) = (r.as_object_mut(), mais.as_object()) {
+        r.extend(m.clone());
+    }
+    r
+}
+
+/// Amostragem aleatória simples: `pontos` ao acaso na área, todos com a mesma chance.
+fn amostra_aleatoria(req: &Request) -> Result<Value, String> {
+    let (n, sorteio) = (pontos_de(req)?, sorteio_de(req)?);
+    area_da_amostra()?;
+    let veio = sortear_na_area(n, ALEATORIA, sorteio)?;
+    let feito = if veio < n {
+        Err(format!("só {veio} de {n} pontos couberam na área: ela é fina demais para o sorteio; peça menos pontos"))
+    } else {
+        amostra_da_selecao(amostragem::NA_AREA, &antes_de(None, n + 1), amostragem::ALEATORIA, "aleatória simples", sorteio, &[])
+    };
+    remover(&[amostragem::NA_AREA])?;
+    let n = feito?;
+    let texto = format!("Amostragem aleatória simples: {n} pontos na área, sorteio {sorteio}. Outro sorteio dá outros pontos");
+    Ok(resposta_da_amostra(amostragem::ALEATORIA, n, &texto, json!({})))
+}
+
+/// A camada dos estratos: a do `camada` do script, ou a ativa. Precisa ser de polígonos, e não a
+/// área nem uma camada da própria amostragem.
+fn camada_dos_estratos(req: &Request) -> Result<String, String> {
+    let camadas = host::layers()?;
+    let lista = camadas.as_array().cloned().unwrap_or_default();
+    let escolhida = match req.str("camada") {
+        Some(nome) => lista.iter().find(|l| l["name"].as_str() == Some(nome)).ok_or_else(|| format!("não há camada '{nome}' no mapa"))?,
+        None => lista.iter().find(|l| l["active"].as_bool() == Some(true)).ok_or(
+            "escolha a camada dos estratos: clique nela no painel Camadas (por exemplo, BrasilData: Solos) e de novo em Amostragem estratificada",
+        )?,
+    };
+    let nome = escolhida["name"].as_str().unwrap_or_default().to_string();
+    if nome == AREA || nome == GRADE || nome.starts_with("BrasilData: amostragem") {
+        return Err(format!(
+            "'{nome}' não serve de estratos: clique no painel Camadas numa camada de polígonos com classes (por exemplo, BrasilData: Solos) e de novo em Amostragem estratificada"
+        ));
+    }
+    if !escolhida["geometry"].as_str().is_some_and(|g| g.contains("Polygon")) {
+        return Err(format!("'{nome}' não é uma camada de polígonos: os estratos são polígonos, como os de Solos ou Geologia"));
+    }
+    Ok(nome)
+}
+
+/// As feições de `camada` que atendem `condicao` (todas, se houver no máximo `k`; senão as `k`
+/// primeiras na ordem do sorteio), lidas pelo plugin: só para descobrir campos e classes.
+fn primeiras(camada: &str, condicao: Option<&str>, k: u64, sorteados: usize) -> Result<Vec<Value>, String> {
+    let onde = match condicao {
+        Some(c) if contar(camada, c)? <= k => c.to_string(),
+        _ => antes_de(condicao, corte_para(camada, condicao, k, sorteados)?),
+    };
+    contar(camada, &onde)?;
+    Ok(host::features(camada, true)?["features"].as_array().cloned().unwrap_or_default())
+}
+
+/// Um estrato: o valor do campo (como o RustGIS o compara), o nome e quantos candidatos.
+struct Estrato {
+    valor: String,
+    nome: String,
+    candidatos: u64,
+}
+
+/// Os estratos de `campo` nos pontos de `camada`: as classes que aparecem nos primeiros pontos e,
+/// em até 6 buscas, as que ainda faltam (os pontos com valor fora das já vistas), cada uma com a
+/// sua contagem de candidatos. Devolve também quantos pontos ficam sem estrato.
+fn estratos_de(camada: &str, campo: &str, primeiros: &[Value], sorteados: usize) -> Result<(Vec<Estrato>, u64), String> {
+    let c = amostragem::sql_campo(campo);
+    let mut vistos: Vec<(String, String)> = Vec::new();
+    let ver = |fs: &[Value], vistos: &mut Vec<(String, String)>| {
+        for f in fs {
+            let v = &f["properties"][campo];
+            if let (Some(nome), Some(valor)) = (amostragem::valor_do_estrato(v), amostragem::sql_valor(v))
+                && !vistos.iter().any(|(x, _)| *x == valor)
+            {
+                vistos.push((valor, nome));
+            }
+        }
+    };
+    ver(primeiros, &mut vistos);
+    for _ in 0..6 {
+        let fora: Vec<&str> = vistos.iter().map(|(v, _)| v.as_str()).collect();
+        let resto =
+            if fora.is_empty() { format!("{c} IS NOT NULL") } else { format!("{c} IS NOT NULL AND {c} NOT IN ({})", fora.join(", ")) };
+        let antes = vistos.len();
+        if contar(camada, &resto)? == 0 {
+            break;
+        }
+        ver(&primeiras(camada, Some(&resto), 40, sorteados)?, &mut vistos);
+        if vistos.len() == antes {
+            // Só valores vazios ("", espaços): não são estratos.
+            break;
+        }
+    }
+    let mut estratos = Vec::new();
+    for (valor, nome) in vistos {
+        let candidatos = contar(camada, &format!("{c} = {valor}"))?;
+        estratos.push(Estrato { valor, nome, candidatos });
+    }
+    estratos.sort_by(|a, b| a.nome.cmp(&b.nome));
+    let com_estrato: u64 = estratos.iter().map(|e| e.candidatos).sum();
+    let total = feicoes_da_camada(camada)?.unwrap_or(0);
+    Ok((estratos, total.saturating_sub(com_estrato)))
+}
+
+/// Amostragem aleatória estratificada: os estratos são as classes de um campo de uma camada de
+/// polígonos. Cada estrato recebe pontos na proporção da sua área (estimada pelos candidatos que
+/// caem nele), com um mínimo, e os pontos caem ao acaso dentro dele.
+fn amostra_estratificada(req: &Request) -> Result<Value, String> {
+    let (n, sorteio) = (pontos_de(req)?, sorteio_de(req)?);
+    let minimo = req.f64("minimo").map_or(amostragem::MINIMO_PADRAO, |m| m.max(0.0) as usize);
+    let estratos = camada_dos_estratos(req)?;
+    area_da_amostra()?;
+    // Pontos bastantes para estimar a área de cada estrato e ter pontos nos pequenos.
+    let veio = sortear_na_area(amostragem::pontos_para_estratos(n), ESTRATIFICADA, sorteio)?;
+    if veio == 0 {
+        remover(&[amostragem::NA_AREA])?;
+        return Err("nenhum ponto coube na área".into());
+    }
+    // As ordens vão de 1 a `veio`: o corte vai até `veio + 1`.
+    let sorteados = veio as usize + 1;
+    let feito = estratificar(req, &estratos, n, minimo, sorteio, sorteados);
+    remover(&[amostragem::NA_AREA, amostragem::NOS_ESTRATOS])?;
+    feito
+}
+
+/// O resto da estratificada, com os candidatos da área já em [`amostragem::NA_AREA`].
+fn estratificar(req: &Request, estratos: &str, n: u64, minimo: usize, sorteio: i64, sorteados: usize) -> Result<Value, String> {
+    // Em que estrato cai cada candidato: o spatialJoin do RustGIS.
+    ferramenta_em("spatialJoin", json!({"target": amostragem::NA_AREA, "join": estratos}), amostragem::NOS_ESTRATOS)
+        .map_err(|e| format!("a junção dos pontos com '{estratos}' falhou: {e}"))?;
+    let camada = amostragem::NOS_ESTRATOS;
+    // O campo: o do script, ou o de menos classes (de 2 a 30) nos 120 primeiros pontos.
+    let primeiros = primeiras(camada, None, 120, sorteados)?;
+    let campos = amostragem::campos_dos_estratos(&primeiros);
+    let campo = match req.str("campo") {
+        Some(c) => host::run("layer.fields", json!({"layer": camada}))?
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(|f| f["name"].as_str())
+            .find(|x| x.eq_ignore_ascii_case(c) || amostragem::nome_legivel(x).eq_ignore_ascii_case(c))
+            .map(str::to_string)
+            .ok_or_else(|| format!("'{estratos}' não tem o campo '{c}'"))?,
+        None => campos.first().map(|(c, _)| c.clone()).ok_or_else(|| {
+            format!(
+                "'{estratos}' não tem um campo com 2 a 30 classes nos pontos da área: escolha outra camada, ou diga o campo por script (\"campo\")"
+            )
+        })?,
+    };
+    let (lista, sem_estrato) = estratos_de(camada, &campo, &primeiros, sorteados)?;
+    if lista.is_empty() {
+        return Err(format!("nenhum ponto da área caiu num polígono de '{estratos}' com valor em '{campo}'"));
+    }
+    let contagens: Vec<usize> = lista.iter().map(|e| e.candidatos as usize).collect();
+    let alocacao = amostragem::alocar(&contagens, n as usize, minimo);
+    // Os primeiros de cada estrato na ordem do sorteio, numa cláusula só.
+    let c = amostragem::sql_campo(&campo);
+    let mut partes = Vec::new();
+    for (e, k) in lista.iter().zip(&alocacao) {
+        if *k == 0 {
+            continue;
+        }
+        let deste = format!("{c} = {}", e.valor);
+        let corte = corte_para(camada, Some(&deste), *k as u64, sorteados)?;
+        partes.push(format!("({})", antes_de(Some(&deste), corte)));
+    }
+    let estrato_expr = format!("to_string({c})");
+    let total = amostra_da_selecao(
+        camada,
+        &partes.join(" OR "),
+        amostragem::ESTRATIFICADA,
+        "estratificada",
+        sorteio,
+        &[("estrato", "text", estrato_expr)],
+    )?;
+    let resumo: Vec<String> = lista.iter().zip(&alocacao).map(|(e, k)| format!("{} {k}", e.nome)).collect();
+    let legivel = amostragem::nome_legivel(&campo);
+    let mut texto = format!(
+        "Amostragem estratificada: {total} pontos em {} estratos de '{legivel}' ({estratos}), na proporção da área, sorteio {sorteio}: {}",
+        lista.len(),
+        resumo.join(", ")
+    );
+    if total > n {
+        texto.push_str(&format!(". São mais que {n} porque cada estrato tem pelo menos {minimo}"));
+    }
+    let com: u64 = lista.iter().map(|e| e.candidatos).sum();
+    if sem_estrato * 20 > com + sem_estrato {
+        texto.push_str(&format!(
+            ". Parte da área ({}%) fica fora dos polígonos com classe e não recebe pontos",
+            sem_estrato * 100 / (com + sem_estrato)
+        ));
+    }
+    let outros: Vec<String> =
+        campos.iter().filter(|(c, _)| *c != campo).take(6).map(|(c, k)| format!("{} ({k})", amostragem::nome_legivel(c))).collect();
+    if !outros.is_empty() {
+        texto.push_str(&format!(". Outros campos, por script (\"campo\"): {}", outros.join(", ")));
+    }
+    let nomes: Vec<&str> = lista.iter().map(|e| e.nome.as_str()).collect();
+    Ok(resposta_da_amostra(amostragem::ESTRATIFICADA, total, &texto, json!({"field": legivel, "strata": nomes, "allocation": alocacao})))
+}
+
+/// Amostragem sistemática: uma grade de pontos com o espaçamento em metros e a origem sorteada,
+/// os que caem na área, numerados em zigue-zague.
+fn amostra_sistematica(req: &Request) -> Result<Value, String> {
+    let (espacamento, sorteio) = (espacamento_de(req), sorteio_de(req)?);
+    let c = area_da_amostra()?;
+    let grade: Vec<Candidato> = amostragem::sistematicos(c, espacamento, &mut Sorteio::novo(SISTEMATICA, sorteio as u64))?
+        .into_iter()
+        .enumerate()
+        .map(|(i, p)| (i as u64, p))
+        .collect();
+    let esp = amostragem::texto_do_espacamento(espacamento);
+    let dentro = recortar_pela_area(&grade, amostragem::NA_AREA)?;
+    if dentro == 0 {
+        remover(&[amostragem::NA_AREA])?;
+        return Err(format!("nenhum ponto da grade de {esp} caiu na área: use um espaçamento menor"));
+    }
+    let feito = amostra_da_selecao(
+        amostragem::NA_AREA,
+        &antes_de(None, grade.len() as u64),
+        amostragem::SISTEMATICA,
+        "sistemática",
+        sorteio,
+        &[("espacamento_m", "double", espacamento.to_string())],
+    );
+    remover(&[amostragem::NA_AREA])?;
+    let n = feito?;
+    let texto = format!(
+        "Amostragem sistemática: {n} pontos a cada {esp} na área, origem do sorteio {sorteio}, numerados em zigue-zague de norte a sul"
+    );
+    Ok(resposta_da_amostra(amostragem::SISTEMATICA, n, &texto, json!({})))
 }
 
 /// A autoria e o resto da seção Sobre: o resumo no aviso e o texto inteiro na resposta (a da

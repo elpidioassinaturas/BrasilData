@@ -279,8 +279,11 @@ mod tests {
         let u = &s[0]["renderer"]["Unique"];
         assert_eq!(u["field"], "classe");
         assert_eq!(u["classes"].as_array().unwrap().len(), CLASSES_10.len());
-        assert_eq!(u["classes"][1], json!(["Formação Florestal", {"fill": [31, 141, 73, 255], "stroke": [0, 0, 0, 0],
-            "stroke_width": 0.0, "size": 0.0, "marker": "Circle"}]));
+        assert_eq!(
+            u["classes"][1],
+            json!(["Formação Florestal", {"fill": [31, 141, 73, 255], "stroke": [0, 0, 0, 0],
+            "stroke_width": 0.0, "size": 0.0, "marker": "Circle"}])
+        );
         assert_eq!(s[0]["name"], ESTILO_DAS_CLASSES);
     }
 

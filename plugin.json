@@ -1,7 +1,7 @@
 {
   "id": "brasildata",
   "name": "BrasilData",
-  "version": "0.1.25",
+  "version": "0.1.26",
   "description": "Dados públicos do Brasil para a área do usuário (IBGE, MMA, ICMBio, INPE, ANA, ANEEL, ANP, SFB/CAR, INCRA, FUNAI, IBAMA, ANM, DNIT, Ministério da Saúde, Copernicus, NASA/ASF): só o que cruza a área, recortado por ela, com a fonte e a licença de cada camada.",
   "author": "Elpídio Filho",
   "homepage": "https://github.com/elpidioassinaturas/BrasilData",
@@ -800,6 +800,27 @@
       "params": "{\"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30); com grade, só o da grade é aceito}"
     },
     {
+      "id": "amostra-aleatoria",
+      "label": "Aleatória simples",
+      "help": "Amostragem aleatória simples: pontos para ir a campo, sorteados dentro da área de trabalho, todos com a mesma chance, na camada BrasilData: amostragem aleatória (rótulo, método, sorteio, longitude e latitude SIRGAS 2000). O número de pontos e o sorteio vêm do painel Área de trabalho.",
+      "icon": "point_layer",
+      "params": "{\"pontos\"?: de 1 a 2000 (padrão: o do painel, ou 30), \"sorteio\"?: número a partir de 1 (padrão: o do painel, ou 1)}"
+    },
+    {
+      "id": "amostra-estratificada",
+      "label": "Estratificada",
+      "help": "Amostragem aleatória estratificada: os estratos são as classes de uma camada de polígonos (clique antes nela no painel Camadas, por exemplo BrasilData: Solos). Cada estrato recebe pontos na proporção da sua área dentro da área de trabalho, com pelo menos um, e os pontos caem ao acaso dentro dele. O campo das classes é o que tem menos classes (de 2 a 30); por script, outro.",
+      "icon": "polygon_layer",
+      "params": "{\"pontos\"?: de 1 a 2000, \"sorteio\"?: número a partir de 1, \"camada\"?: a camada dos estratos (padrão: a ativa), \"campo\"?: o campo das classes (padrão: o de menos classes, de 2 a 30), \"minimo\"?: pontos por estrato (padrão 1)}"
+    },
+    {
+      "id": "amostra-sistematica",
+      "label": "Sistemática (grade)",
+      "help": "Amostragem sistemática: uma grade de pontos dentro da área de trabalho, com o espaçamento do painel (de 50 m a 10 km) e a origem sorteada, numerada em zigue-zague de norte a sul, na camada BrasilData: amostragem sistemática.",
+      "icon": "graticule",
+      "params": "{\"espacamento\"?: metros, de 1 a 100.000 (padrão: o do painel, ou 500), \"sorteio\"?: número a partir de 1 (a origem da grade)}"
+    },
+    {
       "id": "layout",
       "label": "Layout",
       "help": "Uma folha pronta para exportar, com o dado principal do BrasilData no mapa (a camada visível mais acima): o nome da área no título, o que é o dado no subtítulo, a barra de cores com a unidade ou a legenda das classes, as fontes, a projeção da grade do projeto, a grade em metros e a localização. O mapa passa para a projeção da grade, a área fica só com o contorno e a grade sai da vista. Um novo clique refaz a folha.",
@@ -900,9 +921,57 @@
       },
       {
         "kind": "text",
+        "id": "amostra-texto",
+        "label": "Amostragem de campo",
+        "text": "Pontos para ir a campo, sorteados dentro da área: aleatória simples, estratificada (pelas classes de uma camada de polígonos, como Solos: clique nela no painel Camadas antes) ou sistemática (uma grade). O mesmo sorteio dá os mesmos pontos."
+      },
+      {
+        "kind": "slider",
+        "id": "amostra-pontos",
+        "label": "Amostragem: pontos",
+        "help": "Quantos pontos sortear, de 5 a 500, na aleatória simples e na estratificada. Por script, até 2.000.",
+        "min": 0,
+        "max": 13,
+        "default": 5,
+        "steps": true
+      },
+      {
+        "kind": "slider",
+        "id": "amostra-espacamento",
+        "label": "Amostragem: espaçamento",
+        "help": "A distância entre os pontos da amostragem sistemática, de 50 m a 10 km.",
+        "min": 0,
+        "max": 8,
+        "default": 4,
+        "steps": true
+      },
+      {
+        "kind": "slider",
+        "id": "amostra-sorteio",
+        "label": "Amostragem: sorteio",
+        "help": "O número do sorteio. O mesmo número, na mesma área e com o mesmo método, dá os mesmos pontos; outro número dá outra amostra.",
+        "min": 1,
+        "max": 20,
+        "default": 1,
+        "steps": true
+      },
+      {
+        "kind": "button",
+        "command": "amostra-aleatoria"
+      },
+      {
+        "kind": "button",
+        "command": "amostra-estratificada"
+      },
+      {
+        "kind": "button",
+        "command": "amostra-sistematica"
+      },
+      {
+        "kind": "text",
         "id": "sobre",
         "label": "Sobre o BrasilData",
-        "text": "BrasilData 0.1.25, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Elpídio Filho, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nFontes dos dados: IBGE, INPE, ANA, ANP, ANEEL, INCRA, ANM, MMA, ICMBio, FUNAI, Serviço Florestal Brasileiro, IBAMA, DNIT e MapBiomas, pelos serviços de cada órgão; Copernicus DEM GLO-30 (DLR e Airbus, pelo espelho da OpenTopography); Banco Central (Pix e crédito rural); TSE; Novo CAGED (IPEA Data) e Ministério da Saúde (CNES, pelo geobr do Ipea).\n\nComo contribuir: sentiu falta de algum dado? Abra uma issue em https://github.com/elpidioassinaturas/BrasilData/issues com o nome do dado, o órgão que o publica, o endereço do serviço (WFS, ArcGIS REST, API ou arquivo) e para que você o usaria. Para trazer a fonte você mesmo, acrescente uma linha ao fontes.csv, rode python scripts/gerar.py e abra um pull request. Correções, avisos de serviço fora do ar e relatos de uso também são bem-vindos."
+        "text": "BrasilData 0.1.26, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Elpídio Filho, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nFontes dos dados: IBGE, INPE, ANA, ANP, ANEEL, INCRA, ANM, MMA, ICMBio, FUNAI, Serviço Florestal Brasileiro, IBAMA, DNIT e MapBiomas, pelos serviços de cada órgão; Copernicus DEM GLO-30 (DLR e Airbus, pelo espelho da OpenTopography); Banco Central (Pix e crédito rural); TSE; Novo CAGED (IPEA Data) e Ministério da Saúde (CNES, pelo geobr do Ipea).\n\nComo contribuir: sentiu falta de algum dado? Abra uma issue em https://github.com/elpidioassinaturas/BrasilData/issues com o nome do dado, o órgão que o publica, o endereço do serviço (WFS, ArcGIS REST, API ou arquivo) e para que você o usaria. Para trazer a fonte você mesmo, acrescente uma linha ao fontes.csv, rode python scripts/gerar.py e abra um pull request. Correções, avisos de serviço fora do ar e relatos de uso também são bem-vindos."
       }
     ]
   },
@@ -916,6 +985,15 @@
           "area-selecao",
           "area-desenho",
           "grade",
+          {
+            "menu": "Amostragem",
+            "icon": "point_tool",
+            "items": [
+              "amostra-aleatoria",
+              "amostra-estratificada",
+              "amostra-sistematica"
+            ]
+          },
           "layout",
           "fontes",
           "atualizacao",

@@ -72,6 +72,29 @@ mesmas escolhas. Sem grade, a primeira Elevação cria a padrão: 30 m, sistema 
 `plugin:brasildata/grade={"celula": 90, "crs": "albers"}`; o `crs` aceita também um código EPSG em
 metros.
 
+A **Amostragem** (menu do grupo Área, e no fim do painel **Área de trabalho**) sorteia pontos
+para ir a campo dentro da área de trabalho:
+
+- **Aleatória simples:** os pontos ao acaso, todos com a mesma chance;
+- **Estratificada:** os estratos são as classes de uma camada de polígonos do mapa (clique antes
+  nela no painel Camadas, por exemplo **BrasilData: Solos**). Cada estrato recebe pontos na
+  proporção da sua área dentro da área de trabalho, com pelo menos um, e os pontos caem ao acaso
+  dentro dele. O campo das classes é escolhido sozinho (`ordem`, `classe`, `legenda`… antes dos
+  outros; códigos e campos só numéricos ficam de fora), e o aviso lista os outros que serviriam;
+- **Sistemática:** uma grade de pontos com o espaçamento do painel (de 50 m a 10 km) e a origem
+  sorteada, numerada em zigue-zague de norte a sul.
+
+No painel ficam o número de pontos (de 5 a 500), o espaçamento e o número do sorteio: o mesmo
+sorteio, na mesma área e com o mesmo método, dá os mesmos pontos, e outro número dá outra
+amostra. Cada método tem a sua camada (**BrasilData: amostragem aleatória**, **estratificada** e
+**sistemática**), com o rótulo (P01, P02…), o método, o sorteio, o estrato ou o espaçamento, e a
+longitude e a latitude em graus (SIRGAS 2000), e a tabela abre embaixo do mapa. Os pontos são
+sorteados pelo RustGIS (`analysis.simulate`), uniformes em longitude e latitude: numa área do
+tamanho de um estado, a diferença para uniforme na superfície fica abaixo de 3%. Limites: até 500
+pontos por amostra, e até 2.000 pontos da grade no retângulo da área. Por script:
+`plugin:brasildata/amostra-estratificada={"pontos": 60, "camada": "BrasilData: Solos (BDiA 1:250.000)", "campo": "legenda", "minimo": 2, "sorteio": 3}`
+e `plugin:brasildata/amostra-sistematica={"espacamento": 2000}`.
+
 O botão **Layout** (grupo Área) monta uma folha pronta para exportar com o dado principal do
 BrasilData, que é a camada visível mais acima. A folha traz:
 - o nome da área no título e o que é o dado no subtítulo;

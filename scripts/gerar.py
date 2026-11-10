@@ -30,7 +30,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.25"
+VERSAO = "0.1.26"
 
 # Os comandos que não vêm da tabela, com o grupo da aba em que ficam. Na aba, o grupo Área
 # tem o painel (a escolha do território pelo nome), a área pela seleção e o desenho; o comando
@@ -135,8 +135,72 @@ PAINEL = {
             "steps": True,
         },
         {"kind": "button", "command": "mapbiomas-cobertura"},
+        {
+            "kind": "text",
+            "id": "amostra-texto",
+            "label": "Amostragem de campo",
+            "text": "Pontos para ir a campo, sorteados dentro da área: aleatória simples, estratificada (pelas classes de uma camada de polígonos, como Solos: clique nela no painel Camadas antes) ou sistemática (uma grade). O mesmo sorteio dá os mesmos pontos.",
+        },
+        {
+            "kind": "slider",
+            "id": "amostra-pontos",
+            "label": "Amostragem: pontos",
+            "help": "Quantos pontos sortear, de 5 a 500, na aleatória simples e na estratificada. Por script, até 2.000.",
+            "min": 0,
+            "max": 13,
+            "default": 5,
+            "steps": True,
+        },
+        {
+            "kind": "slider",
+            "id": "amostra-espacamento",
+            "label": "Amostragem: espaçamento",
+            "help": "A distância entre os pontos da amostragem sistemática, de 50 m a 10 km.",
+            "min": 0,
+            "max": 8,
+            "default": 4,
+            "steps": True,
+        },
+        {
+            "kind": "slider",
+            "id": "amostra-sorteio",
+            "label": "Amostragem: sorteio",
+            "help": "O número do sorteio. O mesmo número, na mesma área e com o mesmo método, dá os mesmos pontos; outro número dá outra amostra.",
+            "min": 1,
+            "max": 20,
+            "default": 1,
+            "steps": True,
+        },
+        {"kind": "button", "command": "amostra-aleatoria"},
+        {"kind": "button", "command": "amostra-estratificada"},
+        {"kind": "button", "command": "amostra-sistematica"},
     ],
 }
+
+# A amostragem de campo, num menu do grupo Área (e com os controles no painel).
+AMOSTRAGEM = [
+    {
+        "id": "amostra-aleatoria",
+        "label": "Aleatória simples",
+        "help": "Amostragem aleatória simples: pontos para ir a campo, sorteados dentro da área de trabalho, todos com a mesma chance, na camada BrasilData: amostragem aleatória (rótulo, método, sorteio, longitude e latitude SIRGAS 2000). O número de pontos e o sorteio vêm do painel Área de trabalho.",
+        "icon": "point_layer",
+        "params": "{\"pontos\"?: de 1 a 2000 (padrão: o do painel, ou 30), \"sorteio\"?: número a partir de 1 (padrão: o do painel, ou 1)}",
+    },
+    {
+        "id": "amostra-estratificada",
+        "label": "Estratificada",
+        "help": "Amostragem aleatória estratificada: os estratos são as classes de uma camada de polígonos (clique antes nela no painel Camadas, por exemplo BrasilData: Solos). Cada estrato recebe pontos na proporção da sua área dentro da área de trabalho, com pelo menos um, e os pontos caem ao acaso dentro dele. O campo das classes é o que tem menos classes (de 2 a 30); por script, outro.",
+        "icon": "polygon_layer",
+        "params": "{\"pontos\"?: de 1 a 2000, \"sorteio\"?: número a partir de 1, \"camada\"?: a camada dos estratos (padrão: a ativa), \"campo\"?: o campo das classes (padrão: o de menos classes, de 2 a 30), \"minimo\"?: pontos por estrato (padrão 1)}",
+    },
+    {
+        "id": "amostra-sistematica",
+        "label": "Sistemática (grade)",
+        "help": "Amostragem sistemática: uma grade de pontos dentro da área de trabalho, com o espaçamento do painel (de 50 m a 10 km) e a origem sorteada, numerada em zigue-zague de norte a sul, na camada BrasilData: amostragem sistemática.",
+        "icon": "graticule",
+        "params": "{\"espacamento\"?: metros, de 1 a 100.000 (padrão: o do painel, ou 500), \"sorteio\"?: número a partir de 1 (a origem da grade)}",
+    },
+]
 # Os comandos que vão no fim de um grupo da aba: as fontes, com a área.
 FIM = [
     (
@@ -508,7 +572,7 @@ def ler() -> list[dict]:
     ids = set()
     for n, l in enumerate(linhas, start=2):
         onde = f"fontes.csv, linha {n}"
-        if l["id"] in ids or any(l["id"] == c["id"] for c in AREA + DO_PAINEL + SO_SCRIPTS + [c for _, c in FIM] + [c for _, _, c in EM_MENUS]):
+        if l["id"] in ids or any(l["id"] == c["id"] for c in AREA + DO_PAINEL + SO_SCRIPTS + AMOSTRAGEM + [c for _, c in FIM] + [c for _, _, c in EM_MENUS]):
             sys.exit(f"{onde}: o id '{l['id']}' se repete")
         ids.add(l["id"])
         for campo, valores in (
@@ -544,7 +608,7 @@ def ler() -> list[dict]:
 # grupos e 16 itens por grupo). A aba é conferida contra esta lista: um subtópico que não está
 # aqui, ou que ficou vazio, para o gerar.py.
 TOPICOS = {
-    "Área": [],
+    "Área": ["Amostragem"],
     "Território": ["Limites", "Recortes especiais", "Cadastro fundiário", "Terras indígenas"],
     "Sociedade e economia": ["População", "Economia", "Agricultura", "Eleições"],
     "Saúde": ["Estabelecimentos"],
@@ -561,6 +625,7 @@ TAMBEM = []
 # O ícone de um subtópico, quando um dos ícones do RustGIS diz mais que a geometria da primeira
 # camada (o plugin só pode usar os ícones do RustGIS, pelo nome).
 MENU_ICONES = {
+    "Amostragem": "point_tool",
     "Áreas protegidas": "lock",
     "Cadastro fundiário": "table",
     "População": "stats",
@@ -614,6 +679,8 @@ def manifesto(linhas: list[dict]) -> str:
             itens.append({"menu": menu, "icon": MENU_ICONES.get(menu, c["icon"]), "items": [c["id"]]})
         else:
             m["items"].append(c["id"])
+    comandos.extend(AMOSTRAGEM)
+    grupos["Área"].append({"menu": "Amostragem", "icon": MENU_ICONES["Amostragem"], "items": [c["id"] for c in AMOSTRAGEM]})
     for grupo, c in FIM:
         comandos.append(c)
         grupos.setdefault(grupo, []).append(c["id"])
@@ -631,7 +698,8 @@ def manifesto(linhas: list[dict]) -> str:
         menus = [i["menu"] for i in itens if isinstance(i, dict)]
         if sorted(menus) != sorted(TOPICOS[g]):
             sys.exit(f"{g}: a aba tem os subtópicos {menus}, e TOPICOS diz {TOPICOS[g]}")
-        itens.sort(key=lambda i: TOPICOS[g].index(i["menu"]) if isinstance(i, dict) else len(TOPICOS[g]))
+        # No grupo Área, o painel, a seleção, o desenho e a grade vêm antes dos menus.
+        itens.sort(key=lambda i: TOPICOS[g].index(i["menu"]) if isinstance(i, dict) else (-1 if i in NA_ABA_AREA else len(TOPICOS[g])))
     if len(grupos) > 8:
         sys.exit(f"a aba tem {len(grupos)} grupos; o RustGIS aceita até 8")
     painel = dict(PAINEL, items=PAINEL["items"] + [{"kind": "text", "id": "sobre", "label": "Sobre o BrasilData", "text": sobre(linhas)[0]}])

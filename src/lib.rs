@@ -11,6 +11,7 @@
 //! na grade do projeto (`raster.project`, módulo [`grade`]): por padrão, o UTM SIRGAS 2000 do
 //! fuso da área, com células de 30 m.
 
+pub mod amostragem;
 mod catalogo;
 pub mod censo;
 pub mod datas;
@@ -335,6 +336,27 @@ mod tests {
         assert!(!t("municipios").recorta && t("geologia").recorta);
         assert_eq!(tema_da_camada("BrasilData: Solos (BDiA 1:250.000)").map(|t| t.id), Some("solos"));
         assert!(tema_da_camada(AREA).is_none());
+    }
+
+    #[test]
+    fn os_controles_da_amostragem_no_painel_batem_com_as_listas() {
+        let m: serde_json::Value = serde_json::from_str(include_str!("../plugin.json")).unwrap();
+        let item = |id: &str| m["panel"]["items"].as_array().unwrap().iter().find(|i| i["id"] == id).cloned().unwrap();
+        let (p, e, s) = (item("amostra-pontos"), item("amostra-espacamento"), item("amostra-sorteio"));
+        assert_eq!(p["max"], json_len(amostragem::PONTOS.len()));
+        assert_eq!(amostragem::PONTOS[p["default"].as_u64().unwrap() as usize], amostragem::PONTOS_PADRAO);
+        assert_eq!(e["max"], json_len(amostragem::ESPACAMENTOS.len()));
+        assert_eq!(amostragem::ESPACAMENTOS[e["default"].as_u64().unwrap() as usize], amostragem::ESPACAMENTO_PADRAO);
+        assert_eq!(s["max"].as_i64(), Some(amostragem::SORTEIOS));
+        // Os botões do painel são os comandos do menu Amostragem.
+        for c in ["amostra-aleatoria", "amostra-estratificada", "amostra-sistematica"] {
+            assert!(m["commands"].as_array().unwrap().iter().any(|x| x["id"] == c), "{c}");
+        }
+    }
+
+    /// A última posição de um controle com `n` posições.
+    fn json_len(n: usize) -> serde_json::Value {
+        serde_json::json!(n - 1)
     }
 
     #[test]
