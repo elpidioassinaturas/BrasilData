@@ -29,6 +29,27 @@ Fontes, a verificação de atualização e o **Sobre**: a autoria, a versão, a 
 as fontes dos dados e como contribuir, num aviso curto e, inteiro, em **Sobre o BrasilData**, no
 fim do painel.
 
+Os comandos que têm escolhas abrem uma **janela** com os seus parâmetros; o **Executar** roda o
+comando e mostra embaixo o que ele fez. São eles:
+
+| Comando | Parâmetros na janela |
+|---|---|
+| Área: município (pela Busca de comandos) | o nome ou o código do IBGE e a UF |
+| Grade do projeto | a célula em metros e o sistema (automático, Albers do IBGE, Policônica ou outro código EPSG) |
+| Layout | o formato (folha A4, A3 ou A2, figura de 1, 1,5 ou 2 colunas, página ou meia página de tese) e o estilo da folha |
+| Amostragem (aleatória, estratificada, sistemática) | o número de pontos ou o espaçamento, o sorteio, os estratos e o arquivo de pontos (mais abaixo) |
+| Uso e cobertura e Sistemas de irrigação (MapBiomas) | o ano, e no uso e cobertura, se vem só a área |
+| Radar VV, VH e VH/VV | a data da passagem (vazio: a mais recente) |
+| Perturbação da vegetação (DIST-S1) | a data dos produtos (vazio: os mais recentes) e, na situação, as cores |
+| Focos de calor: período | o primeiro e o último dia, no mês corrente |
+| Risco de fogo | o mês |
+| Radiação solar | a média do ano ou um mês |
+
+As janelas vêm num RustGIS com as janelas de comando de plugin (opengeos/RustGIS#1547, depois da
+0.6.0). Num RustGIS sem elas, os botões rodam com o que está no painel **Área de trabalho** (a
+célula e o sistema da grade, o ano do MapBiomas, o mês do risco de fogo) ou com o padrão, e um
+script passa os mesmos parâmetros: `plugin:brasildata/layout={"perfil": "a3", "estilo": "panel"}`.
+
 A área de trabalho pode ser:
 
 - **um limite político**, clicando no nome na árvore **Limites políticos** do painel **Área de

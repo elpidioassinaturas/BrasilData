@@ -16,6 +16,7 @@ pub mod aqueduct;
 mod catalogo;
 pub mod censo;
 pub mod datas;
+pub mod dialogos;
 pub mod dist;
 pub mod estilo;
 pub mod grade;

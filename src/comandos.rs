@@ -6,6 +6,7 @@ use crate::amostragem::{self, Candidato, Sorteio};
 use crate::aqueduct;
 use crate::censo;
 use crate::datas::{self, Data};
+use crate::dialogos;
 use crate::dist;
 use crate::estilo;
 use crate::gedi;
@@ -45,10 +46,16 @@ const MAX_TILES: usize = 4;
 /// legenda, as cores, os rótulos e a transparência da antiga. O estilo fica na camada (e no
 /// projeto, com ela); o plugin só o leva da antiga para a nova. O estado do painel, que o RustGIS
 /// pede a cada abertura, não mexe em camadas.
-fn handle(req: Request) -> Result<Value, String> {
+///
+/// Os parâmetros vêm como um script os daria ([`dialogos::normalizar`]: a janela do comando
+/// manda as escolhas pelo texto), e a resposta leva os avisos do comando como o `report` que a
+/// janela mostra ([`dialogos::com_relato`]).
+fn handle(mut req: Request) -> Result<Value, String> {
     if req.id == "painel" {
         return executar(req);
     }
+    dialogos::normalizar(&req.id, &mut req.params);
+    AVISOS.with(|a| a.borrow_mut().clear());
     guardar_estilos();
     let r = executar(req);
     if let Ok(v) = &r
@@ -56,7 +63,19 @@ fn handle(req: Request) -> Result<Value, String> {
     {
         devolver_estilos();
     }
-    r
+    let avisos = AVISOS.with(|a| std::mem::take(&mut *a.borrow_mut()));
+    r.map(|v| dialogos::com_relato(v, &avisos, PREFIXO))
+}
+
+thread_local! {
+    /// Os avisos do comando que está rodando, para o `report` da resposta.
+    static AVISOS: std::cell::RefCell<Vec<String>> = const { std::cell::RefCell::new(Vec::new()) };
+}
+
+/// Um aviso ao usuário (`host::notify`), guardado também para o `report` da janela do comando.
+fn avisar(texto: &str) {
+    AVISOS.with(|a| a.borrow_mut().push(texto.to_string()));
+    host::notify(texto);
 }
 
 /// As camadas do BrasilData no mapa cujo estilo é do usuário ([`estilo::com_estilo`]).
@@ -219,8 +238,8 @@ fn por_area(fc: Value) -> Result<Value, String> {
     // Escolhida pelo nome, a área pode estar longe da vista.
     host::run("layer.zoomTo", json!({"layer": AREA}))?;
     match &grade {
-        Some(g) => host::notify(&format!("Área do BrasilData: {texto}. Grade refeita para ela: {}", g.texto())),
-        None => host::notify(&format!("Área do BrasilData: {texto}")),
+        Some(g) => avisar(&format!("Área do BrasilData: {texto}. Grade refeita para ela: {}", g.texto())),
+        None => avisar(&format!("Área do BrasilData: {texto}")),
     }
     let mut r = json!({"area": AREA, "bbox": caixa, "panel": {"items": {"area": {"text": texto}}}});
     if let Some(g) = grade {
@@ -274,7 +293,7 @@ fn grade_do_projeto(req: &Request) -> Result<Value, String> {
     };
     let g = por_grade(Grade::nova(c, escolha, celula))?;
     vista_no_sistema(c, Some(g.epsg));
-    host::notify(&format!(
+    avisar(&format!(
         "Grade do projeto: {}. Os rasters do BrasilData vão para ela, e o mapa passa a ser desenhado no sistema dela",
         g.texto()
     ));
@@ -305,7 +324,7 @@ fn grade_para(c: [f64; 4], celula: Option<f64>) -> Result<Grade, String> {
             let m = celula.unwrap_or(grade::CELULA_PADRAO);
             grade::conferir_celula(m)?;
             let g = por_grade(Grade::nova(c, Escolha::Automatico, m))?;
-            host::notify(&format!("Grade do projeto criada: {}. Para outra, use Grade do projeto no painel Área de trabalho", g.texto()));
+            avisar(&format!("Grade do projeto criada: {}. Para outra, use Grade do projeto no painel Área de trabalho", g.texto()));
             g
         }
     };
@@ -462,7 +481,7 @@ fn afinar_area() -> Result<Option<Value>, String> {
     if camada_no_projeto(&oficial)?.is_none() {
         match host::run("layer.addUrl", json!({"url": malhas::url_oficial(codigo), "name": oficial, "zoom": false})) {
             Ok(a) if a.get("pending").and_then(Value::as_bool) == Some(true) => {
-                host::notify("Área: baixando o limite oficial do município (IBGE). Quando ele chegar, clique de novo");
+                avisar("Área: baixando o limite oficial do município (IBGE). Quando ele chegar, clique de novo");
                 return Ok(Some(a));
             }
             Ok(_) => {}
@@ -546,7 +565,7 @@ fn area_desenho() -> Result<Value, String> {
     // A ferramenta só grava com a edição ligada, e sem ela o polígono se perderia sem aviso.
     host::run("edit.enable", json!({"on": true}))?;
     host::run("tool.set", json!({"tool": "createPolygon"}))?;
-    host::notify(&format!("{}. A área só muda quando você usar o desenho", DICA_DO_DESENHO));
+    avisar(&format!("{}. A área só muda quando você usar o desenho", DICA_DO_DESENHO));
     Ok(json!({"layer": DESENHO, "drawing": true, "panel": {"items": {
         "area": {"text": area_no_mapa()?},
         "area-desenho": {"label": "Usar o desenho"},
@@ -608,7 +627,7 @@ fn area_selecao() -> Result<Value, String> {
     let nomes = nomes_da_area(caixa)?;
     host::run("layer.zoomTo", json!({"layer": AREA}))?;
     let texto = texto_da_area(&nomes, ativa["selected"].as_u64().unwrap_or(0) as usize, Some(caixa));
-    host::notify(&format!("Área do BrasilData: {texto}"));
+    avisar(&format!("Área do BrasilData: {texto}"));
     let mut r = json!({"area": AREA, "bbox": caixa, "panel": {"items": {"area": {"text": texto}}}});
     desistir_do_desenho(&mut r)?;
     desmarcar_na_arvore(&mut r);
@@ -745,13 +764,13 @@ fn tema(t: &Tema) -> Result<Value, String> {
         substituir(&[&nome, &bruto], if na_area { &bruto } else { &nome }, &r["layer"])?;
     }
     if let Some(aviso) = corte_do_servico(&r) {
-        host::notify(&format!("{nome}: {aviso}; escolha uma área menor ({})", t.fonte));
+        avisar(&format!("{nome}: {aviso}; escolha uma área menor ({})", t.fonte));
     }
     if r.get("downloading").is_some() {
         // Um RustGIS que não roda o comando de novo põe a camada nova sem mais nada: a antiga sai
         // agora. Num que roda, esta volta é desfeita, e a antiga sai depois da chamada.
         remover(&[&nome, &bruto])?;
-        host::notify(&if na_area {
+        avisar(&if na_area {
             format!("{nome}: baixando; quando a camada aparecer no mapa, clique de novo neste botão para recortá-la pela área")
         } else {
             format!("{nome}: baixando; a camada aparece no mapa quando chegar")
@@ -789,7 +808,7 @@ fn ja_no_mapa(nome: &str, recorta: bool) -> Result<Option<Value>, String> {
         return Ok(None);
     }
     let curto = nome.trim_start_matches(PREFIXO);
-    host::notify(&format!("{curto} já está no mapa, recortada por esta área; para trazer de novo, remova a camada"));
+    avisar(&format!("{curto} já está no mapa, recortada por esta área; para trazer de novo, remova a camada"));
     Ok(Some(json!({"layer": nome, "already": true})))
 }
 
@@ -811,12 +830,12 @@ fn concluir(t: &Tema, lidas: u64, area: bool, na_area: bool) -> Result<Value, St
             let _ = host::run("table.remove", json!({"table": n}));
         }
         remover(&[&nome, &bruto])?;
-        host::notify(&format!("{nome}: nenhuma feição {onde} ({})", t.fonte));
+        avisar(&format!("{nome}: nenhuma feição {onde} ({})", t.fonte));
         return Ok(json!({"layer": null, "features": 0}));
     }
     if !na_area {
         let onde = if area { "no retângulo da área" } else { onde };
-        host::notify(&format!("{nome}: {} {onde} ({})", feicoes(lidas), t.fonte));
+        avisar(&format!("{nome}: {} {onde} ({})", feicoes(lidas), t.fonte));
         data_legivel(t, &nome);
         return Ok(json!({"layer": nome, "features": lidas, "clipped": false}));
     }
@@ -836,12 +855,12 @@ fn concluir(t: &Tema, lidas: u64, area: bool, na_area: bool) -> Result<Value, St
     match ficaram {
         Some(0) => {
             remover(&[&nome])?;
-            host::notify(&format!("{nome}: nada dentro da área ({} no retângulo; {})", feicoes(lidas), t.fonte));
+            avisar(&format!("{nome}: nada dentro da área ({} no retângulo; {})", feicoes(lidas), t.fonte));
             Ok(json!({"layer": null, "read": lidas, "features": 0, "clipped": true}))
         }
         _ => {
             let n = ficaram.map_or(String::new(), |n| format!("{n} de "));
-            host::notify(&format!(
+            avisar(&format!(
                 "{nome}: {n}{}, {} pela área ({})",
                 feicoes(lidas),
                 if ficaram == Some(1) { "recortada" } else { "recortadas" },
@@ -979,9 +998,7 @@ fn data_legivel(t: &Tema, nome: &str) {
         host::run("edit.calculateField", json!({"layer": nome, "field": "data_hora_utc", "expression": expressao_data(campo)}))
     });
     if let Err(e) = feito {
-        host::notify(&format!(
-            "{nome}: a data em texto (data_hora_utc) não foi calculada ({e}); {campo} está em milissegundos desde 1970, UTC"
-        ));
+        avisar(&format!("{nome}: a data em texto (data_hora_utc) não foi calculada ({e}); {campo} está em milissegundos desde 1970, UTC"));
     }
 }
 
@@ -1009,7 +1026,7 @@ fn por_zoom(campo: &str, nome: &str, r: &Value) -> Result<(), String> {
     let minima = r["areaMinima"].as_f64().unwrap_or(0.0);
     host::run("layer.displayFilters", json!({"layer": nome, "filters": zoom::filtros_de_exibicao(campo, minima)}))?;
     let curto = nome.trim_start_matches(PREFIXO);
-    host::notify(&if minima > 0.0 {
+    avisar(&if minima > 0.0 {
         format!(
             "{curto}: só os rios com área de drenagem de {} ou mais (os menores não cabem nesta área; numa área menor eles vêm). De longe aparecem só os principais; aproxime o mapa para ver os menores",
             zoom::km2(minima)
@@ -1080,7 +1097,7 @@ fn tema_proprio_de(t: &Tema) -> Result<Value, String> {
     let onde = if area { "na área" } else { "na vista" };
     if total == 0 {
         remover(&[&nome, &bruto])?;
-        host::notify(&format!("{nome}: nenhuma feição {onde} ({})", t.fonte));
+        avisar(&format!("{nome}: nenhuma feição {onde} ({})", t.fonte));
         return Ok(json!({"layer": null, "features": 0}));
     }
     if total > MAX_FEICOES {
@@ -1121,7 +1138,7 @@ fn tema_proprio_de(t: &Tema) -> Result<Value, String> {
     if baixando > 0 || cheio {
         let chegaram = n - faltam.len();
         if n > 1 && (chegaram > 0 || cheio) {
-            host::notify(&format!(
+            avisar(&format!(
                 "{nome}: {chegaram} de {n} partes no mapa, {baixando} baixando; as outras vêm quando estas chegarem (se nada mudar, clique de novo neste botão)"
             ));
             return Ok(json!({"downloading": nome, "features": total, "parts": n, "landed": chegaram}));
@@ -1133,7 +1150,7 @@ fn tema_proprio_de(t: &Tema) -> Result<Value, String> {
             (false, true) => "recortá-la pela área",
             (false, false) => "",
         };
-        host::notify(&if depois.is_empty() {
+        avisar(&if depois.is_empty() {
             format!("{nome}: {total} feições baixando; a camada aparece no mapa quando chegar")
         } else {
             format!("{nome}: {total} feições baixando{partes}; quando tudo aparecer no mapa, clique de novo neste botão para {depois}")
@@ -1280,7 +1297,7 @@ fn fontes() -> Result<Value, String> {
     // Ela entra como uma camada sem geometria (uma tabela na lista de camadas).
     remover(&[FONTES])?;
     if lista.is_empty() {
-        host::notify("Nenhuma camada do BrasilData no mapa");
+        avisar("Nenhuma camada do BrasilData no mapa");
         return Ok(json!({"layers": lista}));
     }
     // Uma tabela no projeto (sem geometria), salva com ele: uma linha por citação.
@@ -1301,7 +1318,7 @@ fn fontes() -> Result<Value, String> {
     host::add_layer(FONTES, fc)?;
     // A tabela de atributos dela, na janela (no rustgis-cli não há o que abrir).
     let _ = host::run("table.open", json!({"layer": FONTES}));
-    host::notify(&match (camadas.len(), lista.len()) {
+    avisar(&match (camadas.len(), lista.len()) {
         (1, 1) => format!("A fonte da camada está na tabela {FONTES}"),
         (1, n) => format!("As {n} fontes da camada estão na tabela {FONTES}"),
         (c, _) => format!("As fontes das {c} camadas estão na tabela {FONTES}"),
@@ -1365,7 +1382,7 @@ fn elevacao(celula: Option<f64>) -> Result<Value, String> {
     }
     if baixando > 0 {
         let tiles = if baixando == 1 { "1 tile".to_string() } else { format!("{baixando} tiles") };
-        host::notify(&format!(
+        avisar(&format!(
             "Elevação: baixando {tiles} do Copernicus (cerca de 59 MB cada). Quando aparecerem no mapa como \"BrasilData: tile\", clique em Elevação de novo"
         ));
         return Ok(json!({"pending": baixando, "tiles": urls.len()}));
@@ -1395,7 +1412,7 @@ fn elevacao(celula: Option<f64>) -> Result<Value, String> {
     )?;
     let t: Vec<&str> = temporarias.iter().map(String::as_str).collect();
     remover(&t)?;
-    host::notify(&format!("{nome}: na grade do projeto, {} ({resampling})", g.texto()));
+    avisar(&format!("{nome}: na grade do projeto, {} ({resampling})", g.texto()));
     Ok(json!({
         "layer": nome, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula, "tiles": urls.len(),
         "width": r["width"], "height": r["height"], "corner": r["corner"],
@@ -1474,7 +1491,7 @@ fn radar_na_grade(recortes: &[radar::Recorte], p: radar::Pol, g: &Grade, c: [f64
     let baixando = baixar_inteiros(&pedidos, &ha)?;
     if baixando > 0 {
         let n = if baixando == 1 { "1 recorte".to_string() } else { format!("{baixando} recortes") };
-        host::notify(&format!(
+        avisar(&format!(
             "Radar {}: baixando {n} do ASF (cerca de 7 MB cada). Quando aparecerem no mapa como \"BrasilData: radar\", clique de novo",
             p.sigla()
         ));
@@ -1669,7 +1686,7 @@ fn dist_na_grade(
     let baixando = baixar_inteiros(&pedidos, &ha)?;
     if baixando > 0 {
         let n = if baixando == 1 { "1 tile".to_string() } else { format!("{baixando} tiles") };
-        host::notify(&format!(
+        avisar(&format!(
             "Perturbação da vegetação ({}): baixando {n} do ASF (cerca de {} MB cada). Quando aparecerem no mapa como \"{base}\", clique de novo",
             camada.curto(),
             camada.megas()
@@ -1715,7 +1732,7 @@ fn dist_na_grade(
                 host::run("raster.mask", json!({"layer": nome, "values": [0]}))?;
                 // Sem as manchas, a situação fica no raster, visível: o comando não cai por elas.
                 if !dist::manchas_cabem(c, g.celula) {
-                    host::notify(&format!(
+                    avisar(&format!(
                         "Perturbação da vegetação: área grande demais para as manchas com borda (até cerca de {:.0} milhões de células da grade); fica o raster",
                         dist::MAX_CELULAS_MANCHAS / 1e6
                     ));
@@ -1723,7 +1740,7 @@ fn dist_na_grade(
                     let manchas = dist::nome_das_manchas(ate);
                     let _ = remover(&[&manchas, &format!("{manchas} (sem recorte)"), &format!("{manchas} (em graus)")]);
                     host::log(&format!("manchas: {e}"));
-                    host::notify(&format!("Perturbação da vegetação: as manchas com borda não saíram ({e}); fica o raster"));
+                    avisar(&format!("Perturbação da vegetação: as manchas com borda não saíram ({e}); fica o raster"));
                 }
             }
             dist::Camada::Data => {
@@ -1829,12 +1846,7 @@ fn perturbacao(req: &Request, camada: dist::Camada) -> Result<Value, String> {
         format!("de {} a {}", mais_velho.texto(), mais_novo.texto())
     };
     let codigos = if camada == dist::Camada::Situacao { format!(". Códigos: {}", paleta.codigos()) } else { String::new() };
-    host::notify(&format!(
-        "{}: {} tiles {datas}, na grade do projeto, {}{codigos}",
-        nome.trim_start_matches(PREFIXO),
-        produtos.len(),
-        g.texto()
-    ));
+    avisar(&format!("{}: {} tiles {datas}, na grade do projeto, {}{codigos}", nome.trim_start_matches(PREFIXO), produtos.len(), g.texto()));
     Ok(json!({
         "layer": nome, "date": mais_novo.texto(), "products": produtos.iter().map(|p| p.nome.clone()).collect::<Vec<_>>(),
         "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula,
@@ -1889,7 +1901,7 @@ fn radar(req: &Request, qual: Option<radar::Pol>) -> Result<Value, String> {
         let _ = host::run("raster.stretch", json!({"layer": razao, "type": "custom", "min": min, "max": max}));
         camada = razao;
     }
-    host::notify(&format!(
+    avisar(&format!(
         "{}: {} recortes da passagem de {}, na grade do projeto, {}",
         camada.trim_start_matches(PREFIXO),
         recortes.len(),
@@ -2179,7 +2191,7 @@ fn indicadores(fontes: &[Fonte]) -> Result<Value, String> {
     if !erros.is_empty() {
         aviso.push_str(&format!("; falharam {}", erros.join("; ")));
     }
-    host::notify(&aviso);
+    avisar(&aviso);
     if feitas.is_empty() && faltam.is_empty() {
         return Err(erros.join("; "));
     }
@@ -2313,13 +2325,13 @@ fn censo_setores() -> Result<Value, String> {
         feitas.push(json!({"layer": nome, "features": n}));
     }
     if !baixando.is_empty() {
-        host::notify(&format!(
+        avisar(&format!(
             "Setores censitários de {}: baixando; quando a camada aparecer no mapa, clique de novo para recortá-la pela área",
             baixando.join(", ")
         ));
     }
     if !feitas.is_empty() {
-        host::notify(&format!(
+        avisar(&format!(
             "Setores censitários de 2022 recortados pela área ({}). {}",
             feitas.iter().map(|f| format!("{}: {}", f["layer"].as_str().unwrap_or(""), f["features"])).collect::<Vec<_>>().join("; "),
             censo::CAMPOS_DOS_SETORES
@@ -2392,7 +2404,7 @@ fn estabelecimentos_de_saude() -> Result<Value, String> {
     if feicoes_da_camada(SAUDE_BRUTO)?.is_none() {
         let r = host::run("layer.addUrl", json!({"url": saude::URL, "name": SAUDE_BRUTO, "zoom": false}))?;
         if r.get("pending").and_then(Value::as_bool) == Some(true) || r.get("downloading").is_some() {
-            host::notify(&format!(
+            avisar(&format!(
                 "Estabelecimentos de saúde: abrindo o CNES do Brasil (geobr, 98 MB, lido aos pedaços). Quando \"{SAUDE_BRUTO}\" aparecer no mapa, clique de novo"
             ));
             return Ok(json!({"pending": true}));
@@ -2416,7 +2428,7 @@ fn estabelecimentos_de_saude() -> Result<Value, String> {
     let fora = format!("{desativados} desativados e {de_pessoa} de pessoa física ou empresário individual deixados de fora");
     if ficaram == 0 {
         remover(&[&temporaria, SAUDE_BRUTO])?;
-        host::notify(&format!("{nome}: nenhum estabelecimento ativo na área ({lidos} lidos; {fora})"));
+        avisar(&format!("{nome}: nenhum estabelecimento ativo na área ({lidos} lidos; {fora})"));
         return Ok(json!({"layer": null, "read": lidos, "features": 0}));
     }
     let r = host::run("select.layerFromSelection", json!({"layer": temporaria}))?;
@@ -2434,7 +2446,7 @@ fn estabelecimentos_de_saude() -> Result<Value, String> {
             host::run("edit.deleteField", json!({"layer": nome, "field": c}))?;
         }
     }
-    host::notify(&format!("{nome}: {ficaram} de {lidos} na área ({fora}; Ministério da Saúde, pelo geobr)"));
+    avisar(&format!("{nome}: {ficaram} de {lidos} na área ({fora}; Ministério da Saúde, pelo geobr)"));
     Ok(json!({"layer": nome, "read": lidos, "features": ficaram, "inactive": desativados, "personal": de_pessoa}))
 }
 
@@ -2540,7 +2552,7 @@ fn cobertura_mapbiomas(ano: i64, recortar: bool) -> Result<Value, String> {
         json!({"url": url, "kind": "raster", "name": nome, "attribution": "MapBiomas, Coleção 11 (CC BY 4.0)", "maxZoom": 14}),
     )?;
     let motivo = por_que.as_deref().map(|m| format!(": {m}")).unwrap_or_default();
-    host::notify(&format!(
+    avisar(&format!(
         "{nome}: mapa para ver, com as cores da legenda oficial (brasil.mapbiomas.org); não é recortado pela área{motivo}. Vale por algumas horas"
     ));
     Ok(json!({"tiles": nome, "year": ano, "notClipped": por_que}))
@@ -2567,7 +2579,7 @@ fn irrigacao_mapbiomas(ano: i64) -> Result<Value, String> {
         "map.addTiles",
         json!({"url": url, "kind": "raster", "name": nome, "attribution": "MapBiomas, sistemas de irrigação (CC BY 4.0)", "maxZoom": 14}),
     )?;
-    host::notify(&format!(
+    avisar(&format!(
         "{nome}: mapa para ver, com as cores da legenda oficial (roxo, pivô central; azul-claro, outros sistemas; rosa, inundação, o arroz irrigado); não é recortado pela área. Vale por algumas horas"
     ));
     Ok(json!({"tiles": nome, "year": ano}))
@@ -2612,7 +2624,7 @@ fn gedi_na_area(v: gedi::Variavel, celula: Option<f64>) -> Result<Value, String>
         if tiradas.is_empty() {
             return Err(sem_janela());
         }
-        host::notify(&format!("{}; saiu do mapa o arquivo inteiro que uma tentativa anterior trouxe", sem_janela()));
+        avisar(&format!("{}; saiu do mapa o arquivo inteiro que uma tentativa anterior trouxe", sem_janela()));
         return Ok(json!({"removed": tiradas}));
     }
     let resposta = match buscar_varios(&[gedi::url_busca(c)]).map_err(token_recem_lido)? {
@@ -2636,7 +2648,7 @@ fn gedi_na_area(v: gedi::Variavel, celula: Option<f64>) -> Result<Value, String>
             if janela_inteira(e, gedi::janela(c)) {
                 // Sem erro, que desfaria a remoção.
                 tirar_janela(&nome)?;
-                host::notify(&format!("{}; saiu do mapa o arquivo inteiro que uma tentativa anterior trouxe", sem_janela()));
+                avisar(&format!("{}; saiu do mapa o arquivo inteiro que uma tentativa anterior trouxe", sem_janela()));
                 return Ok(json!({"removed": [nome]}));
             }
             if retangulo_cabe(c, e) {
@@ -2662,7 +2674,7 @@ fn gedi_na_area(v: gedi::Variavel, celula: Option<f64>) -> Result<Value, String>
         janelas.push(nome);
     }
     if lendo > 0 {
-        host::notify(&format!("{} (GEDI L4D): lendo a área em {lendo} arquivo(s) da NASA; a camada vem quando chegarem", v.titulo()));
+        avisar(&format!("{} (GEDI L4D): lendo a área em {lendo} arquivo(s) da NASA; a camada vem quando chegarem", v.titulo()));
         return Ok(json!({"pending": lendo, "files": urls.len()}));
     }
     let g = grade_para(c, celula)?;
@@ -2721,7 +2733,7 @@ fn gedi_na_area(v: gedi::Variavel, celula: Option<f64>) -> Result<Value, String>
         .map(|m| format!("; média na área: {} {}", formatar_decimal(m), v.unidade()))
         .unwrap_or_default();
     let piramide = gedi::celula_da_janela(c).map(|m| format!(", lida da pirâmide de {} m do arquivo", m - 1.0)).unwrap_or_default();
-    host::notify(&format!(
+    avisar(&format!(
         "{saida}: em {}, de 2019 a 2023 (GEDI imputado com o Landsat), na grade do projeto, {}{piramide}{media}",
         v.unidade(),
         g.texto()
@@ -2798,7 +2810,7 @@ fn sol_na_area(req: &Request) -> Result<Value, String> {
         .and_then(|i| i["bands"][0]["mean"].as_f64())
         .map(|m| format!("; média na área: {} kWh/m² por dia", formatar_decimal(m)))
         .unwrap_or_default();
-    host::notify(&format!(
+    avisar(&format!(
         "{saida}: {} de 2001 a 2025 (NASA POWER, {n} células de 1° em volta da área), interpolada para a grade do projeto, {}{media}",
         sol::periodo(mes),
         g.texto()
@@ -2828,7 +2840,7 @@ fn irrigacao_na_area(celula: Option<f64>) -> Result<Value, String> {
         tirar_janela(irrigacao::JANELA)?;
         let r = host::run("layer.addUrl", json!({"url": irrigacao::URL, "name": irrigacao::JANELA, "bbox": janela, "zoom": false}))?;
         if r.get("pending").and_then(Value::as_bool) == Some(true) {
-            host::notify("Área equipada para irrigação (GMIA v5): lendo a área no arquivo da FAO; a camada vem quando chegar");
+            avisar("Área equipada para irrigação (GMIA v5): lendo a área no arquivo da FAO; a camada vem quando chegar");
             return Ok(json!({"pending": 1}));
         }
         if r.get("inPlace").and_then(Value::as_bool) == Some(true) || r.get("window").is_none() {
@@ -2865,7 +2877,7 @@ fn irrigacao_na_area(celula: Option<f64>) -> Result<Value, String> {
         .and_then(|i| i["bands"][0]["mean"].as_f64())
         .map(|m| format!("; média na área: {}%", formatar_decimal(m)))
         .unwrap_or_default();
-    host::notify(&format!(
+    avisar(&format!(
         "{saida}: % de cada célula de 5′ (cerca de 9 km) equipada para irrigação, por volta de 2005, na grade do projeto, {}; cores de 0 a 40% ou mais, com mais tons até 10%{media}",
         g.texto()
     ));
@@ -2941,7 +2953,7 @@ fn risco_de_fogo(req: &Request) -> Result<Value, String> {
             }
         })?;
         if r.get("pending").and_then(Value::as_bool) == Some(true) {
-            host::notify(&format!(
+            avisar(&format!(
                 "Risco de fogo em {} (INPE): lendo a área no arquivo do INPE; a camada vem quando chegar",
                 risco_fogo::nome_do_mes(mes)
             ));
@@ -2986,7 +2998,7 @@ fn risco_de_fogo(req: &Request) -> Result<Value, String> {
         g.texto(),
         risco_fogo::texto_das_classes()
     );
-    host::notify(&texto);
+    avisar(&texto);
     // O "report" é o texto que a janela do comando mostra depois de rodar (#1723).
     Ok(
         json!({"layer": saida, "month": mes, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula, "report": texto.trim_start_matches(PREFIXO)}),
@@ -3164,7 +3176,7 @@ fn layout_do_mapa(req: &Request) -> Result<Value, String> {
     if let Some(id) = elemento("Map Frame") {
         host::run("layout.update", json!({"layout": nome, "element": id, "grid": {"type": "measured", "step": passo, "labels": true}}))?;
     }
-    host::notify(&format!(
+    avisar(&format!(
         "Layout \"{nome}\": {} na área, em {}. Abra-o em Publicar para ajustar e exportar; um novo clique o refaz",
         subtitulo,
         grade::nome_do_sistema(epsg)
@@ -3215,9 +3227,7 @@ fn cobertura_recortada(ano: i64) -> Result<Recorte, String> {
         }
         let r = host::run("layer.addUrl", p)?;
         if r.get("pending").and_then(Value::as_bool) == Some(true) {
-            host::notify(&format!(
-                "Uso e cobertura {ano} (MapBiomas): lendo a janela da área no COG da coleção; o raster vem quando ela chegar"
-            ));
+            avisar(&format!("Uso e cobertura {ano} (MapBiomas): lendo a janela da área no COG da coleção; o raster vem quando ela chegar"));
             return Ok(Recorte::Feito(r));
         }
         if r.get("inPlace").and_then(Value::as_bool) == Some(true) || r.get("window").is_none() {
@@ -3251,7 +3261,7 @@ fn cobertura_recortada(ano: i64) -> Result<Recorte, String> {
             String::new()
         }
     };
-    host::notify(&format!(
+    avisar(&format!(
         "{nome}: classes do MapBiomas (Coleção 10) na grade do projeto, {}, com a classe mais frequente; as cores são as da legenda oficial.{piramide}{nomes_das_classes}",
         g.texto()
     ));
@@ -3499,14 +3509,14 @@ fn amostra_da_selecao(
 /// a camada fica no mapa e o aviso diz por quê.
 fn resposta_da_amostra(req: &Request, nome: &str, pontos: u64, texto: &str, mais: Value) -> Value {
     let curto: String = texto.chars().take(480).collect();
-    host::notify(&curto);
+    avisar(&curto);
     let (arquivo, sobre_o_arquivo) = match gravar_amostra(req, nome) {
         Ok(None) => (None, String::new()),
         Ok(Some(c)) => (Some(c.clone()), format!("Os pontos foram gravados em {c}.")),
         Err(e) => (None, format!("Os pontos ficaram só no mapa: {e}.")),
     };
     if !sobre_o_arquivo.is_empty() {
-        host::notify(&sobre_o_arquivo);
+        avisar(&sobre_o_arquivo);
     }
     let texto = if sobre_o_arquivo.is_empty() { texto.to_string() } else { format!("{texto}\n\n{sobre_o_arquivo}") };
     // `report`: o texto que a janela do comando mostra depois de executar (opengeos/RustGIS#1547).
@@ -3799,7 +3809,7 @@ fn amostra_sistematica(req: &Request) -> Result<Value, String> {
 /// linha de comando e dos scripts) e no painel, onde ele já está desde a instalação. O RustGIS
 /// não tem janela de texto para um plugin, e um comando não abre o painel.
 fn sobre() -> Result<Value, String> {
-    host::notify(crate::SOBRE_AVISO);
+    avisar(crate::SOBRE_AVISO);
     Ok(json!({"version": versao::ESTA, "text": crate::SOBRE, "panel": {"items": {"sobre": {"text": crate::SOBRE}}}}))
 }
 
@@ -3812,7 +3822,7 @@ fn atualizacao() -> Result<Value, String> {
     }
     let nova = versao::mais_nova(r.get("json").unwrap_or(&Value::Null))?;
     let texto = versao::mensagem(nova.as_deref());
-    host::notify(&texto);
+    avisar(&texto);
     Ok(json!({"version": versao::ESTA, "latest": nova}))
 }
 
