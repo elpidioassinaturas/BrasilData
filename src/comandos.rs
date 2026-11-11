@@ -17,6 +17,7 @@ use crate::malhas;
 use crate::mapbiomas;
 use crate::municipios::{self, Territorio};
 use crate::radar;
+use crate::risco_fogo;
 use crate::saude;
 use crate::sol;
 use crate::versao;
@@ -121,6 +122,7 @@ fn executar(req: Request) -> Result<Value, String> {
         "elevacao" => elevacao(req.f64("celula")),
         "sol-radiacao" => sol_na_area(&req),
         "irrigacao-gmia" => irrigacao_na_area(req.f64("celula")),
+        "risco-fogo" => risco_de_fogo(&req),
         "radar-vv" => radar(&req, Some(radar::Pol::Vv)),
         "radar-vh" => radar(&req, Some(radar::Pol::Vh)),
         "radar-razao" => radar(&req, None),
@@ -1237,6 +1239,8 @@ fn citacoes() -> Result<(Vec<Value>, String), String> {
             lista.push(json!({"layer": n, "source": radar::CITACAO, "license": radar::LICENCA}));
         } else if sol::eh_do_sol(&n) {
             lista.push(json!({"layer": n, "source": sol::CITACAO, "license": sol::LICENCA}));
+        } else if risco_fogo::mes_da_camada(&n).is_some() {
+            lista.push(json!({"layer": n, "source": risco_fogo::CITACAO, "license": risco_fogo::LICENCA}));
         } else if n == irrigacao::CAMADA {
             lista.push(json!({"layer": n, "source": irrigacao::CITACAO, "license": irrigacao::LICENCA}));
         } else if gedi::eh_do_gedi(&n) {
@@ -1946,6 +1950,8 @@ fn painel(req: &Request) -> Result<Value, String> {
     let espacamentos: Vec<String> = amostragem::ESPACAMENTOS.iter().map(|m| amostragem::texto_do_espacamento(*m)).collect();
     r["panel"]["items"][AMOSTRA_PONTOS] = json!({"labels": pontos});
     r["panel"]["items"][AMOSTRA_ESPACAMENTO] = json!({"labels": espacamentos});
+    // O mês do risco de fogo, pelo nome.
+    r["panel"]["items"][risco_fogo::CONTROLE] = json!({"labels": risco_fogo::NOMES_DOS_MESES});
     if let Some(g) = g {
         if let Some(i) = g.no_controle_da_celula() {
             r["panel"]["values"]["grade-celula"] = json!(i);
@@ -2887,6 +2893,104 @@ fn aqueduct_em_portugues(t: &Tema) -> Result<(), String> {
         host::run("style.apply", json!({"layer": nome, "name": aqueduct::ESTILO}))?;
     }
     Ok(())
+}
+
+/// O mês do risco de fogo: o do script, o do controle do painel ou setembro.
+fn mes_do_risco(req: &Request) -> Result<u8, String> {
+    match req.f64("mes") {
+        Some(m) => risco_fogo::conferir_mes(m),
+        None => Ok(req
+            .panel
+            .get(risco_fogo::CONTROLE)
+            .and_then(Value::as_u64)
+            .and_then(|m| u8::try_from(m).ok())
+            .filter(|m| (1..=12).contains(m))
+            .unwrap_or(risco_fogo::MES_PADRAO)),
+    }
+}
+
+/// O Risco de Fogo do INPE no mês `mes` ([`risco_fogo`]): a janela da área no arquivo do mês,
+/// posta na grade do projeto e recortada pela área, nas cores das classes do método.
+fn risco_de_fogo(req: &Request) -> Result<Value, String> {
+    let mes = mes_do_risco(req)?;
+    let celula = req.f64("celula");
+    if let Some(m) = celula {
+        grade::conferir_celula(m)?;
+    }
+    let (c, na_area) = retangulo()?;
+    if !na_area {
+        return Err("escolha a área primeiro (painel Área de trabalho, ou Área: seleção)".into());
+    }
+    let sem_janela = "o Risco de Fogo do INPE precisa de um RustGIS que leia só a janela da área de um arquivo remoto (depois da 0.5.0): cada mês cobre a América do Sul a 1 km";
+    if !le_janela_remota()? {
+        return Err(sem_janela.into());
+    }
+    let url = risco_fogo::url(mes);
+    let janela = risco_fogo::janela(c);
+    let nome_da_janela = risco_fogo::janela_do_mes(mes);
+    // A janela de um clique anterior serve se cobre a área (no desktop, o comando roda de novo
+    // quando ela chega); o nome dela diz o mês.
+    let serve = extensao(&nome_da_janela)?.is_some_and(|e| retangulo_cabe(janela, e));
+    if !serve {
+        tirar_janela(&nome_da_janela)?;
+        let r = host::run("layer.addUrl", json!({"url": url, "name": nome_da_janela, "bbox": janela, "zoom": false})).map_err(|e| {
+            if falha_passageira(&e) || e.contains("timeout") {
+                format!("o servidor do INPE (dataserver-coids.inpe.br) não respondeu agora: tente de novo daqui a pouco ({e})")
+            } else {
+                e
+            }
+        })?;
+        if r.get("pending").and_then(Value::as_bool) == Some(true) {
+            host::notify(&format!(
+                "Risco de fogo em {} (INPE): lendo a área no arquivo do INPE; a camada vem quando chegar",
+                risco_fogo::nome_do_mes(mes)
+            ));
+            return Ok(json!({"pending": 1}));
+        }
+        if r.get("inPlace").and_then(Value::as_bool) == Some(true) || r.get("window").is_none() {
+            tirar_janela(&nome_da_janela)?;
+            return Err(sem_janela.into());
+        }
+    }
+    let g = grade_para(c, celula)?;
+    let saida = risco_fogo::camada(mes);
+    let temporarias = [nome_da_janela.as_str(), risco_fogo::NA_GRADE];
+    remover(&[&saida])?;
+    let feito = (|| -> Result<(), String> {
+        // O -999 do arquivo vira sem dado antes da grade, para não entrar na interpolação.
+        host::run("raster.mask", json!({"layer": nome_da_janela, "min": 0.0, "max": 1.0}))?;
+        host::run(
+            "raster.project",
+            json!({"layer": nome_da_janela, "crs": g.epsg, "cellSize": g.celula, "extent": GRADE, "resampling": risco_fogo::reamostragem(g.celula), "name": risco_fogo::NA_GRADE}),
+        )?;
+        host::run("raster.process", json!({"layer": risco_fogo::NA_GRADE, "operation": "clip", "polygon": AREA, "name": saida}))?;
+        host::run("raster.mask", json!({"layer": saida, "min": 0.0, "max": 1.0}))?;
+        // A rampa já registrada (de um clique anterior) fica como está.
+        let _ = host::run("ramp.add", json!({"text": risco_fogo::rampa(), "format": "gdal", "name": risco_fogo::RAMPA}));
+        if host::run("raster.symbology", json!({"layer": saida, "type": "stretch", "ramp": risco_fogo::RAMPA})).is_err() {
+            host::run("raster.symbology", json!({"layer": saida, "type": "stretch", "ramp": "RdYlGn", "invert": true}))?;
+        }
+        let _ = host::run("raster.stretch", json!({"layer": saida, "type": "custom", "min": 0.0, "max": 1.0}));
+        Ok(())
+    })();
+    remover(&temporarias)?;
+    feito?;
+    let media = host::run("raster.info", json!({"layer": saida}))
+        .ok()
+        .and_then(|i| i["bands"][0]["mean"].as_f64())
+        .map(|m| format!("; média na área: {}", format!("{m:.2}").replace('.', ",")))
+        .unwrap_or_default();
+    let texto = format!(
+        "{saida}: o perigo meteorológico de fogo de 0 a 1, média de {} de 2001 a 2025, na grade do projeto, {}; classes do INPE: {}{media}",
+        risco_fogo::nome_do_mes(mes),
+        g.texto(),
+        risco_fogo::texto_das_classes()
+    );
+    host::notify(&texto);
+    // O "report" é o texto que a janela do comando mostra depois de rodar (#1723).
+    Ok(
+        json!({"layer": saida, "month": mes, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula, "report": texto.trim_start_matches(PREFIXO)}),
+    )
 }
 
 /// O botão Layout: uma folha pronta com o dado principal do BrasilData no mapa (a primeira camada

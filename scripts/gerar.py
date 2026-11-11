@@ -30,7 +30,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.28"
+VERSAO = "0.1.29"
 
 # Os comandos que não vêm da tabela, com o grupo da aba em que ficam. Na aba, o grupo Área
 # tem o painel (a escolha do território pelo nome), a área pela seleção e o desenho; o comando
@@ -135,6 +135,17 @@ PAINEL = {
             "steps": True,
         },
         {"kind": "button", "command": "mapbiomas-cobertura"},
+        {
+            "kind": "slider",
+            "id": "risco-fogo-mes",
+            "label": "Risco de fogo: mês",
+            "help": "O mês da climatologia do Risco de Fogo do INPE (a média de 2001 a 2025 desse mês). Vale quando você clicar em Risco de fogo (INPE), aqui ou na aba Queimadas.",
+            "min": 1,
+            "max": 12,
+            "default": 9,
+            "steps": True,
+        },
+        {"kind": "button", "command": "risco-fogo"},
         {
             "kind": "text",
             "id": "amostra-texto",
@@ -551,6 +562,20 @@ EM_MENUS = [
             "help": "A intensidade: o maior desvio do sinal do radar em relação ao histórico do lugar, desde a primeira detecção. O alerta de perturbação da vegetação do radar do Sentinel-1 (OPERA DIST-S1, JPL, pelo ASF DAAC da NASA), 30 m: o produto mais recente de cada tile que cruza o polígono da área, que acumula os alertas desde o começo do monitoramento (04/01/2026), juntado, recortado pela área e posto na grade do projeto. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Áreas de até cerca de 400 km.",
             "icon": "raster_layer",
             "params": "{\"data\"?: \"dd/mm/aaaa\", os produtos até esse dia (padrão: os mais recentes), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+        },
+    ),
+    (
+        "Vegetação e meio ambiente",
+        "Queimadas",
+        {
+            "id": "risco-fogo",
+            "label": "Risco de fogo (INPE)",
+            "help": "O perigo meteorológico de fogo, de 0 a 1, do modelo de Risco de Fogo do INPE (Programa Queimadas, versão 11: dias de secura pela chuva, umidade, temperatura, vegetação, relevo e latitude): a média de 2001 a 2025 de um mês, a 1 km. Só a área, lida do arquivo do mês, posta na grade do projeto e recortada pelo contorno, nas cores das cinco classes do INPE: mínimo (abaixo de 0,15), baixo (até 0,40), médio (até 0,70), alto (até 0,95) e crítico. O mês vem da janela do comando, ou do controle Risco de fogo: mês no painel Área de trabalho (setembro até você mudar). Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área).",
+            "icon": "raster_layer",
+            "params": "{\"mes\"?: de 1 a 12 (padrão: o do painel, ou 9, setembro), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+            "form": [
+                {"name": "mes", "label": "Mês", "kind": "number", "required": True, "default": 9, "help": "O mês da climatologia, de 1 (janeiro) a 12 (dezembro): a média de 2001 a 2025 do perigo de fogo nesse mês. Setembro é o auge da estação de fogo no Brasil central."},
+            ],
         },
     ),
     (

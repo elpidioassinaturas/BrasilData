@@ -55,8 +55,8 @@ A área de trabalho pode ser:
 - **a vista**: sem área, os temas pedem o que está na vista do mapa.
 
 A **Grade do projeto** é o sistema de coordenadas e o tamanho das células em que os rasters chegam
-(a Elevação, o Radar, a Perturbação da vegetação, o GEDI, a Radiação solar e a Área equipada para
-irrigação). O mapa passa a ser desenhado no sistema dela quando você escolhe a área ou faz a grade:
+(a Elevação, o Radar, a Perturbação da vegetação, o GEDI, a Radiação solar, a Área equipada para
+irrigação e o Risco de fogo). O mapa passa a ser desenhado no sistema dela quando você escolhe a área ou faz a grade:
 uma projeção de mapa-múndi, como o Eckert IV, deixaria a área deformada (a Bahia, 27% mais
 estreita). No painel, escolha a célula (de 10 m a 1 km) e o sistema e clique em **Grade do
 projeto**:
@@ -223,7 +223,7 @@ estilo.
 | Saúde | Estabelecimentos (CNES, DATASUS) |
 | Meio físico | Geologia e recursos minerais (IBGE, ANM, MapBiomas), Relevo (IBGE, Copernicus), Solos (IBGE), Clima (radiação solar do NASA POWER) |
 | Água | Hidrografia (IBGE, ANA), Bacias (IBGE, ANA), Recursos hídricos (ANA; estresse hídrico do Aqueduct 4.0, WRI; sistemas de irrigação do MapBiomas; área equipada para irrigação do GMIA v5, FAO) |
-| Vegetação e meio ambiente | Vegetação (IBGE), Uso e cobertura (MapBiomas; radar Sentinel-1 do ASF/NASA), Desmatamento (INPE: PRODES e DETER; alertas de perturbação OPERA DIST-S1 do ASF/NASA), Queimadas (INPE: focos de calor das últimas 48 horas, dos últimos 7 dias e do mês corrente; um período com datas, por script: `plugin:brasildata/inpe-focos-periodo={"de": "01/11/2026", "ate": "06/11/2026"}`), Áreas protegidas (MMA, ICMBio), Fiscalização (IBAMA) |
+| Vegetação e meio ambiente | Vegetação (IBGE), Uso e cobertura (MapBiomas; radar Sentinel-1 do ASF/NASA), Desmatamento (INPE: PRODES e DETER; alertas de perturbação OPERA DIST-S1 do ASF/NASA), Queimadas (INPE: focos de calor das últimas 48 horas, dos últimos 7 dias e do mês corrente, e a climatologia mensal do Risco de Fogo; um período com datas, por script: `plugin:brasildata/inpe-focos-periodo={"de": "01/11/2026", "ate": "06/11/2026"}`), Áreas protegidas (MMA, ICMBio), Fiscalização (IBAMA) |
 | Infraestrutura | Energia (ANEEL), Petróleo e gás (ANP), Transportes (DNIT) |
 
 As camadas vetoriais estão listadas em [`fontes.csv`](fontes.csv) e na tabela [Fontes](#fontes),
@@ -392,6 +392,16 @@ Fora da tabela, com a citação no comando **Fontes**:
   (FAO e Universidade de Bonn, CC BY 4.0): a porcentagem de cada célula de 5′ (cerca de 9 km)
   equipada para irrigação, por volta de 2005, lida só na janela da área do arquivo mundial da FAO
   (um RustGIS que leia a janela, como o GEDI). As cores vão de 0 a 40%, com mais tons até 10%;
+- **Risco de fogo:** INPE, Programa Queimadas, modelo de Risco de Fogo versão 11 (Setzer,
+  Sismanoglu e Santos 2019): o perigo meteorológico de fogo, de 0 a 1, pelos dias de secura (chuva
+  do IMERG), a umidade e a temperatura do GFS, a vegetação, o relevo e a latitude. A climatologia
+  de um mês, a média de 2001 a 2025, a 0,01° (cerca de 1 km), lida só na janela da área do
+  arquivo do mês (um RustGIS que leia a janela, como o GEDI). As cores são as cinco classes do
+  INPE: mínimo (abaixo de 0,15), baixo (até 0,40), médio (até 0,70), alto (até 0,95) e crítico.
+  O mês vem da janela do comando ou do controle **Risco de fogo: mês** do painel (setembro até você
+  mudar); por script, `plugin:brasildata/risco-fogo={"mes": 3}`. É perigo modelado, não
+  ocorrência: para o fogo de fato, os focos de calor. O INPE não declara uma licença; cite o
+  Programa Queimadas e o método;
 - **Sistemas de irrigação:** Projeto MapBiomas, mapeamento anual dos sistemas de irrigação (pivô
   central, inundação e outros sistemas; 1985 a 2025, 30 m), pela API da plataforma. Como o mapa de
   uso e cobertura do Brasil inteiro, é um mapa para ver, não recortado pela área: o MapBiomas não

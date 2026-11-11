@@ -35,6 +35,7 @@ const NOTA_AQUEDUCT: &str = "Por sub-bacia (HydroBASINS, nível 6) e unidade adm
 const NOTA_IRRIGACAO_MAPBIOMAS: &str = "Cores da legenda oficial do MapBiomas: roxo, pivô central; azul-claro, outros sistemas de irrigação; rosa, inundação (arroz irrigado). Mapa do Brasil inteiro, não recortado pela área.";
 const NOTA_COBERTURA_MAPBIOMAS: &str =
     "Cores da legenda oficial do MapBiomas (brasil.mapbiomas.org). Mapa do Brasil inteiro, não recortado pela área.";
+const NOTA_RISCO_FOGO: &str = "Perigo meteorológico de fogo do modelo do INPE (versão 11), não a ocorrência de fogo. Classes do INPE: mínimo, abaixo de 0,15; baixo, de 0,15 a 0,40; médio, de 0,40 a 0,70; alto, de 0,70 a 0,95; crítico, acima de 0,95.";
 const NOTA_DIST: &str = "Alertas acumulados desde o início do monitoramento (04/01/2026). A primeira detecção ainda não foi confirmada e inclui mudanças sazonais.";
 
 /// A data no fim de um nome do DIST ("…, até 28/02/2026)").
@@ -85,6 +86,14 @@ pub fn receita(nome: &str) -> Option<Receita> {
                 nota: Some(NOTA_DIST),
             });
         }
+    }
+    if let Some(mes) = crate::risco_fogo::mes_da_camada(nome) {
+        return Some(Receita {
+            subtitulo: format!("Risco de fogo em {}: média de 2001 a 2025 (INPE, Programa Queimadas)", crate::risco_fogo::nome_do_mes(mes)),
+            barra: Some(("Risco de fogo (0 a 1)".into(), 11)),
+            legenda: None,
+            nota: Some(NOTA_RISCO_FOGO),
+        });
     }
     if crate::sol::eh_do_sol(nome) {
         let periodo = crate::sol::periodo(crate::sol::mes_da_camada(nome));
@@ -285,6 +294,10 @@ mod tests {
         assert_eq!(r.subtitulo, "Sistemas de irrigação em 2024 (MapBiomas, 30 m)");
         assert!(r.nota.unwrap().contains("pivô central"));
         assert!(receita("BrasilData: Uso e cobertura 2025 (MapBiomas)").unwrap().subtitulo.ends_with("(MapBiomas, Coleção 11)"));
+        let r = receita(&crate::risco_fogo::camada(9)).unwrap();
+        assert_eq!(r.subtitulo, "Risco de fogo em setembro: média de 2001 a 2025 (INPE, Programa Queimadas)");
+        assert_eq!(r.barra, Some(("Risco de fogo (0 a 1)".into(), 11)));
+        assert!(r.nota.unwrap().contains("crítico, acima de 0,95"));
         assert_eq!(receita(AREA), None);
         assert_eq!(receita(GRADE), None);
         assert_eq!(receita("Countries"), None);

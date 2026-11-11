@@ -31,6 +31,7 @@ pub mod malhas;
 pub mod mapbiomas;
 pub mod municipios;
 pub mod radar;
+pub mod risco_fogo;
 pub mod saude;
 pub mod sol;
 pub mod versao;
