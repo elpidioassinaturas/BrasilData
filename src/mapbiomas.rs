@@ -93,6 +93,31 @@ pub const CITACAO: &str = "Projeto MapBiomas, Coleção 11 da Série Anual de Ma
 /// A licença dos dados do MapBiomas.
 pub const LICENCA: &str = "CC BY 4.0, pelos termos do MapBiomas";
 
+/// O subtema e a legenda dos sistemas de irrigação (Agricultura), e os valores do pixel das três
+/// classes: 1, pivô central; 2, outros sistemas; 3, inundação (arroz).
+const SUBTEMA_IRRIGACAO: &str = "agricultura-copia-r3u4y8_irrigation-systems-msxpu0";
+const LEGENDA_IRRIGACAO: &str = "irrigation-systems-s5s934";
+
+/// A citação do mapa de irrigação.
+pub const CITACAO_IRRIGACAO: &str = "Projeto MapBiomas, mapeamento anual dos sistemas de irrigação do Brasil (pivô central, inundação e outros sistemas; 1985 a 2025, 30 m, imagens Landsat), validado com o mapeamento da ANA e da Embrapa, pela API da plataforma MapBiomas (brasil.mapbiomas.org). Mapa para visualização, com as cores da legenda oficial; não recortado pela área";
+
+/// O endereço que pede o mapa dos sistemas de irrigação de `ano` à API.
+pub fn url_da_irrigacao(ano: i64) -> String {
+    format!(
+        "{API}/maps/map?subthemeKey={SUBTEMA_IRRIGACAO}&legendKey={LEGENDA_IRRIGACAO}&year={ano}&pixelValue=1&pixelValue=2&pixelValue=3&{ORGANIZACAO}"
+    )
+}
+
+/// O nome da camada de mosaicos da irrigação de `ano`.
+pub fn camada_da_irrigacao(ano: i64) -> String {
+    format!("{}Sistemas de irrigação {ano} (MapBiomas)", crate::PREFIXO)
+}
+
+/// Se a camada `nome` é a da irrigação do MapBiomas.
+pub fn eh_da_irrigacao(nome: &str) -> bool {
+    nome.strip_prefix(crate::PREFIXO).and_then(|n| n.strip_prefix("Sistemas de irrigação ")).is_some_and(|n| n.ends_with(" (MapBiomas)"))
+}
+
 /// O endereço que pede o mapa de `ano` à API.
 pub fn url_do_mapa(ano: i64) -> String {
     let classes: String = CLASSES.iter().map(|c| format!("&pixelValue={c}")).collect();
@@ -213,6 +238,15 @@ pub fn mosaicos(resposta: &Value) -> Option<String> {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn a_irrigacao_pede_as_tres_classes() {
+        let u = url_da_irrigacao(2024);
+        assert!(u.contains("subthemeKey=agricultura-copia-r3u4y8_irrigation-systems-msxpu0&legendKey=irrigation-systems-s5s934&year=2024"));
+        assert!(u.ends_with("&pixelValue=1&pixelValue=2&pixelValue=3&tenantId=mapbiomas"));
+        assert!(eh_da_irrigacao(&camada_da_irrigacao(2024)));
+        assert!(!eh_da_irrigacao("BrasilData: Uso e cobertura 2024 (MapBiomas)"));
+    }
 
     #[test]
     fn o_mapa_de_um_ano_pede_as_classes_e_a_organizacao() {

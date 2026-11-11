@@ -27,6 +27,14 @@ pub struct Receita {
 }
 
 const NOTA_GEDI: &str = "Valores imputados a 30 m (cada pixel recebe o disparo do GEDI mais parecido pelas séries do Landsat): mostram padrões, não medidas locais.";
+const NOTA_SOL: &str =
+    "Células de 1° (cerca de 110 km) do NASA POWER interpoladas para a grade: mostram a variação regional, não detalhes locais.";
+const NOTA_IRRIGACAO: &str =
+    "Porcentagem de cada célula de 5′ (cerca de 9 km) equipada para irrigação por volta de 2005; a área de fato irrigada pode ser menor.";
+const NOTA_AQUEDUCT: &str = "Por sub-bacia (HydroBASINS, nível 6) e unidade administrativa: a retirada anual de água para todos os usos dividida pela oferta renovável de superfície e subterrânea.";
+const NOTA_IRRIGACAO_MAPBIOMAS: &str = "Cores da legenda oficial do MapBiomas: roxo, pivô central; azul-claro, outros sistemas de irrigação; rosa, inundação (arroz irrigado). Mapa do Brasil inteiro, não recortado pela área.";
+const NOTA_COBERTURA_MAPBIOMAS: &str =
+    "Cores da legenda oficial do MapBiomas (brasil.mapbiomas.org). Mapa do Brasil inteiro, não recortado pela área.";
 const NOTA_DIST: &str = "Alertas acumulados desde o início do monitoramento (04/01/2026). A primeira detecção ainda não foi confirmada e inclui mudanças sazonais.";
 
 /// A data no fim de um nome do DIST ("…, até 28/02/2026)").
@@ -78,6 +86,23 @@ pub fn receita(nome: &str) -> Option<Receita> {
             });
         }
     }
+    if crate::sol::eh_do_sol(nome) {
+        let periodo = crate::sol::periodo(crate::sol::mes_da_camada(nome));
+        return Some(Receita {
+            subtitulo: format!("Radiação solar na superfície, {periodo} de 2001 a 2025 (NASA POWER)"),
+            barra: Some(("Radiação solar (kWh/m² por dia)".into(), 6)),
+            legenda: None,
+            nota: Some(NOTA_SOL),
+        });
+    }
+    if nome == crate::irrigacao::CAMADA {
+        return Some(Receita {
+            subtitulo: "Área equipada para irrigação, por volta de 2005 (GMIA v5, FAO)".into(),
+            barra: Some(("Área equipada para irrigação (% da célula)".into(), 5)),
+            legenda: None,
+            nota: Some(NOTA_IRRIGACAO),
+        });
+    }
     if n == "Elevação (Copernicus GLO-30)" {
         return Some(Receita {
             subtitulo: "Elevação do terreno (Copernicus DEM GLO-30)".into(),
@@ -111,6 +136,36 @@ pub fn receita(nome: &str) -> Option<Receita> {
             // o nome dela; um título a mais tiraria uma classe da caixa.
             legenda: None,
             nota: None,
+        });
+    }
+    if crate::TEMAS.iter().any(|t| t.id == crate::aqueduct::TEMA && t.camada_no_mapa() == nome) {
+        return Some(Receita {
+            subtitulo: "Estresse hídrico de referência: retirada de água sobre a oferta renovável (Aqueduct 4.0, WRI)".into(),
+            barra: None,
+            legenda: Some("Estresse hídrico"),
+            nota: Some(NOTA_AQUEDUCT),
+        });
+    }
+    // Os mapas do MapBiomas para ver (mosaicos do Brasil inteiro, sem legenda no RustGIS): as cores
+    // vão na nota.
+    if crate::mapbiomas::eh_da_irrigacao(nome) {
+        let ano = n.trim_start_matches("Sistemas de irrigação ").split(' ').next().unwrap_or("");
+        return Some(Receita {
+            subtitulo: format!("Sistemas de irrigação em {ano} (MapBiomas, 30 m)"),
+            barra: None,
+            legenda: None,
+            nota: Some(NOTA_IRRIGACAO_MAPBIOMAS),
+        });
+    }
+    if let Some(resto) = n.strip_prefix("Uso e cobertura ")
+        && resto.ends_with(" (MapBiomas)")
+    {
+        let ano = resto.split(' ').next().unwrap_or("");
+        return Some(Receita {
+            subtitulo: format!("Uso e cobertura da terra em {ano} (MapBiomas, Coleção 11)"),
+            barra: None,
+            legenda: None,
+            nota: Some(NOTA_COBERTURA_MAPBIOMAS),
         });
     }
     // Um tema vetorial: o subtítulo é o nome dele, e as classes vão para a legenda.
@@ -218,6 +273,18 @@ mod tests {
         assert_eq!(r.barra, Some(("Razão VH/VV (dB)".into(), 6)));
         let r = receita("BrasilData: Uso e cobertura 2024 (MapBiomas, recortado)").unwrap();
         assert_eq!(r.subtitulo, "Uso e cobertura da terra em 2024 (MapBiomas, Coleção 10)");
+        let r = receita(crate::sol::CAMADA).unwrap();
+        assert_eq!(r.barra, Some(("Radiação solar (kWh/m² por dia)".into(), 6)));
+        assert!(receita(&crate::sol::camada(Some(8))).unwrap().subtitulo.contains("média diária de agosto"));
+        let r = receita(crate::irrigacao::CAMADA).unwrap();
+        assert_eq!(r.barra, Some(("Área equipada para irrigação (% da célula)".into(), 5)));
+        let aqueduct = crate::TEMAS.iter().find(|t| t.id == crate::aqueduct::TEMA).unwrap().camada_no_mapa();
+        let r = receita(&aqueduct).unwrap();
+        assert_eq!((r.barra, r.legenda), (None, Some("Estresse hídrico")));
+        let r = receita(&crate::mapbiomas::camada_da_irrigacao(2024)).unwrap();
+        assert_eq!(r.subtitulo, "Sistemas de irrigação em 2024 (MapBiomas, 30 m)");
+        assert!(r.nota.unwrap().contains("pivô central"));
+        assert!(receita("BrasilData: Uso e cobertura 2025 (MapBiomas)").unwrap().subtitulo.ends_with("(MapBiomas, Coleção 11)"));
         assert_eq!(receita(AREA), None);
         assert_eq!(receita(GRADE), None);
         assert_eq!(receita("Countries"), None);

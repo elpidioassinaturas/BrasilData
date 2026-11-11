@@ -55,7 +55,10 @@ A área de trabalho pode ser:
 - **a vista**: sem área, os temas pedem o que está na vista do mapa.
 
 A **Grade do projeto** é o sistema de coordenadas e o tamanho das células em que os rasters chegam
-(hoje, a Elevação, o Radar e a Perturbação da vegetação). No painel, escolha a célula (de 10 m a 1 km) e o sistema e clique em **Grade do
+(a Elevação, o Radar, a Perturbação da vegetação, o GEDI, a Radiação solar e a Área equipada para
+irrigação). O mapa passa a ser desenhado no sistema dela quando você escolhe a área ou faz a grade:
+uma projeção de mapa-múndi, como o Eckert IV, deixaria a área deformada (a Bahia, 27% mais
+estreita). No painel, escolha a célula (de 10 m a 1 km) e o sistema e clique em **Grade do
 projeto**:
 
 - **Automático:** o UTM SIRGAS 2000 do fuso da área, ou o Albers do IBGE (EPSG:10857) quando a
@@ -218,8 +221,8 @@ estilo.
 | Território | Limites (IBGE: Brasil, Grandes Regiões, estados, regiões intermediárias e imediatas, meso e microrregiões, municípios, distritos, subdistritos e bairros), Recortes especiais (IBGE: Amazônia Legal, Semiárido, MATOPIBA, SUDENE, municípios costeiros, regiões metropolitanas, aglomerações, concentrações e arranjos urbanos, hierarquia urbana), Cadastro fundiário (SFB, INCRA), Terras indígenas (FUNAI) |
 | Sociedade e economia | População (IBGE: setores censitários, censos, áreas de ponderação, área urbana e rural, favelas e comunidades urbanas), Economia (Banco Central, Novo CAGED), Agricultura (Banco Central, IBGE), Eleições (TSE) e Todos os indicadores |
 | Saúde | Estabelecimentos (CNES, DATASUS) |
-| Meio físico | Geologia e recursos minerais (IBGE, ANM, MapBiomas), Relevo (IBGE, Copernicus), Solos (IBGE) |
-| Água | Hidrografia (IBGE, ANA), Bacias (IBGE, ANA), Recursos hídricos (ANA) |
+| Meio físico | Geologia e recursos minerais (IBGE, ANM, MapBiomas), Relevo (IBGE, Copernicus), Solos (IBGE), Clima (radiação solar do NASA POWER) |
+| Água | Hidrografia (IBGE, ANA), Bacias (IBGE, ANA), Recursos hídricos (ANA; estresse hídrico do Aqueduct 4.0, WRI; sistemas de irrigação do MapBiomas; área equipada para irrigação do GMIA v5, FAO) |
 | Vegetação e meio ambiente | Vegetação (IBGE), Uso e cobertura (MapBiomas; radar Sentinel-1 do ASF/NASA), Desmatamento (INPE: PRODES e DETER; alertas de perturbação OPERA DIST-S1 do ASF/NASA), Queimadas (INPE: focos de calor das últimas 48 horas, dos últimos 7 dias e do mês corrente; um período com datas, por script: `plugin:brasildata/inpe-focos-periodo={"de": "01/11/2026", "ate": "06/11/2026"}`), Áreas protegidas (MMA, ICMBio), Fiscalização (IBAMA) |
 | Infraestrutura | Energia (ANEEL), Petróleo e gás (ANP), Transportes (DNIT) |
 
@@ -236,7 +239,7 @@ Algumas camadas só abrem num dos aplicativos, e a ajuda de cada botão diz quan
 ## Fontes
 
 <!-- fontes: início (gerado por scripts/gerar.py a partir do fontes.csv; não edite à mão) -->
-82 camadas de 14 fontes, na ordem do `fontes.csv`. *App web*: se o servidor permite pedidos do navegador (CORS); *Recorte*: se a camada é recortada pela área.
+83 camadas de 15 fontes, na ordem do `fontes.csv`. *App web*: se o servidor permite pedidos do navegador (CORS); *Recorte*: se a camada é recortada pela área.
 
 | Grupo | Camada | Fonte | Serviço | Licença | App web | Recorte |
 |---|---|---|---|---|---|---|
@@ -269,6 +272,7 @@ Algumas camadas só abrem num dos aplicativos, e a ajuda de cada botão diz quan
 | Água › Recursos hídricos | Captações superficiais (ANA) | ANA, Captações Superficiais, SNIRH | [ArcGIS REST](https://portal1.snirh.gov.br/server/rest/services/dados_abertos/Captacoes_Superficiais/FeatureServer) `0` | dados abertos; licença não declarada no serviço | não (sem CORS) | sim |
 | Água › Recursos hídricos | Pivôs centrais mapeados (ANA) | ANA, Pivôs Mapeados, SNIRH | [ArcGIS REST](https://portal1.snirh.gov.br/server/rest/services/dados_abertos/Pivos_Mapeados/FeatureServer) `0` | dados abertos; licença não declarada no serviço | não (sem CORS) | sim |
 | Água › Recursos hídricos | Municípios atingidos por seca em 2015 (ANA) | ANA, Municípios Atingidos por Eventos de Seca em 2015, SNIRH | [ArcGIS REST](https://portal1.snirh.gov.br/server/rest/services/dados_abertos/Municipios_Atingidos_por_Eventos_de_Seca_em_2015/FeatureServer) `0` | dados abertos; licença não declarada no serviço | não (sem CORS) | sim |
+| Água › Recursos hídricos | Estresse hídrico de referência (Aqueduct 4.0, WRI) | Kuzma, S., M.F.P. Bierkens, S. Lakshman, T. Luo, L. Saccoccia, E.H. Sutanudjaja e R. Van Beek. 2023. Aqueduct 4.0: Updated decision-relevant global water risk indicators. Technical Note. Washington, DC: World Resources Institute. doi:10.46830/writn.23.00061. Estresse hídrico de referência (bws): retirada de água sobre a oferta renovável, por sub-bacia HydroBASINS de nível 6 e unidade administrativa, pelo serviço Aqueduct Water Risk (Baseline Annual) do ArcGIS Living Atlas (Esri). Campos: bws_raw, a razão; bws_score, de 0 a 5; bws_cat, a categoria (-1 árido e de pouco uso, -9999 sem dado); estresse, a categoria em português | [ArcGIS REST](https://services.arcgis.com/P3ePLMYs2RVChkJx/arcgis/rest/services/aqueduct_water_risk/FeatureServer) `1` | CC BY 4.0 (WRI) | sim | sim |
 | Vegetação e meio ambiente › Áreas protegidas | Unidades de conservação (CNUC 07/2026) | MMA, Cadastro Nacional de Unidades de Conservação (CNUC), 07/2026 | [WFS](https://geoservicos.inde.gov.br/geoserver/MMA/ows) `MMA:cnuc_26_07_31` | não declarada no serviço | sim | sim |
 | Vegetação e meio ambiente › Áreas protegidas | Unidades de conservação federais (ICMBio) | ICMBio, Limites das Unidades de Conservação Federais, 08/2026 | [WFS](https://geoservicos.inde.gov.br/geoserver/ICMBio/ows) `ICMBio:limiteucsfederais_a` | não declarada no serviço | sim | sim |
 | Território › Terras indígenas | Terras indígenas (FUNAI, via Infra S.A.) | FUNAI, Terras Indígenas (cópia publicada pela Infra S.A.) | [ArcGIS REST](https://geo.infrasa.gov.br/server/rest/services/Terras_Ind%C3%ADgenas/MapServer) `0` | reprodução permitida citando a fonte (FUNAI) | sim | sim |
@@ -373,6 +377,25 @@ Fora da tabela, com a citação no comando **Fontes**:
   do dossel a 30 m, dos disparos do laser do GEDI de 2019 a 2023 imputados com o Landsat. Pede o login
   Earthdata e um RustGIS que leia só a janela da área (na linha de comando desde a 0.6.0; no
   desktop, a partir da versão com opengeos/RustGIS#1581): cada arquivo cobre um fuso UTM;
+- **Radiação solar:** NASA Langley Research Center, projeto POWER (API de climatologia v2.10.1).
+  A irradiação global horizontal na superfície, com todos os céus, em kWh/m² por dia: a média
+  diária de 2001 a 2025, do CERES SYN1deg, em células de 1° (cerca de 110 km). As células em volta
+  da área, com uma de margem, viram um raster de 1° (`raster.rasterize`, desde o RustGIS 0.6.0),
+  interpolado para a grade do projeto e recortado pela área: mostra a variação regional, por isso
+  serve a áreas grandes (um estado) mais que a um município. Por script, um mês:
+  `plugin:brasildata/sol-radiacao={"mes": 7}`;
+- **Estresse hídrico:** WRI, Aqueduct 4.0 (Kuzma et al. 2023, CC BY 4.0), pelo serviço Aqueduct
+  Water Risk do ArcGIS Living Atlas: a retirada de água sobre a oferta renovável, por sub-bacia
+  HydroBASINS de nível 6 e unidade administrativa. O plugin acrescenta o campo `estresse`, com as
+  categorias em português, e as cores do Aqueduct;
+- **Área equipada para irrigação:** Siebert et al. 2013, Global Map of Irrigation Areas versão 5
+  (FAO e Universidade de Bonn, CC BY 4.0): a porcentagem de cada célula de 5′ (cerca de 9 km)
+  equipada para irrigação, por volta de 2005, lida só na janela da área do arquivo mundial da FAO
+  (um RustGIS que leia a janela, como o GEDI). As cores vão de 0 a 40%, com mais tons até 10%;
+- **Sistemas de irrigação:** Projeto MapBiomas, mapeamento anual dos sistemas de irrigação (pivô
+  central, inundação e outros sistemas; 1985 a 2025, 30 m), pela API da plataforma. Como o mapa de
+  uso e cobertura do Brasil inteiro, é um mapa para ver, não recortado pela área: o MapBiomas não
+  publica um arquivo dele que se leia pela janela. O ano é o do controle MapBiomas: ano;
 - **Estabelecimentos de saúde:** Ministério da Saúde, CNES, competência 04/2026, pelo
   [geobr](https://github.com/ipea/geobr) do Ipea (GeoParquet do Brasil, 98 MB, lido aos pedaços).
   Ficam os ativos, sem os de pessoa física e de empresário individual, cujo nome é o de uma

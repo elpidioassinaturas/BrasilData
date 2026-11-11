@@ -3,6 +3,7 @@
 use rustgis_plugin::{Request, Value, geojson, host, json};
 
 use crate::amostragem::{self, Candidato, Sorteio};
+use crate::aqueduct;
 use crate::censo;
 use crate::datas::{self, Data};
 use crate::dist;
@@ -10,12 +11,14 @@ use crate::estilo;
 use crate::gedi;
 use crate::grade::{self, Escolha, GRADE, Grade};
 use crate::indicadores::{self, Fonte};
+use crate::irrigacao;
 use crate::layout;
 use crate::malhas;
 use crate::mapbiomas;
 use crate::municipios::{self, Territorio};
 use crate::radar;
 use crate::saude;
+use crate::sol;
 use crate::versao;
 use crate::zoom;
 use crate::{AREA, PREFIXO, TEMAS, Tema, falha_passageira, pedido_de_feicoes, tema_da_camada, tiles};
@@ -91,8 +94,9 @@ const SEM_RECORTE: &[&str] = &[
     "fontes",
     "atualizacao",
     "sobre",
-    // O mapa do MapBiomas é do Brasil inteiro: a área não muda nada nele.
+    // Os mapas do MapBiomas são do Brasil inteiro: a área não muda nada neles.
     "mapbiomas-cobertura",
+    "mapbiomas-irrigacao",
 ];
 
 fn executar(req: Request) -> Result<Value, String> {
@@ -102,7 +106,11 @@ fn executar(req: Request) -> Result<Value, String> {
         return Ok(pendente);
     }
     if let Some(t) = TEMAS.iter().find(|t| t.id == req.id) {
-        return tema(t);
+        let r = tema(t)?;
+        if t.id == aqueduct::TEMA && !estilo::esperando(&r) {
+            aqueduct_em_portugues(t)?;
+        }
+        return Ok(r);
     }
     match req.id.as_str() {
         "area-municipio" => area_municipio(&req),
@@ -111,6 +119,8 @@ fn executar(req: Request) -> Result<Value, String> {
         "painel" => painel(&req),
         "escolher-area" => escolher_area(&req),
         "elevacao" => elevacao(req.f64("celula")),
+        "sol-radiacao" => sol_na_area(&req),
+        "irrigacao-gmia" => irrigacao_na_area(req.f64("celula")),
         "radar-vv" => radar(&req, Some(radar::Pol::Vv)),
         "radar-vh" => radar(&req, Some(radar::Pol::Vh)),
         "radar-razao" => radar(&req, None),
@@ -144,6 +154,7 @@ fn executar(req: Request) -> Result<Value, String> {
             cobertura_mapbiomas(ano_do_mapbiomas(&req), req.params.get("recorte").and_then(Value::as_bool) != Some(false))
         }
         "inpe-focos-periodo" => focos_no_periodo(&req),
+        "mapbiomas-irrigacao" => irrigacao_mapbiomas(ano_do_mapbiomas(&req)),
         other => Err(format!("o BrasilData não tem o comando '{other}'")),
     }
 }
@@ -202,6 +213,7 @@ fn por_area(fc: Value) -> Result<Value, String> {
     };
     remover(&[AREA])?;
     host::add_layer(AREA, fc)?;
+    vista_no_sistema(caixa, grade.as_ref().map(|g| g.epsg));
     // Escolhida pelo nome, a área pode estar longe da vista.
     host::run("layer.zoomTo", json!({"layer": AREA}))?;
     match &grade {
@@ -213,6 +225,15 @@ fn por_area(fc: Value) -> Result<Value, String> {
         r["panel"]["items"]["grade-texto"] = json!({"text": g.texto()});
     }
     Ok(r)
+}
+
+/// Desenha o mapa no sistema `epsg` da grade, ou, sem grade, no automático da área de retângulo
+/// `c` (o UTM do fuso, ou o Albers do IBGE): a projeção que o projeto tinha pode deformar a área
+/// (o Eckert IV de um mapa-múndi a deixa 27% mais estreita na Bahia). Uma falha deixa a vista
+/// como está.
+fn vista_no_sistema(c: [f64; 4], epsg: Option<u32>) {
+    let epsg = epsg.unwrap_or_else(|| Escolha::Automatico.epsg(c));
+    let _ = host::run("map.projection", json!({"type": format!("EPSG:{epsg}")}));
 }
 
 /// A grade que está no mapa, se houver.
@@ -250,7 +271,11 @@ fn grade_do_projeto(req: &Request) -> Result<Value, String> {
         None => posicao("grade-sistema").and_then(|i| Escolha::DO_PAINEL.get(i).copied()).unwrap_or(Escolha::Automatico),
     };
     let g = por_grade(Grade::nova(c, escolha, celula))?;
-    host::notify(&format!("Grade do projeto: {}. Os rasters do BrasilData (Elevação) vão para ela", g.texto()));
+    vista_no_sistema(c, Some(g.epsg));
+    host::notify(&format!(
+        "Grade do projeto: {}. Os rasters do BrasilData vão para ela, e o mapa passa a ser desenhado no sistema dela",
+        g.texto()
+    ));
     Ok(
         json!({"layer": GRADE, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula, "panel": {"items": {"grade-texto": {"text": g.texto()}}}}),
     )
@@ -1204,10 +1229,16 @@ fn citacoes() -> Result<(Vec<Value>, String), String> {
             || mapbiomas::eh_das_classes(&n)
         {
             lista.push(json!({"layer": n, "source": mapbiomas::CITACAO_RECORTE, "license": mapbiomas::LICENCA_RECORTE}));
+        } else if mapbiomas::eh_da_irrigacao(&n) {
+            lista.push(json!({"layer": n, "source": mapbiomas::CITACAO_IRRIGACAO, "license": mapbiomas::LICENCA}));
         } else if n == camada_de_saude() {
             lista.push(json!({"layer": n, "source": saude::CITACAO, "license": saude::LICENCA}));
         } else if radar::eh_do_radar(&n) {
             lista.push(json!({"layer": n, "source": radar::CITACAO, "license": radar::LICENCA}));
+        } else if sol::eh_do_sol(&n) {
+            lista.push(json!({"layer": n, "source": sol::CITACAO, "license": sol::LICENCA}));
+        } else if n == irrigacao::CAMADA {
+            lista.push(json!({"layer": n, "source": irrigacao::CITACAO, "license": irrigacao::LICENCA}));
         } else if gedi::eh_do_gedi(&n) {
             lista.push(json!({"layer": n, "source": gedi::CITACAO, "license": gedi::LICENCA}));
         } else if dist::eh_do_dist(&n) {
@@ -2509,6 +2540,33 @@ fn cobertura_mapbiomas(ano: i64, recortar: bool) -> Result<Value, String> {
     Ok(json!({"tiles": nome, "year": ano, "notClipped": por_que}))
 }
 
+/// Os sistemas de irrigação do MapBiomas em `ano`: um mapa para ver, do Brasil inteiro (o
+/// MapBiomas não publica um arquivo deles que se leia pela janela da área).
+fn irrigacao_mapbiomas(ano: i64) -> Result<Value, String> {
+    if !(mapbiomas::PRIMEIRO_ANO..=mapbiomas::ULTIMO_ANO).contains(&ano) {
+        return Err(format!("ano é de {} a {}", mapbiomas::PRIMEIRO_ANO, mapbiomas::ULTIMO_ANO));
+    }
+    let r = host::call("host.fetch", json!({"url": mapbiomas::url_da_irrigacao(ano)}))?;
+    if r.get("pending").and_then(Value::as_bool) == Some(true) {
+        return Ok(r);
+    }
+    let url =
+        r.get("json").and_then(mapbiomas::mosaicos).ok_or_else(|| format!("a API do MapBiomas não deu o mapa de irrigação de {ano}"))?;
+    let nome = mapbiomas::camada_da_irrigacao(ano);
+    // O endereço do Earth Engine vence em algumas horas: um novo clique troca o mapa.
+    if mosaicos_no_mapa()?.contains(&nome) {
+        host::run("map.removeTiles", json!({"name": nome}))?;
+    }
+    host::run(
+        "map.addTiles",
+        json!({"url": url, "kind": "raster", "name": nome, "attribution": "MapBiomas, sistemas de irrigação (CC BY 4.0)", "maxZoom": 14}),
+    )?;
+    host::notify(&format!(
+        "{nome}: mapa para ver, com as cores da legenda oficial (roxo, pivô central; azul-claro, outros sistemas; rosa, inundação, o arroz irrigado); não é recortado pela área. Vale por algumas horas"
+    ));
+    Ok(json!({"tiles": nome, "year": ano}))
+}
+
 /// A variável `v` do GEDI L4D na área, na grade do projeto: as janelas da área nos arquivos dos
 /// fusos que ela cruza, cada uma posta na grade, juntadas e recortadas pelo contorno; ou o
 /// pedido pendente (a busca no app web, ou as janelas no desktop).
@@ -2665,6 +2723,172 @@ fn gedi_na_area(v: gedi::Variavel, celula: Option<f64>) -> Result<Value, String>
     Ok(json!({"layer": saida, "files": urls.len(), "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula}))
 }
 
+/// Se o RustGIS tem o comando `id` (o `info.commands`).
+fn tem_comando(id: &str) -> Result<bool, String> {
+    let lista = host::run("info.commands", json!({}))?;
+    let comandos = lista.get("commands").unwrap_or(&lista);
+    Ok(comandos.as_array().into_iter().flatten().any(|c| c["id"].as_str() == Some(id)))
+}
+
+/// A radiação solar do NASA POWER na área ([`sol`]): as células de 1° em volta dela viram um raster
+/// de 1°, interpolado para a grade do projeto e recortado pela área.
+fn sol_na_area(req: &Request) -> Result<Value, String> {
+    let mes = sol::conferir_mes(req.f64("mes"))?;
+    let celula = req.f64("celula");
+    if let Some(m) = celula {
+        grade::conferir_celula(m)?;
+    }
+    let (c, na_area) = retangulo()?;
+    if !na_area {
+        return Err("escolha a área primeiro (painel Área de trabalho, ou Área: seleção)".into());
+    }
+    if !tem_comando("raster.rasterize")? {
+        return Err("a radiação solar precisa de um RustGIS com o Polígonos para raster (raster.rasterize, desde a 0.6.0): as células de 1° do NASA POWER viram um raster com ele".into());
+    }
+    let respostas = match buscar_varios(&sol::pedidos(c))? {
+        Ok(r) => r,
+        Err(p) => return Ok(p),
+    };
+    if let Some(e) = respostas.iter().find_map(sol::erro) {
+        return Err(e);
+    }
+    let fc = sol::celulas(&respostas, mes);
+    let n = fc["features"].as_array().map_or(0, Vec::len);
+    if n == 0 {
+        return Err("o NASA POWER não tem a radiação solar na área".into());
+    }
+    let g = grade_para(c, celula)?;
+    let saida = sol::camada(mes);
+    let temporarias = [sol::CELULAS, sol::RASTER_1, sol::NA_GRADE];
+    remover(&temporarias)?;
+    remover(&[&saida])?;
+    let feito = (|| -> Result<(), String> {
+        host::add_layer(sol::CELULAS, fc)?;
+        // Células de 1° com os cantos nos graus inteiros, como as do POWER.
+        host::run(
+            "raster.rasterize",
+            json!({"layer": sol::CELULAS, "field": sol::CAMPO, "nodata": -999, "crs": 4326, "cellSize": 1.0, "origin": [0.0, 0.0], "name": sol::RASTER_1}),
+        )?;
+        host::run(
+            "raster.project",
+            json!({"layer": sol::RASTER_1, "crs": g.epsg, "cellSize": g.celula, "extent": GRADE, "resampling": "bilinear", "name": sol::NA_GRADE}),
+        )?;
+        host::run("raster.process", json!({"layer": sol::NA_GRADE, "operation": "clip", "polygon": AREA, "name": saida}))?;
+        host::run("raster.mask", json!({"layer": saida, "min": 0.0, "max": 15.0}))?;
+        let (rampa, cores) = sol::RAMPA;
+        // A rampa já registrada (de um clique anterior) fica como está.
+        let _ = host::run("ramp.add", json!({"text": cores, "format": "gdal", "name": rampa}));
+        if host::run("raster.symbology", json!({"layer": saida, "type": "stretch", "ramp": rampa})).is_err() {
+            host::run("raster.symbology", json!({"layer": saida, "type": "stretch", "ramp": "YlOrRd"}))?;
+        }
+        let (a, b) = sol::ESCALA;
+        let _ = host::run("raster.stretch", json!({"layer": saida, "type": "custom", "min": a, "max": b}));
+        Ok(())
+    })();
+    remover(&temporarias)?;
+    feito?;
+    let media = host::run("raster.info", json!({"layer": saida}))
+        .ok()
+        .and_then(|i| i["bands"][0]["mean"].as_f64())
+        .map(|m| format!("; média na área: {} kWh/m² por dia", formatar_decimal(m)))
+        .unwrap_or_default();
+    host::notify(&format!(
+        "{saida}: {} de 2001 a 2025 (NASA POWER, {n} células de 1° em volta da área), interpolada para a grade do projeto, {}{media}",
+        sol::periodo(mes),
+        g.texto()
+    ));
+    Ok(json!({"layer": saida, "cells": n, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula}))
+}
+
+/// A área equipada para irrigação do GMIA v5 na área ([`irrigacao`]): a janela da área no COG da
+/// FAO, posta na grade do projeto e recortada pela área.
+fn irrigacao_na_area(celula: Option<f64>) -> Result<Value, String> {
+    if let Some(m) = celula {
+        grade::conferir_celula(m)?;
+    }
+    let (c, na_area) = retangulo()?;
+    if !na_area {
+        return Err("escolha a área primeiro (painel Área de trabalho, ou Área: seleção)".into());
+    }
+    let sem_janela = "a área equipada para irrigação (GMIA v5) precisa de um RustGIS que leia só a janela da área de um arquivo remoto (depois da 0.5.0)";
+    if !le_janela_remota()? {
+        return Err(sem_janela.into());
+    }
+    let janela = irrigacao::janela(c);
+    // A janela de um clique anterior serve se cobre a área (no desktop, o comando roda de novo
+    // quando ela chega).
+    let serve = extensao(irrigacao::JANELA)?.is_some_and(|e| retangulo_cabe(janela, e));
+    if !serve {
+        tirar_janela(irrigacao::JANELA)?;
+        let r = host::run("layer.addUrl", json!({"url": irrigacao::URL, "name": irrigacao::JANELA, "bbox": janela, "zoom": false}))?;
+        if r.get("pending").and_then(Value::as_bool) == Some(true) {
+            host::notify("Área equipada para irrigação (GMIA v5): lendo a área no arquivo da FAO; a camada vem quando chegar");
+            return Ok(json!({"pending": 1}));
+        }
+        if r.get("inPlace").and_then(Value::as_bool) == Some(true) || r.get("window").is_none() {
+            tirar_janela(irrigacao::JANELA)?;
+            return Err(sem_janela.into());
+        }
+    }
+    let g = grade_para(c, celula)?;
+    let saida = irrigacao::CAMADA;
+    let temporarias = [irrigacao::JANELA, irrigacao::NA_GRADE];
+    remover(&[saida])?;
+    let feito = (|| -> Result<(), String> {
+        host::run(
+            "raster.project",
+            json!({"layer": irrigacao::JANELA, "crs": g.epsg, "cellSize": g.celula, "extent": GRADE, "resampling": irrigacao::reamostragem(g.celula), "name": irrigacao::NA_GRADE}),
+        )?;
+        host::run("raster.process", json!({"layer": irrigacao::NA_GRADE, "operation": "clip", "polygon": AREA, "name": saida}))?;
+        // O -9 do arquivo e o que não for porcentagem viram sem dado.
+        host::run("raster.mask", json!({"layer": saida, "min": 0.0, "max": 100.0}))?;
+        let (rampa, cores) = irrigacao::RAMPA;
+        // A rampa já registrada (de um clique anterior) fica como está.
+        let _ = host::run("ramp.add", json!({"text": cores, "format": "gdal", "name": rampa}));
+        if host::run("raster.symbology", json!({"layer": saida, "type": "stretch", "ramp": rampa})).is_err() {
+            host::run("raster.symbology", json!({"layer": saida, "type": "stretch", "ramp": "GnBu"}))?;
+        }
+        let (a, b) = irrigacao::ESCALA;
+        let _ = host::run("raster.stretch", json!({"layer": saida, "type": "custom", "min": a, "max": b}));
+        Ok(())
+    })();
+    remover(&temporarias)?;
+    feito?;
+    let media = host::run("raster.info", json!({"layer": saida}))
+        .ok()
+        .and_then(|i| i["bands"][0]["mean"].as_f64())
+        .map(|m| format!("; média na área: {}%", formatar_decimal(m)))
+        .unwrap_or_default();
+    host::notify(&format!(
+        "{saida}: % de cada célula de 5′ (cerca de 9 km) equipada para irrigação, por volta de 2005, na grade do projeto, {}; cores de 0 a 40% ou mais, com mais tons até 10%{media}",
+        g.texto()
+    ));
+    Ok(json!({"layer": saida, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula}))
+}
+
+/// Depois do tema do Aqueduct ([`aqueduct`]): a categoria em português no campo
+/// [`aqueduct::CAMPO`] e, numa camada que acaba de chegar (de um símbolo só), as cores do WRI. Uma
+/// camada que o usuário já estilizou recebe o estilo dela de volta no fim do comando.
+fn aqueduct_em_portugues(t: &Tema) -> Result<(), String> {
+    let nome = t.camada_no_mapa();
+    let Some(l) = camada_no_projeto(&nome)? else { return Ok(()) };
+    let campos: Vec<&str> =
+        l["fields"].as_array().into_iter().flatten().filter_map(Value::as_str).map(|f| f.split(" (").next().unwrap_or(f)).collect();
+    if !campos.contains(&"bws_cat") {
+        return Ok(());
+    }
+    if !campos.contains(&aqueduct::CAMPO) {
+        host::run("edit.addField", json!({"layer": nome, "name": aqueduct::CAMPO, "type": "text"}))?;
+        host::run("edit.calculateField", json!({"layer": nome, "field": aqueduct::CAMPO, "expression": aqueduct::expressao()}))?;
+    }
+    if l["renderer"].as_str() == Some("Single Symbol") {
+        let _ = host::run("style.remove", json!({"name": aqueduct::ESTILO}));
+        host::run("style.add", json!({"text": aqueduct::estilo()}))?;
+        host::run("style.apply", json!({"layer": nome, "name": aqueduct::ESTILO}))?;
+    }
+    Ok(())
+}
+
 /// O botão Layout: uma folha pronta com o dado principal do BrasilData no mapa (a primeira camada
 /// visível com receita, [`layout::receita`]), o nome da área no título, as fontes das camadas e a
 /// projeção da grade. Na folha do RustGIS (`layout.publication`), a legenda deixa de fora a área e
@@ -2684,15 +2908,26 @@ fn layout_do_mapa(req: &Request) -> Result<Value, String> {
         .filter(|n| n.starts_with(PREFIXO) && ![AREA, GRADE, DESENHO].contains(n))
         .map(str::to_string)
         .collect();
-    let (principal, r) = visiveis
+    // Os mapas do BrasilData para ver (os mosaicos do MapBiomas) contam depois das camadas.
+    let mosaicos: Vec<String> = host::run("map.tiles", json!({}))?
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter(|t| t["visible"].as_bool() != Some(false))
+        .filter_map(|t| t["name"].as_str())
+        .filter(|n| n.starts_with(PREFIXO))
+        .map(str::to_string)
+        .collect();
+    let com_mosaicos: Vec<&String> = visiveis.iter().chain(&mosaicos).collect();
+    let (principal, r) = com_mosaicos
         .iter()
-        .find_map(|n| layout::receita(n).map(|r| (n.clone(), r)))
+        .find_map(|n| layout::receita(n).map(|r| ((*n).clone(), r)))
         .ok_or("nenhum dado do BrasilData visível no mapa para o layout: traga um dado (um tema, o censo, a elevação, o radar, o GEDI...) e deixe-o visível")?;
     let titulo = layout::titulo(&area_que_ha()?);
     // As fontes das camadas visíveis, sem repetir, e a do limite.
     let mut fontes: Vec<String> = Vec::new();
     for f in citacoes()?.0 {
-        if f["layer"].as_str().is_some_and(|l| visiveis.iter().any(|v| v == l))
+        if f["layer"].as_str().is_some_and(|l| com_mosaicos.iter().any(|v| *v == l))
             && let Some(s) = f["source"].as_str()
         {
             // Na folha, a fonte sem o dicionário de campos (que fica na tabela Fontes).
@@ -2798,6 +3033,17 @@ fn layout_do_mapa(req: &Request) -> Result<Value, String> {
             u["title"] = json!(t);
         }
         host::run("layout.update", u)?;
+        // A caixa da legenda some com ela (um mapa do MapBiomas para ver não tem legenda).
+        if !sobra && let Some(caixa) = elemento("Legend Box") {
+            host::run("layout.update", json!({"layout": nome, "element": caixa, "visible": false}))?;
+        }
+        // Os nomes das camadas na legenda sem o "BrasilData: " (o "labels" da legenda, depois da
+        // 0.6.0: uma versão que não o conhece recusa a chamada, e a legenda fica como está).
+        let rotulos: serde_json::Map<String, Value> =
+            visiveis.iter().filter(|v| !fora.contains(v)).map(|v| (v.clone(), json!(v.trim_start_matches(PREFIXO)))).collect();
+        if sobra && !rotulos.is_empty() {
+            let _ = host::run("layout.update", json!({"layout": nome, "element": id, "labels": rotulos}));
+        }
     }
     if let Some(id) = elemento("Colorbar") {
         match &r.barra {
@@ -3404,7 +3650,13 @@ fn estratificar(req: &Request, estratos: &str, n: u64, minimo: usize, sorteio: i
         texto.push_str(&format!(". Outros campos, por script (\"campo\"): {}", outros.join(", ")));
     }
     let nomes: Vec<&str> = lista.iter().map(|e| e.nome.as_str()).collect();
-    Ok(resposta_da_amostra(req, amostragem::ESTRATIFICADA, total, &texto, json!({"field": legivel, "strata": nomes, "allocation": alocacao})))
+    Ok(resposta_da_amostra(
+        req,
+        amostragem::ESTRATIFICADA,
+        total,
+        &texto,
+        json!({"field": legivel, "strata": nomes, "allocation": alocacao}),
+    ))
 }
 
 /// Amostragem sistemática: uma grade de pontos com o espaçamento em metros e a origem sorteada,

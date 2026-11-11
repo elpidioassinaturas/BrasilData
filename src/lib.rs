@@ -12,6 +12,7 @@
 //! fuso da área, com células de 30 m.
 
 pub mod amostragem;
+pub mod aqueduct;
 mod catalogo;
 pub mod censo;
 pub mod datas;
@@ -19,6 +20,7 @@ pub mod dist;
 pub mod estilo;
 pub mod grade;
 pub mod indicadores;
+pub mod irrigacao;
 // O que fala com o RustGIS só compila no wasm: fora dele (nos testes), as importações do
 // RustGIS ficariam sem resolver no linker do Windows.
 #[cfg(target_arch = "wasm32")]
@@ -30,6 +32,7 @@ pub mod mapbiomas;
 pub mod municipios;
 pub mod radar;
 pub mod saude;
+pub mod sol;
 pub mod versao;
 pub mod vista;
 pub mod zoom;

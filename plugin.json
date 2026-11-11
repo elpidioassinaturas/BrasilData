@@ -1,8 +1,8 @@
 {
   "id": "brasildata",
   "name": "BrasilData",
-  "version": "0.1.27",
-  "description": "Dados públicos do Brasil para a área do usuário (IBGE, MMA, ICMBio, INPE, ANA, ANEEL, ANP, SFB/CAR, INCRA, FUNAI, IBAMA, ANM, DNIT, Ministério da Saúde, Copernicus, NASA/ASF): só o que cruza a área, recortado por ela, com a fonte e a licença de cada camada.",
+  "version": "0.1.28",
+  "description": "Dados públicos do Brasil para a área do usuário (IBGE, MMA, ICMBio, INPE, ANA, ANEEL, ANP, SFB/CAR, INCRA, FUNAI, IBAMA, ANM, DNIT, Ministério da Saúde, Copernicus, NASA/ASF, FAO, WRI): só o que cruza a área, recortado por ela, com a fonte e a licença de cada camada.",
   "author": "Elpídio Filho",
   "homepage": "https://github.com/elpidioassinaturas/BrasilData",
   "license": "MIT",
@@ -271,6 +271,13 @@
       "id": "ana-seca-2015",
       "label": "Municípios com seca (2015, ANA)",
       "help": "Municípios atingidos por seca em 2015 (ANA): ANA, Municípios Atingidos por Eventos de Seca em 2015, SNIRH. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web.",
+      "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
+      "id": "aqueduct-estresse",
+      "label": "Estresse hídrico (Aqueduct 4.0, WRI)",
+      "help": "Estresse hídrico de referência (Aqueduct 4.0, WRI): Kuzma, S., M.F.P. Bierkens, S. Lakshman, T. Luo, L. Saccoccia, E.H. Sutanudjaja e R. Van Beek. 2023. Aqueduct 4.0: Updated decision-relevant global water risk indicators. Technical Note. Washington, DC: World Resources Institute. doi:10.46830/writn.23.00061. Estresse hídrico de referência (bws): retirada de água sobre a oferta renovável, por sub-bacia HydroBASINS de nível 6 e unidade administrativa, pelo serviço Aqueduct Water Risk (Baseline Annual) do ArcGIS Living Atlas (Esri). Campos: bws_raw, a razão; bws_score, de 0 a 5; bws_cat, a categoria (-1 árido e de pouco uso, -9999 sem dado); estresse, a categoria em português. Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
       "icon": "polygon_layer",
       "params": "{}"
     },
@@ -793,6 +800,27 @@
       "params": "{\"data\"?: \"dd/mm/aaaa\", os produtos até esse dia (padrão: os mais recentes), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}"
     },
     {
+      "id": "sol-radiacao",
+      "label": "Radiação solar (NASA POWER)",
+      "help": "A irradiação global horizontal na superfície, com todos os céus (nuvens incluídas), em kWh/m² por dia: a média diária de 2001 a 2025, do NASA POWER (CERES SYN1deg, NASA Langley), em células de 1° (cerca de 110 km). As células em volta da área, com uma de margem, viram um raster de 1°, que é interpolado (bilinear) para a grade do projeto e recortado pela área: o mapa mostra como a radiação varia de uma célula para a outra, não detalhes menores que 1°. Por script, o mês: {\"mes\": 1} para janeiro (padrão: a média do ano). Precisa de um RustGIS com o Polígonos para raster (raster.rasterize, desde a 0.6.0).",
+      "icon": "raster_layer",
+      "params": "{\"mes\"?: de 1 a 12, a média diária desse mês (padrão: a do ano), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}"
+    },
+    {
+      "id": "mapbiomas-irrigacao",
+      "label": "Sistemas de irrigação (MapBiomas)",
+      "help": "Os sistemas de irrigação mapeados pelo MapBiomas a 30 m com imagens Landsat: pivô central (roxo), outros sistemas, sobretudo no Semiárido (azul-claro), e inundação, o arroz irrigado (rosa). O ano, de 1985 a 2025, é o do controle MapBiomas: ano, no painel Área de trabalho (2025 até você mudar). Um mapa para ver, do Brasil inteiro, que vale por algumas horas: o MapBiomas não publica um arquivo dele que se leia pela área. Para a área equipada em números, há a do GMIA v5 (FAO); para os pivôs como polígonos, os da ANA.",
+      "icon": "raster_layer",
+      "params": "{\"ano\"?: de 1985 a 2025 (padrão: o do painel, ou 2025)}"
+    },
+    {
+      "id": "irrigacao-gmia",
+      "label": "Área equipada para irrigação (GMIA v5, FAO)",
+      "help": "A porcentagem de cada célula de 5′ (cerca de 9 km) equipada para irrigação, por volta de 2005, do Global Map of Irrigation Areas versão 5 (FAO e Universidade de Bonn). Só a área, lida do arquivo mundial da FAO, posta na grade do projeto (cada célula da grade mostra a de 5′ onde cai) e recortada pelo contorno; a escala de cores vai de 0 ao máximo na área. Para a área irrigada por município, há o Censo Agropecuário 2017 (Agricultura). Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área).",
+      "icon": "raster_layer",
+      "params": "{\"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}"
+    },
+    {
       "id": "elevacao",
       "label": "Elevação (Copernicus GLO-30)",
       "help": "Copernicus GLO-30 recortado pela área e posto na grade do projeto (Grade do projeto, no grupo Área). Sem grade, o primeiro clique cria a padrão: células de 30 m no UTM SIRGAS 2000 do fuso da área, ou no Albers do IBGE quando a área passa de um fuso.",
@@ -1063,7 +1091,7 @@
         "kind": "text",
         "id": "sobre",
         "label": "Sobre o BrasilData",
-        "text": "BrasilData 0.1.27, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Elpídio Filho, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nFontes dos dados: IBGE, INPE, ANA, ANP, ANEEL, INCRA, ANM, MMA, ICMBio, FUNAI, Serviço Florestal Brasileiro, IBAMA, DNIT e MapBiomas, pelos serviços de cada órgão; Copernicus DEM GLO-30 (DLR e Airbus, pelo espelho da OpenTopography); Banco Central (Pix e crédito rural); TSE; Novo CAGED (IPEA Data) e Ministério da Saúde (CNES, pelo geobr do Ipea).\n\nComo contribuir: sentiu falta de algum dado? Abra uma issue em https://github.com/elpidioassinaturas/BrasilData/issues com o nome do dado, o órgão que o publica, o endereço do serviço (WFS, ArcGIS REST, API ou arquivo) e para que você o usaria. Para trazer a fonte você mesmo, acrescente uma linha ao fontes.csv, rode python scripts/gerar.py e abra um pull request. Correções, avisos de serviço fora do ar e relatos de uso também são bem-vindos."
+        "text": "BrasilData 0.1.28, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Elpídio Filho, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nFontes dos dados: IBGE, INPE, ANA, ANP, ANEEL, INCRA, ANM, Kuzma, MMA, ICMBio, FUNAI, Serviço Florestal Brasileiro, IBAMA, DNIT e MapBiomas, pelos serviços de cada órgão; Copernicus DEM GLO-30 (DLR e Airbus, pelo espelho da OpenTopography); Banco Central (Pix e crédito rural); TSE; Novo CAGED (IPEA Data) e Ministério da Saúde (CNES, pelo geobr do Ipea).\n\nComo contribuir: sentiu falta de algum dado? Abra uma issue em https://github.com/elpidioassinaturas/BrasilData/issues com o nome do dado, o órgão que o publica, o endereço do serviço (WFS, ArcGIS REST, API ou arquivo) e para que você o usaria. Para trazer a fonte você mesmo, acrescente uma linha ao fontes.csv, rode python scripts/gerar.py e abra um pull request. Correções, avisos de serviço fora do ar e relatos de uso também são bem-vindos."
       }
     ]
   },
@@ -1177,7 +1205,9 @@
             "items": [
               "indicadores-credito",
               "censo-agro",
-              "censo-agroecologia"
+              "censo-agroecologia",
+              "mapbiomas-irrigacao",
+              "irrigacao-gmia"
             ]
           },
           {
@@ -1231,6 +1261,13 @@
             "items": [
               "solos"
             ]
+          },
+          {
+            "menu": "Clima",
+            "icon": "raster_layer",
+            "items": [
+              "sol-radiacao"
+            ]
           }
         ]
       },
@@ -1266,7 +1303,10 @@
               "ana-estacoes",
               "ana-captacoes",
               "ana-pivos",
-              "ana-seca-2015"
+              "ana-seca-2015",
+              "aqueduct-estresse",
+              "mapbiomas-irrigacao",
+              "irrigacao-gmia"
             ]
           }
         ]

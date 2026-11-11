@@ -30,7 +30,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.27"
+VERSAO = "0.1.28"
 
 # Os comandos que não vêm da tabela, com o grupo da aba em que ficam. Na aba, o grupo Área
 # tem o painel (a escolha do território pelo nome), a área pela seleção e o desenho; o comando
@@ -555,6 +555,39 @@ EM_MENUS = [
     ),
     (
         "Meio físico",
+        "Clima",
+        {
+            "id": "sol-radiacao",
+            "label": "Radiação solar (NASA POWER)",
+            "help": "A irradiação global horizontal na superfície, com todos os céus (nuvens incluídas), em kWh/m² por dia: a média diária de 2001 a 2025, do NASA POWER (CERES SYN1deg, NASA Langley), em células de 1° (cerca de 110 km). As células em volta da área, com uma de margem, viram um raster de 1°, que é interpolado (bilinear) para a grade do projeto e recortado pela área: o mapa mostra como a radiação varia de uma célula para a outra, não detalhes menores que 1°. Por script, o mês: {\"mes\": 1} para janeiro (padrão: a média do ano). Precisa de um RustGIS com o Polígonos para raster (raster.rasterize, desde a 0.6.0).",
+            "icon": "raster_layer",
+            "params": "{\"mes\"?: de 1 a 12, a média diária desse mês (padrão: a do ano), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+        },
+    ),
+    (
+        "Água",
+        "Recursos hídricos",
+        {
+            "id": "mapbiomas-irrigacao",
+            "label": "Sistemas de irrigação (MapBiomas)",
+            "help": "Os sistemas de irrigação mapeados pelo MapBiomas a 30 m com imagens Landsat: pivô central (roxo), outros sistemas, sobretudo no Semiárido (azul-claro), e inundação, o arroz irrigado (rosa). O ano, de 1985 a 2025, é o do controle MapBiomas: ano, no painel Área de trabalho (2025 até você mudar). Um mapa para ver, do Brasil inteiro, que vale por algumas horas: o MapBiomas não publica um arquivo dele que se leia pela área. Para a área equipada em números, há a do GMIA v5 (FAO); para os pivôs como polígonos, os da ANA.",
+            "icon": "raster_layer",
+            "params": "{\"ano\"?: de 1985 a 2025 (padrão: o do painel, ou 2025)}",
+        },
+    ),
+    (
+        "Água",
+        "Recursos hídricos",
+        {
+            "id": "irrigacao-gmia",
+            "label": "Área equipada para irrigação (GMIA v5, FAO)",
+            "help": "A porcentagem de cada célula de 5′ (cerca de 9 km) equipada para irrigação, por volta de 2005, do Global Map of Irrigation Areas versão 5 (FAO e Universidade de Bonn). Só a área, lida do arquivo mundial da FAO, posta na grade do projeto (cada célula da grade mostra a de 5′ onde cai) e recortada pelo contorno; a escala de cores vai de 0 ao máximo na área. Para a área irrigada por município, há o Censo Agropecuário 2017 (Agricultura). Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área).",
+            "icon": "raster_layer",
+            "params": "{\"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+        },
+    ),
+    (
+        "Meio físico",
         "Relevo",
         {
             "id": "elevacao",
@@ -630,15 +663,16 @@ TOPICOS = {
     "Território": ["Limites", "Recortes especiais", "Cadastro fundiário", "Terras indígenas"],
     "Sociedade e economia": ["População", "Economia", "Agricultura", "Eleições"],
     "Saúde": ["Estabelecimentos"],
-    "Meio físico": ["Geologia e recursos minerais", "Relevo", "Solos"],
+    "Meio físico": ["Geologia e recursos minerais", "Relevo", "Solos", "Clima"],
     "Água": ["Hidrografia", "Bacias", "Recursos hídricos"],
     "Vegetação e meio ambiente": ["Vegetação", "Uso e cobertura", "Desmatamento", "Queimadas", "Áreas protegidas", "Fiscalização"],
     "Infraestrutura": ["Energia", "Petróleo e gás", "Transportes"],
 }
 GRUPOS = list(TOPICOS)
 # Comandos que também aparecem num segundo subtópico: (tópico, subtópico, id). A Agricultura
-# tem o Censo Agropecuário próprio (censo-agro); os censos por município ficam na População.
-TAMBEM = []
+# tem o Censo Agropecuário próprio (censo-agro); os censos por município ficam na População. A
+# irrigação do GMIA fica na Água e também na Agricultura, ao lado do Censo Agropecuário.
+TAMBEM = [("Sociedade e economia", "Agricultura", "mapbiomas-irrigacao"), ("Sociedade e economia", "Agricultura", "irrigacao-gmia")]
 
 # O ícone de um subtópico, quando um dos ícones do RustGIS diz mais que a geometria da primeira
 # camada (o plugin só pode usar os ícones do RustGIS, pelo nome).
@@ -725,7 +759,7 @@ def manifesto(linhas: list[dict]) -> str:
         "id": "brasildata",
         "name": "BrasilData",
         "version": VERSAO,
-        "description": "Dados públicos do Brasil para a área do usuário (IBGE, MMA, ICMBio, INPE, ANA, ANEEL, ANP, SFB/CAR, INCRA, FUNAI, IBAMA, ANM, DNIT, Ministério da Saúde, Copernicus, NASA/ASF): só o que cruza a área, recortado por ela, com a fonte e a licença de cada camada.",
+        "description": "Dados públicos do Brasil para a área do usuário (IBGE, MMA, ICMBio, INPE, ANA, ANEEL, ANP, SFB/CAR, INCRA, FUNAI, IBAMA, ANM, DNIT, Ministério da Saúde, Copernicus, NASA/ASF, FAO, WRI): só o que cruza a área, recortado por ela, com a fonte e a licença de cada camada.",
         "author": AUTOR,
         "homepage": REPOSITORIO,
         "license": LICENCA,

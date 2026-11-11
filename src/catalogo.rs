@@ -497,6 +497,23 @@ pub const TEMAS: &[Tema] = &[
         ordem: "",
     },
     Tema {
+        id: "aqueduct-estresse",
+        grupo: "Água",
+        nome: "Estresse hídrico de referência (Aqueduct 4.0, WRI)",
+        servico: "https://services.arcgis.com/P3ePLMYs2RVChkJx/arcgis/rest/services/aqueduct_water_risk/FeatureServer",
+        tipo: "arcgis",
+        camada: "1",
+        geometria: "poligono",
+        recorta: true,
+        fonte: "Kuzma, S., M.F.P. Bierkens, S. Lakshman, T. Luo, L. Saccoccia, E.H. Sutanudjaja e R. Van Beek. 2023. Aqueduct 4.0: Updated decision-relevant global water risk indicators. Technical Note. Washington, DC: World Resources Institute. doi:10.46830/writn.23.00061. Estresse hídrico de referência (bws): retirada de água sobre a oferta renovável, por sub-bacia HydroBASINS de nível 6 e unidade administrativa, pelo serviço Aqueduct Water Risk (Baseline Annual) do ArcGIS Living Atlas (Esri). Campos: bws_raw, a razão; bws_score, de 0 a 5; bws_cat, a categoria (-1 árido e de pouco uso, -9999 sem dado); estresse, a categoria em português",
+        licenca: "CC BY 4.0 (WRI)",
+        filtro: "",
+        campos: "string_id,pfaf_id,name_1,bws_raw,bws_score,bws_cat,bws_label",
+        geom: "",
+        pagina: 750,
+        ordem: "OBJECTID",
+    },
+    Tema {
         id: "ucs",
         grupo: "Vegetação e meio ambiente",
         nome: "Unidades de conservação (CNUC 07/2026)",
@@ -1401,7 +1418,7 @@ pub const TEMAS: &[Tema] = &[
 
 /// O texto da seção Sobre (o do painel Área de trabalho): autoria, versão, licença, repositório,
 /// fontes e como contribuir.
-pub const SOBRE: &str = "BrasilData 0.1.27, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Elpídio Filho, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nFontes dos dados: IBGE, INPE, ANA, ANP, ANEEL, INCRA, ANM, MMA, ICMBio, FUNAI, Serviço Florestal Brasileiro, IBAMA, DNIT e MapBiomas, pelos serviços de cada órgão; Copernicus DEM GLO-30 (DLR e Airbus, pelo espelho da OpenTopography); Banco Central (Pix e crédito rural); TSE; Novo CAGED (IPEA Data) e Ministério da Saúde (CNES, pelo geobr do Ipea).\n\nComo contribuir: sentiu falta de algum dado? Abra uma issue em https://github.com/elpidioassinaturas/BrasilData/issues com o nome do dado, o órgão que o publica, o endereço do serviço (WFS, ArcGIS REST, API ou arquivo) e para que você o usaria. Para trazer a fonte você mesmo, acrescente uma linha ao fontes.csv, rode python scripts/gerar.py e abra um pull request. Correções, avisos de serviço fora do ar e relatos de uso também são bem-vindos.";
+pub const SOBRE: &str = "BrasilData 0.1.28, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Elpídio Filho, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nFontes dos dados: IBGE, INPE, ANA, ANP, ANEEL, INCRA, ANM, Kuzma, MMA, ICMBio, FUNAI, Serviço Florestal Brasileiro, IBAMA, DNIT e MapBiomas, pelos serviços de cada órgão; Copernicus DEM GLO-30 (DLR e Airbus, pelo espelho da OpenTopography); Banco Central (Pix e crédito rural); TSE; Novo CAGED (IPEA Data) e Ministério da Saúde (CNES, pelo geobr do Ipea).\n\nComo contribuir: sentiu falta de algum dado? Abra uma issue em https://github.com/elpidioassinaturas/BrasilData/issues com o nome do dado, o órgão que o publica, o endereço do serviço (WFS, ArcGIS REST, API ou arquivo) e para que você o usaria. Para trazer a fonte você mesmo, acrescente uma linha ao fontes.csv, rode python scripts/gerar.py e abra um pull request. Correções, avisos de serviço fora do ar e relatos de uso também são bem-vindos.";
 
 /// O aviso do botão Sobre: o resumo do [`SOBRE`].
-pub const SOBRE_AVISO: &str = "BrasilData 0.1.27, de Elpídio Filho (LABGEO/UFV), sob a licença MIT: https://github.com/elpidioassinaturas/BrasilData. A autoria, as fontes dos dados e como contribuir estão em Sobre o BrasilData, no fim do painel Área de trabalho.";
+pub const SOBRE_AVISO: &str = "BrasilData 0.1.28, de Elpídio Filho (LABGEO/UFV), sob a licença MIT: https://github.com/elpidioassinaturas/BrasilData. A autoria, as fontes dos dados e como contribuir estão em Sobre o BrasilData, no fim do painel Área de trabalho.";
