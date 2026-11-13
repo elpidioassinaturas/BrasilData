@@ -857,6 +857,66 @@
       ]
     },
     {
+      "id": "nisar-hh",
+      "label": "Radar HH (NISAR, banda L)",
+      "help": "A polarização HH: responde mais aos troncos, ao solo e às construções. O radar de banda L do NISAR (NASA e ISRO), o GCOV corrigido do relevo, 20 m, em dB e com o filtro de Lee contra o granulado: as cenas da passagem mais recente (ou a do dia escolhido na janela do comando) que cruzam o polígono da área, tiradas do HDF5 e recortadas pelo retângulo da área pelo Harmony da NASA, juntadas, recortadas pela área e postas na grade do projeto. A banda L (24 cm) atravessa mais as copas que a banda C do Sentinel-1. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Áreas de até cerca de 110 km; cerca de 40 s por cena.",
+      "icon": "stretch",
+      "params": "{\"data\"?: \"dd/mm/aaaa\", a passagem desse dia (padrão: a mais recente que cobre a área), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+      "form": [
+        {
+          "name": "data",
+          "label": "Data da passagem",
+          "kind": "text",
+          "help": "A passagem do satélite desse dia, dd/mm/aaaa. Vazio: a mais recente que cobre a área."
+        }
+      ]
+    },
+    {
+      "id": "nisar-hv",
+      "label": "Radar HV (NISAR, banda L)",
+      "help": "A polarização HV: responde mais ao volume da vegetação (galhos e copas). O radar de banda L do NISAR (NASA e ISRO), o GCOV corrigido do relevo, 20 m, em dB e com o filtro de Lee contra o granulado: as cenas da passagem mais recente (ou a do dia escolhido na janela do comando) que cruzam o polígono da área, tiradas do HDF5 e recortadas pelo retângulo da área pelo Harmony da NASA, juntadas, recortadas pela área e postas na grade do projeto. A banda L (24 cm) atravessa mais as copas que a banda C do Sentinel-1. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Áreas de até cerca de 110 km; cerca de 40 s por cena.",
+      "icon": "stretch",
+      "params": "{\"data\"?: \"dd/mm/aaaa\", a passagem desse dia (padrão: a mais recente que cobre a área), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+      "form": [
+        {
+          "name": "data",
+          "label": "Data da passagem",
+          "kind": "text",
+          "help": "A passagem do satélite desse dia, dd/mm/aaaa. Vazio: a mais recente que cobre a área."
+        }
+      ]
+    },
+    {
+      "id": "nisar-razao",
+      "label": "Razão HV/HH (NISAR, banda L)",
+      "help": "A razão HV/HH, que separa vegetação de solo exposto e de cidade; as camadas HH e HV da mesma passagem também ficam no mapa. O radar de banda L do NISAR (NASA e ISRO), o GCOV corrigido do relevo, 20 m, em dB e com o filtro de Lee contra o granulado: as cenas da passagem mais recente (ou a do dia escolhido na janela do comando) que cruzam o polígono da área, tiradas do HDF5 e recortadas pelo retângulo da área pelo Harmony da NASA, juntadas, recortadas pela área e postas na grade do projeto. A banda L (24 cm) atravessa mais as copas que a banda C do Sentinel-1. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Áreas de até cerca de 110 km; cerca de 40 s por cena.",
+      "icon": "rgb",
+      "params": "{\"data\"?: \"dd/mm/aaaa\", a passagem desse dia (padrão: a mais recente que cobre a área), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+      "form": [
+        {
+          "name": "data",
+          "label": "Data da passagem",
+          "kind": "text",
+          "help": "A passagem do satélite desse dia, dd/mm/aaaa. Vazio: a mais recente que cobre a área."
+        }
+      ]
+    },
+    {
+      "id": "nisar-cor",
+      "label": "Composição colorida (NISAR, banda L)",
+      "help": "A composição colorida: HH no vermelho, HV no verde e HH − HV no azul. Cidade em rosa e magenta, mata em verde-claro, pasto e solo exposto em azul e roxo, água escura; as camadas HH, HV e a razão da mesma passagem também ficam no mapa. O radar de banda L do NISAR (NASA e ISRO), o GCOV corrigido do relevo, 20 m, em dB e com o filtro de Lee contra o granulado: as cenas da passagem mais recente (ou a do dia escolhido na janela do comando) que cruzam o polígono da área, tiradas do HDF5 e recortadas pelo retângulo da área pelo Harmony da NASA, juntadas, recortadas pela área e postas na grade do projeto. A banda L (24 cm) atravessa mais as copas que a banda C do Sentinel-1. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Áreas de até cerca de 110 km; cerca de 40 s por cena.",
+      "icon": "rgb",
+      "params": "{\"data\"?: \"dd/mm/aaaa\", a passagem desse dia (padrão: a mais recente que cobre a área), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+      "form": [
+        {
+          "name": "data",
+          "label": "Data da passagem",
+          "kind": "text",
+          "help": "A passagem do satélite desse dia, dd/mm/aaaa. Vazio: a mais recente que cobre a área."
+        }
+      ]
+    },
+    {
       "id": "dist-situacao",
       "label": "Perturbação da vegetação: situação (OPERA DIST-S1)",
       "help": "A situação do alerta: a cor diz a etapa (amarelo, primeira detecção; laranja, provisória; vermelho, confirmada; roxo, encerrada, quando a vegetação voltou ao normal) e, mais escura, a confiança alta; sem perturbação fica transparente. As manchas vêm também como polígonos, com borda fina e o nome da classe na legenda; o raster, na grade, fica escondido. Na janela do comando, as cores podem ser as da paleta oficial da OPERA. O alerta de perturbação da vegetação do radar do Sentinel-1 (OPERA DIST-S1, JPL, pelo ASF DAAC da NASA), 30 m: o produto mais recente de cada tile (ou o de até o dia escolhido na janela do comando) que cruza o polígono da área, que acumula os alertas desde o começo do monitoramento (04/01/2026), juntado, recortado pela área e posto na grade do projeto. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Áreas de até cerca de 400 km.",
@@ -1621,7 +1681,11 @@
               "mapbiomas-cobertura",
               "radar-vv",
               "radar-vh",
-              "radar-razao"
+              "radar-razao",
+              "nisar-hh",
+              "nisar-hv",
+              "nisar-razao",
+              "nisar-cor"
             ]
           },
           {

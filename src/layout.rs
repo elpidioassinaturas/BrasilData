@@ -46,6 +46,9 @@ fn data_no_nome(n: &str) -> Option<&str> {
     n.get(i..i + 10)
 }
 
+/// A nota da composição colorida do NISAR.
+const NOTA_NISAR_COR: &str = "Vermelho: HH (−11 a −1 dB); verde: HV (−18 a −8 dB); azul: HH − HV (4 a 11 dB). Cidade em rosa e magenta (eco duplo das construções), mata em verde-claro (volume das copas), pasto e solo exposto em azul e roxo, água escura.";
+
 /// A receita da camada `nome`, se o layout a conhece.
 pub fn receita(nome: &str) -> Option<Receita> {
     let n = nome.strip_prefix(PREFIXO)?;
@@ -135,6 +138,28 @@ pub fn receita(nome: &str) -> Option<Receita> {
         return Some(Receita {
             subtitulo: "Elevação do terreno (Copernicus DEM GLO-30)".into(),
             barra: Some(("Altitude (m)".into(), 5)),
+            legenda: None,
+            nota: None,
+        });
+    }
+    if crate::nisar::eh_do_nisar(nome) {
+        // "Radar HV em dB (NISAR, 01/11/2026)": a polarização e a data da passagem.
+        let qual = n.split(" (").next().unwrap_or(n).trim_end_matches(" em dB");
+        let quando = n.rsplit(", ").next().map(|d| d.trim_end_matches(')')).filter(|d| d.len() == 10);
+        let quando = quando.map(|d| format!(" em {d}")).unwrap_or_default();
+        if qual.starts_with("Composição") {
+            return Some(Receita {
+                subtitulo: format!("Composição colorida do radar NISAR (banda L){quando}: HH, HV e HH − HV"),
+                barra: None,
+                legenda: None,
+                nota: Some(NOTA_NISAR_COR),
+            });
+        }
+        // As escalas fixas do plugin: 10 dB nas polarizações (marcas de 2 dB) e 7 dB na razão.
+        let marcas = if qual.starts_with("Razão") { 8 } else { 6 };
+        return Some(Receita {
+            subtitulo: format!("{qual} do NISAR (banda L){quando}, corrigido do relevo (GCOV)"),
+            barra: Some((format!("{qual} (dB)"), marcas)),
             legenda: None,
             nota: None,
         });
@@ -299,6 +324,12 @@ mod tests {
         let r = receita("BrasilData: Radar VV em dB (Sentinel-1, 26/10/2026)").unwrap();
         assert_eq!(r.subtitulo, "Radar VV do Sentinel-1 em 26/10/2026, corrigido do relevo (OPERA RTC-S1)");
         assert_eq!(r.barra, Some(("Radar VV (dB)".into(), 8)));
+        let r = receita("BrasilData: Radar HV em dB (NISAR, 01/11/2026)").unwrap();
+        assert_eq!(r.subtitulo, "Radar HV do NISAR (banda L) em 01/11/2026, corrigido do relevo (GCOV)");
+        assert_eq!(r.barra, Some(("Radar HV (dB)".into(), 6)));
+        assert_eq!(receita("BrasilData: Razão HV/HH em dB (NISAR, 01/11/2026)").unwrap().barra, Some(("Razão HV/HH (dB)".into(), 8)));
+        let r = receita("BrasilData: Composição HH, HV, HH − HV (NISAR, 01/11/2026)").unwrap();
+        assert_eq!((r.barra, r.nota.is_some()), (None, true));
         let r = receita("BrasilData: Razão VH/VV em dB (Sentinel-1, 26/10/2026)").unwrap();
         assert_eq!(r.barra, Some(("Razão VH/VV (dB)".into(), 6)));
         let r = receita("BrasilData: Uso e cobertura 2024 (MapBiomas, recortado)").unwrap();

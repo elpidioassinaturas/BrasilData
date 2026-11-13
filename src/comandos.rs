@@ -19,6 +19,7 @@ use crate::layout;
 use crate::malhas;
 use crate::mapbiomas;
 use crate::municipios::{self, Territorio};
+use crate::nisar;
 use crate::radar;
 use crate::risco_fogo;
 use crate::saude;
@@ -149,6 +150,10 @@ fn executar(req: Request) -> Result<Value, String> {
         "radar-vv" => radar(&req, Some(radar::Pol::Vv)),
         "radar-vh" => radar(&req, Some(radar::Pol::Vh)),
         "radar-razao" => radar(&req, None),
+        "nisar-hh" => radar_nisar(&req, Some(nisar::Pol::Hh)),
+        "nisar-hv" => radar_nisar(&req, Some(nisar::Pol::Hv)),
+        "nisar-razao" => radar_nisar(&req, None),
+        "nisar-cor" => composicao_nisar(&req),
         "dist-situacao" => perturbacao(&req, dist::Camada::Situacao),
         "dist-data" => perturbacao(&req, dist::Camada::Data),
         "dist-confianca" => perturbacao(&req, dist::Camada::Confianca),
@@ -1256,6 +1261,8 @@ fn citacoes() -> Result<(Vec<Value>, String), String> {
             lista.push(json!({"layer": n, "source": mapbiomas::CITACAO_IRRIGACAO, "license": mapbiomas::LICENCA}));
         } else if n == camada_de_saude() {
             lista.push(json!({"layer": n, "source": saude::CITACAO, "license": saude::LICENCA}));
+        } else if nisar::eh_do_nisar(&n) {
+            lista.push(json!({"layer": n, "source": nisar::CITACAO, "license": nisar::LICENCA}));
         } else if radar::eh_do_radar(&n) {
             lista.push(json!({"layer": n, "source": radar::CITACAO, "license": radar::LICENCA}));
         } else if sol::eh_do_sol(&n) {
@@ -1473,12 +1480,34 @@ fn recortes_do_radar(c: [f64; 4], dia: Option<Data>) -> Result<Result<Vec<radar:
 /// Uma polarização dos `recortes` na grade `g`, recortada pela área, como a camada `nome`; ou o
 /// pedido pendente (app web).
 fn radar_na_grade(recortes: &[radar::Recorte], p: radar::Pol, g: &Grade, c: [f64; 4], nome: &str) -> Result<Option<Value>, String> {
+    let pedidos: Vec<(String, String)> =
+        recortes.iter().map(|r| (r.url(p).to_string(), format!("{}radar {} {}", PREFIXO, p.sigla(), r.rotulo()))).collect();
+    let sar = Sar { sigla: p.sigla(), de_onde: "do ASF (cerca de 7 MB cada)", celula: 30.0, escala: p.escala() };
+    sar_na_grade(&pedidos, &sar, g, c, nome)
+}
+
+/// O que muda de um radar para outro em [`sar_na_grade`].
+struct Sar {
+    /// A polarização, para os avisos.
+    sigla: &'static str,
+    /// De onde vêm os arquivos, para o aviso do download.
+    de_onde: &'static str,
+    /// A célula dos arquivos, em metros.
+    celula: f64,
+    /// A escala de cinza, em dB.
+    escala: (f64, f64),
+}
+
+/// Os arquivos de radar `pedidos` (endereço, nome da camada bruta), em potência linear, na grade
+/// `g`, com o filtro de Lee, recortados pela área e em dB, como a camada `nome`; ou o pedido
+/// pendente (a janela e o app web, que não esperam o download).
+fn sar_na_grade(pedidos: &[(String, String)], sar: &Sar, g: &Grade, c: [f64; 4], nome: &str) -> Result<Option<Value>, String> {
     // A lista de camadas do mapa custa caro ao plugin (cerca de 16 milhões de instruções, com
     // rasters no mapa): é lida uma vez, e não a cada recorte, senão uma mesorregião passa da cota.
     let ha = nomes()?;
     // As camadas intermediárias de uma vez anterior que tenha parado no meio.
     let (mosaico, recorte) = ("BrasilData: mosaico do radar".to_string(), "BrasilData: recorte do radar".to_string());
-    let brutos: Vec<String> = recortes.iter().map(|r| format!("{}radar {} {}", PREFIXO, p.sigla(), r.rotulo())).collect();
+    let brutos: Vec<String> = pedidos.iter().map(|(_, b)| b.clone()).collect();
     let filtrados: Vec<String> = brutos.iter().map(|b| format!("{b} filtrado")).collect();
     let na_grade: Vec<String> = brutos.iter().map(|b| format!("{b} na grade")).collect();
     let na_area: Vec<String> = brutos.iter().map(|b| format!("{b} na área")).collect();
@@ -1494,20 +1523,20 @@ fn radar_na_grade(recortes: &[radar::Recorte], p: radar::Pol, g: &Grade, c: [f64
     if !velhas.is_empty() {
         host::run("layer.remove", json!({"layer": velhas}))?;
     }
-    // Os recortes inteiros (cerca de 7 MB cada).
-    let pedidos: Vec<(&str, &str)> = recortes.iter().zip(&brutos).map(|(r, b)| (r.url(p), b.as_str())).collect();
-    let baixando = baixar_inteiros(&pedidos, &ha)?;
+    // Os arquivos inteiros.
+    let pares: Vec<(&str, &str)> = pedidos.iter().map(|(u, b)| (u.as_str(), b.as_str())).collect();
+    let baixando = baixar_inteiros(&pares, &ha)?;
     if baixando > 0 {
         let n = if baixando == 1 { "1 recorte".to_string() } else { format!("{baixando} recortes") };
         avisar(&format!(
-            "Radar {}: baixando {n} do ASF (cerca de 7 MB cada). Quando aparecerem no mapa como \"BrasilData: radar\", clique de novo",
-            p.sigla()
+            "Radar {}: baixando {n} {}. Quando aparecerem no mapa como \"BrasilData: radar\", clique de novo",
+            sar.sigla, sar.de_onde
         ));
-        return Ok(Some(json!({"pending": baixando, "bursts": recortes.len()})));
+        return Ok(Some(json!({"pending": baixando, "bursts": pedidos.len()})));
     }
     let mut temporarias: Vec<String> = Vec::new();
-    // Para células maiores que as do OPERA (30 m), a média; senão, bilinear.
-    let resampling = if g.celula > 45.0 { "average" } else { "bilinear" };
+    // Para células bem maiores que as dos arquivos, a média; senão, bilinear.
+    let resampling = if g.celula > 1.5 * sar.celula { "average" } else { "bilinear" };
     let resultado = (|| -> Result<(), String> {
         for (((bruto, f), q), a) in brutos.iter().zip(&filtrados).zip(&na_grade).zip(&na_area) {
             // O filtro de Lee (5 × 5) tira o granulado (speckle) do radar, na geometria do próprio
@@ -1544,7 +1573,7 @@ fn radar_na_grade(recortes: &[radar::Recorte], p: radar::Pol, g: &Grade, c: [f64
         ferramenta("geolibre:log10", json!({"input": linear}), &log)?;
         temporarias.push(log.clone());
         host::run("raster.function", json!({"layer": log, "function": "bandMath", "expression": "b1 * 10", "name": nome}))?;
-        let (min, max) = p.escala();
+        let (min, max) = sar.escala;
         let _ = host::run("raster.stretch", json!({"layer": nome, "type": "custom", "min": min, "max": max}));
         Ok(())
     })();
@@ -1566,13 +1595,17 @@ fn baixar_inteiros(pedidos: &[(&str, &str)], ha: &[String]) -> Result<usize, Str
         if ha.iter().any(|h| h == nome) {
             continue;
         }
-        let a = host::run("layer.addUrl", json!({"url": url, "name": nome, "whole": true, "zoom": false})).map_err(|e| {
-            if e.contains("token") || e.contains("401") || e.contains("Earthdata") {
-                format!("{e}. Os dados do ASF pedem o login Earthdata: Início › Dados web › NASA Earthaccess › Earthdata Login")
-            } else {
-                e
-            }
-        })?;
+        let a = host::run("layer.addUrl", json!({"url": url, "name": nome, "whole": true, "zoom": false}))
+            .map_err(token_recem_lido)
+            .map_err(|e| {
+                if e.starts_with("o RustGIS acabou de ler") {
+                    e
+                } else if e.contains("token") || e.contains("401") || e.contains("Earthdata") {
+                    format!("{e}. Os dados do ASF pedem o login Earthdata: Início › Dados web › NASA Earthaccess › Earthdata Login")
+                } else {
+                    e
+                }
+            })?;
         if a.get("pending").and_then(Value::as_bool) == Some(true) {
             baixando += 1;
         }
@@ -1920,6 +1953,159 @@ fn radar(req: &Request, qual: Option<radar::Pol>) -> Result<Value, String> {
         "layer": camada, "date": data.texto(), "bursts": recortes.iter().map(|r| r.nome.clone()).collect::<Vec<_>>(),
         "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula,
     }))
+}
+
+/// A camada temporária dos contornos das cenas do NISAR.
+const CONTORNOS_NISAR: &str = "BrasilData: contornos do NISAR";
+
+/// As cenas do NISAR GCOV que cruzam o polígono da área, da passagem escolhida
+/// ([`nisar::passagem`]), ou o pedido pendente (app web).
+fn cenas_do_nisar(c: [f64; 4], dia: Option<Data>) -> Result<Result<Vec<nisar::Cena>, Value>, String> {
+    let resposta = match buscar_varios(&[nisar::url_busca(c, dia)])? {
+        Ok(mut r) => r.remove(0),
+        Err(p) => return Ok(Err(p)),
+    };
+    let todas = nisar::cenas(&resposta);
+    let quando = dia.map(|d| format!(" em {}", d.texto())).unwrap_or_default();
+    if todas.is_empty() {
+        return Err(format!(
+            "o ASF não tem cenas do NISAR GCOV com HH e HV na área{quando} (a missão distribui dados desde meados de 2026)"
+        ));
+    }
+    remover(&[CONTORNOS_NISAR])?;
+    host::add_layer(CONTORNOS_NISAR, nisar::camada_dos_contornos(&todas))?;
+    let selecao = host::run("gp.run", json!({"tool": "selectByLocation", "params": {"input": CONTORNOS_NISAR, "select": AREA}}))
+        .and_then(|_| host::features(CONTORNOS_NISAR, true));
+    remover(&[CONTORNOS_NISAR])?;
+    let indices: Vec<usize> =
+        selecao?["features"].as_array().into_iter().flatten().filter_map(|f| f["properties"]["i"].as_u64().map(|i| i as usize)).collect();
+    let cruzam: Vec<&nisar::Cena> = indices.iter().filter_map(|i| todas.get(*i)).collect();
+    let (data, trilha) = nisar::passagem(&cruzam).ok_or(format!("nenhuma cena do NISAR GCOV cruza a área{quando}"))?;
+    let escolhidas: Vec<nisar::Cena> = cruzam.into_iter().filter(|c| c.passagem() == (data, trilha)).cloned().collect();
+    if escolhidas.len() > nisar::MAX_CENAS {
+        return Err(format!(
+            "a passagem de {} tem {} cenas na área; o limite é {}: escolha uma área menor",
+            data.texto(),
+            escolhidas.len(),
+            nisar::MAX_CENAS
+        ));
+    }
+    host::log(&format!(
+        "nisar: {} cenas cruzam a área, {} da passagem de {} (trilha {trilha}): {}",
+        indices.len(),
+        escolhidas.len(),
+        data.texto(),
+        escolhidas.iter().map(|c| c.id.as_str()).collect::<Vec<_>>().join(", ")
+    ));
+    Ok(Ok(escolhidas))
+}
+
+/// O radar de banda L do NISAR (GCOV) na área: uma polarização, ou a razão HV/HH (que deixa as
+/// duas no mapa também). O Harmony da NASA tira a polarização do HDF5, recorta pelo retângulo da
+/// área e devolve um GeoTIFF; daí em diante, o caminho é o do radar do Sentinel-1. Por padrão, a
+/// passagem mais recente que cobre a área; por script, a de um dia.
+fn radar_nisar(req: &Request, qual: Option<nisar::Pol>) -> Result<Value, String> {
+    let PedidoAsf { c, celula, dia } = area_do_asf(req, "o NISAR")?;
+    if !nisar::cabe(c) {
+        return Err(format!(
+            "a área passa de {:.0}° de lado; o NISAR, a 20 m, lê no máximo cerca de 110 km (uma microrregião). Escolha uma área menor",
+            nisar::MAX_GRAUS
+        ));
+    }
+    let g = grade_para(c, celula)?;
+    let cenas = match cenas_do_nisar(c, dia)? {
+        Ok(r) => r,
+        Err(p) => return Ok(p),
+    };
+    let data = cenas[0].data;
+    // Um pouco além do retângulo da área, para o filtro de Lee e a reprojeção não perderem a borda.
+    let folga = 0.01;
+    let pedido = [c[0] - folga, c[1] - folga, c[2] + folga, c[3] + folga];
+    let epsg = nisar::utm_do_harmony(c);
+    let pols = match qual {
+        Some(p) => vec![p],
+        None => vec![nisar::Pol::Hh, nisar::Pol::Hv],
+    };
+    let ha = nomes()?;
+    let mut feitas = Vec::new();
+    for p in pols {
+        let nome = nisar::nome_da_camada(p, data);
+        if qual.is_none() && ha.contains(&nome) {
+            feitas.push(nome);
+            continue;
+        }
+        remover(&[&nome])?;
+        let pedidos: Vec<(String, String)> =
+            cenas.iter().map(|k| (k.url(p, pedido, epsg), format!("{}NISAR {} {}", PREFIXO, p.sigla(), k.rotulo()))).collect();
+        let sar = Sar {
+            sigla: p.sigla(),
+            de_onde: "pelo Harmony da NASA (cerca de 40 s e 6 MB cada, para um município)",
+            celula: nisar::CELULA,
+            escala: p.escala(),
+        };
+        if let Some(pendente) = sar_na_grade(&pedidos, &sar, &g, c, &nome)? {
+            return Ok(pendente);
+        }
+        feitas.push(nome);
+    }
+    let mut camada = feitas[0].clone();
+    if qual.is_none() {
+        let razao = nisar::nome_da_razao(data);
+        remover(&[&razao])?;
+        // Em dB, a razão HV/HH é a diferença HV − HH.
+        host::run("raster.change", json!({"before": feitas[0], "after": feitas[1], "method": "difference", "name": razao}))?;
+        let (min, max) = nisar::ESCALA_DA_RAZAO;
+        let _ = host::run("raster.stretch", json!({"layer": razao, "type": "custom", "min": min, "max": max}));
+        camada = razao;
+    }
+    avisar(&format!(
+        "{}: {} da passagem de {}, na grade do projeto, {}",
+        camada.trim_start_matches(PREFIXO),
+        if cenas.len() == 1 { "1 cena".to_string() } else { format!("{} cenas", cenas.len()) },
+        data.texto(),
+        g.texto()
+    ));
+    Ok(json!({
+        "layer": camada, "date": data.texto(), "scenes": cenas.iter().map(|k| k.nome.clone()).collect::<Vec<_>>(),
+        "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula,
+    }))
+}
+
+/// A composição colorida do NISAR: HH no vermelho, HV no verde e HH − HV no azul, em dB. A
+/// cidade (o eco duplo das construções: HH forte, HV fraco) sai rosa e magenta, a mata (o volume
+/// das copas: HV forte) verde-clara, o pasto e o solo exposto (HV fraco) azuis e roxos, a água escura. Faz antes as
+/// camadas HH, HV e a razão, que ficam no mapa.
+fn composicao_nisar(req: &Request) -> Result<Value, String> {
+    let r = radar_nisar(req, None)?;
+    let Some(data) = r["date"].as_str().and_then(Data::ler) else {
+        return Ok(r);
+    };
+    let (hh, hv, razao) =
+        (nisar::nome_da_camada(nisar::Pol::Hh, data), nisar::nome_da_camada(nisar::Pol::Hv, data), nisar::nome_da_razao(data));
+    let nome = nisar::nome_da_composicao(data);
+    let azul = format!("{nome} azul");
+    remover(&[&nome, &azul])?;
+    let feito = (|| -> Result<(), String> {
+        // HH − HV é o contrário da razão.
+        host::run("raster.function", json!({"layer": razao, "function": "bandMath", "expression": "b1 * -1", "name": azul}))?;
+        ferramenta("geolibre:composite_bands", json!({"inputs": [hh, hv, azul]}), &nome)?;
+        host::run("raster.symbology", json!({"layer": nome, "type": "rgb"}))?;
+        let [vermelho, verde, azul_] = nisar::ESCALAS_DA_COMPOSICAO;
+        host::run(
+            "raster.stretch",
+            json!({"layer": nome, "type": "custom", "min": [vermelho.0, verde.0, azul_.0], "max": [vermelho.1, verde.1, azul_.1]}),
+        )?;
+        Ok(())
+    })();
+    remover(&[&azul])?;
+    feito?;
+    avisar(&format!(
+        "{}: vermelho HH, verde HV, azul HH − HV. Cidade em rosa e magenta, mata em verde-claro, pasto e solo exposto em azul e roxo, água escura",
+        nome.trim_start_matches(PREFIXO)
+    ));
+    let mut r = r;
+    r["layer"] = json!(nome);
+    Ok(r)
 }
 
 /// O texto do painel sobre a área do mapa.

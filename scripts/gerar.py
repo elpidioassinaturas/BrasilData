@@ -582,6 +582,62 @@ EM_MENUS = [
     ),
     (
         "Vegetação e meio ambiente",
+        "Uso e cobertura",
+        {
+            "id": "nisar-hh",
+            "label": "Radar HH (NISAR, banda L)",
+            "help": "A polarização HH: responde mais aos troncos, ao solo e às construções. O radar de banda L do NISAR (NASA e ISRO), o GCOV corrigido do relevo, 20 m, em dB e com o filtro de Lee contra o granulado: as cenas da passagem mais recente (ou a do dia escolhido na janela do comando) que cruzam o polígono da área, tiradas do HDF5 e recortadas pelo retângulo da área pelo Harmony da NASA, juntadas, recortadas pela área e postas na grade do projeto. A banda L (24 cm) atravessa mais as copas que a banda C do Sentinel-1. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Áreas de até cerca de 110 km; cerca de 40 s por cena.",
+            "icon": "stretch",
+            "params": "{\"data\"?: \"dd/mm/aaaa\", a passagem desse dia (padrão: a mais recente que cobre a área), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+            "form": [
+                {"name": "data", "label": "Data da passagem", "kind": "text", "help": "A passagem do satélite desse dia, dd/mm/aaaa. Vazio: a mais recente que cobre a área."},
+            ],
+        },
+    ),
+    (
+        "Vegetação e meio ambiente",
+        "Uso e cobertura",
+        {
+            "id": "nisar-hv",
+            "label": "Radar HV (NISAR, banda L)",
+            "help": "A polarização HV: responde mais ao volume da vegetação (galhos e copas). O radar de banda L do NISAR (NASA e ISRO), o GCOV corrigido do relevo, 20 m, em dB e com o filtro de Lee contra o granulado: as cenas da passagem mais recente (ou a do dia escolhido na janela do comando) que cruzam o polígono da área, tiradas do HDF5 e recortadas pelo retângulo da área pelo Harmony da NASA, juntadas, recortadas pela área e postas na grade do projeto. A banda L (24 cm) atravessa mais as copas que a banda C do Sentinel-1. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Áreas de até cerca de 110 km; cerca de 40 s por cena.",
+            "icon": "stretch",
+            "params": "{\"data\"?: \"dd/mm/aaaa\", a passagem desse dia (padrão: a mais recente que cobre a área), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+            "form": [
+                {"name": "data", "label": "Data da passagem", "kind": "text", "help": "A passagem do satélite desse dia, dd/mm/aaaa. Vazio: a mais recente que cobre a área."},
+            ],
+        },
+    ),
+    (
+        "Vegetação e meio ambiente",
+        "Uso e cobertura",
+        {
+            "id": "nisar-razao",
+            "label": "Razão HV/HH (NISAR, banda L)",
+            "help": "A razão HV/HH, que separa vegetação de solo exposto e de cidade; as camadas HH e HV da mesma passagem também ficam no mapa. O radar de banda L do NISAR (NASA e ISRO), o GCOV corrigido do relevo, 20 m, em dB e com o filtro de Lee contra o granulado: as cenas da passagem mais recente (ou a do dia escolhido na janela do comando) que cruzam o polígono da área, tiradas do HDF5 e recortadas pelo retângulo da área pelo Harmony da NASA, juntadas, recortadas pela área e postas na grade do projeto. A banda L (24 cm) atravessa mais as copas que a banda C do Sentinel-1. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Áreas de até cerca de 110 km; cerca de 40 s por cena.",
+            "icon": "rgb",
+            "params": "{\"data\"?: \"dd/mm/aaaa\", a passagem desse dia (padrão: a mais recente que cobre a área), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+            "form": [
+                {"name": "data", "label": "Data da passagem", "kind": "text", "help": "A passagem do satélite desse dia, dd/mm/aaaa. Vazio: a mais recente que cobre a área."},
+            ],
+        },
+    ),
+    (
+        "Vegetação e meio ambiente",
+        "Uso e cobertura",
+        {
+            "id": "nisar-cor",
+            "label": "Composição colorida (NISAR, banda L)",
+            "help": "A composição colorida: HH no vermelho, HV no verde e HH − HV no azul. Cidade em rosa e magenta, mata em verde-claro, pasto e solo exposto em azul e roxo, água escura; as camadas HH, HV e a razão da mesma passagem também ficam no mapa. O radar de banda L do NISAR (NASA e ISRO), o GCOV corrigido do relevo, 20 m, em dB e com o filtro de Lee contra o granulado: as cenas da passagem mais recente (ou a do dia escolhido na janela do comando) que cruzam o polígono da área, tiradas do HDF5 e recortadas pelo retângulo da área pelo Harmony da NASA, juntadas, recortadas pela área e postas na grade do projeto. A banda L (24 cm) atravessa mais as copas que a banda C do Sentinel-1. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Áreas de até cerca de 110 km; cerca de 40 s por cena.",
+            "icon": "rgb",
+            "params": "{\"data\"?: \"dd/mm/aaaa\", a passagem desse dia (padrão: a mais recente que cobre a área), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+            "form": [
+                {"name": "data", "label": "Data da passagem", "kind": "text", "help": "A passagem do satélite desse dia, dd/mm/aaaa. Vazio: a mais recente que cobre a área."},
+            ],
+        },
+    ),
+    (
+        "Vegetação e meio ambiente",
         "Desmatamento",
         {
             "id": "dist-situacao",

@@ -33,6 +33,7 @@ pub mod layout;
 pub mod malhas;
 pub mod mapbiomas;
 pub mod municipios;
+pub mod nisar;
 pub mod radar;
 pub mod risco_fogo;
 pub mod saude;
