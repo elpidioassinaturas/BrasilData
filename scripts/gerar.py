@@ -30,7 +30,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.30"
+VERSAO = "0.1.31"
 
 # As escolhas das janelas dos comandos: o texto que a janela manda é o da escolha, e o
 # src/dialogos.rs o traduz no valor do parâmetro (um teste confere que ele conhece todas).
@@ -53,6 +53,7 @@ PERFIS = [
 ]
 ESTILOS = ["Clássico", "Faixa", "Painel", "Editorial", "Modular", "Pôster"]
 PALETAS = ["A do BrasilData: etapa e confiança", "A oficial da OPERA"]
+MODELOS_GEM15 = ["Terreno nu (DTM)", "Superfície, com vegetação e construções (DSM)", "Altura acima do terreno (DSM menos DTM)"]
 
 # Os comandos que não vêm da tabela, com o grupo da aba em que ficam. Na aba, o grupo Área
 # tem o painel (a escolha do território pelo nome), a área pela seleção e o desenho; o comando
@@ -497,6 +498,17 @@ EM_MENUS = [
         "Vegetação e meio ambiente",
         "Vegetação",
         {
+            "id": "chm-altura",
+            "label": "Altura do dossel a 1 m (Meta CHMv2)",
+            "help": "A altura das árvores em metros, a cerca de 1 m, da Meta e do World Resources Institute (Canopy Height Maps v2, licença CC BY 4.0): estimada por um modelo de IA (DINOv3) sobre imagens de satélite de alta resolução, de datas diferentes conforme o lugar. Só a área, lida de cada tile que ela toca, posta na grade do projeto e recortada pelo contorno; numa grade mais grossa, lida da pirâmide do arquivo, que tira a média. Para ver as copas, use uma grade de 1 a 5 m (Grade do projeto) numa área pequena. O 0 é sem árvore, e também sem dado. Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área).",
+            "icon": "proportional",
+            "params": "{\"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+        },
+    ),
+    (
+        "Vegetação e meio ambiente",
+        "Vegetação",
+        {
             "id": "gedi-altura",
             "label": "Altura do dossel (GEDI)",
             "help": "A altura do dossel em metros: a altura relativa em que volta 98% da energia da onda do laser (rh98), perto do topo das copas. Do GEDI L4D (ORNL DAAC da NASA): os disparos do laser do GEDI de 2019 a 2023 imputados a cada pixel de 30 m com séries do Landsat. Só a área, lida dos arquivos dos fusos UTM que ela cruza, posta na grade do projeto e recortada pelo contorno. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área); áreas grandes vêm de uma pirâmide do arquivo, com células maiores.",
@@ -702,6 +714,20 @@ EM_MENUS = [
             "help": "Copernicus GLO-30 recortado pela área e posto na grade do projeto (Grade do projeto, no grupo Área). Sem grade, o primeiro clique cria a padrão: células de 30 m no UTM SIRGAS 2000 do fuso da área, ou no Albers do IBGE quando a área passa de um fuso.",
             "icon": "relief",
             "params": "{\"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30); com grade, só o da grade é aceito}",
+        },
+    ),
+    (
+        "Meio físico",
+        "Relevo",
+        {
+            "id": "gem15",
+            "label": "Elevação a 15 m (Google GEM-15)",
+            "help": "Os modelos de elevação do Google a 15 m (GEM-15, experimental, de imagens estéreo de satélite até 2024, licença CC-BY 4.0): o terreno nu (DTM), a superfície com a vegetação e as construções (DSM) ou a altura acima do terreno (DSM menos DTM). Só a área, lida de cada célula de 1° que ela toca, posta na grade do projeto e recortada pelo contorno; numa grade mais grossa, lida da pirâmide do arquivo. Alturas no geoide EGM96; água e superfícies sem textura ficam sem dado, e o DTM é pior sob mata densa. Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área).",
+            "icon": "raster_layer",
+            "params": "{\"modelo\"?: \"dtm\" (padrão) | \"dsm\" | \"altura\", \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+            "form": [
+                {"name": "modelo", "label": "Modelo", "kind": "choice", "required": True, "choices": MODELOS_GEM15, "default": MODELOS_GEM15[0], "help": "O terreno nu serve ao relevo, às curvas de nível e à hidrologia; a superfície inclui o dossel e os prédios; a altura acima do terreno é a diferença das duas (o dossel e as construções, até uns 50 m)."},
+            ],
         },
     ),
 ]

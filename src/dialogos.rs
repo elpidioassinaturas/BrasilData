@@ -51,12 +51,24 @@ pub const ESTILOS: [(&str, &str); 6] = [
 /// As escolhas das cores da situação do DIST-S1 e a `paleta` de cada uma.
 pub const PALETAS: [(&str, &str); 2] = [("A do BrasilData: etapa e confiança", "brasildata"), ("A oficial da OPERA", "oficial")];
 
+/// As escolhas do modelo do GEM-15 e o `modelo` de cada uma.
+pub const MODELOS_GEM15: [(&str, &str); 3] = [
+    ("Terreno nu (DTM)", "dtm"),
+    ("Superfície, com vegetação e construções (DSM)", "dsm"),
+    ("Altura acima do terreno (DSM menos DTM)", "altura"),
+];
+
 /// As escolhas de um parâmetro e o valor de cada uma.
 type Escolhas = &'static [(&'static str, &'static str)];
 
 /// As escolhas de texto de cada comando: (comando, parâmetro, escolhas e valores).
-const TROCAS: &[(&str, &str, Escolhas)] =
-    &[("grade", "crs", &SISTEMAS), ("layout", "perfil", &PERFIS), ("layout", "estilo", &ESTILOS), ("dist-situacao", "paleta", &PALETAS)];
+const TROCAS: &[(&str, &str, Escolhas)] = &[
+    ("grade", "crs", &SISTEMAS),
+    ("layout", "perfil", &PERFIS),
+    ("layout", "estilo", &ESTILOS),
+    ("dist-situacao", "paleta", &PALETAS),
+    ("gem15", "modelo", &MODELOS_GEM15),
+];
 
 /// O número do mês de nome `nome` (janeiro é 1).
 fn mes_pelo_nome(nome: &str) -> Option<u8> {
@@ -163,6 +175,7 @@ mod tests {
         assert_eq!(norm("area-municipio", json!({"nome": "Viçosa", "uf": "MG"})), json!({"nome": "Viçosa", "uf": "MG"}));
         assert_eq!(norm("inpe-focos-periodo", json!({"de": "5", "ate": "10/11/2026"})), json!({"de": 5, "ate": "10/11/2026"}));
         // A escolha de outro comando fica como veio.
+        assert_eq!(norm("gem15", json!({"modelo": MODELOS_GEM15[2].0})), json!({"modelo": "altura"}));
         assert_eq!(norm("radar-vv", json!({"paleta": "A oficial da OPERA"})), json!({"paleta": "A oficial da OPERA"}));
     }
 
@@ -192,6 +205,6 @@ mod tests {
                 }
             }
         }
-        assert!(vistas >= 12 + 13 + 3 + 8 + 6 + 2, "{vistas} escolhas");
+        assert!(vistas >= 12 + 13 + 3 + 8 + 6 + 2 + 3, "{vistas} escolhas");
     }
 }

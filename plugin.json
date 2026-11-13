@@ -1,7 +1,7 @@
 {
   "id": "brasildata",
   "name": "BrasilData",
-  "version": "0.1.30",
+  "version": "0.1.31",
   "description": "Dados públicos do Brasil para a área do usuário (IBGE, MMA, ICMBio, INPE, ANA, ANEEL, ANP, SFB/CAR, INCRA, FUNAI, IBAMA, ANM, DNIT, Ministério da Saúde, Copernicus, NASA/ASF, FAO, WRI): só o que cruza a área, recortado por ela, com a fonte e a licença de cada camada.",
   "author": "Elpídio Filho",
   "homepage": "https://github.com/elpidioassinaturas/BrasilData",
@@ -784,6 +784,13 @@
       ]
     },
     {
+      "id": "chm-altura",
+      "label": "Altura do dossel a 1 m (Meta CHMv2)",
+      "help": "A altura das árvores em metros, a cerca de 1 m, da Meta e do World Resources Institute (Canopy Height Maps v2, licença CC BY 4.0): estimada por um modelo de IA (DINOv3) sobre imagens de satélite de alta resolução, de datas diferentes conforme o lugar. Só a área, lida de cada tile que ela toca, posta na grade do projeto e recortada pelo contorno; numa grade mais grossa, lida da pirâmide do arquivo, que tira a média. Para ver as copas, use uma grade de 1 a 5 m (Grade do projeto) numa área pequena. O 0 é sem árvore, e também sem dado. Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área).",
+      "icon": "proportional",
+      "params": "{\"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}"
+    },
+    {
       "id": "gedi-altura",
       "label": "Altura do dossel (GEDI)",
       "help": "A altura do dossel em metros: a altura relativa em que volta 98% da energia da onda do laser (rh98), perto do topo das copas. Do GEDI L4D (ORNL DAAC da NASA): os disparos do laser do GEDI de 2019 a 2023 imputados a cada pixel de 30 m com séries do Landsat. Só a área, lida dos arquivos dos fusos UTM que ela cruza, posta na grade do projeto e recortada pelo contorno. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área); áreas grandes vêm de uma pirâmide do arquivo, com células maiores.",
@@ -1035,6 +1042,28 @@
       "help": "Copernicus GLO-30 recortado pela área e posto na grade do projeto (Grade do projeto, no grupo Área). Sem grade, o primeiro clique cria a padrão: células de 30 m no UTM SIRGAS 2000 do fuso da área, ou no Albers do IBGE quando a área passa de um fuso.",
       "icon": "relief",
       "params": "{\"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30); com grade, só o da grade é aceito}"
+    },
+    {
+      "id": "gem15",
+      "label": "Elevação a 15 m (Google GEM-15)",
+      "help": "Os modelos de elevação do Google a 15 m (GEM-15, experimental, de imagens estéreo de satélite até 2024, licença CC-BY 4.0): o terreno nu (DTM), a superfície com a vegetação e as construções (DSM) ou a altura acima do terreno (DSM menos DTM). Só a área, lida de cada célula de 1° que ela toca, posta na grade do projeto e recortada pelo contorno; numa grade mais grossa, lida da pirâmide do arquivo. Alturas no geoide EGM96; água e superfícies sem textura ficam sem dado, e o DTM é pior sob mata densa. Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área).",
+      "icon": "raster_layer",
+      "params": "{\"modelo\"?: \"dtm\" (padrão) | \"dsm\" | \"altura\", \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+      "form": [
+        {
+          "name": "modelo",
+          "label": "Modelo",
+          "kind": "choice",
+          "required": true,
+          "choices": [
+            "Terreno nu (DTM)",
+            "Superfície, com vegetação e construções (DSM)",
+            "Altura acima do terreno (DSM menos DTM)"
+          ],
+          "default": "Terreno nu (DTM)",
+          "help": "O terreno nu serve ao relevo, às curvas de nível e à hidrologia; a superfície inclui o dossel e os prédios; a altura acima do terreno é a diferença das duas (o dossel e as construções, até uns 50 m)."
+        }
+      ]
     },
     {
       "id": "amostra-aleatoria",
@@ -1350,7 +1379,7 @@
         "kind": "text",
         "id": "sobre",
         "label": "Sobre o BrasilData",
-        "text": "BrasilData 0.1.30, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Elpídio Filho, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nFontes dos dados: IBGE, INPE, ANA, ANP, ANEEL, INCRA, ANM, Kuzma, MMA, ICMBio, FUNAI, Serviço Florestal Brasileiro, IBAMA, DNIT e MapBiomas, pelos serviços de cada órgão; Copernicus DEM GLO-30 (DLR e Airbus, pelo espelho da OpenTopography); Banco Central (Pix e crédito rural); TSE; Novo CAGED (IPEA Data) e Ministério da Saúde (CNES, pelo geobr do Ipea).\n\nComo contribuir: sentiu falta de algum dado? Abra uma issue em https://github.com/elpidioassinaturas/BrasilData/issues com o nome do dado, o órgão que o publica, o endereço do serviço (WFS, ArcGIS REST, API ou arquivo) e para que você o usaria. Para trazer a fonte você mesmo, acrescente uma linha ao fontes.csv, rode python scripts/gerar.py e abra um pull request. Correções, avisos de serviço fora do ar e relatos de uso também são bem-vindos."
+        "text": "BrasilData 0.1.31, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Elpídio Filho, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nFontes dos dados: IBGE, INPE, ANA, ANP, ANEEL, INCRA, ANM, Kuzma, MMA, ICMBio, FUNAI, Serviço Florestal Brasileiro, IBAMA, DNIT e MapBiomas, pelos serviços de cada órgão; Copernicus DEM GLO-30 (DLR e Airbus, pelo espelho da OpenTopography); Banco Central (Pix e crédito rural); TSE; Novo CAGED (IPEA Data) e Ministério da Saúde (CNES, pelo geobr do Ipea).\n\nComo contribuir: sentiu falta de algum dado? Abra uma issue em https://github.com/elpidioassinaturas/BrasilData/issues com o nome do dado, o órgão que o publica, o endereço do serviço (WFS, ArcGIS REST, API ou arquivo) e para que você o usaria. Para trazer a fonte você mesmo, acrescente uma linha ao fontes.csv, rode python scripts/gerar.py e abra um pull request. Correções, avisos de serviço fora do ar e relatos de uso também são bem-vindos."
       }
     ]
   },
@@ -1511,7 +1540,8 @@
             "icon": "relief",
             "items": [
               "geomorfologia",
-              "elevacao"
+              "elevacao",
+              "gem15"
             ]
           },
           {
@@ -1578,6 +1608,7 @@
             "icon": "dra",
             "items": [
               "vegetacao",
+              "chm-altura",
               "gedi-altura",
               "gedi-biomassa",
               "gedi-cobertura"

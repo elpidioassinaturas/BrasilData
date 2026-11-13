@@ -36,6 +36,8 @@ const NOTA_IRRIGACAO_MAPBIOMAS: &str = "Cores da legenda oficial do MapBiomas: r
 const NOTA_COBERTURA_MAPBIOMAS: &str =
     "Cores da legenda oficial do MapBiomas (brasil.mapbiomas.org). Mapa do Brasil inteiro, não recortado pela área.";
 const NOTA_RISCO_FOGO: &str = "Perigo meteorológico de fogo do modelo do INPE (versão 11), não a ocorrência de fogo. Classes do INPE: mínimo, abaixo de 0,15; baixo, de 0,15 a 0,40; médio, de 0,40 a 0,70; alto, de 0,70 a 0,95; crítico, acima de 0,95.";
+const NOTA_CHM: &str = "Altura estimada por um modelo de IA (DINOv3) sobre imagens de satélite de alta resolução de datas diferentes; 0 é sem árvore (ou sem dado).";
+const NOTA_GEM15: &str = "De imagens estéreo de satélite adquiridas até 2024; alturas no geoide EGM96. Água e superfícies sem textura ficam sem dado; sob mata densa, o terreno é estimado.";
 const NOTA_DIST: &str = "Alertas acumulados desde o início do monitoramento (04/01/2026). A primeira detecção ainda não foi confirmada e inclui mudanças sazonais.";
 
 /// A data no fim de um nome do DIST ("…, até 28/02/2026)").
@@ -110,6 +112,23 @@ pub fn receita(nome: &str) -> Option<Receita> {
             barra: Some(("Área equipada para irrigação (% da célula)".into(), 5)),
             legenda: None,
             nota: Some(NOTA_IRRIGACAO),
+        });
+    }
+    if nome == crate::chm::CAMADA {
+        return Some(Receita {
+            subtitulo: "Altura do dossel a cerca de 1 m (Meta e WRI, CHMv2)".into(),
+            barra: Some(("Altura do dossel (m)".into(), 8)),
+            legenda: None,
+            nota: Some(NOTA_CHM),
+        });
+    }
+    if let Some(m) = crate::gem15::Modelo::TODOS.into_iter().find(|m| m.camada() == nome) {
+        let barra = if m == crate::gem15::Modelo::Altura { "Altura acima do terreno (m)" } else { "Altitude (m)" };
+        return Some(Receita {
+            subtitulo: format!("{} a 15 m (Google GEM-15, experimental)", m.titulo()),
+            barra: Some((barra.into(), 5)),
+            legenda: None,
+            nota: Some(NOTA_GEM15),
         });
     }
     if n == "Elevação (Copernicus GLO-30)" {
@@ -275,6 +294,8 @@ mod tests {
     #[test]
     fn as_outras_receitas() {
         assert_eq!(receita("BrasilData: Elevação (Copernicus GLO-30)").unwrap().barra, Some(("Altitude (m)".into(), 5)));
+        assert_eq!(receita(crate::chm::CAMADA).unwrap().barra, Some(("Altura do dossel (m)".into(), 8)));
+        assert_eq!(receita(crate::gem15::Modelo::Altura.camada()).unwrap().barra, Some(("Altura acima do terreno (m)".into(), 5)));
         let r = receita("BrasilData: Radar VV em dB (Sentinel-1, 26/10/2026)").unwrap();
         assert_eq!(r.subtitulo, "Radar VV do Sentinel-1 em 26/10/2026, corrigido do relevo (OPERA RTC-S1)");
         assert_eq!(r.barra, Some(("Radar VV (dB)".into(), 8)));

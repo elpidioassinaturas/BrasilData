@@ -5,11 +5,13 @@ use rustgis_plugin::{Request, Value, geojson, host, json};
 use crate::amostragem::{self, Candidato, Sorteio};
 use crate::aqueduct;
 use crate::censo;
+use crate::chm;
 use crate::datas::{self, Data};
 use crate::dialogos;
 use crate::dist;
 use crate::estilo;
 use crate::gedi;
+use crate::gem15;
 use crate::grade::{self, Escolha, GRADE, Grade};
 use crate::indicadores::{self, Fonte};
 use crate::irrigacao;
@@ -142,6 +144,8 @@ fn executar(req: Request) -> Result<Value, String> {
         "sol-radiacao" => sol_na_area(&req),
         "irrigacao-gmia" => irrigacao_na_area(req.f64("celula")),
         "risco-fogo" => risco_de_fogo(&req),
+        "gem15" => gem15_na_area(&req),
+        "chm-altura" => chm_na_area(&req),
         "radar-vv" => radar(&req, Some(radar::Pol::Vv)),
         "radar-vh" => radar(&req, Some(radar::Pol::Vh)),
         "radar-razao" => radar(&req, None),
@@ -1264,6 +1268,10 @@ fn citacoes() -> Result<(Vec<Value>, String), String> {
             lista.push(json!({"layer": n, "source": gedi::CITACAO, "license": gedi::LICENCA}));
         } else if dist::eh_do_dist(&n) {
             lista.push(json!({"layer": n, "source": dist::CITACAO, "license": radar::LICENCA}));
+        } else if n == chm::CAMADA {
+            lista.push(json!({"layer": n, "source": chm::CITACAO, "license": chm::LICENCA}));
+        } else if gem15::eh_do_gem15(&n) {
+            lista.push(json!({"layer": n, "source": gem15::CITACAO, "license": gem15::LICENCA}));
         } else if n == ELEVACAO {
             lista.push(json!({"layer": n, "source": CITACAO_ELEVACAO, "license": "licença do Copernicus DEM: uso livre e gratuito, com esta citação"}));
         } else if n.starts_with(&format!("{PREFIXO}{CENSO_SETORES}")) {
@@ -3003,6 +3011,355 @@ fn risco_de_fogo(req: &Request) -> Result<Value, String> {
     Ok(
         json!({"layer": saida, "month": mes, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula, "report": texto.trim_start_matches(PREFIXO)}),
     )
+}
+
+/// As células do GEM-15 que existem entre as `cs`, pelos catálogos dos blocos delas (um bloco sem
+/// catálogo não tem célula nenhuma), ou o pedido pendente.
+fn celulas_do_gem15(cs: &[gem15::Celula]) -> Result<Result<Vec<gem15::Celula>, Value>, String> {
+    let mut ha: Vec<String> = Vec::new();
+    for b in gem15::blocos(cs) {
+        match buscar_varios(&[gem15::catalogo(&b)]) {
+            Ok(Ok(r)) => ha.extend(r.iter().flat_map(gem15::celulas_do_catalogo)),
+            Ok(Err(p)) => return Ok(Err(p)),
+            Err(e) if e.contains("404") || e.contains("403") => host::log(&format!("GEM-15 sem o bloco {b}: {e}")),
+            Err(e) => return Err(format!("o catálogo do GEM-15 (storage.googleapis.com) não respondeu: {e}")),
+        }
+    }
+    Ok(Ok(cs.iter().copied().filter(|c| ha.contains(&c.nome())).collect()))
+}
+
+/// Os modelos de elevação do Google a 15 m na área ([`gem15`]): a janela da área em cada célula
+/// de 1° que ela toca, posta na grade do projeto; as células se juntam e o mosaico é recortado
+/// pela área. A altura acima do terreno é a superfície menos o terreno, na grade.
+fn gem15_na_area(req: &Request) -> Result<Value, String> {
+    let modelo = gem15::Modelo::do_valor(req.params.get("modelo").and_then(Value::as_str))?;
+    let celula = req.f64("celula");
+    if let Some(m) = celula {
+        grade::conferir_celula(m)?;
+    }
+    let (c, na_area) = retangulo()?;
+    if !na_area {
+        return Err("escolha a área primeiro (painel Área de trabalho, ou Área: seleção)".into());
+    }
+    let sem_janela = "o GEM-15 precisa de um RustGIS que leia só a janela da área de um arquivo remoto (depois da 0.5.0): cada arquivo cobre 1° × 1° a 15 m";
+    if !le_janela_remota()? {
+        return Err(sem_janela.into());
+    }
+    let todas = gem15::celulas(c);
+    if todas.len() > gem15::MAX_CELULAS {
+        return Err(format!(
+            "a área toca {} células de 1° do GEM-15; o limite de um clique é {}: escolha uma área menor",
+            todas.len(),
+            gem15::MAX_CELULAS
+        ));
+    }
+    let cs = match celulas_do_gem15(&todas)? {
+        Ok(cs) => cs,
+        Err(p) => return Ok(p),
+    };
+    if cs.is_empty() {
+        return Err("o GEM-15 não tem dados na área (fora da cobertura, ou só água)".into());
+    }
+    let g = grade_para(c, celula)?;
+    // A pirâmide mais grossa que não é mais grossa que a grade, se as janelas cabem no limite do
+    // RustGIS; senão, pede uma grade mais grossa.
+    let lido = gem15::nivel(g.celula);
+    let janelas: Vec<(gem15::Celula, [f64; 4])> = cs.iter().filter_map(|&k| gem15::janela(k, c, lido).map(|j| (k, j))).collect();
+    let js: Vec<[f64; 4]> = janelas.iter().map(|(_, j)| *j).collect();
+    for a in modelo.arquivos() {
+        let cabe = gem15::celula_que_cabe(&js, *a);
+        if cabe.is_none_or(|m| m > lido) {
+            let dica = cabe
+                .map(|m| format!(": use uma grade de células de {m} m ou mais (Grade do projeto), ou uma área menor"))
+                .unwrap_or_else(|| ": escolha uma área menor".into());
+            return Err(format!("a área é grande demais para ler o GEM-15 a {lido} m numa janela só por célula{dica}"));
+        }
+    }
+    // As janelas de um clique anterior servem se cobrem a área (no desktop, o comando roda de novo
+    // quando cada uma chega).
+    let ha = nomes()?;
+    let mut lidas: Vec<(gem15::Arquivo, String)> = Vec::new();
+    let mut lendo = 0;
+    for a in modelo.arquivos() {
+        for (k, j) in &janelas {
+            let nome = gem15::nome_da_janela(*k, *a, lido);
+            if ha.contains(&nome)
+                && let Some(e) = extensao(&nome)?
+                && retangulo_cabe([j[0].max(c[0]), j[1].max(c[1]), j[2].min(c[2]), j[3].min(c[3])], e)
+            {
+                lidas.push((*a, nome));
+                continue;
+            }
+            tirar_janela(&nome)?;
+            let mut p = json!({"url": k.url(*a), "name": nome, "bbox": j, "zoom": false});
+            if lido > gem15::NIVEIS[0] {
+                p["cellSize"] = json!(lido);
+            }
+            let r = host::run("layer.addUrl", p).map_err(|e| {
+                if falha_passageira(&e) || e.contains("timeout") {
+                    format!("o Google Cloud Storage não respondeu agora: tente de novo daqui a pouco ({e})")
+                } else {
+                    e
+                }
+            })?;
+            if r.get("pending").and_then(Value::as_bool) == Some(true) {
+                lendo += 1;
+                continue;
+            }
+            if r.get("inPlace").and_then(Value::as_bool) == Some(true) || r.get("window").is_none() {
+                tirar_janela(&nome)?;
+                return Err(sem_janela.into());
+            }
+            lidas.push((*a, nome));
+        }
+    }
+    if lendo > 0 {
+        avisar(&format!("{} (GEM-15): lendo a área em {lendo} arquivo(s) do Google; a camada vem quando chegarem", modelo.titulo()));
+        return Ok(json!({"pending": lendo, "cells": cs.len()}));
+    }
+    let saida = modelo.camada();
+    let mut temporarias: Vec<String> = lidas.iter().map(|(_, n)| n.clone()).collect();
+    remover(&[saida])?;
+    let resampling = gem15::reamostragem(g.celula, lido);
+    let feito = (|| -> Result<(), String> {
+        // Cada arquivo: as janelas na grade (do DSM, só a primeira banda, a superfície) e juntas.
+        let mut por_arquivo: Vec<String> = Vec::new();
+        for a in modelo.arquivos() {
+            let mut na_grade: Vec<String> = Vec::new();
+            for (i, (_, j)) in lidas.iter().filter(|(b, _)| b == a).enumerate() {
+                let mut origem = j.clone();
+                if *a == gem15::Arquivo::Dsm {
+                    let b1 = format!("{PREFIXO}GEM-15 banda 1 {i}");
+                    host::run("raster.function", json!({"layer": j, "function": "bandMath", "expression": "b1", "name": b1}))?;
+                    temporarias.push(b1.clone());
+                    origem = b1;
+                }
+                let n = format!("{PREFIXO}GEM-15 {a:?} na grade {i}");
+                host::run(
+                    "raster.project",
+                    json!({"layer": origem, "crs": g.epsg, "cellSize": g.celula, "extent": GRADE, "resampling": resampling, "name": n}),
+                )?;
+                temporarias.push(n.clone());
+                na_grade.push(n);
+            }
+            let junto = if na_grade.len() == 1 {
+                na_grade[0].clone()
+            } else {
+                let m = format!("{PREFIXO}GEM-15 {a:?} junto");
+                host::run("raster.mosaic", json!({"inputs": na_grade, "name": m}))?;
+                temporarias.push(m.clone());
+                m
+            };
+            por_arquivo.push(junto);
+        }
+        let inteiro = if modelo == gem15::Modelo::Altura {
+            let d = format!("{PREFIXO}GEM-15 DSM menos DTM");
+            ferramenta("geolibre:subtract", json!({"input1": por_arquivo[0], "input2": por_arquivo[1]}), &d)?;
+            temporarias.push(d.clone());
+            d
+        } else {
+            por_arquivo[0].clone()
+        };
+        host::run("raster.process", json!({"layer": inteiro, "operation": "clip", "polygon": AREA, "name": saida}))?;
+        if modelo == gem15::Modelo::Altura {
+            let _ = host::run("raster.symbology", json!({"layer": saida, "type": "stretch", "ramp": "YlGn"}));
+            let _ = host::run("raster.stretch", json!({"layer": saida, "type": "custom", "min": 0.0, "max": 30.0}));
+        } else {
+            let _ = host::run("raster.symbology", json!({"layer": saida, "type": "shadedRelief"}));
+        }
+        Ok(())
+    })();
+    let t: Vec<&str> = temporarias.iter().map(String::as_str).collect();
+    remover(&t)?;
+    feito?;
+    let faixa = host::run("raster.info", json!({"layer": saida}))
+        .ok()
+        .and_then(|i| Some((i["bands"][0]["min"].as_f64()?, i["bands"][0]["max"].as_f64()?, i["bands"][0]["mean"].as_f64()?)))
+        .map(|(a, b, m)| format!("; na área, de {} a {} m, média de {} m", formatar_decimal(a), formatar_decimal(b), formatar_decimal(m)))
+        .unwrap_or_default();
+    let piramide = if lido > gem15::NIVEIS[0] { format!(", lida da pirâmide de {lido} m do arquivo") } else { String::new() };
+    // A altura acima do terreno é uma diferença: o geoide não entra nela.
+    let geoide = if modelo == gem15::Modelo::Altura { "" } else { " (alturas no geoide EGM96)" };
+    let texto = format!(
+        "{saida}: {}, em metros{geoide}, de {} célula(s) de 1° do GEM-15 (Google, experimental), na grade do projeto, {} ({resampling}){piramide}{faixa}. Água e superfícies sem textura ficam sem dado",
+        modelo.titulo().to_lowercase(),
+        cs.len(),
+        g.texto()
+    );
+    avisar(&texto);
+    Ok(json!({
+        "layer": saida, "model": modelo.valor(), "cells": cs.len(), "read": lido, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula,
+        "report": texto.trim_start_matches(PREFIXO),
+    }))
+}
+
+/// Os tiles do CHMv2 que existem entre os `ts`, pela listagem do bucket (no mar, ou fora da
+/// cobertura, não há arquivo), ou o pedido pendente.
+fn tiles_do_chm(ts: &[chm::Tile]) -> Result<Result<Vec<chm::Tile>, Value>, String> {
+    let urls: Vec<String> = ts.iter().map(chm::Tile::listagem).collect();
+    let respostas =
+        match buscar(&urls).map_err(|e| format!("o bucket do CHMv2 (dataforgood-fb-data.s3.amazonaws.com) não respondeu: {e}"))? {
+            Ok(r) => r,
+            Err(p) => return Ok(Err(p)),
+        };
+    Ok(Ok(ts.iter().zip(&respostas).filter(|(t, r)| t.existe(r["text"].as_str().unwrap_or(""))).map(|(t, _)| t.clone()).collect()))
+}
+
+/// A altura do dossel da Meta e do WRI a cerca de 1 m na área ([`chm`]): a janela da área em cada
+/// tile que ela toca, posta na grade do projeto; os tiles se juntam e o mosaico é recortado pela
+/// área.
+fn chm_na_area(req: &Request) -> Result<Value, String> {
+    let celula = req.f64("celula");
+    if let Some(m) = celula {
+        grade::conferir_celula(m)?;
+    }
+    let (c, na_area) = retangulo()?;
+    if !na_area {
+        return Err("escolha a área primeiro (painel Área de trabalho, ou Área: seleção)".into());
+    }
+    let sem_janela = "a altura do dossel do CHMv2 precisa de um RustGIS que leia só a janela da área de um arquivo remoto (depois da 0.5.0): cada arquivo tem 32.768 × 32.768 células";
+    if !le_janela_remota()? {
+        return Err(sem_janela.into());
+    }
+    let todos = chm::tiles(c);
+    if todos.len() > chm::MAX_TILES {
+        return Err(format!(
+            "a área toca {} tiles do CHMv2 (cerca de 37 × 37 km cada); o limite de um clique é {}: escolha uma área menor",
+            todos.len(),
+            chm::MAX_TILES
+        ));
+    }
+    let ts = match tiles_do_chm(&todos)? {
+        Ok(r) => r,
+        Err(p) => return Ok(p),
+    };
+    if ts.is_empty() {
+        return Err("o CHMv2 não tem dados na área".into());
+    }
+    let g = grade_para(c, celula)?;
+    let lat = (c[1] + c[3]) / 2.0;
+    // O nível mais grosso que não é mais grosso que a grade, se as janelas cabem no limite do
+    // RustGIS; senão, pede uma grade mais grossa.
+    let k = chm::nivel(g.celula, lat);
+    let lado = chm::lado_do_nivel(k);
+    let janelas: Vec<(&chm::Tile, [f64; 4])> = ts.iter().filter_map(|t| chm::janela(t, c, lado).map(|j| (t, j))).collect();
+    let js: Vec<[f64; 4]> = janelas.iter().map(|(_, j)| *j).collect();
+    match chm::nivel_que_cabe(&js, k) {
+        Some(n) if n == k => {}
+        cabe => {
+            let dica = cabe
+                .map(|n| {
+                    format!(
+                        ": use uma grade de células de {} m ou mais (Grade do projeto), ou uma área menor",
+                        chm::lado_no_chao(n, lat).ceil()
+                    )
+                })
+                .unwrap_or_else(|| ": escolha uma área menor".into());
+            return Err(format!(
+                "a área é grande demais para ler o CHMv2 com células de {} m numa janela só por tile{dica}",
+                formatar_decimal(chm::lado_no_chao(k, lat))
+            ));
+        }
+    }
+    // As janelas de um clique anterior servem se cobrem a área (no desktop, o comando roda de novo
+    // quando cada uma chega).
+    let ha = nomes()?;
+    let mut lidas: Vec<String> = Vec::new();
+    let mut lendo = 0;
+    for (t, j) in &janelas {
+        let nome = chm::nome_da_janela(t, k);
+        if ha.contains(&nome)
+            && let Some(e) = extensao(&nome)?
+            && retangulo_cabe([j[0].max(c[0]), j[1].max(c[1]), j[2].min(c[2]), j[3].min(c[3])], e)
+        {
+            lidas.push(nome);
+            continue;
+        }
+        tirar_janela(&nome)?;
+        let mut p = json!({"url": t.url(), "name": nome, "bbox": j, "zoom": false});
+        if k > 0 {
+            p["cellSize"] = json!(lado);
+        }
+        let r = host::run("layer.addUrl", p).map_err(|e| {
+            if falha_passageira(&e) || e.contains("timeout") {
+                format!("o bucket do CHMv2 não respondeu agora: tente de novo daqui a pouco ({e})")
+            } else {
+                e
+            }
+        })?;
+        if r.get("pending").and_then(Value::as_bool) == Some(true) {
+            lendo += 1;
+            continue;
+        }
+        if r.get("inPlace").and_then(Value::as_bool) == Some(true) || r.get("window").is_none() {
+            tirar_janela(&nome)?;
+            return Err(sem_janela.into());
+        }
+        lidas.push(nome);
+    }
+    if lendo > 0 {
+        avisar(&format!("Altura do dossel (CHMv2): lendo a área em {lendo} arquivo(s) da Meta; a camada vem quando chegarem"));
+        return Ok(json!({"pending": lendo, "tiles": ts.len()}));
+    }
+    let saida = chm::CAMADA;
+    let lido = chm::lado_no_chao(k, lat);
+    let resampling = chm::reamostragem(g.celula, lido);
+    let mais_um: Vec<String> = (0..lidas.len()).map(|i| format!("{PREFIXO}CHMv2 mais 1 {i}")).collect();
+    let na_grade: Vec<String> = (0..lidas.len()).map(|i| format!("{PREFIXO}CHMv2 na grade {i}")).collect();
+    let junto = format!("{PREFIXO}CHMv2 junto");
+    let recortado = format!("{PREFIXO}CHMv2 recortado");
+    let mut temporarias: Vec<&str> = lidas.iter().chain(&mais_um).chain(&na_grade).map(String::as_str).collect();
+    temporarias.push(junto.as_str());
+    temporarias.push(recortado.as_str());
+    remover(&[saida])?;
+    let feito = (|| -> Result<(), String> {
+        // O arquivo não tem valor de sem dado: na grade, o que fica fora de uma janela viraria 0
+        // e cobriria o tile vizinho no mosaico. A altura sobe 1, o que fica abaixo de 0,5 (fora
+        // da janela) vira sem dado, e no fim desce 1 de novo.
+        for ((j, u), n) in lidas.iter().zip(&mais_um).zip(&na_grade) {
+            host::run("raster.function", json!({"layer": j, "function": "bandMath", "expression": "b1 + 1", "name": u}))?;
+            host::run(
+                "raster.project",
+                json!({"layer": u, "crs": g.epsg, "cellSize": g.celula, "extent": GRADE, "resampling": resampling, "name": n}),
+            )?;
+            host::run("raster.mask", json!({"layer": n, "min": 0.5, "max": 1000.0}))?;
+        }
+        let mosaico = if na_grade.len() == 1 {
+            na_grade[0].clone()
+        } else {
+            host::run("raster.mosaic", json!({"inputs": na_grade, "name": junto}))?;
+            junto.clone()
+        };
+        host::run("raster.process", json!({"layer": mosaico, "operation": "clip", "polygon": AREA, "name": recortado}))?;
+        host::run("raster.function", json!({"layer": recortado, "function": "bandMath", "expression": "b1 - 1", "name": saida}))?;
+        // As cores da altura do GEDI, para que as duas se comparem.
+        let (rampa, cores) = gedi::Variavel::Altura.rampa();
+        let _ = host::run("ramp.add", json!({"text": cores, "format": "gdal", "name": rampa}));
+        if host::run("raster.symbology", json!({"layer": saida, "type": "stretch", "ramp": rampa})).is_err() {
+            host::run("raster.symbology", json!({"layer": saida, "type": "stretch", "ramp": "YlGn"}))?;
+        }
+        let (a, b) = gedi::Variavel::Altura.escala();
+        let _ = host::run("raster.stretch", json!({"layer": saida, "type": "custom", "min": a, "max": b}));
+        Ok(())
+    })();
+    remover(&temporarias)?;
+    feito?;
+    let media = host::run("raster.info", json!({"layer": saida}))
+        .ok()
+        .and_then(|i| i["bands"][0]["mean"].as_f64())
+        .map(|m| format!("; média na área: {} m", formatar_decimal(m)))
+        .unwrap_or_default();
+    let piramide = if k > 0 { format!(", lida da pirâmide de {} m do arquivo", formatar_decimal(lido)) } else { String::new() };
+    let texto = format!(
+        "{saida}: em metros, de {} tile(s) do CHMv2 (Meta e WRI), na grade do projeto, {} ({resampling}){piramide}{media}. O 0 é sem árvore (ou sem dado)",
+        ts.len(),
+        g.texto()
+    );
+    avisar(&texto);
+    Ok(json!({
+        "layer": saida, "tiles": ts.len(), "level": k, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula,
+        "report": texto.trim_start_matches(PREFIXO),
+    }))
 }
 
 /// O botão Layout: uma folha pronta com o dado principal do BrasilData no mapa (a primeira camada

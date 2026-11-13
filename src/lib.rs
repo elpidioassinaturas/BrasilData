@@ -15,6 +15,7 @@ pub mod amostragem;
 pub mod aqueduct;
 mod catalogo;
 pub mod censo;
+pub mod chm;
 pub mod datas;
 pub mod dialogos;
 pub mod dist;
@@ -27,6 +28,7 @@ pub mod irrigacao;
 #[cfg(target_arch = "wasm32")]
 mod comandos;
 pub mod gedi;
+pub mod gem15;
 pub mod layout;
 pub mod malhas;
 pub mod mapbiomas;

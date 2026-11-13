@@ -44,6 +44,7 @@ comando e mostra embaixo o que ele fez. São eles:
 | Focos de calor: período | o primeiro e o último dia, no mês corrente |
 | Risco de fogo | o mês |
 | Radiação solar | a média do ano ou um mês |
+| Elevação a 15 m (GEM-15) | o modelo: terreno nu (DTM), superfície (DSM) ou altura acima do terreno |
 
 As janelas vêm num RustGIS com as janelas de comando de plugin (opengeos/RustGIS#1547, depois da
 0.6.0). Num RustGIS sem elas, os botões rodam com o que está no painel **Área de trabalho** (a
@@ -76,7 +77,7 @@ A área de trabalho pode ser:
 - **a vista**: sem área, os temas pedem o que está na vista do mapa.
 
 A **Grade do projeto** é o sistema de coordenadas e o tamanho das células em que os rasters chegam
-(a Elevação, o Radar, a Perturbação da vegetação, o GEDI, a Radiação solar, a Área equipada para
+(a Elevação, a Elevação a 15 m do GEM-15, a Altura do dossel do CHMv2, o Radar, a Perturbação da vegetação, o GEDI, a Radiação solar, a Área equipada para
 irrigação e o Risco de fogo). O mapa passa a ser desenhado no sistema dela quando você escolhe a área ou faz a grade:
 uma projeção de mapa-múndi, como o Eckert IV, deixaria a área deformada (a Bahia, 27% mais
 estreita). No painel, escolha a célula (de 10 m a 1 km) e o sistema e clique em **Grade do
@@ -242,9 +243,9 @@ estilo.
 | Território | Limites (IBGE: Brasil, Grandes Regiões, estados, regiões intermediárias e imediatas, meso e microrregiões, municípios, distritos, subdistritos e bairros), Recortes especiais (IBGE: Amazônia Legal, Semiárido, MATOPIBA, SUDENE, municípios costeiros, regiões metropolitanas, aglomerações, concentrações e arranjos urbanos, hierarquia urbana), Cadastro fundiário (SFB, INCRA), Terras indígenas (FUNAI) |
 | Sociedade e economia | População (IBGE: setores censitários, censos, áreas de ponderação, área urbana e rural, favelas e comunidades urbanas), Economia (Banco Central, Novo CAGED), Agricultura (Banco Central, IBGE), Eleições (TSE) e Todos os indicadores |
 | Saúde | Estabelecimentos (CNES, DATASUS) |
-| Meio físico | Geologia e recursos minerais (IBGE, ANM, MapBiomas), Relevo (IBGE, Copernicus), Solos (IBGE), Clima (radiação solar do NASA POWER) |
+| Meio físico | Geologia e recursos minerais (IBGE, ANM, MapBiomas), Relevo (IBGE, Copernicus; GEM-15 do Google a 15 m), Solos (IBGE), Clima (radiação solar do NASA POWER) |
 | Água | Hidrografia (IBGE, ANA), Bacias (IBGE, ANA), Recursos hídricos (ANA; estresse hídrico do Aqueduct 4.0, WRI; sistemas de irrigação do MapBiomas; área equipada para irrigação do GMIA v5, FAO) |
-| Vegetação e meio ambiente | Vegetação (IBGE), Uso e cobertura (MapBiomas; radar Sentinel-1 do ASF/NASA), Desmatamento (INPE: PRODES e DETER; alertas de perturbação OPERA DIST-S1 do ASF/NASA), Queimadas (INPE: focos de calor das últimas 48 horas, dos últimos 7 dias e do mês corrente, e a climatologia mensal do Risco de Fogo; um período com datas, por script: `plugin:brasildata/inpe-focos-periodo={"de": "01/11/2026", "ate": "06/11/2026"}`), Áreas protegidas (MMA, ICMBio), Fiscalização (IBAMA) |
+| Vegetação e meio ambiente | Vegetação (IBGE; altura do dossel do GEDI, NASA, e do CHMv2 a 1 m, Meta e WRI), Uso e cobertura (MapBiomas; radar Sentinel-1 do ASF/NASA), Desmatamento (INPE: PRODES e DETER; alertas de perturbação OPERA DIST-S1 do ASF/NASA), Queimadas (INPE: focos de calor das últimas 48 horas, dos últimos 7 dias e do mês corrente, e a climatologia mensal do Risco de Fogo; um período com datas, por script: `plugin:brasildata/inpe-focos-periodo={"de": "01/11/2026", "ate": "06/11/2026"}`), Áreas protegidas (MMA, ICMBio), Fiscalização (IBAMA) |
 | Infraestrutura | Energia (ANEEL), Petróleo e gás (ANP), Transportes (DNIT) |
 
 As camadas vetoriais estão listadas em [`fontes.csv`](fontes.csv) e na tabela [Fontes](#fontes),
@@ -353,6 +354,16 @@ Fora da tabela, com a citação no comando **Fontes**:
 - **Elevação:** Copernicus DEM GLO-30 (© DLR e.V. e © Airbus Defence and Space GmbH, sob o
   programa Copernicus da União Europeia e da ESA), baixado do espelho da
   [OpenTopography](https://opentopography.org), que abre também no app web;
+- **Elevação a 15 m:** GEM-15, Near-Global Surface and Terrain Elevation Models at 15 m, v1, do
+  Google Research (experimental; preprint no EarthArXiv,
+  [doi:10.31223/X55N75](https://doi.org/10.31223/X55N75)), licença CC-BY 4.0, lido dos COGs públicos
+  do Google Cloud Storage (`gs://climate-and-sustainability/gem-15`): só a janela da área em cada
+  célula de 1°. Alturas no geoide EGM96; precisa de um RustGIS depois da 0.5.0;
+- **Altura do dossel a 1 m:** Canopy Height Maps v2 (CHMv2) da Meta e do World Resources
+  Institute, 2026 ([arXiv:2603.06382](https://arxiv.org/abs/2603.06382)), licença CC BY 4.0, lido
+  dos COGs públicos do bucket `dataforgood-fb-data` (AWS): só a janela da área em cada tile de
+  zoom 10, da pirâmide do arquivo (médias) quando a grade é mais grossa. O 0 é sem árvore e também
+  sem dado; precisa de um RustGIS depois da 0.5.0;
 - **Radar:** OPERA Radiometric Terrain Corrected SAR Backscatter from Sentinel-1, versão 1
   (OPERA_L2_RTC-S1_V1), do projeto OPERA do JPL, distribuído pelo
   [ASF DAAC](https://asf.alaska.edu) da NASA
