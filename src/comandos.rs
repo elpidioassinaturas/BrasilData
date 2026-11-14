@@ -21,11 +21,11 @@ use crate::malhas;
 use crate::mapbiomas;
 use crate::municipios::{self, Territorio};
 use crate::nisar;
-use crate::tempo;
 use crate::radar;
 use crate::risco_fogo;
 use crate::saude;
 use crate::sol;
+use crate::tempo;
 use crate::versao;
 use crate::zoom;
 use crate::{AREA, PREFIXO, TEMAS, Tema, falha_passageira, pedido_de_feicoes, tema_da_camada, tiles};
@@ -3302,7 +3302,9 @@ fn chuva_do_ensemble(req: &Request) -> Result<Value, String> {
         media_na_area(&saida, unidade),
         aviso_de_corte(m, dias_pedidos(req, tempo::DIAS_CHUVA), dias)
     ));
-    Ok(json!({"layer": saida, "points": n, "members": n_membros, "step": passo, "days": dias, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula}))
+    Ok(
+        json!({"layer": saida, "points": n, "members": n_membros, "step": passo, "days": dias, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula}),
+    )
 }
 
 /// A temperatura prevista ([`tempo`]): a média, nos dias pedidos, da máxima, da mínima ou da média
@@ -3382,17 +3384,19 @@ fn chuva_do_mes(req: &Request) -> Result<Value, String> {
     let serve = extensao(&nome_da_janela)?.is_some_and(|e| retangulo_cabe(janela, e));
     if !serve {
         tirar_janela(&nome_da_janela)?;
-        let r = host::run("layer.addUrl", json!({"url": tempo::url_chirps(ano, mes), "name": nome_da_janela, "bbox": janela, "cog": true, "zoom": false})).map_err(
-            |e| {
-                if e.contains("404") {
-                    format!("o CHIRPS ainda não tem {mes:02}/{ano}: o total do mês sai na terceira semana do mês seguinte")
-                } else if falha_passageira(&e) || e.contains("timeout") {
-                    format!("o servidor do CHIRPS (data.chc.ucsb.edu) não respondeu agora: tente de novo daqui a pouco ({e})")
-                } else {
-                    e
-                }
-            },
-        )?;
+        let r = host::run(
+            "layer.addUrl",
+            json!({"url": tempo::url_chirps(ano, mes), "name": nome_da_janela, "bbox": janela, "cog": true, "zoom": false}),
+        )
+        .map_err(|e| {
+            if e.contains("404") {
+                format!("o CHIRPS ainda não tem {mes:02}/{ano}: o total do mês sai na terceira semana do mês seguinte")
+            } else if falha_passageira(&e) || e.contains("timeout") {
+                format!("o servidor do CHIRPS (data.chc.ucsb.edu) não respondeu agora: tente de novo daqui a pouco ({e})")
+            } else {
+                e
+            }
+        })?;
         if r.get("pending").and_then(Value::as_bool) == Some(true) {
             avisar(&format!("Chuva de {mes:02}/{ano} (CHIRPS v3): lendo a área no arquivo do mês; a camada vem quando chegar"));
             return Ok(json!({"pending": 1}));

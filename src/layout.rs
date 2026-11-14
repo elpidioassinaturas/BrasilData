@@ -119,9 +119,17 @@ pub fn receita(nome: &str) -> Option<Receita> {
         } else if n.starts_with("Temperatura") {
             ("Temperatura (°C)".to_string(), 5)
         } else {
-            ("Chuva (mm)".to_string(), crate::tempo::marcas_da_chuva(crate::tempo::escala_chuva(crate::tempo::dias_da_camada(nome).unwrap_or(15))))
+            (
+                "Chuva (mm)".to_string(),
+                crate::tempo::marcas_da_chuva(crate::tempo::escala_chuva(crate::tempo::dias_da_camada(nome).unwrap_or(15))),
+            )
         };
-        return Some(Receita { subtitulo: n.to_string(), barra: Some(barra), legenda: None, nota: Some(if ensemble { NOTA_ENSEMBLE } else { NOTA_PREVISAO }) });
+        return Some(Receita {
+            subtitulo: n.to_string(),
+            barra: Some(barra),
+            legenda: None,
+            nota: Some(if ensemble { NOTA_ENSEMBLE } else { NOTA_PREVISAO }),
+        });
     }
     if crate::tempo::eh_do_chirps(nome) {
         return Some(Receita {

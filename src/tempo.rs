@@ -40,7 +40,15 @@ pub struct Modelo {
 /// Os modelos determinísticos, o padrão primeiro.
 pub const DETERMINISTICOS: [Modelo; 5] = [
     Modelo { chave: "ecmwf", api: "ecmwf_ifs025", nome: "ECMWF IFS", dias: 15, passo: 0.25, autor: "ECMWF (CC BY 4.0)", membros: 1 },
-    Modelo { chave: "aifs", api: "ecmwf_aifs025_single", nome: "ECMWF AIFS", dias: 15, passo: 0.25, autor: "ECMWF (CC BY 4.0)", membros: 1 },
+    Modelo {
+        chave: "aifs",
+        api: "ecmwf_aifs025_single",
+        nome: "ECMWF AIFS",
+        dias: 15,
+        passo: 0.25,
+        autor: "ECMWF (CC BY 4.0)",
+        membros: 1,
+    },
     Modelo { chave: "gfs", api: "gfs_seamless", nome: "GFS", dias: 16, passo: 0.25, autor: "NOAA/NCEP (domínio público)", membros: 1 },
     Modelo { chave: "icon", api: "icon_seamless", nome: "ICON", dias: 7, passo: 0.25, autor: "DWD (CC BY 4.0)", membros: 1 },
     Modelo { chave: "melhor", api: "best_match", nome: "melhor modelo do Open-Meteo", dias: 16, passo: 0.25, autor: "vários", membros: 1 },
@@ -48,9 +56,33 @@ pub const DETERMINISTICOS: [Modelo; 5] = [
 
 /// Os ensembles, o padrão primeiro.
 pub const ENSEMBLES: [Modelo; 3] = [
-    Modelo { chave: "ecmwf", api: "ecmwf_ifs025", nome: "ECMWF ENS, 51 membros", dias: 15, passo: 0.25, autor: "ECMWF (CC BY 4.0)", membros: 51 },
-    Modelo { chave: "aifs", api: "ecmwf_aifs025", nome: "ECMWF AIFS-ENS, 51 membros", dias: 15, passo: 0.25, autor: "ECMWF (CC BY 4.0)", membros: 51 },
-    Modelo { chave: "gfs", api: "gfs05", nome: "GEFS, 31 membros", dias: 16, passo: 0.5, autor: "NOAA/NCEP (domínio público)", membros: 31 },
+    Modelo {
+        chave: "ecmwf",
+        api: "ecmwf_ifs025",
+        nome: "ECMWF ENS, 51 membros",
+        dias: 15,
+        passo: 0.25,
+        autor: "ECMWF (CC BY 4.0)",
+        membros: 51,
+    },
+    Modelo {
+        chave: "aifs",
+        api: "ecmwf_aifs025",
+        nome: "ECMWF AIFS-ENS, 51 membros",
+        dias: 15,
+        passo: 0.25,
+        autor: "ECMWF (CC BY 4.0)",
+        membros: 51,
+    },
+    Modelo {
+        chave: "gfs",
+        api: "gfs05",
+        nome: "GEFS, 31 membros",
+        dias: 16,
+        passo: 0.5,
+        autor: "NOAA/NCEP (domínio público)",
+        membros: 31,
+    },
 ];
 
 /// As escolhas da janela dos modelos determinísticos e o `modelo` de cada uma.
@@ -126,9 +158,10 @@ impl Temperatura {
 pub fn modelo<'a>(lista: &'a [Modelo], chave: Option<&str>) -> Result<&'a Modelo, String> {
     match chave {
         None => Ok(&lista[0]),
-        Some(k) => lista.iter().find(|m| m.chave == k.trim().to_lowercase()).ok_or_else(|| {
-            format!("o modelo é um de: {}; não '{k}'", lista.iter().map(|m| m.chave).collect::<Vec<_>>().join(", "))
-        }),
+        Some(k) => lista
+            .iter()
+            .find(|m| m.chave == k.trim().to_lowercase())
+            .ok_or_else(|| format!("o modelo é um de: {}; não '{k}'", lista.iter().map(|m| m.chave).collect::<Vec<_>>().join(", "))),
     }
 }
 
@@ -403,8 +436,7 @@ pub fn camada_temperatura(t: Temperatura, m: &Modelo, dias: usize, de: &str, ate
 
 /// Se a camada `nome` é uma previsão do Open-Meteo.
 pub fn eh_da_previsao(nome: &str) -> bool {
-    [CHUVA, CHANCE, ENSEMBLE].iter().any(|p| nome.starts_with(p))
-        || (nome.starts_with(TEMPERATURA) && nome.contains(" prevista em "))
+    [CHUVA, CHANCE, ENSEMBLE].iter().any(|p| nome.starts_with(p)) || (nome.starts_with(TEMPERATURA) && nome.contains(" prevista em "))
 }
 
 /// A escala da chuva de `dias` dias, em mm: a cor satura no máximo.
@@ -560,7 +592,8 @@ pub fn reamostragem_chirps(celula: f64) -> &'static str {
 pub const ESCALA_CHIRPS: f64 = 400.0;
 
 pub const CITACAO_CHIRPS: &str = "Climate Hazards Center (UC Santa Barbara), CHIRPS v3.0: precipitação mensal por satélite e estações, 0,05° (Funk, C. et al. 2015. The climate hazards infrared precipitation with stations, a new environmental record for monitoring extremes. Scientific Data 2, 150066, doi:10.1038/sdata.2015.66); posto na grade do projeto e recortado pela área";
-pub const LICENCA_CHIRPS: &str = "licença não declarada no README da v3; o Climate Hazards Center distribui o CHIRPS como domínio público (CC0), com a citação";
+pub const LICENCA_CHIRPS: &str =
+    "licença não declarada no README da v3; o Climate Hazards Center distribui o CHIRPS como domínio público (CC0), com a citação";
 
 #[cfg(test)]
 mod tests {
