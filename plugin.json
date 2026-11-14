@@ -207,6 +207,48 @@
       "params": "{}"
     },
     {
+      "id": "mg-solos",
+      "label": "Solos de MG (Sisema)",
+      "help": "Mapa de solos de Minas Gerais (UFV, Cetec, UFLA e Feam, 2010): o mapa de solos de Minas Gerais: as unidades de mapeamento com a classe de solo dominante, do levantamento da UFV, do Cetec, da UFLA e da Feam. Fonte: IDE-Sisema, Mapa de solos do Estado de Minas Gerais (UFV, Cetec, UFLA e Feam, 2010). Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Escala estadual, mais grossa que a do IBGE (1:250.000): serve para a região, não para a propriedade. Cada polígono traz só a classe dominante. Período: levantamento publicado em 2010. Resolução ou escala: escala 1:650.000 (mapa estadual). Unidades: sem unidade. Licença: licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/mg-solos.md",
+      "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
+      "id": "mg-aptidao",
+      "label": "Aptidão agrícola das terras de MG (Sisema)",
+      "help": "Aptidão agrícola das terras de MG (Embrapa, 1:500.000): a aptidão agrícola das terras de Minas Gerais: para que uso cada terra serve (lavoura, pastagem plantada, silvicultura, pastagem natural ou preservação), em três níveis de manejo. Fonte: IDE-Sisema, Aptidão agrícola das terras de Minas Gerais (Embrapa, 1:500.000). Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Classificação de pequena escala; não substitui a avaliação da terra na propriedade. Áreas urbanas e corpos d'água ficam sem símbolo. Período: mapa da Embrapa (2ª aproximação), digitalizado pelo Sisema. Resolução ou escala: escala 1:500.000. Unidades: área em ha (area_ha) e km² (area_km2). Licença: uso irrestrito (licenceUnrestricted nos metadados da IDE-Sisema). Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/mg-aptidao.md",
+      "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
+      "id": "mg-infiltracao",
+      "label": "Infiltração dos solos de MG (Sisema)",
+      "help": "Capacidade de infiltração dos solos de MG (SGB/CPRM): a capacidade de infiltração da água nos solos de Minas Gerais, do Mapa Hidrogeológico do Serviço Geológico do Brasil. Fonte: IDE-Sisema, Capacidade de infiltração dos solos, do Mapa Hidrogeológico de Minas Gerais (SGB/CPRM, 1:500.000). Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Classes qualitativas, deduzidas do tipo de solo; não medem a taxa de infiltração no campo. Período: Mapa Hidrogeológico de Minas Gerais (SGB/CPRM). Resolução ou escala: escala 1:500.000 (1:100.000 no Quadrilátero Ferrífero). Unidades: sem unidade. Licença: uso irrestrito (licenceUnrestricted nos metadados da IDE-Sisema). Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/mg-infiltracao.md",
+      "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
+      "id": "mg-agua-disponivel",
+      "label": "Água disponível nos solos de MG (Sisema)",
+      "help": "Capacidade de água disponível nos solos de MG (ANA e UFPR): a capacidade de água disponível (CAD ou AWC) dos solos de Minas Gerais: quanta água o solo guarda para as plantas. Fonte: IDE-Sisema, Capacidade de água disponível nos solos (ANA e UFPR, Atlas Irrigação). Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Valores médios por classe de solo e textura, estimados por funções de pedotransferência; para o manejo da irrigação, meça no campo. Período: mapa da ANA e da UFPR para o Atlas Irrigação. Resolução ou escala: a do mapa de solos de base (escala regional). Unidades: AWC em fração de volume (m³ de água por m³ de solo: 0,12 é 1,2 mm por cm de solo). Licença: uso irrestrito (licenceUnrestricted nos metadados da IDE-Sisema). Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/mg-agua-disponivel.md",
+      "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
+      "id": "mg-zee-erosao",
+      "label": "Vulnerabilidade do solo à erosão (ZEE-MG)",
+      "help": "Vulnerabilidade do solo à erosão (ZEE-MG): a vulnerabilidade do solo à erosão do Zoneamento Ecológico-Econômico de Minas Gerais: o risco potencial de erosão combinado com a intensidade das chuvas e a exposição do solo. Fonte: IDE-Sisema, Zoneamento Ecológico-Econômico de Minas Gerais (UFLA e Sisema, 2005 a 2008). Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Os polígonos vêm de uma grade, então numa área grande são milhares de pedaços. A cobertura do solo é a de 2005 a 2008. Período: ZEE-MG, elaborado de 2005 a 2008. Resolução ou escala: grade regular convertida em polígonos (escala estadual). Unidades: sem unidade. Licença: licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/mg-zee-erosao.md",
+      "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
+      "id": "mg-zee-risco-erosao",
+      "label": "Risco à erosão (ZEE-MG)",
+      "help": "Risco à erosão (ZEE-MG): o risco potencial de erosão do ZEE-MG: a erodibilidade dos solos combinada com a declividade, sem contar a cobertura do solo. Fonte: IDE-Sisema, Zoneamento Ecológico-Econômico de Minas Gerais (UFLA e Sisema, 2005 a 2008). Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: É o risco do meio físico, sem a cobertura da terra; os polígonos vêm de uma grade e são muitos numa área grande. Período: ZEE-MG, elaborado de 2005 a 2008. Resolução ou escala: grade regular convertida em polígonos (escala estadual). Unidades: sem unidade. Licença: licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/mg-zee-risco-erosao.md",
+      "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
       "id": "vegetacao",
       "label": "Vegetação (IBGE)",
       "help": "Vegetação (BDiA 1:250.000): a vegetação: as regiões fitoecológicas (Floresta Estacional Semidecidual, Savana...) e as áreas de uso antrópico. Fonte: IBGE, Banco de Dados de Informações Ambientais (BDiA). Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Escala regional: não substitui um levantamento detalhado da propriedade (1:10.000 a 1:50.000). Cada polígono é uma unidade de mapeamento, que pode ter inclusões de outras classes. Mostra a vegetação de quando a folha foi mapeada, não a atual; para o uso atual, o MapBiomas. Período: mapeamento do Projeto RADAMBRASIL revisto pelo IBGE (anos 1970 a 2010), publicado no BDiA. Resolução ou escala: escala 1:250.000 (área mínima mapeável de cerca de 2,5 km²). Unidades: sem unidade; área do polígono em km². Licença: uso livre com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/vegetacao.md",
@@ -270,6 +312,13 @@
       "params": "{}"
     },
     {
+      "id": "mg-chs",
+      "label": "Circunscrições hidrográficas de MG (IGAM)",
+      "help": "Circunscrições hidrográficas de MG (IGAM): as circunscrições hidrográficas (CHs) de Minas Gerais: as unidades de planejamento e gestão dos recursos hídricos do estado, cada uma com o seu comitê de bacia. Fonte: IDE-Sisema, Circunscrições Hidrográficas de Minas Gerais (IGAM). Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: As CHs substituíram as antigas UPGRHs, com as mesmas siglas na maioria. Período: delimitação vigente do IGAM. Resolução ou escala: limites sobre a base hidrográfica ottocodificada. Unidades: área em km² (area_km2). Licença: licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/mg-chs.md",
+      "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
       "id": "ana-disponibilidade",
       "label": "Disponibilidade hídrica (ANA)",
       "help": "Disponibilidade hídrica superficial (ANA): a disponibilidade hídrica superficial por trecho de rio: a vazão de referência que a ANA considera disponível. Fonte: ANA, Disponibilidade Hídrica Superficial, SNIRH. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web. Cuidados: Estimativa regional para planejamento; outorgas usam os critérios de cada órgão gestor. Período: estudos da ANA (vazões de referência de séries históricas). Resolução ou escala: trechos da BHO (1:250.000). Unidades: vazão em m³/s. Licença: dados abertos; licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/ana-disponibilidade.md",
@@ -319,6 +368,20 @@
       "params": "{}"
     },
     {
+      "id": "mg-outorgas",
+      "label": "Outorgas de MG (IGAM)",
+      "help": "Outorgas de uso de recursos hídricos de MG (IGAM): as outorgas de direito de uso de recursos hídricos concedidas pelo IGAM em Minas Gerais: captações, poços, barramentos e outros usos. Fonte: IDE-Sisema, Outorgas de direito de uso de recursos hídricos de Minas Gerais (IGAM, 01/1989 a 04/2024). Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Só as outorgas estaduais; as de rios de domínio da União são da ANA. O empreendimento e o CPF/CNPJ do usuário ficam de fora da tabela. Período: outorgas vigentes de 01/1989 a 02/04/2024. Resolução ou escala: pontos (a coordenada declarada da captação). Unidades: volume captado no ano em m³ (volcapanua); área irrigada em ha (aririgha_4). Licença: licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/mg-outorgas.md",
+      "icon": "point_layer",
+      "params": "{}"
+    },
+    {
+      "id": "mg-uso-insignificante",
+      "label": "Usos insignificantes de MG (IGAM)",
+      "help": "Usos insignificantes de recursos hídricos de MG (IGAM): os cadastros de uso insignificante de recursos hídricos de Minas Gerais: os usos pequenos que dispensam outorga, mas precisam ser cadastrados no IGAM. Fonte: IDE-Sisema, Cadastros de uso insignificante de recursos hídricos de Minas Gerais (IGAM, 01/2021 a 03/2025). Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Cadastros declarados pelo usuário, sem vistoria. O nome do imóvel e do usuário fica de fora da tabela. Período: cadastros vigentes de 01/2021 a 28/03/2025. Resolução ou escala: pontos (a coordenada declarada). Unidades: volume captado no ano em m³ (vcapanual). Licença: uso irrestrito (licenceUnrestricted nos metadados da IDE-Sisema). Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/mg-uso-insignificante.md",
+      "icon": "point_layer",
+      "params": "{}"
+    },
+    {
       "id": "ucs",
       "label": "Unidades de conservação (MMA)",
       "help": "Unidades de conservação (CNUC 07/2026): as unidades de conservação federais, estaduais e municipais do Cadastro Nacional de Unidades de Conservação. Fonte: MMA, Cadastro Nacional de Unidades de Conservação (CNUC), 07/2026. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Os limites são os declarados pelos gestores; APAs podem cobrir cidades inteiras. Confira o ato de criação para uso legal. Período: CNUC, julho de 2026. Resolução ou escala: limites legais digitalizados (escala variável). Unidades: área em ha (ha_total). Licença: não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/ucs.md",
@@ -329,6 +392,20 @@
       "id": "ucs-federais",
       "label": "UCs federais (ICMBio)",
       "help": "Unidades de conservação federais (ICMBio): os limites das unidades de conservação federais, publicados pelo ICMBio. Fonte: ICMBio, Limites das Unidades de Conservação Federais, 08/2026. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Só as federais; as estaduais e municipais estão no CNUC. Período: ICMBio, agosto de 2026. Resolução ou escala: limites legais digitalizados. Unidades: área em ha. Licença: não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/ucs-federais.md",
+      "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
+      "id": "mg-ucs-estaduais",
+      "label": "UCs estaduais de MG (IEF)",
+      "help": "Unidades de conservação estaduais de MG (IEF): as unidades de conservação estaduais de Minas Gerais, sob a gestão do Instituto Estadual de Florestas (IEF). Fonte: IDE-Sisema, Unidades de conservação estaduais de Minas Gerais (IEF). Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: O limite legal é o do ato de criação; a área geométrica pode diferir da oficial. Período: base do IEF na data do pedido. Resolução ou escala: limites legais digitalizados. Unidades: área oficial e geométrica em ha (area_ofic, area_geo). Licença: uso irrestrito (licenceUnrestricted nos metadados da IDE-Sisema). Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/mg-ucs-estaduais.md",
+      "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
+      "id": "mg-ucs-municipais",
+      "label": "UCs municipais de MG (IEF)",
+      "help": "Unidades de conservação municipais de MG (IEF): as unidades de conservação municipais de Minas Gerais registradas pelo IEF. Fonte: IDE-Sisema, Unidades de conservação municipais de Minas Gerais (IEF). Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Só as UCs municipais que chegaram ao IEF; APAs municipais podem cobrir o município inteiro. Período: base do IEF na data do pedido. Resolução ou escala: limites legais digitalizados (escala variável). Unidades: área oficial e geométrica em ha (area_ofic, area_geo). Licença: uso irrestrito (licenceUnrestricted nos metadados da IDE-Sisema). Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/mg-ucs-municipais.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
@@ -431,10 +508,24 @@
       "params": "{}"
     },
     {
+      "id": "mg-supressao",
+      "label": "Supressões autorizadas em MG (IEF)",
+      "help": "Áreas autorizadas para supressão de vegetação em MG (IEF, desde 07/2022): as áreas autorizadas para intervenção ambiental com supressão de vegetação nativa em Minas Gerais, pelo IEF, pela Feam e pelos municípios conveniados. Fonte: IDE-Sisema, Áreas autorizadas para intervenção ambiental com supressão de vegetação nativa (IEF, Feam e municípios conveniados, desde 07/2022). Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: É a área autorizada, não a supressão feita. As autorizações anteriores a julho de 2022 não estão na camada. Período: processos deferidos desde julho de 2022. Resolução ou escala: polígonos da área autorizada. Unidades: área autorizada em ha (area_autor). Licença: uso irrestrito (licenceUnrestricted nos metadados da IDE-Sisema). Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/mg-supressao.md",
+      "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
       "id": "ibama-embargos",
       "label": "Áreas embargadas (IBAMA)",
       "help": "Áreas embargadas (IBAMA): as áreas embargadas pelo IBAMA por infração ambiental (desmatamento ilegal, queimada...). Fonte: IBAMA, Termos de embargo (SISCOM, PAMGIA). Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Inclui embargos já resolvidos ou contestados; a situação jurídica se confere no IBAMA. Só os embargos federais. Período: termos de embargo desde os anos 2000 até a data do pedido. Resolução ou escala: polígonos do auto de infração. Unidades: área embargada em ha. Licença: dados abertos; licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/ibama-embargos.md",
       "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
+      "id": "mg-licencas",
+      "label": "Licenças ambientais de MG (Semad)",
+      "help": "Licenças ambientais emitidas em MG (Semad, SLA): os empreendimentos com licença ambiental emitida pela Semad no Sistema de Licenciamento Ambiental (SLA) de Minas Gerais. Fonte: IDE-Sisema, Licenças ambientais do Sistema de Licenciamento Ambiental (Semad, desde 11/2019). Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Só as licenças estaduais do SLA; as municipais e as do sistema antigo (Siam) ficam de fora. O empreendedor (nome e CPF/CNPJ) fica de fora da tabela. Período: licenças emitidas desde novembro de 2019. Resolução ou escala: pontos (a coordenada declarada do empreendimento). Unidades: sem unidade. Licença: licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/mg-licencas.md",
+      "icon": "point_layer",
       "params": "{}"
     },
     {
@@ -578,6 +669,13 @@
       "params": "{}"
     },
     {
+      "id": "mg-barragens",
+      "label": "Barragens de rejeitos de MG (Feam)",
+      "help": "Barragens de rejeitos e resíduos de MG (Feam, ano base 2024): as barragens de rejeitos e resíduos industriais e de mineração enquadradas na Política Estadual de Segurança de Barragens de Minas Gerais. Fonte: IDE-Sisema, Barragens da Política Estadual de Segurança de Barragens (Feam, ano base 2024). Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Só as barragens da política estadual; as de mineração também estão no SIGBM da ANM, com outro cadastro. O empreendedor fica de fora da tabela. Período: cadastro da Feam, ano base 2024. Resolução ou escala: pontos. Unidades: sem unidade. Licença: licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/mg-barragens.md",
+      "icon": "point_layer",
+      "params": "{}"
+    },
+    {
       "id": "dnit-snv",
       "label": "Rodovias federais (SNV, DNIT)",
       "help": "Rodovias federais (SNV vigente, DNIT): as rodovias federais do Sistema Nacional de Viação. Fonte: DNIT, Sistema Nacional de Viação (SNV), versão vigente. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Só as federais (as BRs, inclusive as delegadas); as estaduais e municipais não estão. Período: versão do SNV vigente. Resolução ou escala: escala regional (eixo das rodovias). Unidades: extensão em km; quilometragem inicial e final. Licença: sem restrições declaradas. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/dnit-snv.md",
@@ -658,6 +756,13 @@
       "id": "hierarquia-urbana",
       "label": "Hierarquia urbana (IBGE)",
       "help": "Hierarquia urbana das cidades (IBGE 2025): a hierarquia urbana das cidades do estudo REGIC (Regiões de Influência das Cidades) do IBGE: metrópole, capital regional, centro sub-regional, centro de zona e centro local. Fonte: IBGE, Hierarquia urbana das cidades, Malha Municipal 2025. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista. Cuidados: Recorte do IBGE para estudos urbanos: vem o polígono inteiro de cada unidade que cruza a área. Período: REGIC 2018, na Malha Municipal 2025. Resolução ou escala: limites municipais (1:250.000). Unidades: sem unidade. Licença: uso livre com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/hierarquia-urbana.md",
+      "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
+      "id": "mg-zee-zonas",
+      "label": "Zonas ecológico-econômicas (ZEE-MG)",
+      "help": "Zonas ecológico-econômicas (ZEE-MG): as zonas ecológico-econômicas de Minas Gerais: o cruzamento da potencialidade social com a vulnerabilidade natural, síntese do ZEE-MG. Fonte: IDE-Sisema, Zoneamento Ecológico-Econômico de Minas Gerais (UFLA e Sisema, 2005 a 2008). Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Instrumento de planejamento, não de licenciamento; os dados de base são de 2005 a 2008. Período: ZEE-MG, elaborado de 2005 a 2008. Resolução ou escala: grade regular convertida em polígonos (escala estadual). Unidades: sem unidade. Licença: licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/mg-zee-zonas.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
@@ -1606,7 +1711,7 @@
         "kind": "text",
         "id": "sobre",
         "label": "Sobre o BrasilData",
-        "text": "BrasilData 0.1.31, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Elpídio Filho, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nFontes dos dados: IBGE, INPE, ANA, ANP, ANEEL, INCRA, ANM, Kuzma, MMA, ICMBio, FUNAI, Serviço Florestal Brasileiro, IBAMA, DNIT e MapBiomas, pelos serviços de cada órgão; Copernicus DEM GLO-30 (DLR e Airbus, pelo espelho da OpenTopography); Banco Central (Pix e crédito rural); TSE; Novo CAGED (IPEA Data); Ministério da Saúde (CNES, pelo geobr do Ipea); Open-Meteo (previsão do ECMWF, da NOAA e do DWD) e CHIRPS v3 (Climate Hazards Center, UCSB).\n\nComo contribuir: sentiu falta de algum dado? Abra uma issue em https://github.com/elpidioassinaturas/BrasilData/issues com o nome do dado, o órgão que o publica, o endereço do serviço (WFS, ArcGIS REST, API ou arquivo) e para que você o usaria. Para trazer a fonte você mesmo, acrescente uma linha ao fontes.csv, rode python scripts/gerar.py e abra um pull request. Correções, avisos de serviço fora do ar e relatos de uso também são bem-vindos."
+        "text": "BrasilData 0.1.31, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Elpídio Filho, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nFontes dos dados: IBGE, IDE-Sisema, INPE, ANA, ANP, ANEEL, INCRA, ANM, Kuzma, MMA, ICMBio, FUNAI, Serviço Florestal Brasileiro, IBAMA, DNIT e MapBiomas, pelos serviços de cada órgão; Copernicus DEM GLO-30 (DLR e Airbus, pelo espelho da OpenTopography); Banco Central (Pix e crédito rural); TSE; Novo CAGED (IPEA Data); Ministério da Saúde (CNES, pelo geobr do Ipea); Open-Meteo (previsão do ECMWF, da NOAA e do DWD) e CHIRPS v3 (Climate Hazards Center, UCSB).\n\nComo contribuir: sentiu falta de algum dado? Abra uma issue em https://github.com/elpidioassinaturas/BrasilData/issues com o nome do dado, o órgão que o publica, o endereço do serviço (WFS, ArcGIS REST, API ou arquivo) e para que você o usaria. Para trazer a fonte você mesmo, acrescente uma linha ao fontes.csv, rode python scripts/gerar.py e abra um pull request. Correções, avisos de serviço fora do ar e relatos de uso também são bem-vindos."
       }
     ]
   },
@@ -1668,7 +1773,8 @@
               "aglomeracoes-urbanas",
               "concentracoes-urbanas",
               "arranjos-populacionais",
-              "hierarquia-urbana"
+              "hierarquia-urbana",
+              "mg-zee-zonas"
             ]
           },
           {
@@ -1754,6 +1860,7 @@
               "anm-bloqueios",
               "anm-reservas",
               "anm-barragens",
+              "mg-barragens",
               "mapbiomas-mineracao"
             ]
           },
@@ -1770,7 +1877,13 @@
             "menu": "Solos",
             "icon": "classify",
             "items": [
-              "solos"
+              "solos",
+              "mg-solos",
+              "mg-aptidao",
+              "mg-infiltracao",
+              "mg-agua-disponivel",
+              "mg-zee-erosao",
+              "mg-zee-risco-erosao"
             ]
           }
         ]
@@ -1824,7 +1937,8 @@
               "ana-uph",
               "ibge-dhn-macro",
               "ibge-dhn-meso",
-              "ibge-dhn-micro"
+              "ibge-dhn-micro",
+              "mg-chs"
             ]
           },
           {
@@ -1838,6 +1952,8 @@
               "ana-pivos",
               "ana-seca-2015",
               "aqueduct-estresse",
+              "mg-outorgas",
+              "mg-uso-insignificante",
               "mapbiomas-irrigacao",
               "irrigacao-gmia"
             ]
@@ -1885,6 +2001,7 @@
               "prodes-pampa",
               "deter-cerrado",
               "deter-amazonia",
+              "mg-supressao",
               "dist-situacao",
               "dist-data",
               "dist-confianca",
@@ -1907,14 +2024,17 @@
             "icon": "buffer",
             "items": [
               "ucs",
-              "ucs-federais"
+              "ucs-federais",
+              "mg-ucs-estaduais",
+              "mg-ucs-municipais"
             ]
           },
           {
             "menu": "Fiscalização",
             "icon": "clear_sel",
             "items": [
-              "ibama-embargos"
+              "ibama-embargos",
+              "mg-licencas"
             ]
           }
         ]

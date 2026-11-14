@@ -2,7 +2,7 @@
 
 <!-- Gerado por scripts/gerar.py a partir do fontes.csv e do fichas.csv; não edite à mão. -->
 
-A ficha de cada uma das 121 camadas que os botões da aba BrasilData trazem: o que é, a fonte, o período, a resolução, as unidades, a legenda, a licença, a citação, os cuidados de uso, se funciona no app web, e um mapa exemplo feito com o plugin (o botão Layout). Os mapas exemplo são de Viçosa (MG), ou da Zona da Mata mineira para os produtos de baixa resolução; os temas que não existem lá vêm de outro município, dito em cada ficha. Os mapas saem do `scripts/mapas_exemplo.py`.
+A ficha de cada uma das 136 camadas que os botões da aba BrasilData trazem: o que é, a fonte, o período, a resolução, as unidades, a legenda, a licença, a citação, os cuidados de uso, se funciona no app web, e um mapa exemplo feito com o plugin (o botão Layout). Os mapas exemplo são de Viçosa (MG), ou da Zona da Mata mineira para os produtos de baixa resolução; os temas que não existem lá vêm de outro município, dito em cada ficha. Os mapas saem do `scripts/mapas_exemplo.py`.
 
 ## Território
 
@@ -35,6 +35,7 @@ A ficha de cada uma das 121 camadas que os botões da aba BrasilData trazem: o q
 | [Concentrações urbanas (IBGE 2025)](concentracoes-urbanas.md) | Território › Recortes especiais | As concentrações urbanas do IBGE: os arranjos populacionais e os municípios isolados com mais de 100 mil habitantes. |
 | [Arranjos populacionais (IBGE 2025)](arranjos-populacionais.md) | Território › Recortes especiais | Os arranjos populacionais do IBGE: municípios integrados pelo deslocamento para trabalho e estudo e pela contiguidade urbana. |
 | [Hierarquia urbana das cidades (IBGE 2025)](hierarquia-urbana.md) | Território › Recortes especiais | A hierarquia urbana das cidades do estudo REGIC (Regiões de Influência das Cidades) do IBGE: metrópole, capital regional, centro sub-regional, centro de zona e centro local. |
+| [Zonas ecológico-econômicas (ZEE-MG)](mg-zee-zonas.md) | Território › Recortes especiais | As zonas ecológico-econômicas de Minas Gerais: o cruzamento da potencialidade social com a vulnerabilidade natural, síntese do ZEE-MG. |
 
 ## Sociedade e economia
 
@@ -62,10 +63,17 @@ A ficha de cada uma das 121 camadas que os botões da aba BrasilData trazem: o q
 | [Geologia (BDiA 1:250.000)](geologia.md) | Meio físico › Geologia e recursos minerais | As unidades geológicas (litoestratigráficas): as rochas que afloram, com a idade e a província estrutural. |
 | [Geomorfologia (BDiA 1:250.000)](geomorfologia.md) | Meio físico › Relevo | As unidades geomorfológicas: domínios, regiões e unidades do relevo, com a forma, a densidade de drenagem e o aprofundamento das incisões. |
 | [Solos (BDiA 1:250.000)](solos.md) | Meio físico › Solos | O mapa de solos do Brasil: as unidades de mapeamento com a classe do Sistema Brasileiro de Classificação de Solos (SiBCS) até o 4º nível, a textura, o relevo e as inclusões. |
+| [Mapa de solos de Minas Gerais (UFV, Cetec, UFLA e Feam, 2010)](mg-solos.md) | Meio físico › Solos | O mapa de solos de Minas Gerais: as unidades de mapeamento com a classe de solo dominante, do levantamento da UFV, do Cetec, da UFLA e da Feam. |
+| [Aptidão agrícola das terras de MG (Embrapa, 1:500.000)](mg-aptidao.md) | Meio físico › Solos | A aptidão agrícola das terras de Minas Gerais: para que uso cada terra serve (lavoura, pastagem plantada, silvicultura, pastagem natural ou preservação), em três níveis de manejo. |
+| [Capacidade de infiltração dos solos de MG (SGB/CPRM)](mg-infiltracao.md) | Meio físico › Solos | A capacidade de infiltração da água nos solos de Minas Gerais, do Mapa Hidrogeológico do Serviço Geológico do Brasil. |
+| [Capacidade de água disponível nos solos de MG (ANA e UFPR)](mg-agua-disponivel.md) | Meio físico › Solos | A capacidade de água disponível (CAD ou AWC) dos solos de Minas Gerais: quanta água o solo guarda para as plantas. |
+| [Vulnerabilidade do solo à erosão (ZEE-MG)](mg-zee-erosao.md) | Meio físico › Solos | A vulnerabilidade do solo à erosão do Zoneamento Ecológico-Econômico de Minas Gerais: o risco potencial de erosão combinado com a intensidade das chuvas e a exposição do solo. |
+| [Risco à erosão (ZEE-MG)](mg-zee-risco-erosao.md) | Meio físico › Solos | O risco potencial de erosão do ZEE-MG: a erodibilidade dos solos combinada com a declividade, sem contar a cobertura do solo. |
 | [Processos minerários ativos (ANM)](anm-processos.md) | Meio físico › Geologia e recursos minerais | Os processos minerários ativos do SIGMINE: as áreas requeridas ou tituladas para pesquisa, lavra e licenciamento. |
 | [Áreas de bloqueio (ANM)](anm-bloqueios.md) | Meio físico › Geologia e recursos minerais | As áreas de bloqueio da ANM, onde novos requerimentos minerários são restringidos (reservatórios, unidades de conservação...). |
 | [Reservas garimpeiras (ANM)](anm-reservas.md) | Meio físico › Geologia e recursos minerais | As reservas garimpeiras da ANM. |
 | [Barragens de mineração (ANM, SIGBM)](anm-barragens.md) | Meio físico › Geologia e recursos minerais | As barragens de mineração cadastradas no SIGBM, com a categoria de risco e o dano potencial associado. |
+| [Barragens de rejeitos e resíduos de MG (Feam, ano base 2024)](mg-barragens.md) | Meio físico › Geologia e recursos minerais | As barragens de rejeitos e resíduos industriais e de mineração enquadradas na Política Estadual de Segurança de Barragens de Minas Gerais. |
 | [Área minerada por ano (MapBiomas, 1985–2024)](mapbiomas-mineracao.md) | Meio físico › Geologia e recursos minerais | A área minerada mapeada pelo MapBiomas em imagens Landsat, com o ano em que a mineração apareceu. |
 | [Elevação (Copernicus GLO-30)](elevacao.md) | Meio físico › Relevo | O modelo digital de superfície Copernicus GLO-30: a altitude do terreno com a vegetação e as construções. |
 | [Elevação a 15 m (Google GEM-15)](gem15.md) | Meio físico › Relevo | Os modelos de elevação do Google a 15 m (GEM-15, experimental): o terreno nu (DTM), a superfície (DSM) ou a altura acima do terreno. |
@@ -89,6 +97,7 @@ A ficha de cada uma das 121 camadas que os botões da aba BrasilData trazem: o q
 | [Ottobacias (BHO 2017 1:50.000, ANA)](ana-ottobacias.md) | Água › Bacias | As ottobacias da Base Hidrográfica Ottocodificada: cada bacia de contribuição de um trecho de rio, com o código de Otto Pfafstetter, que diz quem drena para quem. |
 | [Trechos de drenagem (BHO 2017, ANA)](ana-bho.md) | Água › Hidrografia | Os trechos de drenagem da Base Hidrográfica Ottocodificada da ANA, com a área a montante e a ordem de Strahler. |
 | [Unidades de planejamento hídrico (UPH, ANA)](ana-uph.md) | Água › Bacias | As Unidades de Planejamento Hídrico da ANA, recortes de bacias usados nos planos e balanços hídricos. |
+| [Circunscrições hidrográficas de MG (IGAM)](mg-chs.md) | Água › Bacias | As circunscrições hidrográficas (CHs) de Minas Gerais: as unidades de planejamento e gestão dos recursos hídricos do estado, cada uma com o seu comitê de bacia. |
 | [Macrorregiões hidrográficas (DHN 2021, IBGE)](ibge-dhn-macro.md) | Água › Bacias | As macrorregiões hidrográficas da Divisão Hidrográfica Nacional do IBGE (o primeiro nível, como Atlântico Sudeste). |
 | [Mesorregiões hidrográficas (DHN 2021, IBGE)](ibge-dhn-meso.md) | Água › Bacias | As mesorregiões hidrográficas da Divisão Hidrográfica Nacional do IBGE (o segundo nível). |
 | [Microrregiões hidrográficas (DHN 2021, IBGE)](ibge-dhn-micro.md) | Água › Bacias | As microrregiões hidrográficas da Divisão Hidrográfica Nacional do IBGE (o terceiro nível, próximo às bacias de rios principais). |
@@ -96,6 +105,8 @@ A ficha de cada uma das 121 camadas que os botões da aba BrasilData trazem: o q
 | [Balanço hídrico quantitativo por curso d'água (ANA)](ana-balanco.md) | Água › Recursos hídricos | O balanço hídrico quantitativo por curso d'água: a demanda de água em relação à disponibilidade, que indica onde há criticidade. |
 | [Estações da Rede Hidrometeorológica Nacional (ANA)](ana-estacoes.md) | Água › Recursos hídricos | As estações da Rede Hidrometeorológica Nacional: pluviométricas, fluviométricas, de qualidade da água e de sedimentos. |
 | [Captações superficiais (ANA)](ana-captacoes.md) | Água › Recursos hídricos | As captações de água superficial para abastecimento público cadastradas pela ANA. |
+| [Outorgas de uso de recursos hídricos de MG (IGAM)](mg-outorgas.md) | Água › Recursos hídricos | As outorgas de direito de uso de recursos hídricos concedidas pelo IGAM em Minas Gerais: captações, poços, barramentos e outros usos. |
+| [Usos insignificantes de recursos hídricos de MG (IGAM)](mg-uso-insignificante.md) | Água › Recursos hídricos | Os cadastros de uso insignificante de recursos hídricos de Minas Gerais: os usos pequenos que dispensam outorga, mas precisam ser cadastrados no IGAM. |
 | [Pivôs centrais mapeados (ANA)](ana-pivos.md) | Água › Recursos hídricos | Os pivôs centrais de irrigação mapeados pela ANA e pela Embrapa em imagens de satélite. |
 | [Municípios atingidos por seca em 2015 (ANA)](ana-seca-2015.md) | Água › Recursos hídricos | Os municípios em que a ANA registrou eventos de seca em 2015 (decretos e reconhecimentos). |
 | [Estresse hídrico de referência (Aqueduct 4.0, WRI)](aqueduct-estresse.md) | Água › Recursos hídricos | O estresse hídrico de referência do Aqueduct 4.0 (WRI): a retirada de água sobre a oferta renovável, por sub-bacia. |
@@ -108,6 +119,8 @@ A ficha de cada uma das 121 camadas que os botões da aba BrasilData trazem: o q
 |---|---|---|
 | [Vegetação (BDiA 1:250.000)](vegetacao.md) | Vegetação e meio ambiente › Vegetação | A vegetação: as regiões fitoecológicas (Floresta Estacional Semidecidual, Savana...) e as áreas de uso antrópico. |
 | [Unidades de conservação (CNUC 07/2026)](ucs.md) | Vegetação e meio ambiente › Áreas protegidas | As unidades de conservação federais, estaduais e municipais do Cadastro Nacional de Unidades de Conservação. |
+| [Unidades de conservação estaduais de MG (IEF)](mg-ucs-estaduais.md) | Vegetação e meio ambiente › Áreas protegidas | As unidades de conservação estaduais de Minas Gerais, sob a gestão do Instituto Estadual de Florestas (IEF). |
+| [Unidades de conservação municipais de MG (IEF)](mg-ucs-municipais.md) | Vegetação e meio ambiente › Áreas protegidas | As unidades de conservação municipais de Minas Gerais registradas pelo IEF. |
 | [Unidades de conservação federais (ICMBio)](ucs-federais.md) | Vegetação e meio ambiente › Áreas protegidas | Os limites das unidades de conservação federais, publicados pelo ICMBio. |
 | [Desmatamento anual (PRODES Cerrado)](prodes-cerrado.md) | Vegetação e meio ambiente › Desmatamento | O desmatamento anual do bioma Cerrado mapeado pelo INPE (PRODES): os polígonos de vegetação nativa suprimida a cada ano. |
 | [Desmatamento anual (PRODES Caatinga)](prodes-caatinga.md) | Vegetação e meio ambiente › Desmatamento | O desmatamento anual do bioma Caatinga mapeado pelo INPE (PRODES): os polígonos de vegetação nativa suprimida a cada ano. |
@@ -118,6 +131,8 @@ A ficha de cada uma das 121 camadas que os botões da aba BrasilData trazem: o q
 | [Alertas de desmatamento (DETER Cerrado)](deter-cerrado.md) | Vegetação e meio ambiente › Desmatamento | Os alertas de desmatamento do DETER no Cerrado: avisos diários do INPE de vegetação suprimida. |
 | [Alertas de desmatamento (DETER Amazônia)](deter-amazonia.md) | Vegetação e meio ambiente › Desmatamento | Os alertas de desmatamento e degradação do DETER na Amazônia Legal. |
 | [Áreas embargadas (IBAMA)](ibama-embargos.md) | Vegetação e meio ambiente › Fiscalização | As áreas embargadas pelo IBAMA por infração ambiental (desmatamento ilegal, queimada...). |
+| [Áreas autorizadas para supressão de vegetação em MG (IEF, desde 07/2022)](mg-supressao.md) | Vegetação e meio ambiente › Desmatamento | As áreas autorizadas para intervenção ambiental com supressão de vegetação nativa em Minas Gerais, pelo IEF, pela Feam e pelos municípios conveniados. |
+| [Licenças ambientais emitidas em MG (Semad, SLA)](mg-licencas.md) | Vegetação e meio ambiente › Fiscalização | Os empreendimentos com licença ambiental emitida pela Semad no Sistema de Licenciamento Ambiental (SLA) de Minas Gerais. |
 | [Focos de calor das últimas 48 horas (INPE)](inpe-focos-48h.md) | Vegetação e meio ambiente › Queimadas | Os focos de calor detectados por satélite nas últimas 48 horas (Programa Queimadas do INPE). |
 | [Focos de calor dos últimos 7 dias do mês (INPE)](inpe-focos-7d.md) | Vegetação e meio ambiente › Queimadas | Os focos de calor dos últimos 7 dias (Programa Queimadas do INPE). |
 | [Focos de calor do mês corrente (INPE)](inpe-focos-mes.md) | Vegetação e meio ambiente › Queimadas | Os focos de calor do mês corrente (Programa Queimadas do INPE). |
