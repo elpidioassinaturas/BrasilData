@@ -2,7 +2,7 @@
 
 <!-- Gerado por scripts/gerar.py a partir do fontes.csv e do fichas.csv; não edite à mão. -->
 
-A ficha de cada uma das 117 camadas que os botões da aba BrasilData trazem: o que é, a fonte, o período, a resolução, as unidades, a legenda, a licença, a citação, os cuidados de uso, se funciona no app web, e um mapa exemplo feito com o plugin (o botão Layout). Os mapas exemplo são de Viçosa (MG), ou da Zona da Mata mineira para os produtos de baixa resolução; os temas que não existem lá vêm de outro município, dito em cada ficha. Os mapas saem do `scripts/mapas_exemplo.py`.
+A ficha de cada uma das 121 camadas que os botões da aba BrasilData trazem: o que é, a fonte, o período, a resolução, as unidades, a legenda, a licença, a citação, os cuidados de uso, se funciona no app web, e um mapa exemplo feito com o plugin (o botão Layout). Os mapas exemplo são de Viçosa (MG), ou da Zona da Mata mineira para os produtos de baixa resolução; os temas que não existem lá vêm de outro município, dito em cada ficha. Os mapas saem do `scripts/mapas_exemplo.py`.
 
 ## Território
 
@@ -53,12 +53,7 @@ A ficha de cada uma das 117 camadas que os botões da aba BrasilData trazem: o q
 | [Eleitorado e comparecimento (TSE)](indicadores-tse.md) | Sociedade e economia › Eleições | O eleitorado, o comparecimento e a abstenção no 1º turno de 2026 e de 2024 por município. |
 | [Emprego formal (Novo CAGED)](indicadores-caged.md) | Sociedade e economia › Economia | O emprego formal do Novo CAGED por município: admissões, desligamentos e saldo nos últimos 12 meses e o saldo do último mês. |
 | [Todos os indicadores](indicadores-todos.md) | Sociedade e economia | Todos os indicadores por município de uma vez: censos, Censo Agropecuário, agroecologia, Pix, crédito rural, eleições e emprego formal. |
-
-## Saúde
-
-| Camada | Onde na aba | O que é |
-|---|---|---|
-| [Estabelecimentos de saúde (CNES, DATASUS)](saude-estabelecimentos.md) | Saúde › Estabelecimentos | Os estabelecimentos de saúde ativos do CNES: hospitais, unidades básicas, clínicas, laboratórios... |
+| [Estabelecimentos de saúde (CNES, DATASUS)](saude-estabelecimentos.md) | Sociedade e economia › Saúde | Os estabelecimentos de saúde ativos do CNES: hospitais, unidades básicas, clínicas, laboratórios... |
 
 ## Meio físico
 
@@ -72,9 +67,18 @@ A ficha de cada uma das 117 camadas que os botões da aba BrasilData trazem: o q
 | [Reservas garimpeiras (ANM)](anm-reservas.md) | Meio físico › Geologia e recursos minerais | As reservas garimpeiras da ANM. |
 | [Barragens de mineração (ANM, SIGBM)](anm-barragens.md) | Meio físico › Geologia e recursos minerais | As barragens de mineração cadastradas no SIGBM, com a categoria de risco e o dano potencial associado. |
 | [Área minerada por ano (MapBiomas, 1985–2024)](mapbiomas-mineracao.md) | Meio físico › Geologia e recursos minerais | A área minerada mapeada pelo MapBiomas em imagens Landsat, com o ano em que a mineração apareceu. |
-| [Radiação solar (NASA POWER)](sol-radiacao.md) | Meio físico › Clima | A irradiação solar global horizontal na superfície, com todos os céus (nuvens incluídas). |
 | [Elevação (Copernicus GLO-30)](elevacao.md) | Meio físico › Relevo | O modelo digital de superfície Copernicus GLO-30: a altitude do terreno com a vegetação e as construções. |
 | [Elevação a 15 m (Google GEM-15)](gem15.md) | Meio físico › Relevo | Os modelos de elevação do Google a 15 m (GEM-15, experimental): o terreno nu (DTM), a superfície (DSM) ou a altura acima do terreno. |
+
+## Tempo e clima
+
+| Camada | Onde na aba | O que é |
+|---|---|---|
+| [Chuva prevista (Open-Meteo)](chuva-prevista.md) | Tempo e clima › Previsão | A chuva prevista somada nos próximos dias por um modelo global de previsão do tempo (ECMWF IFS, ECMWF AIFS, GFS, ICON ou o melhor do Open-Meteo para o lugar). |
+| [Chuva do ensemble: chance e faixa provável (Open-Meteo)](chuva-ensemble.md) | Tempo e clima › Previsão | A chuva dos próximos dias nos membros de um ensemble de previsão (ECMWF ENS, ECMWF AIFS-ENS ou GEFS): a chance de passar de um limiar, a média dos membros ou os cenários seco (P10) e chuvoso (P90). |
+| [Temperatura prevista (Open-Meteo)](temperatura-prevista.md) | Tempo e clima › Previsão | A temperatura do ar a 2 m prevista para os próximos dias por um modelo global: a média da máxima do dia, da mínima ou da média, nos dias pedidos. |
+| [Chuva do mês (CHIRPS v3)](chirps-mes.md) | Tempo e clima › Chuva observada | A chuva total de um mês, estimada por satélite (infravermelho) e corrigida com estações, do CHIRPS v3.0. |
+| [Radiação solar (NASA POWER)](sol-radiacao.md) | Tempo e clima › Clima | A irradiação solar global horizontal na superfície, com todos os céus (nuvens incluídas). |
 
 ## Água
 

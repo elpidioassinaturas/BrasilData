@@ -44,6 +44,10 @@ comando e mostra embaixo o que ele fez. São eles:
 | Focos de calor: período | o primeiro e o último dia, no mês corrente |
 | Risco de fogo | o mês |
 | Radiação solar | a média do ano ou um mês |
+| Chuva prevista | o modelo (ECMWF IFS, AIFS, GFS, ICON ou o melhor do Open-Meteo) e os dias |
+| Chuva do ensemble | o ensemble (ECMWF ENS, AIFS-ENS ou GEFS), o que mostrar (a chance de passar de um limiar, a média ou os cenários seco e chuvoso), o limiar e os dias |
+| Temperatura prevista | a máxima, a mínima ou a média do dia, o modelo e os dias |
+| Chuva do mês (CHIRPS) | o mês (vazio: o mais recente) |
 | Elevação a 15 m (GEM-15) | o modelo: terreno nu (DTM), superfície (DSM) ou altura acima do terreno |
 
 As janelas vêm num RustGIS com as janelas de comando de plugin (opengeos/RustGIS#1547, depois da
@@ -241,9 +245,9 @@ estilo.
 | Tópico | Subtópicos |
 |---|---|
 | Território | Limites (IBGE: Brasil, Grandes Regiões, estados, regiões intermediárias e imediatas, meso e microrregiões, municípios, distritos, subdistritos e bairros), Recortes especiais (IBGE: Amazônia Legal, Semiárido, MATOPIBA, SUDENE, municípios costeiros, regiões metropolitanas, aglomerações, concentrações e arranjos urbanos, hierarquia urbana), Cadastro fundiário (SFB, INCRA), Terras indígenas (FUNAI) |
-| Sociedade e economia | População (IBGE: setores censitários, censos, áreas de ponderação, área urbana e rural, favelas e comunidades urbanas), Economia (Banco Central, Novo CAGED), Agricultura (Banco Central, IBGE), Eleições (TSE) e Todos os indicadores |
-| Saúde | Estabelecimentos (CNES, DATASUS) |
-| Meio físico | Geologia e recursos minerais (IBGE, ANM, MapBiomas), Relevo (IBGE, Copernicus; GEM-15 do Google a 15 m), Solos (IBGE), Clima (radiação solar do NASA POWER) |
+| Sociedade e economia | População (IBGE: setores censitários, censos, áreas de ponderação, área urbana e rural, favelas e comunidades urbanas), Economia (Banco Central, Novo CAGED), Agricultura (Banco Central, IBGE), Eleições (TSE), Saúde (estabelecimentos do CNES, DATASUS) e Todos os indicadores |
+| Meio físico | Geologia e recursos minerais (IBGE, ANM, MapBiomas), Relevo (IBGE, Copernicus; GEM-15 do Google a 15 m), Solos (IBGE) |
+| Tempo e clima | Previsão (pelo Open-Meteo: a chuva prevista do ECMWF IFS, do AIFS, do GFS e do ICON, a chance e a faixa provável de chuva dos ensembles ECMWF ENS, AIFS-ENS e GEFS, e a temperatura prevista), Chuva observada (o total do mês do CHIRPS v3), Clima (radiação solar do NASA POWER; climatologia do Risco de Fogo do INPE) |
 | Água | Hidrografia (IBGE, ANA), Bacias (IBGE, ANA), Recursos hídricos (ANA; estresse hídrico do Aqueduct 4.0, WRI; sistemas de irrigação do MapBiomas; área equipada para irrigação do GMIA v5, FAO) |
 | Vegetação e meio ambiente | Vegetação (IBGE; altura do dossel do GEDI, NASA, e do CHMv2 a 1 m, Meta e WRI), Uso e cobertura (MapBiomas; radar Sentinel-1 do ASF/NASA), Desmatamento (INPE: PRODES e DETER; alertas de perturbação OPERA DIST-S1 do ASF/NASA), Queimadas (INPE: focos de calor das últimas 48 horas, dos últimos 7 dias e do mês corrente, e a climatologia mensal do Risco de Fogo; um período com datas, por script: `plugin:brasildata/inpe-focos-periodo={"de": "01/11/2026", "ate": "06/11/2026"}`), Áreas protegidas (MMA, ICMBio), Fiscalização (IBAMA) |
 | Infraestrutura | Energia (ANEEL), Petróleo e gás (ANP), Transportes (DNIT) |
@@ -416,6 +420,27 @@ Fora da tabela, com a citação no comando **Fontes**:
   interpolado para a grade do projeto e recortado pela área: mostra a variação regional, por isso
   serve a áreas grandes (um estado) mais que a um município. Por script, um mês:
   `plugin:brasildata/sol-radiacao={"mes": 7}`;
+- **Previsão do tempo:** Open-Meteo (Zippenfenig, P. 2023. Open-Meteo.com Weather API,
+  doi:10.5281/zenodo.7970649; CC BY 4.0; a API gratuita é para uso não comercial), com os modelos
+  IFS e AIFS e os ensembles ENS e AIFS-ENS do ECMWF (CC BY 4.0), o GFS e o GEFS da NOAA/NCEP
+  (domínio público) e o ICON do DWD (CC BY 4.0). Os valores diários vêm nos nós de uma grade de
+  0,25° (0,5° no GEFS) que cercam a área e viram um raster (`raster.rasterize`, desde o RustGIS
+  0.6.0), interpolado para a grade do projeto e recortado pela área. Numa área grande, a grade de
+  pontos fica mais aberta: até 400 pontos numa previsão e até 58 (ECMWF) ou 96 (GEFS) num
+  ensemble, o que o orçamento de processamento de um clique do plugin aguenta. Os dias contam a
+  partir de hoje, no horário de Brasília; um último dia incompleto na rodada fica de fora, com um
+  aviso. Se o Open-Meteo demorar mais do que o RustGIS espera (20 s por pedido, 60 s por clique),
+  o comando avisa e o clique seguinte, depois de 30 s, só pede o que faltou. Por script:
+  `plugin:brasildata/chuva-prevista={"modelo": "gfs", "dias": 7}`,
+  `plugin:brasildata/chuva-ensemble={"medida": "chance", "limiar": 150}` e
+  `plugin:brasildata/temperatura-prevista={"tipo": "minima", "dias": 3}`;
+- **Chuva do mês:** Climate Hazards Center (UC Santa Barbara), CHIRPS v3.0 (Funk et al. 2015,
+  Scientific Data 2, 150066, doi:10.1038/sdata.2015.66): a chuva total do mês por satélite e
+  estações, a 0,05°, de 1981 até o último mês fechado. Só a janela da área, lida do COG mundial
+  do mês (depois do RustGIS 0.5.0), posta na grade do projeto e recortada pela área. Só no app
+  desktop: o servidor não manda CORS. O README da v3 não declara licença; o Climate Hazards
+  Center distribui o CHIRPS como domínio público. Por script:
+  `plugin:brasildata/chirps-mes={"mes": "10/2026"}`;
 - **Estresse hídrico:** WRI, Aqueduct 4.0 (Kuzma et al. 2023, CC BY 4.0), pelo serviço Aqueduct
   Water Risk do ArcGIS Living Atlas: a retirada de água sobre a oferta renovável, por sub-bacia
   HydroBASINS de nível 6 e unidade administrativa. O plugin acrescenta o campo `estresse`, com as

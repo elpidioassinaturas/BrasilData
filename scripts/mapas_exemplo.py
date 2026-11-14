@@ -7,7 +7,7 @@ dist/brasildata: escolhe a área (Viçosa, a Zona da Mata ou o município da fic
 pinta as classes pelo campo da coluna classes (valores únicos, rampa tab20), faz o layout com o
 botão Layout (folha A3 deitada, estilo painel: o mapa à esquerda; o título, o globo, a legenda e as
 fontes à direita), tira o "BrasilData: " do nome da camada na legenda e exporta a folha a 80 dpi.
-O PNG é reduzido a 256 cores. Sem ids, faz os que ainda não têm PNG (com --refazer, todos). O
+O PNG é reduzido a 256 cores (FASTOCTREE). Sem ids, faz os que ainda não têm PNG (com --refazer, todos). O
 registro de cada um vai para saida/mapas_exemplo/<id>.log. Depois, rode scripts/gerar.py: as
 fichas passam a mostrar os mapas.
 """
@@ -30,8 +30,8 @@ import gerar  # noqa: E402
 PASTA = ROOT / gerar.PAGINAS
 LOGS = ROOT / "saida" / "mapas_exemplo"
 # Os parâmetros do comando no mapa exemplo, quando o padrão não serve: o MapBiomas recortado só
-# vai de 2019 a 2024; a radiação solar, em Minas Gerais, numa grade de 1 km.
-PARAMS = {"mapbiomas-cobertura": {"ano": 2024}, "sol-radiacao": {"celula": 1000}}
+# vai de 2019 a 2024; a radiação solar e a temperatura, em Minas Gerais, numa grade de 1 km.
+PARAMS = {"mapbiomas-cobertura": {"ano": 2024}, "sol-radiacao": {"celula": 1000}, "temperatura-prevista": {"celula": 1000}}
 # Os comandos que pedem o login Earthdata (pelo começo do id).
 EARTHDATA = ("gedi-", "radar-", "nisar-", "dist-")
 # A rampa das classes, quando a tab20 (categorias sem ordem) não combina com o tema: os solos em
@@ -84,7 +84,9 @@ def fazer(cli: str, plugin: pathlib.Path, fi: dict, nome: str | None) -> tuple[s
         return cid, "FALHOU: " + (msgs[-1][:200] if msgs else erro.strip()[-200:]), dt
     from PIL import Image
 
-    Image.open(bruto).convert("RGB").quantize(256, method=Image.Quantize.MEDIANCUT).save(png, optimize=True)
+    # FASTOCTREE guarda as cores de pouca área (a barra de cores azul de um mapa quase todo quente),
+    # que o MEDIANCUT trocava por cinzas.
+    Image.open(bruto).convert("RGB").quantize(256, method=Image.Quantize.FASTOCTREE).save(png, optimize=True)
     return cid, f"ok, {png.stat().st_size // 1024} KB", dt
 
 

@@ -2,7 +2,7 @@
   "id": "brasildata",
   "name": "BrasilData",
   "version": "0.1.31",
-  "description": "Dados públicos do Brasil para a área do usuário (IBGE, MMA, ICMBio, INPE, ANA, ANEEL, ANP, SFB/CAR, INCRA, FUNAI, IBAMA, ANM, DNIT, Ministério da Saúde, Copernicus, NASA/ASF, FAO, WRI): só o que cruza a área, recortado por ela, com a fonte e a licença de cada camada.",
+  "description": "Dados públicos do Brasil para a área do usuário (IBGE, MMA, ICMBio, INPE, ANA, ANEEL, ANP, SFB/CAR, INCRA, FUNAI, IBAMA, ANM, DNIT, Ministério da Saúde, Copernicus, NASA/ASF, FAO, WRI, Open-Meteo, CHIRPS): só o que cruza a área, recortado por ela, com a fonte e a licença de cada camada.",
   "author": "Elpídio Filho",
   "homepage": "https://github.com/elpidioassinaturas/BrasilData",
   "license": "MIT",
@@ -1058,6 +1058,150 @@
       ]
     },
     {
+      "id": "chuva-prevista",
+      "label": "Chuva prevista (Open-Meteo)",
+      "help": "A chuva prevista somada nos próximos dias, a partir de hoje (horário de Brasília), de um modelo global de previsão do tempo pelo Open-Meteo: o ECMWF IFS (o padrão), o AIFS do ECMWF (de inteligência artificial), o GFS da NOAA, o ICON do DWD ou o melhor do Open-Meteo para o lugar. Os valores diários vêm nos nós de uma grade de 0,25° (cerca de 28 km) que cercam a área e viram um raster, interpolado (bilinear) para a grade do projeto e recortado pela área. Numa área grande, a grade de pontos fica mais aberta (até 400 pontos). Uma rodada só oscila muito na segunda semana: para a faixa provável, use a Chuva do ensemble. O modelo e os dias vêm da janela do comando; num RustGIS sem janelas de plugin, o ECMWF IFS em 15 dias. Precisa de um RustGIS com o Polígonos para raster (raster.rasterize, desde a 0.6.0). Período: de hoje até 16 dias à frente (15 nos modelos do ECMWF, 7 no ICON), da rodada mais recente do modelo; muda a cada rodada, de 6 em 6 ou de 12 em 12 horas. Resolução ou escala: nós de uma grade de 0,25° (cerca de 28 km) em volta da área, mais abertos numa área grande (até 400 pontos), interpolados para a grade do projeto. Unidades: mm. Licença: CC BY 4.0 (Open-Meteo; dados do ECMWF e do DWD em CC BY 4.0, da NOAA em domínio público); a API gratuita do Open-Meteo é para uso não comercial. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/chuva-prevista.md",
+      "icon": "time_next",
+      "params": "{\"modelo\"?: \"ecmwf\", \"aifs\", \"gfs\", \"icon\" ou \"melhor\" (padrão: ecmwf), \"dias\"?: de 1 a 16, cortado nos dias do modelo (padrão 15), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+      "form": [
+        {
+          "name": "modelo",
+          "label": "Modelo",
+          "kind": "choice",
+          "required": true,
+          "choices": [
+            "ECMWF IFS (15 dias)",
+            "ECMWF AIFS, de IA (15 dias)",
+            "GFS da NOAA (16 dias)",
+            "ICON do DWD (7 dias)",
+            "O melhor do Open-Meteo para o lugar (16 dias)"
+          ],
+          "default": "ECMWF IFS (15 dias)",
+          "help": "O modelo de previsão. O ECMWF IFS costuma acertar mais; o AIFS é o modelo de IA do ECMWF, mais suave; o GFS é o da NOAA; o ICON, do serviço alemão, vai até 7 dias."
+        },
+        {
+          "name": "dias",
+          "label": "Dias",
+          "kind": "number",
+          "required": true,
+          "default": 15,
+          "help": "Quantos dias somar, de 1 a 16, contando hoje. Acima dos dias do modelo, vale o máximo dele."
+        }
+      ]
+    },
+    {
+      "id": "chuva-ensemble",
+      "label": "Chuva do ensemble: chance e faixa provável (Open-Meteo)",
+      "help": "A chuva dos próximos dias nos membros de um ensemble (o mesmo modelo rodado várias vezes com pequenas diferenças), pelo Open-Meteo: o ECMWF ENS (51 membros, o padrão), o AIFS-ENS do ECMWF (51) ou o GEFS da NOAA (31, a 0,5°). Mostra a chance (%) de a chuva somada passar de um limiar, a média dos membros, o cenário seco (percentil 10) ou o chuvoso (percentil 90): mais confiável que uma rodada só, que oscila muito de uma para a outra na segunda semana. Os valores vêm nos nós de uma grade de 0,25° que cercam a área (até 58 pontos no ECMWF e 96 no GEFS; numa área grande, mais abertos) e viram um raster, interpolado para a grade do projeto e recortado pela área. Precisa de um RustGIS com o Polígonos para raster (raster.rasterize, desde a 0.6.0). Período: de hoje até 16 dias à frente (15 nos do ECMWF), da rodada mais recente do ensemble. Resolução ou escala: nós de uma grade de 0,25° (0,5° no GEFS) em volta da área, mais abertos numa área grande (até 100 pontos), interpolados para a grade do projeto. Unidades: % (a chance) ou mm (a média e os percentis). Licença: CC BY 4.0 (Open-Meteo; dados do ECMWF em CC BY 4.0, da NOAA em domínio público); a API gratuita do Open-Meteo é para uso não comercial. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/chuva-ensemble.md",
+      "icon": "graduated",
+      "params": "{\"modelo\"?: \"ecmwf\", \"aifs\" ou \"gfs\" (padrão: ecmwf), \"medida\"?: \"chance\", \"media\", \"p10\" ou \"p90\" (padrão: chance), \"limiar\"?: mm, para a chance (padrão 100), \"dias\"?: de 1 a 16 (padrão 15), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+      "form": [
+        {
+          "name": "modelo",
+          "label": "Ensemble",
+          "kind": "choice",
+          "required": true,
+          "choices": [
+            "ECMWF ENS, 51 membros (15 dias)",
+            "ECMWF AIFS-ENS, de IA, 51 membros (15 dias)",
+            "GEFS da NOAA, 31 membros (16 dias)"
+          ],
+          "default": "ECMWF ENS, 51 membros (15 dias)",
+          "help": "O ensemble. O ECMWF ENS é o de referência; o AIFS-ENS é o de IA do ECMWF; o GEFS é o da NOAA, mais grosso (0,5°)."
+        },
+        {
+          "name": "medida",
+          "label": "O que mostrar",
+          "kind": "choice",
+          "required": true,
+          "choices": [
+            "Chance de passar do limiar (%)",
+            "Média dos membros (mm)",
+            "Cenário seco: percentil 10 (mm)",
+            "Cenário chuvoso: percentil 90 (mm)"
+          ],
+          "default": "Chance de passar do limiar (%)",
+          "help": "A chance de passar do limiar, em %; ou a chuva, em mm: a média dos membros, o cenário seco (9 em 10 membros dão mais que isso) ou o chuvoso (só 1 em 10 dá mais)."
+        },
+        {
+          "name": "limiar",
+          "label": "Limiar (mm)",
+          "kind": "number",
+          "required": true,
+          "default": 100,
+          "help": "Para a chance: a chuva somada, em mm, que se quer saber se passa. Por exemplo, 50 mm em 7 dias, ou 150 mm em 15."
+        },
+        {
+          "name": "dias",
+          "label": "Dias",
+          "kind": "number",
+          "required": true,
+          "default": 15,
+          "help": "Quantos dias somar, de 1 a 16, contando hoje."
+        }
+      ]
+    },
+    {
+      "id": "temperatura-prevista",
+      "label": "Temperatura prevista (Open-Meteo)",
+      "help": "A temperatura do ar a 2 m prevista para os próximos dias, a partir de hoje (horário de Brasília): a média, nos dias pedidos, da máxima do dia, da mínima ou da média, de um modelo global pelo Open-Meteo (o ECMWF IFS por padrão), ajustada à altitude de cada ponto. Os valores vêm nos nós de uma grade de 0,25° em volta da área e viram um raster, interpolado para a grade do projeto e recortado pela área: o mapa mostra a variação regional, não o frio dos vales nem o calor das cidades. O tipo, o modelo e os dias vêm da janela do comando; sem janelas de plugin, a máxima do ECMWF IFS em 7 dias. Precisa de um RustGIS com o Polígonos para raster (raster.rasterize, desde a 0.6.0). Período: de hoje até 16 dias à frente (15 nos modelos do ECMWF, 7 no ICON), da rodada mais recente do modelo. Resolução ou escala: nós de uma grade de 0,25° (cerca de 28 km) em volta da área, ajustados à altitude de cada nó, interpolados para a grade do projeto. Unidades: °C. Licença: CC BY 4.0 (Open-Meteo; dados do ECMWF e do DWD em CC BY 4.0, da NOAA em domínio público); a API gratuita do Open-Meteo é para uso não comercial. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/temperatura-prevista.md",
+      "icon": "stretch",
+      "params": "{\"tipo\"?: \"maxima\", \"minima\" ou \"media\" (padrão: maxima), \"modelo\"?: \"ecmwf\", \"aifs\", \"gfs\", \"icon\" ou \"melhor\" (padrão: ecmwf), \"dias\"?: de 1 a 16 (padrão 7), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+      "form": [
+        {
+          "name": "tipo",
+          "label": "Temperatura",
+          "kind": "choice",
+          "required": true,
+          "choices": [
+            "Máxima do dia (média dos dias)",
+            "Mínima do dia (média dos dias)",
+            "Média do dia"
+          ],
+          "default": "Máxima do dia (média dos dias)",
+          "help": "A máxima ou a mínima de cada dia, em média nos dias pedidos, ou a média do dia."
+        },
+        {
+          "name": "modelo",
+          "label": "Modelo",
+          "kind": "choice",
+          "required": true,
+          "choices": [
+            "ECMWF IFS (15 dias)",
+            "ECMWF AIFS, de IA (15 dias)",
+            "GFS da NOAA (16 dias)",
+            "ICON do DWD (7 dias)",
+            "O melhor do Open-Meteo para o lugar (16 dias)"
+          ],
+          "default": "ECMWF IFS (15 dias)",
+          "help": "O modelo de previsão."
+        },
+        {
+          "name": "dias",
+          "label": "Dias",
+          "kind": "number",
+          "required": true,
+          "default": 7,
+          "help": "Quantos dias, de 1 a 16, contando hoje."
+        }
+      ]
+    },
+    {
+      "id": "chirps-mes",
+      "label": "Chuva do mês (CHIRPS v3)",
+      "help": "A chuva total de um mês, estimada por satélite e corrigida com estações (CHIRPS v3.0, do Climate Hazards Center da Universidade da Califórnia em Santa Bárbara), a 0,05° (cerca de 5,5 km), de 1981 até o último mês fechado: o total sai na terceira semana do mês seguinte. Só a área, lida do arquivo mundial do mês, posta na grade do projeto e recortada pelo contorno. O mês vem da janela do comando; vazio, o mais recente. Só no app desktop: o servidor não aceita pedidos do app web. Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área). Período: um mês, de janeiro de 1981 até o último mês fechado (o total sai na terceira semana do mês seguinte). Resolução ou escala: 0,05° (cerca de 5,5 km). Unidades: mm no mês. Licença: licença não declarada no README da v3; o Climate Hazards Center distribui o CHIRPS como domínio público (CC0), com a citação. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/chirps-mes.md",
+      "icon": "history",
+      "params": "{\"mes\"?: \"mm/aaaa\" (padrão: o mais recente), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+      "form": [
+        {
+          "name": "mes",
+          "label": "Mês",
+          "kind": "text",
+          "help": "O mês, mm/aaaa (por exemplo 10/2026), de 01/1981 até o último fechado. Vazio: o mais recente."
+        }
+      ]
+    },
+    {
       "id": "sol-radiacao",
       "label": "Radiação solar (NASA POWER)",
       "help": "A irradiação global horizontal na superfície, com todos os céus (nuvens incluídas), em kWh/m² por dia: a média diária de 2001 a 2025, do NASA POWER (CERES SYN1deg, NASA Langley), em células de 1° (cerca de 110 km). As células em volta da área, com uma de margem, viram um raster de 1°, que é interpolado (bilinear) para a grade do projeto e recortado pela área: o mapa mostra como a radiação varia de uma célula para a outra, não detalhes menores que 1°. O período, o ano ou um mês, vem da janela do comando; num RustGIS sem janelas de plugin, a média do ano. Precisa de um RustGIS com o Polígonos para raster (raster.rasterize, desde a 0.6.0). Período: média diária de 2001 a 2025, do ano ou de um mês. Resolução ou escala: 1° (cerca de 110 km), interpolada para a grade do projeto. Unidades: kWh/m² por dia. Licença: política de dados da NASA: uso livre e gratuito, com a citação. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/sol-radiacao.md",
@@ -1462,7 +1606,7 @@
         "kind": "text",
         "id": "sobre",
         "label": "Sobre o BrasilData",
-        "text": "BrasilData 0.1.31, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Elpídio Filho, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nFontes dos dados: IBGE, INPE, ANA, ANP, ANEEL, INCRA, ANM, Kuzma, MMA, ICMBio, FUNAI, Serviço Florestal Brasileiro, IBAMA, DNIT e MapBiomas, pelos serviços de cada órgão; Copernicus DEM GLO-30 (DLR e Airbus, pelo espelho da OpenTopography); Banco Central (Pix e crédito rural); TSE; Novo CAGED (IPEA Data) e Ministério da Saúde (CNES, pelo geobr do Ipea).\n\nComo contribuir: sentiu falta de algum dado? Abra uma issue em https://github.com/elpidioassinaturas/BrasilData/issues com o nome do dado, o órgão que o publica, o endereço do serviço (WFS, ArcGIS REST, API ou arquivo) e para que você o usaria. Para trazer a fonte você mesmo, acrescente uma linha ao fontes.csv, rode python scripts/gerar.py e abra um pull request. Correções, avisos de serviço fora do ar e relatos de uso também são bem-vindos."
+        "text": "BrasilData 0.1.31, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Elpídio Filho, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nFontes dos dados: IBGE, INPE, ANA, ANP, ANEEL, INCRA, ANM, Kuzma, MMA, ICMBio, FUNAI, Serviço Florestal Brasileiro, IBAMA, DNIT e MapBiomas, pelos serviços de cada órgão; Copernicus DEM GLO-30 (DLR e Airbus, pelo espelho da OpenTopography); Banco Central (Pix e crédito rural); TSE; Novo CAGED (IPEA Data); Ministério da Saúde (CNES, pelo geobr do Ipea); Open-Meteo (previsão do ECMWF, da NOAA e do DWD) e CHIRPS v3 (Climate Hazards Center, UCSB).\n\nComo contribuir: sentiu falta de algum dado? Abra uma issue em https://github.com/elpidioassinaturas/BrasilData/issues com o nome do dado, o órgão que o publica, o endereço do serviço (WFS, ArcGIS REST, API ou arquivo) e para que você o usaria. Para trazer a fonte você mesmo, acrescente uma linha ao fontes.csv, rode python scripts/gerar.py e abra um pull request. Correções, avisos de serviço fora do ar e relatos de uso também são bem-vindos."
       }
     ]
   },
@@ -1588,19 +1732,14 @@
               "indicadores-tse"
             ]
           },
-          "indicadores-todos"
-        ]
-      },
-      {
-        "label": "Saúde",
-        "items": [
           {
-            "menu": "Estabelecimentos",
+            "menu": "Saúde",
             "icon": "point_layer",
             "items": [
               "saude-estabelecimentos"
             ]
-          }
+          },
+          "indicadores-todos"
         ]
       },
       {
@@ -1633,12 +1772,34 @@
             "items": [
               "solos"
             ]
+          }
+        ]
+      },
+      {
+        "label": "Tempo e clima",
+        "items": [
+          {
+            "menu": "Previsão",
+            "icon": "time_next",
+            "items": [
+              "chuva-prevista",
+              "chuva-ensemble",
+              "temperatura-prevista"
+            ]
+          },
+          {
+            "menu": "Chuva observada",
+            "icon": "history",
+            "items": [
+              "chirps-mes"
+            ]
           },
           {
             "menu": "Clima",
             "icon": "brightness",
             "items": [
-              "sol-radiacao"
+              "sol-radiacao",
+              "risco-fogo"
             ]
           }
         ]

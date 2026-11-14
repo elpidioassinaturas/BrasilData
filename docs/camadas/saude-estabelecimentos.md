@@ -10,7 +10,7 @@ Os estabelecimentos de saúde ativos do CNES: hospitais, unidades básicas, clí
 
 | | |
 |---|---|
-| **Onde na aba** | Saúde › Estabelecimentos |
+| **Onde na aba** | Sociedade e economia › Saúde |
 | **Fonte** | Ministério da Saúde (CNES, pelo geobr do Ipea). |
 | **Período** | competência 04/2026 |
 | **Resolução ou escala** | pontos (coordenada do CNES ou do endereço). |

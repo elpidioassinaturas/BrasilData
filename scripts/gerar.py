@@ -60,6 +60,11 @@ PERFIS = [
 ]
 ESTILOS = ["Clássico", "Faixa", "Painel", "Editorial", "Modular", "Pôster"]
 PALETAS = ["A do BrasilData: etapa e confiança", "A oficial da OPERA"]
+# As escolhas do tema Tempo e clima (iguais às de src/tempo.rs).
+MODELOS_PREVISAO = ["ECMWF IFS (15 dias)", "ECMWF AIFS, de IA (15 dias)", "GFS da NOAA (16 dias)", "ICON do DWD (7 dias)", "O melhor do Open-Meteo para o lugar (16 dias)"]
+MODELOS_ENSEMBLE = ["ECMWF ENS, 51 membros (15 dias)", "ECMWF AIFS-ENS, de IA, 51 membros (15 dias)", "GEFS da NOAA, 31 membros (16 dias)"]
+MEDIDAS_ENSEMBLE = ["Chance de passar do limiar (%)", "Média dos membros (mm)", "Cenário seco: percentil 10 (mm)", "Cenário chuvoso: percentil 90 (mm)"]
+TEMPERATURAS = ["Máxima do dia (média dos dias)", "Mínima do dia (média dos dias)", "Média do dia"]
 MODELOS_GEM15 = ["Terreno nu (DTM)", "Superfície, com vegetação e construções (DSM)", "Altura acima do terreno (DSM menos DTM)"]
 
 # Os comandos que não vêm da tabela, com o grupo da aba em que ficam. Na aba, o grupo Área
@@ -332,6 +337,8 @@ OUTRAS_FONTES = [
     "TSE",
     "Novo CAGED (IPEA Data)",
     "Ministério da Saúde (CNES, pelo geobr do Ipea)",
+    "Open-Meteo (previsão do ECMWF, da NOAA e do DWD)",
+    "CHIRPS v3 (Climate Hazards Center, UCSB)",
 ]
 # O RustGIS aceita até 2.000 caracteres num texto declarado do painel e corta um aviso em 500
 # (com o "BrasilData: " na frente).
@@ -476,8 +483,8 @@ EM_MENUS = [
         },
     ),
     (
+        "Sociedade e economia",
         "Saúde",
-        "Estabelecimentos",
         {
             "id": "saude-estabelecimentos",
             "label": "Estabelecimentos de saúde (CNES, DATASUS)",
@@ -744,7 +751,142 @@ EM_MENUS = [
         },
     ),
     (
-        "Meio físico",
+        "Tempo e clima",
+        "Previsão",
+        {
+            "id": "chuva-prevista",
+            "label": "Chuva prevista (Open-Meteo)",
+            "help": "A chuva prevista somada nos próximos dias, a partir de hoje (horário de Brasília), de um modelo global de previsão do tempo pelo Open-Meteo: o ECMWF IFS (o padrão), o AIFS do ECMWF (de inteligência artificial), o GFS da NOAA, o ICON do DWD ou o melhor do Open-Meteo para o lugar. Os valores diários vêm nos nós de uma grade de 0,25° (cerca de 28 km) que cercam a área e viram um raster, interpolado (bilinear) para a grade do projeto e recortado pela área. Numa área grande, a grade de pontos fica mais aberta (até 400 pontos). Uma rodada só oscila muito na segunda semana: para a faixa provável, use a Chuva do ensemble. O modelo e os dias vêm da janela do comando; num RustGIS sem janelas de plugin, o ECMWF IFS em 15 dias. Precisa de um RustGIS com o Polígonos para raster (raster.rasterize, desde a 0.6.0).",
+            "icon": "time_next",
+            "params": "{\"modelo\"?: \"ecmwf\", \"aifs\", \"gfs\", \"icon\" ou \"melhor\" (padrão: ecmwf), \"dias\"?: de 1 a 16, cortado nos dias do modelo (padrão 15), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+            "form": [
+                {
+                    "name": "modelo",
+                    "label": "Modelo",
+                    "kind": "choice",
+                    "required": True,
+                    "choices": MODELOS_PREVISAO,
+                    "default": MODELOS_PREVISAO[0],
+                    "help": "O modelo de previsão. O ECMWF IFS costuma acertar mais; o AIFS é o modelo de IA do ECMWF, mais suave; o GFS é o da NOAA; o ICON, do serviço alemão, vai até 7 dias."
+                },
+                {
+                    "name": "dias",
+                    "label": "Dias",
+                    "kind": "number",
+                    "required": True,
+                    "default": 15,
+                    "help": "Quantos dias somar, de 1 a 16, contando hoje. Acima dos dias do modelo, vale o máximo dele."
+                }
+            ]
+        },
+    ),
+    (
+        "Tempo e clima",
+        "Previsão",
+        {
+            "id": "chuva-ensemble",
+            "label": "Chuva do ensemble: chance e faixa provável (Open-Meteo)",
+            "help": "A chuva dos próximos dias nos membros de um ensemble (o mesmo modelo rodado várias vezes com pequenas diferenças), pelo Open-Meteo: o ECMWF ENS (51 membros, o padrão), o AIFS-ENS do ECMWF (51) ou o GEFS da NOAA (31, a 0,5°). Mostra a chance (%) de a chuva somada passar de um limiar, a média dos membros, o cenário seco (percentil 10) ou o chuvoso (percentil 90): mais confiável que uma rodada só, que oscila muito de uma para a outra na segunda semana. Os valores vêm nos nós de uma grade de 0,25° que cercam a área (até 58 pontos no ECMWF e 96 no GEFS; numa área grande, mais abertos) e viram um raster, interpolado para a grade do projeto e recortado pela área. Precisa de um RustGIS com o Polígonos para raster (raster.rasterize, desde a 0.6.0).",
+            "icon": "graduated",
+            "params": "{\"modelo\"?: \"ecmwf\", \"aifs\" ou \"gfs\" (padrão: ecmwf), \"medida\"?: \"chance\", \"media\", \"p10\" ou \"p90\" (padrão: chance), \"limiar\"?: mm, para a chance (padrão 100), \"dias\"?: de 1 a 16 (padrão 15), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+            "form": [
+                {
+                    "name": "modelo",
+                    "label": "Ensemble",
+                    "kind": "choice",
+                    "required": True,
+                    "choices": MODELOS_ENSEMBLE,
+                    "default": MODELOS_ENSEMBLE[0],
+                    "help": "O ensemble. O ECMWF ENS é o de referência; o AIFS-ENS é o de IA do ECMWF; o GEFS é o da NOAA, mais grosso (0,5°)."
+                },
+                {
+                    "name": "medida",
+                    "label": "O que mostrar",
+                    "kind": "choice",
+                    "required": True,
+                    "choices": MEDIDAS_ENSEMBLE,
+                    "default": MEDIDAS_ENSEMBLE[0],
+                    "help": "A chance de passar do limiar, em %; ou a chuva, em mm: a média dos membros, o cenário seco (9 em 10 membros dão mais que isso) ou o chuvoso (só 1 em 10 dá mais)."
+                },
+                {
+                    "name": "limiar",
+                    "label": "Limiar (mm)",
+                    "kind": "number",
+                    "required": True,
+                    "default": 100,
+                    "help": "Para a chance: a chuva somada, em mm, que se quer saber se passa. Por exemplo, 50 mm em 7 dias, ou 150 mm em 15."
+                },
+                {
+                    "name": "dias",
+                    "label": "Dias",
+                    "kind": "number",
+                    "required": True,
+                    "default": 15,
+                    "help": "Quantos dias somar, de 1 a 16, contando hoje."
+                }
+            ]
+        },
+    ),
+    (
+        "Tempo e clima",
+        "Previsão",
+        {
+            "id": "temperatura-prevista",
+            "label": "Temperatura prevista (Open-Meteo)",
+            "help": "A temperatura do ar a 2 m prevista para os próximos dias, a partir de hoje (horário de Brasília): a média, nos dias pedidos, da máxima do dia, da mínima ou da média, de um modelo global pelo Open-Meteo (o ECMWF IFS por padrão), ajustada à altitude de cada ponto. Os valores vêm nos nós de uma grade de 0,25° em volta da área e viram um raster, interpolado para a grade do projeto e recortado pela área: o mapa mostra a variação regional, não o frio dos vales nem o calor das cidades. O tipo, o modelo e os dias vêm da janela do comando; sem janelas de plugin, a máxima do ECMWF IFS em 7 dias. Precisa de um RustGIS com o Polígonos para raster (raster.rasterize, desde a 0.6.0).",
+            "icon": "stretch",
+            "params": "{\"tipo\"?: \"maxima\", \"minima\" ou \"media\" (padrão: maxima), \"modelo\"?: \"ecmwf\", \"aifs\", \"gfs\", \"icon\" ou \"melhor\" (padrão: ecmwf), \"dias\"?: de 1 a 16 (padrão 7), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+            "form": [
+                {
+                    "name": "tipo",
+                    "label": "Temperatura",
+                    "kind": "choice",
+                    "required": True,
+                    "choices": TEMPERATURAS,
+                    "default": TEMPERATURAS[0],
+                    "help": "A máxima ou a mínima de cada dia, em média nos dias pedidos, ou a média do dia."
+                },
+                {
+                    "name": "modelo",
+                    "label": "Modelo",
+                    "kind": "choice",
+                    "required": True,
+                    "choices": MODELOS_PREVISAO,
+                    "default": MODELOS_PREVISAO[0],
+                    "help": "O modelo de previsão."
+                },
+                {
+                    "name": "dias",
+                    "label": "Dias",
+                    "kind": "number",
+                    "required": True,
+                    "default": 7,
+                    "help": "Quantos dias, de 1 a 16, contando hoje."
+                }
+            ]
+        },
+    ),
+    (
+        "Tempo e clima",
+        "Chuva observada",
+        {
+            "id": "chirps-mes",
+            "label": "Chuva do mês (CHIRPS v3)",
+            "help": "A chuva total de um mês, estimada por satélite e corrigida com estações (CHIRPS v3.0, do Climate Hazards Center da Universidade da Califórnia em Santa Bárbara), a 0,05° (cerca de 5,5 km), de 1981 até o último mês fechado: o total sai na terceira semana do mês seguinte. Só a área, lida do arquivo mundial do mês, posta na grade do projeto e recortada pelo contorno. O mês vem da janela do comando; vazio, o mais recente. Só no app desktop: o servidor não aceita pedidos do app web. Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área).",
+            "icon": "history",
+            "params": "{\"mes\"?: \"mm/aaaa\" (padrão: o mais recente), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+            "form": [
+                {
+                    "name": "mes",
+                    "label": "Mês",
+                    "kind": "text",
+                    "help": "O mês, mm/aaaa (por exemplo 10/2026), de 01/1981 até o último fechado. Vazio: o mais recente."
+                }
+            ]
+        },
+    ),
+    (
+        "Tempo e clima",
         "Clima",
         {
             "id": "sol-radiacao",
@@ -985,9 +1127,9 @@ def texto_da_ficha(nome: str, fi: dict) -> str:
 TOPICOS = {
     "Área": ["Amostragem"],
     "Território": ["Limites", "Recortes especiais", "Cadastro fundiário", "Terras indígenas"],
-    "Sociedade e economia": ["População", "Economia", "Agricultura", "Eleições"],
-    "Saúde": ["Estabelecimentos"],
-    "Meio físico": ["Geologia e recursos minerais", "Relevo", "Solos", "Clima"],
+    "Sociedade e economia": ["População", "Economia", "Agricultura", "Eleições", "Saúde"],
+    "Meio físico": ["Geologia e recursos minerais", "Relevo", "Solos"],
+    "Tempo e clima": ["Previsão", "Chuva observada", "Clima"],
     "Água": ["Hidrografia", "Bacias", "Recursos hídricos"],
     "Vegetação e meio ambiente": ["Vegetação", "Uso e cobertura", "Desmatamento", "Queimadas", "Áreas protegidas", "Fiscalização"],
     "Infraestrutura": ["Energia", "Petróleo e gás", "Transportes"],
@@ -996,7 +1138,7 @@ GRUPOS = list(TOPICOS)
 # Comandos que também aparecem num segundo subtópico: (tópico, subtópico, id). A Agricultura
 # tem o Censo Agropecuário próprio (censo-agro); os censos por município ficam na População. A
 # irrigação do GMIA fica na Água e também na Agricultura, ao lado do Censo Agropecuário.
-TAMBEM = [("Sociedade e economia", "Agricultura", "mapbiomas-irrigacao"), ("Sociedade e economia", "Agricultura", "irrigacao-gmia")]
+TAMBEM = [("Sociedade e economia", "Agricultura", "mapbiomas-irrigacao"), ("Sociedade e economia", "Agricultura", "irrigacao-gmia"), ("Tempo e clima", "Clima", "risco-fogo")]
 
 # O ícone de um subtópico, quando um dos ícones do RustGIS diz mais que a geometria da primeira
 # camada (o plugin só pode usar os ícones do RustGIS, pelo nome).
@@ -1012,6 +1154,9 @@ MENU_ICONES = {
     "Geologia e recursos minerais": "bands",
     "Relevo": "relief",
     "Solos": "classify",
+    "Saúde": "point_layer",
+    "Previsão": "time_next",
+    "Chuva observada": "history",
     "Clima": "brightness",
     "Bacias": "dissolve",
     "Recursos hídricos": "graduated",
@@ -1137,7 +1282,7 @@ def manifesto(linhas: list[dict], fichas: dict[str, dict]) -> str:
         "id": "brasildata",
         "name": "BrasilData",
         "version": VERSAO,
-        "description": "Dados públicos do Brasil para a área do usuário (IBGE, MMA, ICMBio, INPE, ANA, ANEEL, ANP, SFB/CAR, INCRA, FUNAI, IBAMA, ANM, DNIT, Ministério da Saúde, Copernicus, NASA/ASF, FAO, WRI): só o que cruza a área, recortado por ela, com a fonte e a licença de cada camada.",
+        "description": "Dados públicos do Brasil para a área do usuário (IBGE, MMA, ICMBio, INPE, ANA, ANEEL, ANP, SFB/CAR, INCRA, FUNAI, IBAMA, ANM, DNIT, Ministério da Saúde, Copernicus, NASA/ASF, FAO, WRI, Open-Meteo, CHIRPS): só o que cruza a área, recortado por ela, com a fonte e a licença de cada camada.",
         "author": AUTOR,
         "homepage": REPOSITORIO,
         "license": LICENCA,

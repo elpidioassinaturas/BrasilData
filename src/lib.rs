@@ -40,6 +40,7 @@ pub mod radar;
 pub mod risco_fogo;
 pub mod saude;
 pub mod sol;
+pub mod tempo;
 pub mod versao;
 pub mod vista;
 pub mod zoom;

@@ -15,6 +15,7 @@
 use serde_json::{Value, json};
 
 use crate::risco_fogo::NOMES_DOS_MESES;
+use crate::tempo::{ESCOLHAS_DETERMINISTICOS, ESCOLHAS_ENSEMBLES, ESCOLHAS_MEDIDAS, ESCOLHAS_TEMPERATURAS};
 
 /// A escolha da radiação solar que pede a média do ano (o comando sem `mes`).
 pub const MEDIA_DO_ANO: &str = "média do ano";
@@ -68,6 +69,11 @@ const TROCAS: &[(&str, &str, Escolhas)] = &[
     ("layout", "estilo", &ESTILOS),
     ("dist-situacao", "paleta", &PALETAS),
     ("gem15", "modelo", &MODELOS_GEM15),
+    ("chuva-prevista", "modelo", &ESCOLHAS_DETERMINISTICOS),
+    ("temperatura-prevista", "modelo", &ESCOLHAS_DETERMINISTICOS),
+    ("temperatura-prevista", "tipo", &ESCOLHAS_TEMPERATURAS),
+    ("chuva-ensemble", "modelo", &ESCOLHAS_ENSEMBLES),
+    ("chuva-ensemble", "medida", &ESCOLHAS_MEDIDAS),
 ];
 
 /// O número do mês de nome `nome` (janeiro é 1).

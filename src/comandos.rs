@@ -21,6 +21,7 @@ use crate::malhas;
 use crate::mapbiomas;
 use crate::municipios::{self, Territorio};
 use crate::nisar;
+use crate::tempo;
 use crate::radar;
 use crate::risco_fogo;
 use crate::saude;
@@ -156,6 +157,10 @@ fn executar_comando(req: Request) -> Result<Value, String> {
         "escolher-area" => escolher_area(&req),
         "elevacao" => elevacao(req.f64("celula")),
         "sol-radiacao" => sol_na_area(&req),
+        "chuva-prevista" => chuva_prevista(&req),
+        "chuva-ensemble" => chuva_do_ensemble(&req),
+        "temperatura-prevista" => temperatura_prevista(&req),
+        "chirps-mes" => chuva_do_mes(&req),
         "irrigacao-gmia" => irrigacao_na_area(req.f64("celula")),
         "risco-fogo" => risco_de_fogo(&req),
         "gem15" => gem15_na_area(&req),
@@ -1281,6 +1286,10 @@ fn citacoes() -> Result<(Vec<Value>, String), String> {
             lista.push(json!({"layer": n, "source": radar::CITACAO, "license": radar::LICENCA}));
         } else if sol::eh_do_sol(&n) {
             lista.push(json!({"layer": n, "source": sol::CITACAO, "license": sol::LICENCA}));
+        } else if tempo::eh_da_previsao(&n) {
+            lista.push(json!({"layer": n, "source": tempo::citacao_da_camada(&n), "license": tempo::LICENCA}));
+        } else if tempo::eh_do_chirps(&n) {
+            lista.push(json!({"layer": n, "source": tempo::CITACAO_CHIRPS, "license": tempo::LICENCA_CHIRPS}));
         } else if risco_fogo::mes_da_camada(&n).is_some() {
             lista.push(json!({"layer": n, "source": risco_fogo::CITACAO, "license": risco_fogo::LICENCA}));
         } else if n == irrigacao::CAMADA {
@@ -3038,6 +3047,387 @@ fn sol_na_area(req: &Request) -> Result<Value, String> {
         g.texto()
     ));
     Ok(json!({"layer": saida, "cells": n, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula}))
+}
+
+/// O retângulo da área e a célula pedida, para a previsão do Open-Meteo, com as conferências
+/// comuns aos três comandos.
+fn preparar_previsao(req: &Request) -> Result<([f64; 4], Option<f64>), String> {
+    let celula = req.f64("celula");
+    if let Some(m) = celula {
+        grade::conferir_celula(m)?;
+    }
+    let (c, na_area) = retangulo()?;
+    if !na_area {
+        return Err("escolha a área primeiro (painel Área de trabalho, ou Área: seleção)".into());
+    }
+    if !tem_comando("raster.rasterize")? {
+        return Err("a previsão do tempo precisa de um RustGIS com o Polígonos para raster (raster.rasterize, desde a 0.6.0): os pontos do Open-Meteo viram um raster com ele".into());
+    }
+    Ok((c, celula))
+}
+
+/// Os lugares das respostas do Open-Meteo, um por ponto, na ordem dos pontos; ou, para o comando
+/// devolver, o pedido pendente (app web) ou a resposta incompleta.
+///
+/// No desktop, cada pedido espera até 20 s e todos os de um clique até 60 s. Um grupo de pontos
+/// que passa disso fica de fora, os outros seguem, e o comando avisa em vez de falhar (um script
+/// segue adiante): o RustGIS guarda por 10 minutos as respostas que chegaram e por 30 s os
+/// erros, e o clique seguinte, depois desses 30 s, só pede o que faltou.
+fn buscar_previsao(urls: &[String], pontos: usize) -> Result<Result<Vec<Value>, Value>, String> {
+    let mut respostas = Vec::new();
+    let (mut pendente, mut esperando, mut faltam, mut motivo) = (None, 0, 0, String::new());
+    for url in urls {
+        match host::call("host.fetch", json!({"url": url})) {
+            Ok(r) if r.get("pending").and_then(Value::as_bool) == Some(true) => {
+                pendente = Some(r);
+                esperando += 1;
+                if esperando == 8 {
+                    break;
+                }
+            }
+            Ok(r) => respostas.push(r.get("json").cloned().ok_or(format!("{url}: a resposta não é JSON"))?),
+            Err(e) if e.contains("429") => {
+                return Err("o Open-Meteo recusou por excesso de pedidos: espere um minuto, ou use uma área menor".into());
+            }
+            Err(e) if e.contains("timeout") || e.contains("timed out") => {
+                faltam += 1;
+                motivo = e;
+            }
+            Err(e) => return Err(e),
+        }
+    }
+    if let Some(p) = pendente {
+        return Ok(Err(p));
+    }
+    if faltam > 0 {
+        avisar(&format!(
+            "Previsão do Open-Meteo incompleta: o servidor demorou mais do que o RustGIS espera (20 s por pedido, 60 s por clique), e chegaram {} de {} grupos de pontos, guardados por 10 minutos. Clique de novo daqui a 30 segundos para buscar os {faltam} que faltam ({motivo})",
+            urls.len() - faltam,
+            urls.len()
+        ));
+        return Ok(Err(json!({"incomplete": faltam, "of": urls.len()})));
+    }
+    if let Some(e) = respostas.iter().find_map(tempo::erro) {
+        return Err(e);
+    }
+    // Um pedido de vários pontos volta como lista; de um só, como objeto. Os lugares são tirados
+    // das respostas sem copiar (copiar 51 membros gasta o orçamento de processamento do clique).
+    let mut lugares = Vec::with_capacity(pontos);
+    for r in respostas {
+        match r {
+            Value::Array(a) => lugares.extend(a),
+            outro => lugares.push(outro),
+        }
+    }
+    if lugares.len() != pontos {
+        return Err(format!("o Open-Meteo devolveu {} lugares para {pontos} pontos", lugares.len()));
+    }
+    Ok(Ok(lugares))
+}
+
+/// O primeiro e o último dia da previsão, da primeira resposta que os tiver.
+fn periodo_da_previsao(lugares: &[Value], dias: usize) -> Result<(String, String), String> {
+    lugares.iter().find_map(|l| tempo::periodo(l, dias)).ok_or_else(|| "o Open-Meteo não devolveu as datas da previsão".to_string())
+}
+
+/// Como uma previsão vai para o mapa: a rampa, a escala das cores e os valores aceitos.
+struct Pintura<'a> {
+    rampa: (&'a str, &'a str),
+    reserva: &'a str,
+    escala: (f64, f64),
+    aceitos: (f64, f64),
+}
+
+/// As células da previsão viram um raster de `passo` graus, interpolado (bilinear) para a grade do
+/// projeto, recortado pela área e pintado.
+fn previsao_para_grade(c: [f64; 4], celula: Option<f64>, fc: Value, passo: f64, saida: &str, p: &Pintura) -> Result<Grade, String> {
+    let g = grade_para(c, celula)?;
+    let temporarias = [tempo::CELULAS, tempo::RASTER, tempo::NA_GRADE];
+    remover(&temporarias)?;
+    remover(&[saida])?;
+    let feito = (|| -> Result<(), String> {
+        host::add_layer(tempo::CELULAS, fc)?;
+        // As células têm o centro nos nós da grade de pontos (múltiplos do passo).
+        host::run(
+            "raster.rasterize",
+            json!({"layer": tempo::CELULAS, "field": tempo::CAMPO, "nodata": -9999, "crs": 4326, "cellSize": passo, "origin": [passo / 2.0, passo / 2.0], "name": tempo::RASTER}),
+        )?;
+        host::run(
+            "raster.project",
+            json!({"layer": tempo::RASTER, "crs": g.epsg, "cellSize": g.celula, "extent": GRADE, "resampling": "bilinear", "name": tempo::NA_GRADE}),
+        )?;
+        host::run("raster.process", json!({"layer": tempo::NA_GRADE, "operation": "clip", "polygon": AREA, "name": saida}))?;
+        host::run("raster.mask", json!({"layer": saida, "min": p.aceitos.0, "max": p.aceitos.1}))?;
+        pintar(saida, p);
+        Ok(())
+    })();
+    remover(&temporarias)?;
+    feito?;
+    Ok(g)
+}
+
+/// Pinta o raster `saida` com a rampa da [`Pintura`] (ou a reserva do RustGIS) na escala dela.
+fn pintar(saida: &str, p: &Pintura) {
+    // A rampa já registrada (de um clique anterior) fica como está.
+    let _ = host::run("ramp.add", json!({"text": p.rampa.1, "format": "gdal", "name": p.rampa.0}));
+    if host::run("raster.symbology", json!({"layer": saida, "type": "stretch", "ramp": p.rampa.0})).is_err() {
+        let _ = host::run("raster.symbology", json!({"layer": saida, "type": "stretch", "ramp": p.reserva}));
+    }
+    let _ = host::run("raster.stretch", json!({"layer": saida, "type": "custom", "min": p.escala.0, "max": p.escala.1}));
+}
+
+/// A média do raster `nome` na área, para o aviso.
+fn media_na_area(nome: &str, unidade: &str) -> String {
+    host::run("raster.info", json!({"layer": nome}))
+        .ok()
+        .and_then(|i| i["bands"][0]["mean"].as_f64())
+        .map(|m| format!("; média na área: {} {unidade}", formatar_decimal(m)))
+        .unwrap_or_default()
+}
+
+/// O passo da grade de pontos, para o aviso ("0,25°").
+fn texto_do_passo(passo: f64) -> String {
+    format!("{}°", format!("{passo}").replace('.', ","))
+}
+
+/// O aviso de uma previsão com menos dias que os pedidos: o modelo não vai tão longe, ou a
+/// rodada tem o último dia incompleto.
+fn aviso_de_corte(m: &tempo::Modelo, pedidos: usize, dias: usize) -> String {
+    if dias < pedidos { format!("; pedidos {pedidos} dias, o {} tem {dias} completos", m.nome) } else { String::new() }
+}
+
+/// Os dias pedidos (já conferidos por [`tempo::dias`]), para o aviso.
+fn dias_pedidos(req: &Request, padrao: usize) -> usize {
+    req.f64("dias").map_or(padrao, |d| d as usize)
+}
+
+/// Os dias completos da previsão, ou o erro de nenhum.
+fn dias_da_resposta(lugares: &[Value], variavel: &str, dias: usize) -> Result<usize, String> {
+    match tempo::dias_completos(lugares, variavel, dias) {
+        0 => Err("o Open-Meteo não tem a previsão na área".into()),
+        d => Ok(d),
+    }
+}
+
+/// O número de células com valor, ou o erro de nenhuma.
+fn celulas_com_valor(fc: &Value) -> Result<usize, String> {
+    match fc["features"].as_array().map_or(0, Vec::len) {
+        0 => Err("o Open-Meteo não tem a previsão na área".into()),
+        n => Ok(n),
+    }
+}
+
+/// O limiar escrito para o aviso, sem ",0".
+fn texto_do_limiar(limiar: f64) -> String {
+    let t = formatar_decimal(limiar);
+    t.strip_suffix(",0").map(str::to_string).unwrap_or(t)
+}
+
+/// A chuva prevista de um modelo determinístico ([`tempo`]): a soma dos dias pedidos nos nós em
+/// volta da área, interpolada para a grade do projeto e recortada pela área.
+fn chuva_prevista(req: &Request) -> Result<Value, String> {
+    let m = tempo::modelo(&tempo::DETERMINISTICOS, req.str("modelo"))?;
+    let (pedidos, _) = tempo::dias(req.f64("dias"), tempo::DIAS_CHUVA, m)?;
+    let (c, celula) = preparar_previsao(req)?;
+    let (passo, pts) = tempo::pontos(c, m.passo, tempo::MAX_PONTOS);
+    let lugares = match buscar_previsao(&tempo::pedidos(m, "precipitation_sum", pedidos, &pts), pts.len())? {
+        Ok(l) => l,
+        Err(p) => return Ok(p),
+    };
+    let dias = dias_da_resposta(&lugares, "precipitation_sum", pedidos)?;
+    let valores: Vec<Option<f64>> = lugares.iter().map(|l| tempo::soma(l, "precipitation_sum", dias)).collect();
+    let (de, ate) = periodo_da_previsao(&lugares, dias)?;
+    let fc = tempo::celulas(&pts, &valores, passo);
+    let n = celulas_com_valor(&fc)?;
+    let saida = tempo::camada_chuva(m, dias, &de, &ate);
+    let max = tempo::escala_chuva(dias);
+    let (rn, rt) = tempo::rampa_chuva(max);
+    let pintura = Pintura { rampa: (&rn, &rt), reserva: "YlGnBu", escala: (0.0, max), aceitos: (0.0, 5000.0) };
+    let g = previsao_para_grade(c, celula, fc, passo, &saida, &pintura)?;
+    avisar(&format!(
+        "{saida}: a chuva somada de {de} a {ate} ({dias} dias a partir de hoje), do {} (Open-Meteo), em {n} pontos a cada {}, interpolada para a grade do projeto, {}{}{}",
+        m.nome,
+        texto_do_passo(passo),
+        g.texto(),
+        media_na_area(&saida, "mm"),
+        aviso_de_corte(m, dias_pedidos(req, tempo::DIAS_CHUVA), dias)
+    ));
+    Ok(json!({"layer": saida, "points": n, "step": passo, "days": dias, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula}))
+}
+
+/// A chuva de um ensemble ([`tempo`]): a chance de passar de um limiar, a média dos membros ou um
+/// percentil, nos nós em volta da área, interpolada para a grade do projeto e recortada pela área.
+fn chuva_do_ensemble(req: &Request) -> Result<Value, String> {
+    let m = tempo::modelo(&tempo::ENSEMBLES, req.str("modelo"))?;
+    let medida = tempo::medida(req.str("medida"))?;
+    let limiar = tempo::limiar(req.f64("limiar"))?;
+    let (pedidos, _) = tempo::dias(req.f64("dias"), tempo::DIAS_CHUVA, m)?;
+    let (c, celula) = preparar_previsao(req)?;
+    let (passo, pts) = tempo::pontos(c, m.passo, tempo::max_pontos_ensemble(m));
+    let lugares = match buscar_previsao(&tempo::pedidos_ensemble(m, pedidos, &pts), pts.len())? {
+        Ok(l) => l,
+        Err(p) => return Ok(p),
+    };
+    let dias = dias_da_resposta(&lugares, "precipitation_sum", pedidos)?;
+    let membros: Vec<Vec<f64>> = lugares.iter().map(|l| tempo::membros(l, dias)).collect();
+    let n_membros = membros.iter().map(Vec::len).max().unwrap_or(0);
+    let valores: Vec<Option<f64>> = membros.iter().map(|v| tempo::resumir(v, medida, limiar)).collect();
+    let (de, ate) = periodo_da_previsao(&lugares, dias)?;
+    let fc = tempo::celulas(&pts, &valores, passo);
+    let n = celulas_com_valor(&fc)?;
+    let saida = tempo::camada_ensemble(m, medida, limiar, dias, &de, &ate);
+    let max = tempo::escala_chuva(dias);
+    let (rn, rt) = tempo::rampa_chuva(max);
+    let chuva = Pintura { rampa: (&rn, &rt), reserva: "YlGnBu", escala: (0.0, max), aceitos: (0.0, 5000.0) };
+    let (pintura, unidade, o_que) = match medida {
+        tempo::Medida::Chance => (
+            Pintura { rampa: tempo::RAMPA_CHANCE, reserva: "YlOrRd", escala: (0.0, 100.0), aceitos: (0.0, 100.0) },
+            "%",
+            format!("a chance, entre os {n_membros} membros, de a chuva de {de} a {ate} passar de {} mm", texto_do_limiar(limiar)),
+        ),
+        tempo::Medida::Media => (chuva, "mm", format!("a média dos {n_membros} membros da chuva de {de} a {ate}")),
+        tempo::Medida::P10 => {
+            (chuva, "mm", format!("o cenário seco (9 em cada 10 dos {n_membros} membros dão mais chuva que isso) de {de} a {ate}"))
+        }
+        tempo::Medida::P90 => {
+            (chuva, "mm", format!("o cenário chuvoso (só 1 em cada 10 dos {n_membros} membros dá mais chuva que isso) de {de} a {ate}"))
+        }
+    };
+    let g = previsao_para_grade(c, celula, fc, passo, &saida, &pintura)?;
+    avisar(&format!(
+        "{saida}: {o_que}, do {} (Open-Meteo), em {n} pontos a cada {}, interpolada para a grade do projeto, {}{}{}",
+        m.nome,
+        texto_do_passo(passo),
+        g.texto(),
+        media_na_area(&saida, unidade),
+        aviso_de_corte(m, dias_pedidos(req, tempo::DIAS_CHUVA), dias)
+    ));
+    Ok(json!({"layer": saida, "points": n, "members": n_membros, "step": passo, "days": dias, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula}))
+}
+
+/// A temperatura prevista ([`tempo`]): a média, nos dias pedidos, da máxima, da mínima ou da média
+/// do dia, nos nós em volta da área, interpolada para a grade do projeto e recortada pela área.
+fn temperatura_prevista(req: &Request) -> Result<Value, String> {
+    let m = tempo::modelo(&tempo::DETERMINISTICOS, req.str("modelo"))?;
+    let t = tempo::temperatura(req.str("tipo"))?;
+    let (pedidos, _) = tempo::dias(req.f64("dias"), tempo::DIAS_TEMPERATURA, m)?;
+    let (c, celula) = preparar_previsao(req)?;
+    let (passo, pts) = tempo::pontos(c, m.passo, tempo::MAX_PONTOS);
+    let lugares = match buscar_previsao(&tempo::pedidos(m, t.variavel(), pedidos, &pts), pts.len())? {
+        Ok(l) => l,
+        Err(p) => return Ok(p),
+    };
+    let dias = dias_da_resposta(&lugares, t.variavel(), pedidos)?;
+    let valores: Vec<Option<f64>> = lugares.iter().map(|l| tempo::media(l, t.variavel(), dias)).collect();
+    let (de, ate) = periodo_da_previsao(&lugares, dias)?;
+    let fc = tempo::celulas(&pts, &valores, passo);
+    let n = celulas_com_valor(&fc)?;
+    let saida = tempo::camada_temperatura(t, m, dias, &de, &ate);
+    let pintura = Pintura { rampa: tempo::RAMPA_TEMPERATURA, reserva: "RdYlBu", escala: tempo::ESCALA_TEMPERATURA, aceitos: (-60.0, 60.0) };
+    let g = previsao_para_grade(c, celula, fc, passo, &saida, &pintura)?;
+    avisar(&format!(
+        "{saida}: a temperatura {} do dia a 2 m, em média de {de} a {ate}, do {} (Open-Meteo, ajustada à altitude de cada ponto), em {n} pontos a cada {}, interpolada para a grade do projeto, {}{}{}",
+        t.nome(),
+        m.nome,
+        texto_do_passo(passo),
+        g.texto(),
+        media_na_area(&saida, "°C"),
+        aviso_de_corte(m, dias_pedidos(req, tempo::DIAS_TEMPERATURA), dias)
+    ));
+    Ok(json!({"layer": saida, "points": n, "step": passo, "days": dias, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula}))
+}
+
+/// O mês do CHIRPS: o pedido ("mm/aaaa") ou o mais recente da pasta do Climate Hazards Center.
+fn mes_do_chirps(req: &Request) -> Result<Result<(i64, u32), Value>, String> {
+    if let Some(t) = req.str("mes") {
+        return tempo::ler_mes(t).map(Ok).ok_or_else(|| format!("o mês é mm/aaaa (por exemplo 10/2026), não '{t}'"));
+    }
+    let r = match buscar(&[tempo::PASTA_CHIRPS.to_string()]).map_err(|e| {
+        if e.contains("429") {
+            "o servidor do CHIRPS (data.chc.ucsb.edu) recusou por excesso de pedidos: tente daqui a alguns minutos, ou diga o mês (mm/aaaa), que não precisa da lista da pasta".to_string()
+        } else {
+            e
+        }
+    })? {
+        Ok(r) => r,
+        Err(p) => return Ok(Err(p)),
+    };
+    let texto = r.first().and_then(|r| r["text"].as_str()).unwrap_or_default();
+    tempo::ultimo_mes(texto)
+        .map(Ok)
+        .ok_or_else(|| "não achei o último mês do CHIRPS na pasta do Climate Hazards Center: diga o mês (mm/aaaa)".into())
+}
+
+/// A chuva de um mês do CHIRPS v3 ([`tempo`]): a janela da área no COG mundial do mês, posta na
+/// grade do projeto e recortada pela área.
+fn chuva_do_mes(req: &Request) -> Result<Value, String> {
+    let celula = req.f64("celula");
+    if let Some(m) = celula {
+        grade::conferir_celula(m)?;
+    }
+    let (c, na_area) = retangulo()?;
+    if !na_area {
+        return Err("escolha a área primeiro (painel Área de trabalho, ou Área: seleção)".into());
+    }
+    let sem_janela = "a chuva do CHIRPS precisa de um RustGIS que leia só a janela da área de um arquivo remoto (depois da 0.5.0): cada mês cobre o mundo a 5 km";
+    if !le_janela_remota()? {
+        return Err(sem_janela.into());
+    }
+    let (ano, mes) = match mes_do_chirps(req)? {
+        Ok(m) => m,
+        Err(p) => return Ok(p),
+    };
+    let janela = tempo::janela(c);
+    let nome_da_janela = tempo::janela_chirps(ano, mes);
+    let serve = extensao(&nome_da_janela)?.is_some_and(|e| retangulo_cabe(janela, e));
+    if !serve {
+        tirar_janela(&nome_da_janela)?;
+        let r = host::run("layer.addUrl", json!({"url": tempo::url_chirps(ano, mes), "name": nome_da_janela, "bbox": janela, "cog": true, "zoom": false})).map_err(
+            |e| {
+                if e.contains("404") {
+                    format!("o CHIRPS ainda não tem {mes:02}/{ano}: o total do mês sai na terceira semana do mês seguinte")
+                } else if falha_passageira(&e) || e.contains("timeout") {
+                    format!("o servidor do CHIRPS (data.chc.ucsb.edu) não respondeu agora: tente de novo daqui a pouco ({e})")
+                } else {
+                    e
+                }
+            },
+        )?;
+        if r.get("pending").and_then(Value::as_bool) == Some(true) {
+            avisar(&format!("Chuva de {mes:02}/{ano} (CHIRPS v3): lendo a área no arquivo do mês; a camada vem quando chegar"));
+            return Ok(json!({"pending": 1}));
+        }
+        if r.get("inPlace").and_then(Value::as_bool) == Some(true) || r.get("window").is_none() {
+            tirar_janela(&nome_da_janela)?;
+            return Err(sem_janela.into());
+        }
+    }
+    let g = grade_para(c, celula)?;
+    let saida = tempo::camada_chirps(ano, mes);
+    let temporarias = [nome_da_janela.as_str(), tempo::NA_GRADE_CHIRPS];
+    remover(&[&saida])?;
+    let (rn, rt) = tempo::rampa_chuva(tempo::ESCALA_CHIRPS);
+    let pintura = Pintura { rampa: (&rn, &rt), reserva: "YlGnBu", escala: (0.0, tempo::ESCALA_CHIRPS), aceitos: (0.0, 5000.0) };
+    let feito = (|| -> Result<(), String> {
+        // O mar e o sem dado (negativos) saem antes da grade, para não entrar na interpolação.
+        host::run("raster.mask", json!({"layer": nome_da_janela, "min": 0.0, "max": 5000.0}))?;
+        host::run(
+            "raster.project",
+            json!({"layer": nome_da_janela, "crs": g.epsg, "cellSize": g.celula, "extent": GRADE, "resampling": tempo::reamostragem_chirps(g.celula), "name": tempo::NA_GRADE_CHIRPS}),
+        )?;
+        host::run("raster.process", json!({"layer": tempo::NA_GRADE_CHIRPS, "operation": "clip", "polygon": AREA, "name": saida}))?;
+        host::run("raster.mask", json!({"layer": saida, "min": 0.0, "max": 5000.0}))?;
+        pintar(&saida, &pintura);
+        Ok(())
+    })();
+    remover(&temporarias)?;
+    feito?;
+    avisar(&format!(
+        "{saida}: o total do mês, por satélite e estações (CHIRPS v3, 0,05°), na grade do projeto, {}{}",
+        g.texto(),
+        media_na_area(&saida, "mm")
+    ));
+    Ok(json!({"layer": saida, "month": format!("{mes:02}/{ano}"), "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula}))
 }
 
 /// A área equipada para irrigação do GMIA v5 na área ([`irrigacao`]): a janela da área no COG da

@@ -38,6 +38,9 @@ const NOTA_COBERTURA_MAPBIOMAS: &str =
 const NOTA_RISCO_FOGO: &str = "Perigo meteorológico de fogo do modelo do INPE (versão 11), não a ocorrência de fogo. Classes do INPE: mínimo, abaixo de 0,15; baixo, de 0,15 a 0,40; médio, de 0,40 a 0,70; alto, de 0,70 a 0,95; crítico, acima de 0,95.";
 const NOTA_CHM: &str = "Altura estimada por um modelo de IA (DINOv3) sobre imagens de satélite de alta resolução de datas diferentes; 0 é sem árvore (ou sem dado).";
 const NOTA_GEM15: &str = "De imagens estéreo de satélite adquiridas até 2024; alturas no geoide EGM96. Água e superfícies sem textura ficam sem dado; sob mata densa, o terreno é estimado.";
+const NOTA_PREVISAO: &str = "Previsão de uma rodada de um modelo global, em nós de uma grade de 0,25° (cerca de 28 km) interpolados para a grade: mostra a tendência regional, não a chuva de cada lugar, e muda a cada rodada.";
+const NOTA_ENSEMBLE: &str = "Resumo dos membros de um ensemble (o mesmo modelo rodado com pequenas diferenças) em nós de uma grade de 0,25° a 1° interpolados: a chance é a fração dos membros que passa do limiar, não uma probabilidade calibrada.";
+const NOTA_CHIRPS: &str = "Estimativa por satélite (infravermelho) corrigida com estações (CHIRPS v3, 0,05°, cerca de 5,5 km); onde há poucas estações, erra mais nas chuvas fortes e no relevo.";
 const NOTA_DIST: &str = "Alertas acumulados desde o início do monitoramento (04/01/2026). A primeira detecção ainda não foi confirmada e inclui mudanças sazonais.";
 
 /// A data no fim de um nome do DIST ("…, até 28/02/2026)").
@@ -107,6 +110,25 @@ pub fn receita(nome: &str) -> Option<Receita> {
             barra: Some(("Radiação solar (kWh/m² por dia)".into(), 6)),
             legenda: None,
             nota: Some(NOTA_SOL),
+        });
+    }
+    if crate::tempo::eh_da_previsao(nome) {
+        let ensemble = n.starts_with("Chance de chuva") || n.starts_with("Chuva do ensemble");
+        let barra = if n.starts_with("Chance de chuva") {
+            ("Chance (%)".to_string(), 6)
+        } else if n.starts_with("Temperatura") {
+            ("Temperatura (°C)".to_string(), 5)
+        } else {
+            ("Chuva (mm)".to_string(), crate::tempo::marcas_da_chuva(crate::tempo::escala_chuva(crate::tempo::dias_da_camada(nome).unwrap_or(15))))
+        };
+        return Some(Receita { subtitulo: n.to_string(), barra: Some(barra), legenda: None, nota: Some(if ensemble { NOTA_ENSEMBLE } else { NOTA_PREVISAO }) });
+    }
+    if crate::tempo::eh_do_chirps(nome) {
+        return Some(Receita {
+            subtitulo: n.to_string(),
+            barra: Some(("Chuva no mês (mm)".into(), crate::tempo::marcas_da_chuva(crate::tempo::ESCALA_CHIRPS))),
+            legenda: None,
+            nota: Some(NOTA_CHIRPS),
         });
     }
     if nome == crate::irrigacao::CAMADA {
@@ -337,6 +359,14 @@ mod tests {
         let r = receita(crate::sol::CAMADA).unwrap();
         assert_eq!(r.barra, Some(("Radiação solar (kWh/m² por dia)".into(), 6)));
         assert!(receita(&crate::sol::camada(Some(8))).unwrap().subtitulo.contains("média diária de agosto"));
+        let m = &crate::tempo::DETERMINISTICOS[0];
+        let r = receita(&crate::tempo::camada_chuva(m, 5, "14/11", "18/11")).unwrap();
+        assert_eq!(r.barra, Some(("Chuva (mm)".into(), 7)));
+        assert!(r.subtitulo.starts_with("Chuva prevista em 5 dias"));
+        let e = &crate::tempo::ENSEMBLES[0];
+        let r = receita(&crate::tempo::camada_ensemble(e, crate::tempo::Medida::Chance, 100.0, 15, "14/11", "28/11")).unwrap();
+        assert_eq!(r.barra, Some(("Chance (%)".into(), 6)));
+        assert_eq!(receita(&crate::tempo::camada_chirps(2026, 10)).unwrap().barra, Some(("Chuva no mês (mm)".into(), 5)));
         let r = receita(crate::irrigacao::CAMADA).unwrap();
         assert_eq!(r.barra, Some(("Área equipada para irrigação (% da célula)".into(), 5)));
         let aqueduct = crate::TEMAS.iter().find(|t| t.id == crate::aqueduct::TEMA).unwrap().camada_no_mapa();

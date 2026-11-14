@@ -10,7 +10,7 @@ A irradiação solar global horizontal na superfície, com todos os céus (nuven
 
 | | |
 |---|---|
-| **Onde na aba** | Meio físico › Clima |
+| **Onde na aba** | Tempo e clima › Clima |
 | **Fonte** | NASA Langley (POWER) |
 | **Período** | média diária de 2001 a 2025, do ano ou de um mês. |
 | **Resolução ou escala** | 1° (cerca de 110 km), interpolada para a grade do projeto. |
