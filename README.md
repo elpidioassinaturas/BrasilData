@@ -261,7 +261,7 @@ Algumas camadas só abrem num dos aplicativos, e a ajuda de cada botão diz quan
 ## Fontes
 
 <!-- fontes: início (gerado por scripts/gerar.py a partir do fontes.csv; não edite à mão) -->
-83 camadas de 15 fontes, na ordem do `fontes.csv`. *App web*: se o servidor permite pedidos do navegador (CORS); *Recorte*: se a camada é recortada pela área.
+83 camadas de 15 fontes, na ordem do `fontes.csv`. *App web*: se o servidor permite pedidos do navegador (CORS); *Recorte*: se a camada é recortada pela área. A ficha de cada camada (o que é, período, escala, unidades, legenda, cuidados de uso) e um mapa exemplo estão em [docs/camadas](docs/camadas/README.md).
 
 | Grupo | Camada | Fonte | Serviço | Licença | App web | Recorte |
 |---|---|---|---|---|---|---|

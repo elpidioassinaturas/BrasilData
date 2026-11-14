@@ -22,6 +22,13 @@ nomes de pessoas e CPF/CNPJ), geom (o atributo da geometria de um WFS, que o fil
 pedem), pagina (feições por pedido: o plugin conta antes e pede as páginas) e ordem (o atributo
 que ordena as páginas; num WFS pode ficar vazia, e o GeoServer usa a chave primária). Um `{uf}` na camada vira a sigla, em minúsculas, de cada UF que a área
 cruza (o CAR tem uma camada por UF).
+
+O fichas.csv tem a ficha de cada camada que um comando traz (as do fontes.csv e as outras): o que
+é, o período, a resolução ou escala, as unidades, a legenda, os cuidados de uso, o campo das classes
+do mapa exemplo e a área dele (vicosa, zona-da-mata, minas-gerais, brasil ou mun:<código do IBGE>). As camadas que não
+estão no fontes.csv dizem também o órgão, a citação, a licença e se funcionam no app web. Delas saem
+a ajuda de cada botão, as fichas do catálogo (o painel e a tabela Fontes) e as páginas
+docs/camadas/<id>.md, com o mapa exemplo docs/camadas/<id>.png (scripts/mapas_exemplo.py).
 """
 
 import csv
@@ -496,13 +503,6 @@ EM_MENUS = [
     ),
     (
         "Vegetação e meio ambiente",
-        "Vegetação",
-        {
-            "id": "chm-altura",
-            "label": "Altura do dossel a 1 m (Meta CHMv2)",
-            "help": "A altura das árvores em metros, a cerca de 1 m, da Meta e do World Resources Institute (Canopy Height Maps v2, licença CC BY 4.0): estimada por um modelo de IA (DINOv3) sobre imagens de satélite de alta resolução, de datas diferentes conforme o lugar. Só a área, lida de cada tile que ela toca, posta na grade do projeto e recortada pelo contorno; numa grade mais grossa, lida da pirâmide do arquivo, que tira a média. Para ver as copas, use uma grade de 1 a 5 m (Grade do projeto) numa área pequena. O 0 é sem árvore, e também sem dado. Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área).",
-    (
-        "Vegetação e meio ambiente",
         "Uso e cobertura",
         {
             "id": "clms-cobertura",
@@ -515,6 +515,13 @@ EM_MENUS = [
             ],
         },
     ),
+    (
+        "Vegetação e meio ambiente",
+        "Vegetação",
+        {
+            "id": "chm-altura",
+            "label": "Altura do dossel a 1 m (Meta CHMv2)",
+            "help": "A altura das árvores em metros, a cerca de 1 m, da Meta e do World Resources Institute (Canopy Height Maps v2, licença CC BY 4.0): estimada por um modelo de IA (DINOv3) sobre imagens de satélite de alta resolução, de datas diferentes conforme o lugar. Só a área, lida de cada tile que ela toca, posta na grade do projeto e recortada pelo contorno; numa grade mais grossa, lida da pirâmide do arquivo, que tira a média. Para ver as copas, use uma grade de 1 a 5 m (Grade do projeto) numa área pequena. O 0 é sem árvore, e também sem dado. Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área).",
             "icon": "proportional",
             "params": "{\"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
         },
@@ -851,6 +858,127 @@ def ler() -> list[dict]:
     return linhas
 
 
+
+# As colunas do fichas.csv; as quatro últimas só nas camadas que não estão no fontes.csv.
+COLUNAS_FICHA = ["id", "o_que_e", "periodo", "resolucao", "unidades", "legenda", "cuidados", "classes", "exemplo", "orgao", "citacao", "licenca", "web"]
+DO_FONTES = ["orgao", "citacao", "licenca", "web"]
+# As áreas dos mapas exemplo com nome: o município de Viçosa e a mesorregião Zona da Mata (MG),
+# para os produtos grossos e os temas que Viçosa não tem; Minas Gerais e o Brasil para os limites
+# maiores que elas (uma camada que cobre a área toda não mostra nada).
+AREAS_EXEMPLO = {
+    "vicosa": ("mun:3171303", "Viçosa (MG)"),
+    "zona-da-mata": ("meso:3112", "Zona da Mata (MG)"),
+    "minas-gerais": ("uf:MG", "Minas Gerais"),
+    "brasil": ("br", "Brasil"),
+}
+# Os comandos que não trazem camada de dados: sem ficha.
+SEM_FICHA = {"area-selecao", "area-desenho", "area-municipio", "grade", "painel", "escolher-area", "layout", "fontes", "atualizacao", "sobre", "indicadores", "amostra-aleatoria", "amostra-estratificada", "amostra-sistematica"}
+# Onde ficam as fichas no repositório.
+PAGINAS = "docs/camadas"
+# O texto da ficha no painel antes de a primeira camada chegar.
+FICHA_VAZIA = "O que é a última camada que chegou ao mapa: a fonte, o período, a resolução, as unidades, a legenda, a licença, a citação e os cuidados de uso. Traga uma camada para ver a ficha dela aqui; a tabela do botão Fontes tem as fichas de todas as camadas do mapa."
+
+
+def endereco_da_ficha(cid: str) -> str:
+    return f"{REPOSITORIO}/blob/main/{PAGINAS}/{cid}.md"
+
+
+def municipios_do_plugin() -> dict[str, str]:
+    with open(ROOT / "municipios.csv", encoding="utf-8", newline="") as f:
+        return {l["codigo"]: f"{l['nome']} ({l['uf']})" for l in csv.DictReader(f)}
+
+
+def area_do_exemplo(ex: str) -> tuple[str, str] | None:
+    """O nó da árvore do painel e o nome da área do mapa exemplo (None: sem mapa)."""
+    if not ex:
+        return None
+    if ex in AREAS_EXEMPLO:
+        return AREAS_EXEMPLO[ex]
+    return ex, municipios_do_plugin()[ex.removeprefix("mun:")]
+
+
+def ler_fichas(linhas: list[dict], ids: list[str]) -> dict[str, dict]:
+    """As fichas por id, conferidas: uma para cada comando de dados, nem mais nem menos."""
+    with open(ROOT / "fichas.csv", encoding="utf-8", newline="") as f:
+        leitor = csv.DictReader(f)
+        if leitor.fieldnames != COLUNAS_FICHA:
+            sys.exit(f"fichas.csv: as colunas são {', '.join(COLUNAS_FICHA)}")
+        fichas = list(leitor)
+    vetoriais = {l["id"]: l for l in linhas}
+    mun = municipios_do_plugin()
+    por_id: dict[str, dict] = {}
+    for n, fi in enumerate(fichas, start=2):
+        onde = f"fichas.csv, linha {n}"
+        if None in fi or None in fi.values():
+            sys.exit(f"{onde}: a linha não tem {len(COLUNAS_FICHA)} colunas (um texto com vírgula precisa de aspas)")
+        if fi["id"] in por_id:
+            sys.exit(f"{onde}: o id '{fi['id']}' se repete")
+        if fi["id"] not in ids or fi["id"] in SEM_FICHA:
+            sys.exit(f"{onde}: '{fi['id']}' não é um comando que traz dados")
+        for campo in ("o_que_e", "periodo", "resolucao", "unidades", "legenda", "cuidados"):
+            if not fi[campo].strip():
+                sys.exit(f"{onde}: {campo} está vazio")
+        l = vetoriais.get(fi["id"])
+        for campo in DO_FONTES:
+            if l and fi[campo]:
+                sys.exit(f"{onde}: {campo} de uma camada do fontes.csv vem de lá; deixe vazio")
+            if not l and not fi[campo].strip():
+                sys.exit(f"{onde}: {campo} está vazio (a camada não está no fontes.csv)")
+        ex = fi["exemplo"]
+        if ex and ex not in AREAS_EXEMPLO and not (ex.startswith("mun:") and ex[4:] in mun):
+            sys.exit(f"{onde}: exemplo é vicosa, zona-da-mata, minas-gerais, brasil, mun:<código do IBGE> ou vazio, não '{ex}'")
+        if l:
+            web = {"sim": "sim", "nao": "não: só no app desktop (o servidor não aceita pedidos do navegador)", "so-web": "só no app web (o servidor só aceita cifras TLS antigas, que o app desktop recusa)"}[l["web"]]
+            fi = dict(fi, orgao=l["fonte"].split(",")[0].strip(), citacao=l["fonte"], licenca=l["licenca"], web=web)
+        por_id[fi["id"]] = fi
+    faltam = [i for i in ids if i not in SEM_FICHA and i not in por_id]
+    if faltam:
+        sys.exit(f"fichas.csv: faltam as fichas de {', '.join(faltam)}")
+    return por_id
+
+
+def frase(t: str) -> str:
+    """O texto com ponto final."""
+    t = t.strip()
+    return t if t.endswith((".", "!", "?")) else t + "."
+
+
+def minuscula(t: str) -> str:
+    """O texto com a primeira letra minúscula (depois de dois-pontos), menos numa sigla (SiBCS, CNES)."""
+    return t if len(t) < 2 or t[1].isupper() else t[0].lower() + t[1:]
+
+
+def resumo_da_ficha(fi: dict) -> str:
+    """O pedaço da ficha que vai na ajuda do botão (o balão e a Busca de comandos)."""
+    return (
+        f"Período: {fi['periodo']}. Resolução ou escala: {fi['resolucao']}. Unidades: {fi['unidades']}. "
+        f"Licença: {fi['licenca']}. Ficha completa e mapa exemplo: {endereco_da_ficha(fi['id'])}"
+    )
+
+
+def texto_da_ficha(nome: str, fi: dict) -> str:
+    """A ficha inteira, em texto (o painel do RustGIS aceita até 4.000 caracteres)."""
+    t = "\n".join(
+        [
+            nome,
+            frase(fi["o_que_e"]),
+            f"Fonte: {fi['orgao']}.",
+            f"Período: {frase(fi['periodo'])}",
+            f"Resolução ou escala: {frase(fi['resolucao'])}",
+            f"Unidades: {frase(fi['unidades'])}",
+            f"Legenda: {frase(fi['legenda'])}",
+            f"Cuidados: {frase(fi['cuidados'])}",
+            f"Licença: {frase(fi['licenca'])}",
+            f"Citação: {frase(fi['citacao'])}",
+            f"App web: {frase(fi['web'])}",
+            f"Ficha e mapa exemplo: {endereco_da_ficha(fi['id'])}",
+        ]
+    )
+    if len(t) > 4000:
+        sys.exit(f"a ficha de {fi['id']} tem {len(t)} caracteres; o painel do RustGIS aceita até 4.000")
+    return t
+
+
 # Os tópicos da aba e os subtópicos de cada um, na ordem em que aparecem (o RustGIS aceita até 8
 # grupos e 16 itens por grupo). A aba é conferida contra esta lista: um subtópico que não está
 # aqui, ou que ficou vazio, para o gerar.py.
@@ -926,7 +1054,15 @@ ICONES_DO_RUSTGIS = {
 ICONES = {"poligono": "polygon_layer", "linha": "line_layer", "ponto": "point_layer"}
 
 
-def manifesto(linhas: list[dict]) -> str:
+def nomes_dos_comandos(linhas: list[dict]) -> dict[str, str]:
+    """O nome de cada comando de dados: o da camada (fontes.csv) ou o do botão, numa linha."""
+    nomes = {l["id"]: l["nome"] for l in linhas}
+    for c in AREA + DO_PAINEL + SO_SCRIPTS + AMOSTRAGEM + [c for _, c in FIM] + [c for _, _, c in EM_MENUS]:
+        nomes.setdefault(c["id"], c["label"].replace("\n", " "))
+    return nomes
+
+
+def manifesto(linhas: list[dict], fichas: dict[str, dict]) -> str:
     comandos = AREA + DO_PAINEL + SO_SCRIPTS
     grupos: dict[str, list] = {"Área": list(NA_ABA_AREA)}
     for l in linhas:
@@ -940,7 +1076,7 @@ def manifesto(linhas: list[dict]) -> str:
             {
                 "id": l["id"],
                 "label": l["rotulo"].replace("\\n", "\n"),
-                "help": f"{l['nome']}: {l['fonte']}. Só o que cruza a área, {onde}; sem área, o que está na vista.{so_desktop}",
+                "help": f"{l['nome']}: {minuscula(frase(fichas[l['id']]['o_que_e']))} Fonte: {l['fonte']}. Só o que cruza a área, {onde}; sem área, o que está na vista.{so_desktop} Cuidados: {frase(fichas[l['id']]['cuidados'])} {resumo_da_ficha(fichas[l['id']])}",
                 "icon": ICONES[l["geometria"]],
                 "params": "{}",
             }
@@ -955,6 +1091,8 @@ def manifesto(linhas: list[dict]) -> str:
         else:
             m["items"].append(l["id"])
     for grupo, menu, c in EM_MENUS:
+        # A ajuda escrita à mão (o que é e como pedir), com o resumo da ficha no fim.
+        c = dict(c, help=f"{frase(c['help'])} {resumo_da_ficha(fichas[c['id']])}")
         comandos.append(c)
         itens = grupos.setdefault(grupo, [])
         if menu is None:
@@ -993,7 +1131,8 @@ def manifesto(linhas: list[dict]) -> str:
         sys.exit(f"ícones que o RustGIS não desenha para um plugin: {', '.join(fora)}")
     if len(grupos) > 8:
         sys.exit(f"a aba tem {len(grupos)} grupos; o RustGIS aceita até 8")
-    painel = dict(PAINEL, items=PAINEL["items"] + [{"kind": "text", "id": "sobre", "label": "Sobre o BrasilData", "text": sobre(linhas)[0]}])
+    ficha = {"kind": "text", "id": "ficha", "label": "Ficha da camada", "text": FICHA_VAZIA}
+    painel = dict(PAINEL, items=PAINEL["items"] + [ficha, {"kind": "text", "id": "sobre", "label": "Sobre o BrasilData", "text": sobre(linhas)[0]}])
     m = {
         "id": "brasildata",
         "name": "BrasilData",
@@ -1013,12 +1152,12 @@ def manifesto(linhas: list[dict]) -> str:
     return json.dumps(m, ensure_ascii=False, indent=2) + "\n"
 
 
-def catalogo(linhas: list[dict]) -> str:
+def catalogo(linhas: list[dict], fichas: dict[str, dict], nomes: dict[str, str]) -> str:
     s = lambda t: json.dumps(t, ensure_ascii=False)  # um literal de texto do Rust
     out = [
         "//! Gerado por `scripts/gerar.py` a partir do `fontes.csv`: não edite à mão.",
         "",
-        "use crate::Tema;",
+        "use crate::{Ficha, Tema};",
         "",
         "pub const TEMAS: &[Tema] = &[",
     ]
@@ -1040,6 +1179,23 @@ def catalogo(linhas: list[dict]) -> str:
             f"        geom: {s(l['geom'])},",
             f"        pagina: {int(l['pagina'] or 0)},",
             f"        ordem: {s(l['ordem'])},",
+            "    },",
+        ]
+    out.append("];")
+    out += ["", "pub const FICHAS: &[Ficha] = &["]
+    for cid, fi in fichas.items():
+        out += [
+            "    Ficha {",
+            f"        id: {s(cid)},",
+            f"        o_que_e: {s(frase(fi['o_que_e']))},",
+            f"        periodo: {s(fi['periodo'])},",
+            f"        resolucao: {s(fi['resolucao'])},",
+            f"        unidades: {s(fi['unidades'])},",
+            f"        legenda: {s(fi['legenda'])},",
+            f"        cuidados: {s(fi['cuidados'])},",
+            f"        web: {s(fi['web'])},",
+            f"        pagina: {s(endereco_da_ficha(cid))},",
+            f"        texto: {s(texto_da_ficha(nomes[cid], fi))},",
             "    },",
         ]
     out.append("];")
@@ -1073,7 +1229,8 @@ def readme(linhas: list[dict]) -> str:
     tabela = [
         README_INICIO,
         f"{len(linhas)} camadas de {len(orgaos)} fontes, na ordem do `fontes.csv`. *App web*: se o servidor "
-        "permite pedidos do navegador (CORS); *Recorte*: se a camada é recortada pela área.",
+        "permite pedidos do navegador (CORS); *Recorte*: se a camada é recortada pela área. A ficha de cada camada "
+        f"(o que é, período, escala, unidades, legenda, cuidados de uso) e um mapa exemplo estão em [{PAGINAS}]({PAGINAS}/README.md).",
         "",
         "| Grupo | Camada | Fonte | Serviço | Licença | App web | Recorte |",
         "|---|---|---|---|---|---|---|",
@@ -1091,19 +1248,107 @@ def readme(linhas: list[dict]) -> str:
     return antes + "\n".join(tabela) + depois
 
 
+def onde_na_aba(linhas: list[dict]) -> dict[str, str]:
+    """O caminho de cada comando de dados na aba BrasilData (tópico › subtópico)."""
+    onde = {l["id"]: l["grupo"] + (f" › {l['menu']}" if l["menu"] else "") for l in linhas}
+    for grupo, menu, c in EM_MENUS:
+        onde[c["id"]] = grupo + (f" › {menu}" if menu else "")
+    return onde
+
+
+def paginas(linhas: list[dict], fichas: dict[str, dict], nomes: dict[str, str]) -> dict[pathlib.Path, str]:
+    """As páginas docs/camadas/<id>.md, com a ficha e o mapa exemplo, e o índice delas."""
+    pasta = ROOT / PAGINAS
+    aba = onde_na_aba(linhas)
+    cel = lambda t: frase(t).replace("|", "\\|")
+    out: dict[pathlib.Path, str] = {}
+    indice = [
+        "# As camadas do BrasilData",
+        "",
+        "<!-- Gerado por scripts/gerar.py a partir do fontes.csv e do fichas.csv; não edite à mão. -->",
+        "",
+        f"A ficha de cada uma das {len(fichas)} camadas que os botões da aba BrasilData trazem: o que é, "
+        "a fonte, o período, a resolução, as unidades, a legenda, a licença, a citação, os cuidados de "
+        "uso, se funciona no app web, e um mapa exemplo feito com o plugin (o botão Layout). Os mapas "
+        "exemplo são de Viçosa (MG), ou da Zona da Mata mineira para os produtos de baixa resolução; os "
+        "temas que não existem lá vêm de outro município, dito em cada ficha. Os mapas saem do "
+        "`scripts/mapas_exemplo.py`.",
+        "",
+    ]
+    for topico in GRUPOS:
+        ids = [i for i in fichas if aba.get(i, "").split(" › ")[0] == topico]
+        if not ids:
+            continue
+        indice += [f"## {topico}", "", "| Camada | Onde na aba | O que é |", "|---|---|---|"]
+        for cid in ids:
+            indice.append(f"| [{nomes[cid]}]({cid}.md) | {aba[cid]} | {cel(fichas[cid]['o_que_e'])} |")
+        indice.append("")
+    out[pasta / "README.md"] = "\n".join(indice)
+    for cid, fi in fichas.items():
+        area = area_do_exemplo(fi["exemplo"])
+        imagem = pasta / f"{cid}.png"
+        if area and imagem.exists():
+            mapa = [f"![Mapa exemplo: {nomes[cid]} em {area[1]}]({cid}.png)", "", f"*Mapa exemplo: {area[1]}, feito com o plugin.*"]
+        elif area:
+            mapa = [f"*O mapa exemplo, de {area[1]}, ainda não foi gerado: rode `scripts/mapas_exemplo.py {cid}`.*"]
+        else:
+            mapa = ["*Sem mapa exemplo: a camada não chega pelo `rustgis-cli`, que faz os mapas (veja App web).*"]
+        linhas_ficha = [
+            ("Onde na aba", aba.get(cid, "")),
+            ("Fonte", fi["orgao"]),
+            ("Período", fi["periodo"]),
+            ("Resolução ou escala", fi["resolucao"]),
+            ("Unidades", fi["unidades"]),
+            ("Legenda", fi["legenda"]),
+            ("Cuidados de uso", fi["cuidados"]),
+            ("Licença", fi["licenca"]),
+            ("Citação", fi["citacao"]),
+            ("App desktop", "sim" if not fi["web"].startswith("só no app web") else "não"),
+            ("App web", fi["web"]),
+        ]
+        out[pasta / f"{cid}.md"] = "\n".join(
+            [
+                f"# {nomes[cid]}",
+                "",
+                "<!-- Gerado por scripts/gerar.py a partir do fontes.csv e do fichas.csv; não edite à mão. -->",
+                "",
+                frase(fi["o_que_e"]),
+                "",
+                *mapa,
+                "",
+                "| | |",
+                "|---|---|",
+                *[f"| **{k}** | {cel(v) if len(v) > 40 else v.replace('|', chr(92) + '|')} |" for k, v in linhas_ficha],
+                "",
+                "[Todas as camadas](README.md)",
+                "",
+            ]
+        )
+    return out
+
+
 def main() -> None:
     linhas = ler()
+    nomes = nomes_dos_comandos(linhas)
+    fichas = ler_fichas(linhas, list(nomes))
     arquivos = {
-        ROOT / "plugin.json": manifesto(linhas),
-        ROOT / "src" / "catalogo.rs": catalogo(linhas),
+        ROOT / "plugin.json": manifesto(linhas, fichas),
+        ROOT / "src" / "catalogo.rs": catalogo(linhas, fichas, nomes),
         ROOT / "README.md": readme(linhas),
+        **paginas(linhas, fichas, nomes),
     }
     if "--check" in sys.argv:
-        velhos = [p.name for p, t in arquivos.items() if not p.exists() or p.read_text(encoding="utf-8") != t]
-        if velhos:
-            sys.exit(f"desatualizados: {', '.join(velhos)}; rode python scripts/gerar.py")
-        print("plugin.json, catalogo.rs e README.md em dia")
+        velhos = [str(p.relative_to(ROOT)) for p, t in arquivos.items() if not p.exists() or p.read_text(encoding="utf-8") != t]
+        # Uma página de uma camada que saiu do fichas.csv também é velha.
+        sobra = [str(p.relative_to(ROOT)) for p in (ROOT / PAGINAS).glob("*.md") if p not in arquivos]
+        if velhos or sobra:
+            sys.exit(f"desatualizados: {', '.join(velhos + sobra)}; rode python scripts/gerar.py")
+        print(f"plugin.json, catalogo.rs, README.md e as {len(fichas)} fichas em dia")
         return
+    (ROOT / PAGINAS).mkdir(parents=True, exist_ok=True)
+    for p in (ROOT / PAGINAS).glob("*.md"):
+        if p not in arquivos:
+            p.unlink()
     for p, t in arquivos.items():
         p.write_text(t, encoding="utf-8", newline="\n")
         print("escrito", p.relative_to(ROOT))

@@ -21,6 +21,7 @@ pub mod datas;
 pub mod dialogos;
 pub mod dist;
 pub mod estilo;
+pub mod fichas;
 pub mod grade;
 pub mod indicadores;
 pub mod irrigacao;
@@ -43,7 +44,7 @@ pub mod versao;
 pub mod vista;
 pub mod zoom;
 
-pub use catalogo::{SOBRE, SOBRE_AVISO, TEMAS};
+pub use catalogo::{FICHAS, SOBRE, SOBRE_AVISO, TEMAS};
 
 /// O nome da camada da área.
 pub const AREA: &str = "BrasilData: área";
@@ -103,6 +104,30 @@ impl Tema {
         }
         ufs.iter().map(|uf| self.camada.replace("{uf}", &uf.to_lowercase())).collect()
     }
+}
+
+/// A ficha de uma camada que um comando traz (do `fichas.csv`): o que ela é, o período, a
+/// resolução, as unidades, a legenda, os cuidados e se funciona no app web. O `texto` é a ficha
+/// inteira, que vai para o painel; a `pagina`, a da ficha com o mapa exemplo no GitHub.
+#[derive(Debug)]
+pub struct Ficha {
+    /// O id do comando que traz a camada.
+    pub id: &'static str,
+    pub o_que_e: &'static str,
+    pub periodo: &'static str,
+    pub resolucao: &'static str,
+    pub unidades: &'static str,
+    pub legenda: &'static str,
+    pub cuidados: &'static str,
+    /// Se funciona no app web, e por quê quando não.
+    pub web: &'static str,
+    pub pagina: &'static str,
+    pub texto: &'static str,
+}
+
+/// A ficha do comando `id`.
+pub fn ficha(id: &str) -> Option<&'static Ficha> {
+    FICHAS.iter().find(|f| f.id == id)
 }
 
 /// O tema de uma camada do mapa, pelo nome.

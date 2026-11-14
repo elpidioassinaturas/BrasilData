@@ -111,658 +111,658 @@
     {
       "id": "brasil",
       "label": "Brasil (IBGE)",
-      "help": "Brasil (IBGE 2025): IBGE, Malha Municipal 2025. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "help": "Brasil (IBGE 2025): o contorno do território brasileiro. Fonte: IBGE, Malha Municipal 2025. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista. Cuidados: Limites para mapas e estatística, não para demarcação legal. Vem o polígono inteiro de cada unidade que cruza a área, sem recorte. Período: Malha Municipal 2025 do IBGE (a divisão vigente em 2025). Resolução ou escala: escala 1:250.000. Unidades: sem unidade (polígonos); área em km² quando há o campo area_km2. Licença: uso livre com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/brasil.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "grandes-regioes",
       "label": "Grandes Regiões (IBGE)",
-      "help": "Grandes Regiões (IBGE 2025): IBGE, Malha Municipal 2025. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "help": "Grandes Regiões (IBGE 2025): as cinco Grandes Regiões do IBGE (Norte, Nordeste, Sudeste, Sul e Centro-Oeste). Fonte: IBGE, Malha Municipal 2025. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista. Cuidados: Limites para mapas e estatística, não para demarcação legal. Vem o polígono inteiro de cada unidade que cruza a área, sem recorte. Período: Malha Municipal 2025 do IBGE (a divisão vigente em 2025). Resolução ou escala: escala 1:250.000. Unidades: sem unidade (polígonos); área em km² quando há o campo area_km2. Licença: uso livre com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/grandes-regioes.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "estados",
       "label": "Estados (IBGE)",
-      "help": "Estados (IBGE 2025): IBGE, Malha Municipal 2025. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "help": "Estados (IBGE 2025): as 27 unidades da federação. Fonte: IBGE, Malha Municipal 2025. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista. Cuidados: Limites para mapas e estatística, não para demarcação legal. Vem o polígono inteiro de cada unidade que cruza a área, sem recorte. Período: Malha Municipal 2025 do IBGE (a divisão vigente em 2025). Resolução ou escala: escala 1:250.000. Unidades: sem unidade (polígonos); área em km² quando há o campo area_km2. Licença: uso livre com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/estados.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "regioes-intermediarias",
       "label": "Regiões geográficas intermediárias (IBGE)",
-      "help": "Regiões geográficas intermediárias (IBGE 2025): IBGE, Divisão Regional do Brasil em Regiões Geográficas (2017), na Malha Municipal 2025. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "help": "Regiões geográficas intermediárias (IBGE 2025): as regiões geográficas intermediárias da divisão regional do IBGE de 2017, organizadas em torno de cidades que articulam as regiões imediatas. Fonte: IBGE, Divisão Regional do Brasil em Regiões Geográficas (2017), na Malha Municipal 2025. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista. Cuidados: Limites para mapas e estatística, não para demarcação legal. Vem o polígono inteiro de cada unidade que cruza a área, sem recorte. Substitui as mesorregiões de 1989 nas estatísticas do IBGE. Período: divisão de 2017, nos limites da Malha Municipal 2025. Resolução ou escala: escala 1:250.000. Unidades: sem unidade. Licença: uso livre com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/regioes-intermediarias.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "regioes-imediatas",
       "label": "Regiões geográficas imediatas (IBGE)",
-      "help": "Regiões geográficas imediatas (IBGE 2025): IBGE, Divisão Regional do Brasil em Regiões Geográficas (2017), na Malha Municipal 2025. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "help": "Regiões geográficas imediatas (IBGE 2025): as regiões geográficas imediatas da divisão regional do IBGE de 2017: municípios ligados a um centro urbano próximo para as necessidades do dia a dia (compras, saúde, trabalho). Fonte: IBGE, Divisão Regional do Brasil em Regiões Geográficas (2017), na Malha Municipal 2025. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista. Cuidados: Limites para mapas e estatística, não para demarcação legal. Vem o polígono inteiro de cada unidade que cruza a área, sem recorte. Substitui as microrregiões de 1989 nas estatísticas do IBGE. Período: divisão de 2017, nos limites da Malha Municipal 2025. Resolução ou escala: escala 1:250.000. Unidades: sem unidade. Licença: uso livre com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/regioes-imediatas.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "mesorregioes",
       "label": "Mesorregiões (IBGE, 1989)",
-      "help": "Mesorregiões geográficas (IBGE, divisão de 1989): IBGE, Divisão do Brasil em Mesorregiões e Microrregiões Geográficas (1989-1990), na Malha Municipal 2025. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "help": "Mesorregiões geográficas (IBGE, divisão de 1989): as mesorregiões geográficas da divisão de 1989 do IBGE (Zona da Mata, Triângulo Mineiro...). Fonte: IBGE, Divisão do Brasil em Mesorregiões e Microrregiões Geográficas (1989-1990), na Malha Municipal 2025. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista. Cuidados: Limites para mapas e estatística, não para demarcação legal. Vem o polígono inteiro de cada unidade que cruza a área, sem recorte. Divisão antiga, que o IBGE trocou pelas regiões intermediárias em 2017; ainda usada em séries históricas. Período: divisão de 1989-1990, nos limites da Malha Municipal 2025. Resolução ou escala: escala 1:250.000. Unidades: sem unidade. Licença: uso livre com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/mesorregioes.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "microrregioes",
       "label": "Microrregiões (IBGE, 1989)",
-      "help": "Microrregiões geográficas (IBGE, divisão de 1989): IBGE, Divisão do Brasil em Mesorregiões e Microrregiões Geográficas (1989-1990), na Malha Municipal 2025. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "help": "Microrregiões geográficas (IBGE, divisão de 1989): as microrregiões geográficas da divisão de 1989 do IBGE. Fonte: IBGE, Divisão do Brasil em Mesorregiões e Microrregiões Geográficas (1989-1990), na Malha Municipal 2025. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista. Cuidados: Limites para mapas e estatística, não para demarcação legal. Vem o polígono inteiro de cada unidade que cruza a área, sem recorte. Divisão antiga, que o IBGE trocou pelas regiões imediatas em 2017. Período: divisão de 1989-1990, nos limites da Malha Municipal 2025. Resolução ou escala: escala 1:250.000. Unidades: sem unidade. Licença: uso livre com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/microrregioes.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "municipios",
       "label": "Municípios (IBGE)",
-      "help": "Municípios (IBGE 2025): IBGE, Malha Municipal 2025. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "help": "Municípios (IBGE 2025): os limites municipais oficiais. Fonte: IBGE, Malha Municipal 2025. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista. Cuidados: Limites para mapas e estatística, não para demarcação legal. Vem o polígono inteiro de cada unidade que cruza a área, sem recorte. O limite de 1:250.000 pode diferir dos limites estaduais mais detalhados. Período: Malha Municipal 2025 do IBGE (a divisão vigente em 2025). Resolução ou escala: escala 1:250.000. Unidades: área em km² (area_km2). Licença: uso livre com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/municipios.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "distritos",
       "label": "Distritos (IBGE, 2022)",
-      "help": "Distritos (IBGE, Censo 2022): IBGE, Censo Demográfico 2022, malha de setores e agregados. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "help": "Distritos (IBGE, Censo 2022): os distritos dos municípios, unidades administrativas internas (a sede e os distritos rurais). Fonte: IBGE, Censo Demográfico 2022, malha de setores e agregados. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista. Cuidados: Limites para mapas e estatística, não para demarcação legal. Vem o polígono inteiro de cada unidade que cruza a área, sem recorte. Os limites são os que o IBGE usou no Censo de 2022. Período: malha de setores do Censo Demográfico 2022. Resolução ou escala: escala cadastral dos setores censitários (melhor que 1:250.000 nas cidades). Unidades: sem unidade. Licença: uso livre com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/distritos.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "subdistritos",
       "label": "Subdistritos (IBGE, 2022)",
-      "help": "Subdistritos (IBGE, Censo 2022): IBGE, Censo Demográfico 2022, malha de setores e agregados. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "help": "Subdistritos (IBGE, Censo 2022): os subdistritos, divisões de alguns distritos que só existem em parte dos municípios (sobretudo capitais). Fonte: IBGE, Censo Demográfico 2022, malha de setores e agregados. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista. Cuidados: Limites para mapas e estatística, não para demarcação legal. Vem o polígono inteiro de cada unidade que cruza a área, sem recorte. A maioria dos municípios não tem subdistritos. Período: malha de setores do Censo Demográfico 2022. Resolução ou escala: escala cadastral dos setores censitários. Unidades: sem unidade. Licença: uso livre com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/subdistritos.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "bairros",
       "label": "Bairros (IBGE, 2022)",
-      "help": "Bairros (IBGE, Censo 2022): IBGE, Censo Demográfico 2022, malha de setores e agregados. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "help": "Bairros (IBGE, Censo 2022): os bairros com limites oficiais reconhecidos pelas prefeituras e usados pelo IBGE no Censo de 2022. Fonte: IBGE, Censo Demográfico 2022, malha de setores e agregados. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista. Cuidados: Limites para mapas e estatística, não para demarcação legal. Vem o polígono inteiro de cada unidade que cruza a área, sem recorte. Só os municípios que têm lei de bairros entram; os outros não têm esta camada. Período: malha de setores do Censo Demográfico 2022. Resolução ou escala: escala cadastral dos setores censitários. Unidades: sem unidade. Licença: uso livre com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/bairros.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "geologia",
       "label": "Geologia (IBGE)",
-      "help": "Geologia (BDiA 1:250.000): IBGE, Banco de Dados de Informações Ambientais (BDiA). Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
+      "help": "Geologia (BDiA 1:250.000): as unidades geológicas (litoestratigráficas): as rochas que afloram, com a idade e a província estrutural. Fonte: IBGE, Banco de Dados de Informações Ambientais (BDiA). Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Escala regional: não substitui um levantamento detalhado da propriedade (1:10.000 a 1:50.000). Cada polígono é uma unidade de mapeamento, que pode ter inclusões de outras classes. Período: mapeamento do Projeto RADAMBRASIL revisto pelo IBGE (anos 1970 a 2010), publicado no BDiA. Resolução ou escala: escala 1:250.000 (área mínima mapeável de cerca de 2,5 km²). Unidades: sem unidade; área do polígono em km² (ar_poli_km). Licença: uso livre com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/geologia.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "geomorfologia",
       "label": "Geomorfologia (IBGE)",
-      "help": "Geomorfologia (BDiA 1:250.000): IBGE, Banco de Dados de Informações Ambientais (BDiA). Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
+      "help": "Geomorfologia (BDiA 1:250.000): as unidades geomorfológicas: domínios, regiões e unidades do relevo, com a forma, a densidade de drenagem e o aprofundamento das incisões. Fonte: IBGE, Banco de Dados de Informações Ambientais (BDiA). Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Escala regional: não substitui um levantamento detalhado da propriedade (1:10.000 a 1:50.000). Cada polígono é uma unidade de mapeamento, que pode ter inclusões de outras classes. Período: mapeamento do Projeto RADAMBRASIL revisto pelo IBGE (anos 1970 a 2010), publicado no BDiA. Resolução ou escala: escala 1:250.000 (área mínima mapeável de cerca de 2,5 km²). Unidades: sem unidade; área do polígono em km². Licença: uso livre com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/geomorfologia.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "solos",
       "label": "Solos (IBGE)",
-      "help": "Solos (BDiA 1:250.000): IBGE, Banco de Dados de Informações Ambientais (BDiA). Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
+      "help": "Solos (BDiA 1:250.000): o mapa de solos do Brasil: as unidades de mapeamento com a classe do Sistema Brasileiro de Classificação de Solos (SiBCS) até o 4º nível, a textura, o relevo e as inclusões. Fonte: IBGE, Banco de Dados de Informações Ambientais (BDiA). Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Escala regional: não substitui um levantamento detalhado da propriedade (1:10.000 a 1:50.000). Cada polígono é uma unidade de mapeamento, que pode ter inclusões de outras classes. As classes seguem a revisão do SiBCS usada pelo IBGE na época de cada folha. Período: mapeamento do Projeto RADAMBRASIL revisto pelo IBGE (anos 1970 a 2010), publicado no BDiA. Resolução ou escala: escala 1:250.000 (área mínima mapeável de cerca de 2,5 km²). Unidades: sem unidade; área do polígono em km² (ar_poli_km). Licença: uso livre com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/solos.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "vegetacao",
       "label": "Vegetação (IBGE)",
-      "help": "Vegetação (BDiA 1:250.000): IBGE, Banco de Dados de Informações Ambientais (BDiA). Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
+      "help": "Vegetação (BDiA 1:250.000): a vegetação: as regiões fitoecológicas (Floresta Estacional Semidecidual, Savana...) e as áreas de uso antrópico. Fonte: IBGE, Banco de Dados de Informações Ambientais (BDiA). Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Escala regional: não substitui um levantamento detalhado da propriedade (1:10.000 a 1:50.000). Cada polígono é uma unidade de mapeamento, que pode ter inclusões de outras classes. Mostra a vegetação de quando a folha foi mapeada, não a atual; para o uso atual, o MapBiomas. Período: mapeamento do Projeto RADAMBRASIL revisto pelo IBGE (anos 1970 a 2010), publicado no BDiA. Resolução ou escala: escala 1:250.000 (área mínima mapeável de cerca de 2,5 km²). Unidades: sem unidade; área do polígono em km². Licença: uso livre com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/vegetacao.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "drenagem",
       "label": "Drenagem (IBGE)",
-      "help": "Drenagem (BC250 2025): IBGE, Base Cartográfica Contínua 1:250.000 (BC250), 2025. Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
+      "help": "Drenagem (BC250 2025): os rios e córregos da Base Cartográfica Contínua do IBGE. Fonte: IBGE, Base Cartográfica Contínua 1:250.000 (BC250), 2025. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Na escala 1:250.000 faltam os córregos pequenos; para a rede detalhada, os trechos da BHO da ANA (1:50.000 em parte do país). Período: BC250, edição 2025. Resolução ou escala: escala 1:250.000. Unidades: largura média em metros, quando há. Licença: uso livre com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/drenagem.md",
       "icon": "line_layer",
       "params": "{}"
     },
     {
       "id": "massas-dagua",
       "label": "Massas d'água (IBGE)",
-      "help": "Massas d'água (BC250 2025): IBGE, Base Cartográfica Contínua 1:250.000 (BC250), 2025. Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
+      "help": "Massas d'água (BC250 2025): lagos, lagoas, represas e trechos largos de rio da Base Cartográfica Contínua do IBGE. Fonte: IBGE, Base Cartográfica Contínua 1:250.000 (BC250), 2025. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Massas d'água pequenas (menores que cerca de 0,6 km²) não aparecem na escala 1:250.000. Período: BC250, edição 2025. Resolução ou escala: escala 1:250.000. Unidades: sem unidade. Licença: uso livre com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/massas-dagua.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "ana-ottobacias",
       "label": "Ottobacias (BHO 2017, ANA)",
-      "help": "Ottobacias (BHO 2017 1:50.000, ANA): ANA, Base Hidrográfica Ottocodificada (BHO 2017 1:50.000), SNIRH. Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
+      "help": "Ottobacias (BHO 2017 1:50.000, ANA): as ottobacias da Base Hidrográfica Ottocodificada: cada bacia de contribuição de um trecho de rio, com o código de Otto Pfafstetter, que diz quem drena para quem. Fonte: ANA, Base Hidrográfica Ottocodificada (BHO 2017 1:50.000), SNIRH. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Ottobacias pequenas: para bacias maiores, junte pelo prefixo do código. A rede segue a hidrografia da época da base. Período: BHO 2017. Resolução ou escala: escala 1:50.000 onde há base nessa escala (1:250.000 no resto). Unidades: área de contribuição em km² (NUAREACONT). Licença: reprodução permitida, desde que citada a fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/ana-ottobacias.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "ana-bho",
       "label": "Trechos de drenagem (BHO 2017, ANA)",
-      "help": "Trechos de drenagem (BHO 2017, ANA): ANA, Base Hidrográfica Ottocodificada (BHO 2017), SNIRH. Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
+      "help": "Trechos de drenagem (BHO 2017, ANA): os trechos de drenagem da Base Hidrográfica Ottocodificada da ANA, com a área a montante e a ordem de Strahler. Fonte: ANA, Base Hidrográfica Ottocodificada (BHO 2017), SNIRH. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Rede gerada para gestão de recursos hídricos: alguns trechos são canais fictícios em lagos e represas. Período: BHO 2017. Resolução ou escala: escala 1:50.000 onde há base nessa escala (1:250.000 no resto). Unidades: área a montante em km² (nuareamont). Licença: reprodução permitida, desde que citada a fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/ana-bho.md",
       "icon": "line_layer",
       "params": "{}"
     },
     {
       "id": "ana-uph",
       "label": "Unidades de planejamento hídrico (UPH, ANA)",
-      "help": "Unidades de planejamento hídrico (UPH, ANA): ANA, Unidades de Planejamento Hídrico (UPH), SNIRH. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "help": "Unidades de planejamento hídrico (UPH, ANA): as Unidades de Planejamento Hídrico da ANA, recortes de bacias usados nos planos e balanços hídricos. Fonte: ANA, Unidades de Planejamento Hídrico (UPH), SNIRH. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista. Cuidados: Limites para mapas e estatística, não para demarcação legal. Vem o polígono inteiro de cada unidade que cruza a área, sem recorte. Período: versão do SNIRH vigente. Resolução ou escala: escala 1:1.000.000. Unidades: sem unidade. Licença: reprodução permitida, desde que citada a fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/ana-uph.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "ibge-dhn-macro",
       "label": "Macrorregiões hidrográficas (2021, IBGE)",
-      "help": "Macrorregiões hidrográficas (DHN 2021, IBGE): IBGE, Divisão Hidrográfica Nacional (DHN), 2021. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "help": "Macrorregiões hidrográficas (DHN 2021, IBGE): as macrorregiões hidrográficas da Divisão Hidrográfica Nacional do IBGE (o primeiro nível, como Atlântico Sudeste). Fonte: IBGE, Divisão Hidrográfica Nacional (DHN), 2021. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista. Cuidados: Limites para mapas e estatística, não para demarcação legal. Vem o polígono inteiro de cada unidade que cruza a área, sem recorte. Período: Divisão Hidrográfica Nacional do IBGE, 2021. Resolução ou escala: escala 1:250.000. Unidades: sem unidade. Licença: uso livre com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/ibge-dhn-macro.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "ibge-dhn-meso",
       "label": "Mesorregiões hidrográficas (2021, IBGE)",
-      "help": "Mesorregiões hidrográficas (DHN 2021, IBGE): IBGE, Divisão Hidrográfica Nacional (DHN), 2021. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "help": "Mesorregiões hidrográficas (DHN 2021, IBGE): as mesorregiões hidrográficas da Divisão Hidrográfica Nacional do IBGE (o segundo nível). Fonte: IBGE, Divisão Hidrográfica Nacional (DHN), 2021. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista. Cuidados: Limites para mapas e estatística, não para demarcação legal. Vem o polígono inteiro de cada unidade que cruza a área, sem recorte. Período: Divisão Hidrográfica Nacional do IBGE, 2021. Resolução ou escala: escala 1:250.000. Unidades: sem unidade. Licença: uso livre com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/ibge-dhn-meso.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "ibge-dhn-micro",
       "label": "Microrregiões hidrográficas (2021, IBGE)",
-      "help": "Microrregiões hidrográficas (DHN 2021, IBGE): IBGE, Divisão Hidrográfica Nacional (DHN), 2021. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "help": "Microrregiões hidrográficas (DHN 2021, IBGE): as microrregiões hidrográficas da Divisão Hidrográfica Nacional do IBGE (o terceiro nível, próximo às bacias de rios principais). Fonte: IBGE, Divisão Hidrográfica Nacional (DHN), 2021. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista. Cuidados: Limites para mapas e estatística, não para demarcação legal. Vem o polígono inteiro de cada unidade que cruza a área, sem recorte. Período: Divisão Hidrográfica Nacional do IBGE, 2021. Resolução ou escala: escala 1:250.000. Unidades: sem unidade. Licença: uso livre com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/ibge-dhn-micro.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "ana-disponibilidade",
       "label": "Disponibilidade hídrica (ANA)",
-      "help": "Disponibilidade hídrica superficial (ANA): ANA, Disponibilidade Hídrica Superficial, SNIRH. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web.",
+      "help": "Disponibilidade hídrica superficial (ANA): a disponibilidade hídrica superficial por trecho de rio: a vazão de referência que a ANA considera disponível. Fonte: ANA, Disponibilidade Hídrica Superficial, SNIRH. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web. Cuidados: Estimativa regional para planejamento; outorgas usam os critérios de cada órgão gestor. Período: estudos da ANA (vazões de referência de séries históricas). Resolução ou escala: trechos da BHO (1:250.000). Unidades: vazão em m³/s. Licença: dados abertos; licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/ana-disponibilidade.md",
       "icon": "line_layer",
       "params": "{}"
     },
     {
       "id": "ana-balanco",
       "label": "Balanço hídrico (ANA)",
-      "help": "Balanço hídrico quantitativo por curso d'água (ANA): ANA, Balanço Hídrico Quantitativo por Curso de Água, SNIRH. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web.",
+      "help": "Balanço hídrico quantitativo por curso d'água (ANA): o balanço hídrico quantitativo por curso d'água: a demanda de água em relação à disponibilidade, que indica onde há criticidade. Fonte: ANA, Balanço Hídrico Quantitativo por Curso de Água, SNIRH. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web. Cuidados: Diagnóstico regional; não considera reservatórios locais nem retiradas não outorgadas. Período: balanço da ANA (Conjuntura dos Recursos Hídricos). Resolução ou escala: trechos da BHO (1:250.000). Unidades: razão demanda/disponibilidade (adimensional) e classes de criticidade. Licença: dados abertos; licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/ana-balanco.md",
       "icon": "line_layer",
       "params": "{}"
     },
     {
       "id": "ana-estacoes",
       "label": "Estações hidrometeorológicas (ANA)",
-      "help": "Estações da Rede Hidrometeorológica Nacional (ANA): ANA, Rede Hidrometeorológica Nacional, SNIRH. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web.",
+      "help": "Estações da Rede Hidrometeorológica Nacional (ANA): as estações da Rede Hidrometeorológica Nacional: pluviométricas, fluviométricas, de qualidade da água e de sedimentos. Fonte: ANA, Rede Hidrometeorológica Nacional, SNIRH. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web. Cuidados: A camada mostra onde ficam as estações; as séries de chuva e vazão se baixam no HidroWeb pelo código. Período: base do SNIRH na data do pedido. Resolução ou escala: pontos (coordenadas da estação). Unidades: sem unidade; as séries ficam no HidroWeb. Licença: dados abertos; licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/ana-estacoes.md",
       "icon": "point_layer",
       "params": "{}"
     },
     {
       "id": "ana-captacoes",
       "label": "Captações superficiais (ANA)",
-      "help": "Captações superficiais (ANA): ANA, Captações Superficiais, SNIRH. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web.",
+      "help": "Captações superficiais (ANA): as captações de água superficial para abastecimento público cadastradas pela ANA. Fonte: ANA, Captações Superficiais, SNIRH. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web. Cuidados: Só as captações para abastecimento urbano do Atlas Águas; não inclui irrigação nem indústria. Período: base do SNIRH na data do pedido. Resolução ou escala: pontos. Unidades: sem unidade. Licença: dados abertos; licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/ana-captacoes.md",
       "icon": "point_layer",
       "params": "{}"
     },
     {
       "id": "ana-pivos",
       "label": "Pivôs centrais (ANA)",
-      "help": "Pivôs centrais mapeados (ANA): ANA, Pivôs Mapeados, SNIRH. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web.",
+      "help": "Pivôs centrais mapeados (ANA): os pivôs centrais de irrigação mapeados pela ANA e pela Embrapa em imagens de satélite. Fonte: ANA, Pivôs Mapeados, SNIRH. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web. Cuidados: Mapeamento de um ano: pivôs novos ou desativados podem estar faltando ou sobrando. Período: mapeamento mais recente publicado no SNIRH. Resolução ou escala: polígonos dos círculos irrigados, mapeados em imagens de 10 a 30 m. Unidades: área em ha. Licença: dados abertos; licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/ana-pivos.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "ana-seca-2015",
       "label": "Municípios com seca (2015, ANA)",
-      "help": "Municípios atingidos por seca em 2015 (ANA): ANA, Municípios Atingidos por Eventos de Seca em 2015, SNIRH. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web.",
+      "help": "Municípios atingidos por seca em 2015 (ANA): os municípios em que a ANA registrou eventos de seca em 2015 (decretos e reconhecimentos). Fonte: ANA, Municípios Atingidos por Eventos de Seca em 2015, SNIRH. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web. Cuidados: É o registro de um ano; não mede a intensidade da seca. Período: 2015. Resolução ou escala: limites municipais (1:250.000). Unidades: sem unidade. Licença: dados abertos; licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/ana-seca-2015.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "aqueduct-estresse",
       "label": "Estresse hídrico (Aqueduct 4.0, WRI)",
-      "help": "Estresse hídrico de referência (Aqueduct 4.0, WRI): Kuzma, S., M.F.P. Bierkens, S. Lakshman, T. Luo, L. Saccoccia, E.H. Sutanudjaja e R. Van Beek. 2023. Aqueduct 4.0: Updated decision-relevant global water risk indicators. Technical Note. Washington, DC: World Resources Institute. doi:10.46830/writn.23.00061. Estresse hídrico de referência (bws): retirada de água sobre a oferta renovável, por sub-bacia HydroBASINS de nível 6 e unidade administrativa, pelo serviço Aqueduct Water Risk (Baseline Annual) do ArcGIS Living Atlas (Esri). Campos: bws_raw, a razão; bws_score, de 0 a 5; bws_cat, a categoria (-1 árido e de pouco uso, -9999 sem dado); estresse, a categoria em português. Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
+      "help": "Estresse hídrico de referência (Aqueduct 4.0, WRI): o estresse hídrico de referência do Aqueduct 4.0 (WRI): a retirada de água sobre a oferta renovável, por sub-bacia. Fonte: Kuzma, S., M.F.P. Bierkens, S. Lakshman, T. Luo, L. Saccoccia, E.H. Sutanudjaja e R. Van Beek. 2023. Aqueduct 4.0: Updated decision-relevant global water risk indicators. Technical Note. Washington, DC: World Resources Institute. doi:10.46830/writn.23.00061. Estresse hídrico de referência (bws): retirada de água sobre a oferta renovável, por sub-bacia HydroBASINS de nível 6 e unidade administrativa, pelo serviço Aqueduct Water Risk (Baseline Annual) do ArcGIS Living Atlas (Esri). Campos: bws_raw, a razão; bws_score, de 0 a 5; bws_cat, a categoria (-1 árido e de pouco uso, -9999 sem dado); estresse, a categoria em português. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Modelo global (PCR-GLOBWB 2): bom para comparar regiões, não para a gestão de uma bacia pequena. Período: condição de referência (1979 a 2019). Resolução ou escala: sub-bacias HydroBASINS de nível 6 (centenas a milhares de km²). Unidades: razão retirada/oferta (bws_raw); nota de 0 a 5 (bws_score). Licença: CC BY 4.0 (WRI). Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/aqueduct-estresse.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "ucs",
       "label": "Unidades de conservação (MMA)",
-      "help": "Unidades de conservação (CNUC 07/2026): MMA, Cadastro Nacional de Unidades de Conservação (CNUC), 07/2026. Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
+      "help": "Unidades de conservação (CNUC 07/2026): as unidades de conservação federais, estaduais e municipais do Cadastro Nacional de Unidades de Conservação. Fonte: MMA, Cadastro Nacional de Unidades de Conservação (CNUC), 07/2026. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Os limites são os declarados pelos gestores; APAs podem cobrir cidades inteiras. Confira o ato de criação para uso legal. Período: CNUC, julho de 2026. Resolução ou escala: limites legais digitalizados (escala variável). Unidades: área em ha (ha_total). Licença: não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/ucs.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "ucs-federais",
       "label": "UCs federais (ICMBio)",
-      "help": "Unidades de conservação federais (ICMBio): ICMBio, Limites das Unidades de Conservação Federais, 08/2026. Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
+      "help": "Unidades de conservação federais (ICMBio): os limites das unidades de conservação federais, publicados pelo ICMBio. Fonte: ICMBio, Limites das Unidades de Conservação Federais, 08/2026. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Só as federais; as estaduais e municipais estão no CNUC. Período: ICMBio, agosto de 2026. Resolução ou escala: limites legais digitalizados. Unidades: área em ha. Licença: não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/ucs-federais.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "terras-indigenas",
       "label": "Terras indígenas (FUNAI)",
-      "help": "Terras indígenas (FUNAI, via Infra S.A.): FUNAI, Terras Indígenas (cópia publicada pela Infra S.A.). Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
+      "help": "Terras indígenas (FUNAI, via Infra S.A.): as terras indígenas em todas as fases do processo de demarcação (em estudo, declarada, homologada, regularizada). Fonte: FUNAI, Terras Indígenas (cópia publicada pela Infra S.A.). Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Cópia de terceiros: confira a fase na FUNAI. Terras em estudo podem não ter limite definido. Período: base da FUNAI copiada pela Infra S.A.. Resolução ou escala: limites da demarcação (escala variável). Unidades: área em ha. Licença: reprodução permitida citando a fonte (FUNAI). Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/terras-indigenas.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "car-imoveis",
       "label": "Imóveis rurais do CAR (SFB)",
-      "help": "Imóveis rurais (CAR): Serviço Florestal Brasileiro, Cadastro Ambiental Rural (SICAR); dados autodeclarados, sem os cancelados. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app web: o servidor só aceita cifras TLS antigas, que o app desktop não aceita.",
+      "help": "Imóveis rurais (CAR): os imóveis rurais declarados no Cadastro Ambiental Rural. Fonte: Serviço Florestal Brasileiro, Cadastro Ambiental Rural (SICAR); dados autodeclarados, sem os cancelados. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app web: o servidor só aceita cifras TLS antigas, que o app desktop não aceita. Cuidados: Dado autodeclarado e não validado: imóveis se sobrepõem e os limites podem ter erros grandes. Não é título de propriedade. Período: SICAR, base vigente na data do pedido. Resolução ou escala: limites declarados pelos proprietários. Unidades: área em ha. Licença: licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/car-imoveis.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "sigef-parcelas",
       "label": "Parcelas do SIGEF (todas, INCRA)",
-      "help": "Parcelas certificadas (SIGEF): INCRA, Sistema de Gestão Fundiária (SIGEF), Geoportal INCRA. Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
+      "help": "Parcelas certificadas (SIGEF): as parcelas de imóveis rurais certificadas pelo INCRA no SIGEF. Fonte: INCRA, Sistema de Gestão Fundiária (SIGEF), Geoportal INCRA. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Só os imóveis já certificados: muitas propriedades ainda não estão no SIGEF. Para posse e domínio, a matrícula do cartório. Período: SIGEF, base vigente na data do pedido. Resolução ou escala: georreferenciamento certificado (precisão de cerca de 0,5 m nos vértices). Unidades: área em ha (area_hectares). Licença: licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/sigef-parcelas.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "sigef-particulares",
       "label": "Parcelas particulares (SIGEF, INCRA)",
-      "help": "Parcelas particulares (SIGEF): INCRA, Sistema de Gestão Fundiária (SIGEF), Geoportal INCRA. Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
+      "help": "Parcelas particulares (SIGEF): as parcelas certificadas de imóveis particulares no SIGEF. Fonte: INCRA, Sistema de Gestão Fundiária (SIGEF), Geoportal INCRA. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Só os imóveis já certificados. Para posse e domínio, a matrícula do cartório. Período: SIGEF, base vigente na data do pedido. Resolução ou escala: georreferenciamento certificado (precisão de cerca de 0,5 m nos vértices). Unidades: área em ha (area_hectares). Licença: licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/sigef-particulares.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "sigef-assentamentos",
       "label": "Assentamentos e lotes (SIGEF, INCRA)",
-      "help": "Assentamentos e lotes (SIGEF): INCRA, Sistema de Gestão Fundiária (SIGEF), Geoportal INCRA. Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
+      "help": "Assentamentos e lotes (SIGEF): os assentamentos da reforma agrária e os lotes certificados no SIGEF. Fonte: INCRA, Sistema de Gestão Fundiária (SIGEF), Geoportal INCRA. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Só o que já foi certificado no SIGEF. Período: SIGEF, base vigente na data do pedido. Resolução ou escala: georreferenciamento certificado (precisão de cerca de 0,5 m nos vértices). Unidades: área em ha (area_hectares). Licença: licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/sigef-assentamentos.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "sigef-glebas",
       "label": "Glebas públicas (SIGEF, INCRA)",
-      "help": "Glebas públicas (SIGEF): INCRA, Sistema de Gestão Fundiária (SIGEF), Geoportal INCRA. Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
+      "help": "Glebas públicas (SIGEF): as glebas públicas federais certificadas no SIGEF. Fonte: INCRA, Sistema de Gestão Fundiária (SIGEF), Geoportal INCRA. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Só o que já foi certificado no SIGEF; comum na Amazônia. Período: SIGEF, base vigente na data do pedido. Resolução ou escala: georreferenciamento certificado (precisão de cerca de 0,5 m nos vértices). Unidades: área em ha (area_hectares). Licença: licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/sigef-glebas.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "prodes-cerrado",
       "label": "PRODES Cerrado (INPE)",
-      "help": "Desmatamento anual (PRODES Cerrado): INPE, PRODES Cerrado (TerraBrasilis). Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
+      "help": "Desmatamento anual (PRODES Cerrado): o desmatamento anual do bioma Cerrado mapeado pelo INPE (PRODES): os polígonos de vegetação nativa suprimida a cada ano. Fonte: INPE, PRODES Cerrado (TerraBrasilis). Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Mapeia o corte raso da vegetação nativa, não a degradação nem a regeneração. Polígonos menores que a área mínima (1 ha no Cerrado e na Mata Atlântica, 6,25 ha na Amazônia) ficam de fora; nuvens escondem parte de alguns anos. Período: de 2000 até o último ano publicado (o ano PRODES vai de agosto a julho). Resolução ou escala: imagens Landsat e equivalentes, 30 m; área mínima de 1 a 6,25 ha. Unidades: área em km² (area_km). Licença: CC BY-SA 4.0. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/prodes-cerrado.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "prodes-caatinga",
       "label": "PRODES Caatinga (INPE)",
-      "help": "Desmatamento anual (PRODES Caatinga): INPE, PRODES Caatinga (TerraBrasilis). Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
+      "help": "Desmatamento anual (PRODES Caatinga): o desmatamento anual do bioma Caatinga mapeado pelo INPE (PRODES): os polígonos de vegetação nativa suprimida a cada ano. Fonte: INPE, PRODES Caatinga (TerraBrasilis). Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Mapeia o corte raso da vegetação nativa, não a degradação nem a regeneração. Polígonos menores que a área mínima (1 ha no Cerrado e na Mata Atlântica, 6,25 ha na Amazônia) ficam de fora; nuvens escondem parte de alguns anos. Período: de 2000 até o último ano publicado (o ano PRODES vai de agosto a julho). Resolução ou escala: imagens Landsat e equivalentes, 30 m; área mínima de 1 a 6,25 ha. Unidades: área em km² (area_km). Licença: CC BY-SA 4.0. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/prodes-caatinga.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "prodes-amazonia",
       "label": "PRODES Amazônia Legal (INPE)",
-      "help": "Desmatamento anual (PRODES Amazônia Legal): INPE, PRODES Amazônia Legal (TerraBrasilis). Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
+      "help": "Desmatamento anual (PRODES Amazônia Legal): o desmatamento anual do bioma Amazônia (na Amazônia Legal) mapeado pelo INPE (PRODES): os polígonos de vegetação nativa suprimida a cada ano. Fonte: INPE, PRODES Amazônia Legal (TerraBrasilis). Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Mapeia o corte raso da vegetação nativa, não a degradação nem a regeneração. Polígonos menores que a área mínima (1 ha no Cerrado e na Mata Atlântica, 6,25 ha na Amazônia) ficam de fora; nuvens escondem parte de alguns anos. Período: de 2008 até o último ano publicado (o ano PRODES vai de agosto a julho). Resolução ou escala: imagens Landsat e equivalentes, 30 m; área mínima de 1 a 6,25 ha. Unidades: área em km² (area_km). Licença: CC BY-SA 4.0. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/prodes-amazonia.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "prodes-mata-atlantica",
       "label": "PRODES Mata Atlântica (INPE)",
-      "help": "Desmatamento anual (PRODES Mata Atlântica): INPE, PRODES Mata Atlântica (TerraBrasilis). Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
+      "help": "Desmatamento anual (PRODES Mata Atlântica): o desmatamento anual do bioma Mata Atlântica mapeado pelo INPE (PRODES): os polígonos de vegetação nativa suprimida a cada ano. Fonte: INPE, PRODES Mata Atlântica (TerraBrasilis). Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Mapeia o corte raso da vegetação nativa, não a degradação nem a regeneração. Polígonos menores que a área mínima (1 ha no Cerrado e na Mata Atlântica, 6,25 ha na Amazônia) ficam de fora; nuvens escondem parte de alguns anos. Período: de 2000 até o último ano publicado (o ano PRODES vai de agosto a julho). Resolução ou escala: imagens Landsat e equivalentes, 30 m; área mínima de 1 a 6,25 ha. Unidades: área em km² (area_km). Licença: CC BY-SA 4.0. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/prodes-mata-atlantica.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "prodes-pantanal",
       "label": "PRODES Pantanal (INPE)",
-      "help": "Desmatamento anual (PRODES Pantanal): INPE, PRODES Pantanal (TerraBrasilis). Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
+      "help": "Desmatamento anual (PRODES Pantanal): o desmatamento anual do bioma Pantanal mapeado pelo INPE (PRODES): os polígonos de vegetação nativa suprimida a cada ano. Fonte: INPE, PRODES Pantanal (TerraBrasilis). Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Mapeia o corte raso da vegetação nativa, não a degradação nem a regeneração. Polígonos menores que a área mínima (1 ha no Cerrado e na Mata Atlântica, 6,25 ha na Amazônia) ficam de fora; nuvens escondem parte de alguns anos. Período: de 2000 até o último ano publicado (o ano PRODES vai de agosto a julho). Resolução ou escala: imagens Landsat e equivalentes, 30 m; área mínima de 1 a 6,25 ha. Unidades: área em km² (area_km). Licença: CC BY-SA 4.0. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/prodes-pantanal.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "prodes-pampa",
       "label": "PRODES Pampa (INPE)",
-      "help": "Desmatamento anual (PRODES Pampa): INPE, PRODES Pampa (TerraBrasilis). Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
+      "help": "Desmatamento anual (PRODES Pampa): o desmatamento anual do bioma Pampa mapeado pelo INPE (PRODES): os polígonos de vegetação nativa suprimida a cada ano. Fonte: INPE, PRODES Pampa (TerraBrasilis). Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Mapeia o corte raso da vegetação nativa, não a degradação nem a regeneração. Polígonos menores que a área mínima (1 ha no Cerrado e na Mata Atlântica, 6,25 ha na Amazônia) ficam de fora; nuvens escondem parte de alguns anos. Período: de 2000 até o último ano publicado (o ano PRODES vai de agosto a julho). Resolução ou escala: imagens Landsat e equivalentes, 30 m; área mínima de 1 a 6,25 ha. Unidades: área em km² (area_km). Licença: CC BY-SA 4.0. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/prodes-pampa.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "deter-cerrado",
       "label": "DETER Cerrado (INPE)",
-      "help": "Alertas de desmatamento (DETER Cerrado): INPE, DETER Cerrado (TerraBrasilis). Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
+      "help": "Alertas de desmatamento (DETER Cerrado): os alertas de desmatamento do DETER no Cerrado: avisos diários do INPE de vegetação suprimida. Fonte: INPE, DETER Cerrado (TerraBrasilis). Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Alerta rápido para a fiscalização, não estatística: a área oficial é a do PRODES. Inclui degradação, cicatrizes de fogo e mineração, além do corte raso. Período: de 2018 até a véspera. Resolução ou escala: imagens de 20 a 64 m (CBERS, Amazonia-1); área mínima de 1 ha. Unidades: área em km². Licença: CC BY-SA 4.0. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/deter-cerrado.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "deter-amazonia",
       "label": "DETER Amazônia (INPE)",
-      "help": "Alertas de desmatamento (DETER Amazônia): INPE, DETER Amazônia (TerraBrasilis). Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
+      "help": "Alertas de desmatamento (DETER Amazônia): os alertas de desmatamento e degradação do DETER na Amazônia Legal. Fonte: INPE, DETER Amazônia (TerraBrasilis). Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Alerta rápido para a fiscalização, não estatística: a área oficial é a do PRODES. Inclui degradação, cicatrizes de fogo e mineração, além do corte raso. Período: de 2016 até a véspera. Resolução ou escala: imagens de 20 a 64 m (CBERS, Amazonia-1); área mínima de 3 ha. Unidades: área em km². Licença: CC BY-SA 4.0. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/deter-amazonia.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "ibama-embargos",
       "label": "Áreas embargadas (IBAMA)",
-      "help": "Áreas embargadas (IBAMA): IBAMA, Termos de embargo (SISCOM, PAMGIA). Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
+      "help": "Áreas embargadas (IBAMA): as áreas embargadas pelo IBAMA por infração ambiental (desmatamento ilegal, queimada...). Fonte: IBAMA, Termos de embargo (SISCOM, PAMGIA). Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Inclui embargos já resolvidos ou contestados; a situação jurídica se confere no IBAMA. Só os embargos federais. Período: termos de embargo desde os anos 2000 até a data do pedido. Resolução ou escala: polígonos do auto de infração. Unidades: área embargada em ha. Licença: dados abertos; licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/ibama-embargos.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "inpe-focos-48h",
       "label": "Focos de calor: 48 horas (INPE)",
-      "help": "Focos de calor das últimas 48 horas (INPE): INPE, Programa Queimadas, focos de calor do mês corrente (Sisfogo, IBAMA/PAMGIA). Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
+      "help": "Focos de calor das últimas 48 horas (INPE): os focos de calor detectados por satélite nas últimas 48 horas (Programa Queimadas do INPE). Fonte: INPE, Programa Queimadas, focos de calor do mês corrente (Sisfogo, IBAMA/PAMGIA). Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Um foco é um pixel quente, não um incêndio: um fogo grande dá vários focos, e um pequeno ou sob nuvem pode não aparecer. A posição tem erro de até centenas de metros. Período: as últimas 48 horas, dentro do mês corrente. Resolução ou escala: pontos (o centro do pixel do satélite: 375 m a 4 km, conforme o sensor). Unidades: sem unidade (cada ponto é um foco); data e hora em UTC. Licença: dados abertos; licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/inpe-focos-48h.md",
       "icon": "point_layer",
       "params": "{}"
     },
     {
       "id": "inpe-focos-7d",
       "label": "Focos de calor: 7 dias (INPE)",
-      "help": "Focos de calor dos últimos 7 dias do mês (INPE): INPE, Programa Queimadas, focos de calor do mês corrente (Sisfogo, IBAMA/PAMGIA). Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
+      "help": "Focos de calor dos últimos 7 dias do mês (INPE): os focos de calor dos últimos 7 dias (Programa Queimadas do INPE). Fonte: INPE, Programa Queimadas, focos de calor do mês corrente (Sisfogo, IBAMA/PAMGIA). Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Um foco é um pixel quente, não um incêndio: um fogo grande dá vários focos, e um pequeno ou sob nuvem pode não aparecer. A posição tem erro de até centenas de metros. Período: os últimos 7 dias, dentro do mês corrente. Resolução ou escala: pontos (o centro do pixel do satélite: 375 m a 4 km, conforme o sensor). Unidades: sem unidade (cada ponto é um foco); data e hora em UTC. Licença: dados abertos; licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/inpe-focos-7d.md",
       "icon": "point_layer",
       "params": "{}"
     },
     {
       "id": "inpe-focos-mes",
       "label": "Focos de calor: mês corrente (INPE)",
-      "help": "Focos de calor do mês corrente (INPE): INPE, Programa Queimadas, focos de calor do mês corrente (Sisfogo, IBAMA/PAMGIA). Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
+      "help": "Focos de calor do mês corrente (INPE): os focos de calor do mês corrente (Programa Queimadas do INPE). Fonte: INPE, Programa Queimadas, focos de calor do mês corrente (Sisfogo, IBAMA/PAMGIA). Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Um foco é um pixel quente, não um incêndio: um fogo grande dá vários focos, e um pequeno ou sob nuvem pode não aparecer. A posição tem erro de até centenas de metros. Período: do dia 1º do mês até agora. Resolução ou escala: pontos (o centro do pixel do satélite: 375 m a 4 km, conforme o sensor). Unidades: sem unidade (cada ponto é um foco); data e hora em UTC. Licença: dados abertos; licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/inpe-focos-mes.md",
       "icon": "point_layer",
       "params": "{}"
     },
     {
       "id": "aneel-uhe",
       "label": "Usinas hidrelétricas (UHE, ANEEL)",
-      "help": "Usinas hidrelétricas (ANEEL): ANEEL, SIGEL, Usinas Hidrelétricas - UHE. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web.",
+      "help": "Usinas hidrelétricas (ANEEL): as usinas hidrelétricas (UHE, acima de 50 MW) do Sistema de Informações Georreferenciadas do Setor Elétrico (SIGEL). Fonte: ANEEL, SIGEL, Usinas Hidrelétricas - UHE. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web. Cuidados: Cadastro da ANEEL: a posição é a da usina ou do eixo da barragem informada pelo empreendedor. Inclui usinas em construção e outorgadas, conforme a fase. Período: base do SIGEL na data do pedido. Resolução ou escala: pontos. Unidades: potência em kW ou MW. Licença: dados abertos; licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/aneel-uhe.md",
       "icon": "point_layer",
       "params": "{}"
     },
     {
       "id": "aneel-pch",
       "label": "Pequenas centrais hidrelétricas (PCH, ANEEL)",
-      "help": "Pequenas centrais hidrelétricas (ANEEL): ANEEL, SIGEL, Pequenas Centrais Hidrelétricas - PCH. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web.",
+      "help": "Pequenas centrais hidrelétricas (ANEEL): as pequenas centrais hidrelétricas (PCH, de 5 a 50 MW) do Sistema de Informações Georreferenciadas do Setor Elétrico (SIGEL). Fonte: ANEEL, SIGEL, Pequenas Centrais Hidrelétricas - PCH. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web. Cuidados: Cadastro da ANEEL: a posição é a da usina ou do eixo da barragem informada pelo empreendedor. Inclui usinas em construção e outorgadas, conforme a fase. Período: base do SIGEL na data do pedido. Resolução ou escala: pontos. Unidades: potência em kW ou MW. Licença: dados abertos; licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/aneel-pch.md",
       "icon": "point_layer",
       "params": "{}"
     },
     {
       "id": "aneel-cgh",
       "label": "Centrais geradoras hidrelétricas (CGH, ANEEL)",
-      "help": "Centrais geradoras hidrelétricas (ANEEL): ANEEL, SIGEL, Centrais Geradoras Hidrelétricas - CGH. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web.",
+      "help": "Centrais geradoras hidrelétricas (ANEEL): as centrais geradoras hidrelétricas (CGH, até 5 MW) do Sistema de Informações Georreferenciadas do Setor Elétrico (SIGEL). Fonte: ANEEL, SIGEL, Centrais Geradoras Hidrelétricas - CGH. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web. Cuidados: Cadastro da ANEEL: a posição é a da usina ou do eixo da barragem informada pelo empreendedor. Inclui usinas em construção e outorgadas, conforme a fase. Período: base do SIGEL na data do pedido. Resolução ou escala: pontos. Unidades: potência em kW ou MW. Licença: dados abertos; licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/aneel-cgh.md",
       "icon": "point_layer",
       "params": "{}"
     },
     {
       "id": "aneel-eol",
       "label": "Centrais eólicas (EOL, ANEEL)",
-      "help": "Centrais geradoras eólicas (ANEEL): ANEEL, SIGEL, Central Geradora Eólica - EOL. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web.",
+      "help": "Centrais geradoras eólicas (ANEEL): as usinas eólicas (EOL) do Sistema de Informações Georreferenciadas do Setor Elétrico (SIGEL). Fonte: ANEEL, SIGEL, Central Geradora Eólica - EOL. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web. Cuidados: Cadastro da ANEEL: a posição é a da usina ou do eixo da barragem informada pelo empreendedor. Inclui usinas em construção e outorgadas, conforme a fase. Período: base do SIGEL na data do pedido. Resolução ou escala: pontos. Unidades: potência em kW ou MW. Licença: dados abertos; licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/aneel-eol.md",
       "icon": "point_layer",
       "params": "{}"
     },
     {
       "id": "aneel-ufv",
       "label": "Usinas solares (UFV, ANEEL)",
-      "help": "Centrais solares fotovoltaicas (ANEEL): ANEEL, SIGEL, Centrais Geradoras Solares Fotovoltaicas - UFV. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web.",
+      "help": "Centrais solares fotovoltaicas (ANEEL): as usinas solares fotovoltaicas (UFV) de geração centralizada do Sistema de Informações Georreferenciadas do Setor Elétrico (SIGEL). Fonte: ANEEL, SIGEL, Centrais Geradoras Solares Fotovoltaicas - UFV. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web. Cuidados: Cadastro da ANEEL: a posição é a da usina ou do eixo da barragem informada pelo empreendedor. Inclui usinas em construção e outorgadas, conforme a fase. Período: base do SIGEL na data do pedido. Resolução ou escala: pontos. Unidades: potência em kW ou MW. Licença: dados abertos; licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/aneel-ufv.md",
       "icon": "point_layer",
       "params": "{}"
     },
     {
       "id": "aneel-ute",
       "label": "Usinas termelétricas (UTE, ANEEL)",
-      "help": "Usinas termelétricas (ANEEL): ANEEL, SIGEL, Usinas Termelétricas - UTE. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web.",
+      "help": "Usinas termelétricas (ANEEL): as usinas termelétricas (UTE) do Sistema de Informações Georreferenciadas do Setor Elétrico (SIGEL). Fonte: ANEEL, SIGEL, Usinas Termelétricas - UTE. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web. Cuidados: Cadastro da ANEEL: a posição é a da usina ou do eixo da barragem informada pelo empreendedor. Inclui usinas em construção e outorgadas, conforme a fase. Período: base do SIGEL na data do pedido. Resolução ou escala: pontos. Unidades: potência em kW ou MW. Licença: dados abertos; licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/aneel-ute.md",
       "icon": "point_layer",
       "params": "{}"
     },
     {
       "id": "anp-bacias",
       "label": "Bacias sedimentares (ANP)",
-      "help": "Bacias sedimentares (ANP): ANP, GeoMaps, Bacias Sedimentares. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web.",
+      "help": "Bacias sedimentares (ANP): as bacias sedimentares brasileiras com interesse para petróleo e gás. Fonte: ANP, GeoMaps, Bacias Sedimentares. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web. Cuidados: Base da ANP para a exploração e a produção de petróleo e gás; os limites de blocos e campos mudam a cada rodada de licitação. Período: base do GeoMaps da ANP na data do pedido. Resolução ou escala: escala regional. Unidades: sem unidade. Licença: dados abertos; licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/anp-bacias.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "anp-blocos",
       "label": "Blocos exploratórios (ANP)",
-      "help": "Blocos exploratórios (ANP): ANP, GeoMaps, Blocos Exploratórios. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web.",
+      "help": "Blocos exploratórios (ANP): os blocos exploratórios concedidos ou em oferta pela ANP. Fonte: ANP, GeoMaps, Blocos Exploratórios. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web. Cuidados: Base da ANP para a exploração e a produção de petróleo e gás; os limites de blocos e campos mudam a cada rodada de licitação. Período: base do GeoMaps da ANP na data do pedido. Resolução ou escala: limites dos contratos. Unidades: área em km². Licença: dados abertos; licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/anp-blocos.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "anp-campos",
       "label": "Campos de produção (ANP)",
-      "help": "Campos de produção (ANP): ANP, GeoMaps, Campos de Produção. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web.",
+      "help": "Campos de produção (ANP): os campos de produção de petróleo e gás. Fonte: ANP, GeoMaps, Campos de Produção. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web. Cuidados: Base da ANP para a exploração e a produção de petróleo e gás; os limites de blocos e campos mudam a cada rodada de licitação. Período: base do GeoMaps da ANP na data do pedido. Resolução ou escala: limites dos contratos. Unidades: área em km². Licença: dados abertos; licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/anp-campos.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "anp-pocos",
       "label": "Poços de petróleo e gás (ANP)",
-      "help": "Poços de petróleo e gás (ANP): ANP, GeoMaps, Poços. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web.",
+      "help": "Poços de petróleo e gás (ANP): os poços de petróleo e gás perfurados (exploratórios e de produção). Fonte: ANP, GeoMaps, Poços. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web. Cuidados: Base da ANP para a exploração e a produção de petróleo e gás; os limites de blocos e campos mudam a cada rodada de licitação. Período: base do GeoMaps da ANP na data do pedido. Resolução ou escala: pontos (cabeça do poço). Unidades: profundidade em m, quando há. Licença: dados abertos; licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/anp-pocos.md",
       "icon": "point_layer",
       "params": "{}"
     },
     {
       "id": "anp-gasodutos",
       "label": "Gasodutos de transporte (ANP)",
-      "help": "Gasodutos de transporte (ANP): ANP, GeoMaps, Gasodutos de Transporte. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web.",
+      "help": "Gasodutos de transporte (ANP): os gasodutos de transporte de gás natural. Fonte: ANP, GeoMaps, Gasodutos de Transporte. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web. Cuidados: Traçado aproximado; não serve para localizar o duto no terreno (ligue para o operador antes de escavar). Período: base do GeoMaps da ANP na data do pedido. Resolução ou escala: traçado em escala regional. Unidades: diâmetro em polegadas e extensão em km, quando há. Licença: dados abertos; licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/anp-gasodutos.md",
       "icon": "line_layer",
       "params": "{}"
     },
     {
       "id": "anp-oleodutos",
       "label": "Oleodutos de transporte (ANP)",
-      "help": "Oleodutos de transporte (ANP): ANP, GeoMaps, Oleodutos de Transporte. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web.",
+      "help": "Oleodutos de transporte (ANP): os oleodutos de transporte de petróleo e derivados. Fonte: ANP, GeoMaps, Oleodutos de Transporte. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web. Cuidados: Traçado aproximado; não serve para localizar o duto no terreno. Período: base do GeoMaps da ANP na data do pedido. Resolução ou escala: traçado em escala regional. Unidades: diâmetro em polegadas e extensão em km, quando há. Licença: dados abertos; licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/anp-oleodutos.md",
       "icon": "line_layer",
       "params": "{}"
     },
     {
       "id": "anp-postos",
       "label": "Postos de combustível (ANP)",
-      "help": "Postos de combustível (ANP): ANP, GeoMaps, Postos de Combustível. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web.",
+      "help": "Postos de combustível (ANP): os postos revendedores de combustível autorizados pela ANP. Fonte: ANP, GeoMaps, Postos de Combustível. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web. Cuidados: Coordenadas geocodificadas pelo endereço: alguns postos ficam deslocados. Período: cadastro da ANP na data do pedido. Resolução ou escala: pontos (coordenada do endereço). Unidades: sem unidade. Licença: dados abertos; licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/anp-postos.md",
       "icon": "point_layer",
       "params": "{}"
     },
     {
       "id": "anm-processos",
       "label": "Processos minerários ativos (ANM)",
-      "help": "Processos minerários ativos (ANM): ANM, SIGMINE, processos minerários ativos. Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
+      "help": "Processos minerários ativos (ANM): os processos minerários ativos do SIGMINE: as áreas requeridas ou tituladas para pesquisa, lavra e licenciamento. Fonte: ANM, SIGMINE, processos minerários ativos. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Cadastro administrativo da ANM: um processo é um pedido ou um título, não uma mina em operação. Período: base do SIGMINE na data do pedido. Resolução ou escala: polígonos do memorial descritivo. Unidades: área em ha (AREA_HA). Licença: dados abertos, com crédito à ANM. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/anm-processos.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "anm-bloqueios",
       "label": "Áreas de bloqueio (ANM)",
-      "help": "Áreas de bloqueio (ANM): ANM, SIGMINE, áreas de bloqueio. Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
+      "help": "Áreas de bloqueio (ANM): as áreas de bloqueio da ANM, onde novos requerimentos minerários são restringidos (reservatórios, unidades de conservação...). Fonte: ANM, SIGMINE, áreas de bloqueio. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Cadastro administrativo da ANM: um processo é um pedido ou um título, não uma mina em operação. Período: base do SIGMINE na data do pedido. Resolução ou escala: polígonos. Unidades: área em ha. Licença: dados abertos, com crédito à ANM. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/anm-bloqueios.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "anm-reservas",
       "label": "Reservas garimpeiras (ANM)",
-      "help": "Reservas garimpeiras (ANM): ANM, SIGMINE, reservas garimpeiras. Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
+      "help": "Reservas garimpeiras (ANM): as reservas garimpeiras da ANM. Fonte: ANM, SIGMINE, reservas garimpeiras. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Cadastro administrativo da ANM: um processo é um pedido ou um título, não uma mina em operação. Período: base do SIGMINE na data do pedido. Resolução ou escala: polígonos. Unidades: área em ha. Licença: dados abertos, com crédito à ANM. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/anm-reservas.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "anm-barragens",
       "label": "Barragens de mineração (ANM)",
-      "help": "Barragens de mineração (ANM, SIGBM): ANM, Sistema Integrado de Gestão de Barragens de Mineração (SIGBM), painel público. Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
+      "help": "Barragens de mineração (ANM, SIGBM): as barragens de mineração cadastradas no SIGBM, com a categoria de risco e o dano potencial associado. Fonte: ANM, Sistema Integrado de Gestão de Barragens de Mineração (SIGBM), painel público. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Classificação declarada pelo empreendedor e fiscalizada pela ANM; para a mancha de inundação, o Plano de Ação de Emergência. Período: painel público do SIGBM na data do pedido. Resolução ou escala: pontos. Unidades: volume em m³ e altura em m, quando há. Licença: dados abertos, com crédito à ANM. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/anm-barragens.md",
       "icon": "point_layer",
       "params": "{}"
     },
     {
       "id": "dnit-snv",
       "label": "Rodovias federais (SNV, DNIT)",
-      "help": "Rodovias federais (SNV vigente, DNIT): DNIT, Sistema Nacional de Viação (SNV), versão vigente. Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
+      "help": "Rodovias federais (SNV vigente, DNIT): as rodovias federais do Sistema Nacional de Viação. Fonte: DNIT, Sistema Nacional de Viação (SNV), versão vigente. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Só as federais (as BRs, inclusive as delegadas); as estaduais e municipais não estão. Período: versão do SNV vigente. Resolução ou escala: escala regional (eixo das rodovias). Unidades: extensão em km; quilometragem inicial e final. Licença: sem restrições declaradas. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/dnit-snv.md",
       "icon": "line_layer",
       "params": "{}"
     },
     {
       "id": "mapbiomas-mineracao",
       "label": "Área minerada (MapBiomas)",
-      "help": "Área minerada por ano (MapBiomas, 1985–2024): MapBiomas, Monitor da Mineração, área minerada, 1985 a 2024 (campos: ano, substância, se está num processo do SIGMINE, se está em área restrita e área). Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
+      "help": "Área minerada por ano (MapBiomas, 1985–2024): a área minerada mapeada pelo MapBiomas em imagens Landsat, com o ano em que a mineração apareceu. Fonte: MapBiomas, Monitor da Mineração, área minerada, 1985 a 2024 (campos: ano, substância, se está num processo do SIGMINE, se está em área restrita e área). Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Mapeamento automático: inclui garimpo e mineração industrial, e pode confundir solo exposto de outras origens. Período: 1985 a 2024. Resolução ou escala: 30 m (mapeado em imagens Landsat), entregue como polígonos. Unidades: área em ha. Licença: CC BY 4.0, pelos termos do MapBiomas; não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/mapbiomas-mineracao.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "amazonia-legal",
       "label": "Amazônia Legal (IBGE)",
-      "help": "Amazônia Legal (IBGE 2024): IBGE, Amazônia Legal, Malha Municipal 2024. Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
+      "help": "Amazônia Legal (IBGE 2024): a Amazônia Legal, a região de atuação da SUDAM definida em lei (os estados do Norte, Mato Grosso e parte do Maranhão). Fonte: IBGE, Amazônia Legal, Malha Municipal 2024. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Recorte legal ou estatístico definido por lei ou pelo IBGE; vem só a parte dentro da área. Período: limites de 2024, na Malha Municipal. Resolução ou escala: escala 1:250.000. Unidades: sem unidade. Licença: uso livre com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/amazonia-legal.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "semiarido",
       "label": "Semiárido (IBGE)",
-      "help": "Semiárido (IBGE 2025): IBGE, Semiárido, Malha Municipal 2025. Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
+      "help": "Semiárido (IBGE 2025): o Semiárido brasileiro, na delimitação da SUDENE (chuva, índice de aridez e risco de seca). Fonte: IBGE, Semiárido, Malha Municipal 2025. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Recorte legal ou estatístico definido por lei ou pelo IBGE; vem só a parte dentro da área. A delimitação muda por resolução da SUDENE. Período: delimitação vigente, na Malha Municipal 2025. Resolução ou escala: limites municipais (1:250.000). Unidades: sem unidade. Licença: uso livre com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/semiarido.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "matopiba",
       "label": "MATOPIBA (IBGE)",
-      "help": "MATOPIBA (IBGE 2025): IBGE, MATOPIBA, Malha Municipal 2025. Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
+      "help": "MATOPIBA (IBGE 2025): o MATOPIBA, a região de expansão agrícola no Cerrado do Maranhão, Tocantins, Piauí e Bahia, definida pela Embrapa. Fonte: IBGE, MATOPIBA, Malha Municipal 2025. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Recorte legal ou estatístico definido por lei ou pelo IBGE; vem só a parte dentro da área. Período: delimitação da Embrapa, na Malha Municipal 2025. Resolução ou escala: limites municipais (1:250.000). Unidades: sem unidade. Licença: uso livre com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/matopiba.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "area-sudene",
       "label": "Área de atuação da SUDENE (IBGE)",
-      "help": "Área de atuação da SUDENE (IBGE 2025): IBGE, Área de atuação da SUDENE, Malha Municipal 2025. Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
+      "help": "Área de atuação da SUDENE (IBGE 2025): a área de atuação da SUDENE (o Nordeste e o norte de Minas Gerais e do Espírito Santo). Fonte: IBGE, Área de atuação da SUDENE, Malha Municipal 2025. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Recorte legal ou estatístico definido por lei ou pelo IBGE; vem só a parte dentro da área. Período: Malha Municipal 2025. Resolução ou escala: limites municipais (1:250.000). Unidades: sem unidade. Licença: uso livre com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/area-sudene.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "municipios-costeiros",
       "label": "Municípios costeiros (IBGE)",
-      "help": "Municípios costeiros (IBGE 2025): IBGE, Municípios costeiros, Malha Municipal 2025. Só o que cruza a área, recortado pela área; sem área, o que está na vista.",
+      "help": "Municípios costeiros (IBGE 2025): os municípios da zona costeira, pelo Plano Nacional de Gerenciamento Costeiro. Fonte: IBGE, Municípios costeiros, Malha Municipal 2025. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Recorte legal ou estatístico definido por lei ou pelo IBGE; vem só a parte dentro da área. Período: Malha Municipal 2025. Resolução ou escala: limites municipais (1:250.000). Unidades: sem unidade. Licença: uso livre com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/municipios-costeiros.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "recorte-metropolitano",
       "label": "Regiões metropolitanas e RIDEs (IBGE)",
-      "help": "Recorte metropolitano (IBGE 2025): IBGE, Recorte metropolitano, Malha Municipal 2025. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "help": "Recorte metropolitano (IBGE 2025): as regiões metropolitanas, RIDEs e aglomerações urbanas instituídas por lei. Fonte: IBGE, Recorte metropolitano, Malha Municipal 2025. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista. Cuidados: Recorte do IBGE para estudos urbanos: vem o polígono inteiro de cada unidade que cruza a área. Período: Malha Municipal 2025. Resolução ou escala: limites municipais (1:250.000). Unidades: sem unidade. Licença: uso livre com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/recorte-metropolitano.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "aglomeracoes-urbanas",
       "label": "Aglomerações urbanas (IBGE)",
-      "help": "Aglomerações urbanas (IBGE 2025): IBGE, Aglomerações urbanas, Malha Municipal 2025. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "help": "Aglomerações urbanas (IBGE 2025): as aglomerações urbanas instituídas por lei estadual. Fonte: IBGE, Aglomerações urbanas, Malha Municipal 2025. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista. Cuidados: Recorte do IBGE para estudos urbanos: vem o polígono inteiro de cada unidade que cruza a área. Período: Malha Municipal 2025. Resolução ou escala: limites municipais (1:250.000). Unidades: sem unidade. Licença: uso livre com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/aglomeracoes-urbanas.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "concentracoes-urbanas",
       "label": "Concentrações urbanas (IBGE)",
-      "help": "Concentrações urbanas (IBGE 2025): IBGE, Concentrações urbanas, Malha Municipal 2025. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "help": "Concentrações urbanas (IBGE 2025): as concentrações urbanas do IBGE: os arranjos populacionais e os municípios isolados com mais de 100 mil habitantes. Fonte: IBGE, Concentrações urbanas, Malha Municipal 2025. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista. Cuidados: Recorte do IBGE para estudos urbanos: vem o polígono inteiro de cada unidade que cruza a área. Período: estudo Arranjos Populacionais e Concentrações Urbanas, na Malha Municipal 2025. Resolução ou escala: limites municipais (1:250.000). Unidades: sem unidade. Licença: uso livre com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/concentracoes-urbanas.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "arranjos-populacionais",
       "label": "Arranjos populacionais (IBGE)",
-      "help": "Arranjos populacionais (IBGE 2025): IBGE, Arranjos populacionais, Malha Municipal 2025. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "help": "Arranjos populacionais (IBGE 2025): os arranjos populacionais do IBGE: municípios integrados pelo deslocamento para trabalho e estudo e pela contiguidade urbana. Fonte: IBGE, Arranjos populacionais, Malha Municipal 2025. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista. Cuidados: Recorte do IBGE para estudos urbanos: vem o polígono inteiro de cada unidade que cruza a área. Período: estudo do IBGE, na Malha Municipal 2025. Resolução ou escala: limites municipais (1:250.000). Unidades: sem unidade. Licença: uso livre com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/arranjos-populacionais.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "hierarquia-urbana",
       "label": "Hierarquia urbana (IBGE)",
-      "help": "Hierarquia urbana das cidades (IBGE 2025): IBGE, Hierarquia urbana das cidades, Malha Municipal 2025. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "help": "Hierarquia urbana das cidades (IBGE 2025): a hierarquia urbana das cidades do estudo REGIC (Regiões de Influência das Cidades) do IBGE: metrópole, capital regional, centro sub-regional, centro de zona e centro local. Fonte: IBGE, Hierarquia urbana das cidades, Malha Municipal 2025. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista. Cuidados: Recorte do IBGE para estudos urbanos: vem o polígono inteiro de cada unidade que cruza a área. Período: REGIC 2018, na Malha Municipal 2025. Resolução ou escala: limites municipais (1:250.000). Unidades: sem unidade. Licença: uso livre com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/hierarquia-urbana.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "areas-ponderacao",
       "label": "Áreas de ponderação (IBGE, 2022)",
-      "help": "Áreas de ponderação (IBGE, Censo 2022): IBGE, Censo Demográfico 2022, malha de setores e agregados. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "help": "Áreas de ponderação (IBGE, Censo 2022): as áreas de ponderação do Censo 2022: agrupamentos de setores usados para expandir a amostra do questionário ampliado. Fonte: IBGE, Censo Demográfico 2022, malha de setores e agregados. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista. Cuidados: Unidade estatística: os microdados da amostra são representativos para ela, não para setores isolados. Período: malha do Censo Demográfico 2022. Resolução ou escala: escala cadastral dos setores censitários. Unidades: sem unidade; número de setores (qt_setcensit). Licença: uso livre com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/areas-ponderacao.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "area-urbana",
       "label": "Área urbana por município (IBGE, 2022)",
-      "help": "Área urbana para fins censitários (IBGE, Censo 2022): IBGE, Censo Demográfico 2022, malha de setores e agregados. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "help": "Área urbana para fins censitários (IBGE, Censo 2022): a área urbana de cada município para fins censitários (a soma dos setores urbanos). Fonte: IBGE, Censo Demográfico 2022, malha de setores e agregados. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista. Cuidados: Definida pela lei municipal de perímetro urbano, que pode incluir áreas ainda não urbanizadas. Período: malha do Censo Demográfico 2022. Resolução ou escala: escala cadastral dos setores censitários. Unidades: área em km². Licença: uso livre com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/area-urbana.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "area-rural",
       "label": "Área rural por município (IBGE, 2022)",
-      "help": "Área rural para fins censitários (IBGE, Censo 2022): IBGE, Censo Demográfico 2022, malha de setores e agregados. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "help": "Área rural para fins censitários (IBGE, Censo 2022): a área rural de cada município para fins censitários (a soma dos setores rurais). Fonte: IBGE, Censo Demográfico 2022, malha de setores e agregados. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista. Cuidados: O complemento da área urbana legal: pode ter povoados e núcleos urbanos isolados. Período: malha do Censo Demográfico 2022. Resolução ou escala: escala cadastral dos setores censitários. Unidades: área em km². Licença: uso livre com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/area-rural.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "favelas",
       "label": "Favelas e comunidades urbanas (IBGE, 2022)",
-      "help": "Favelas e comunidades urbanas (IBGE, Censo 2022): IBGE, Censo Demográfico 2022, malha de setores e agregados. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista.",
+      "help": "Favelas e comunidades urbanas (IBGE, Censo 2022): as favelas e comunidades urbanas do Censo 2022 (antes chamadas aglomerados subnormais). Fonte: IBGE, Censo Demográfico 2022, malha de setores e agregados. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista. Cuidados: Delimitação do IBGE para o Censo; os nomes e limites locais podem diferir. Período: malha do Censo Demográfico 2022. Resolução ou escala: escala cadastral dos setores censitários. Unidades: sem unidade. Licença: uso livre com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/favelas.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "censo-setores",
       "label": "Setores censitários (IBGE)",
-      "help": "Os setores censitários de 2022 da área, com pessoas e domicílios (IBGE, agregados por setores): o GeoPackage de cada UF, recortado pela área, com os campos v0001 a v0007 do IBGE renomeados (pessoas, domicilios, dom_particulares, dom_coletivos, media_moradores, prop_imputados, dom_part_ocupados; o código de cada um fica na tabela Fontes). No app web, um segundo clique recorta.",
+      "help": "Os setores censitários de 2022 da área, com pessoas e domicílios (IBGE, agregados por setores): o GeoPackage de cada UF, recortado pela área, com os campos v0001 a v0007 do IBGE renomeados (pessoas, domicilios, dom_particulares, dom_coletivos, media_moradores, prop_imputados, dom_part_ocupados; o código de cada um fica na tabela Fontes). No app web, um segundo clique recorta. Período: Censo Demográfico 2022 (data de referência: 31/07/2022). Resolução ou escala: setores censitários (de quarteirões nas cidades a dezenas de km² no campo). Unidades: pessoas e domicílios (contagens); moradores por domicílio (média); área em km². Licença: uso livre com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/censo-setores.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "censo-municipios",
       "label": "Censos por município (IBGE)",
-      "help": "População, área e densidade de 2022 (Censo Demográfico) e estabelecimentos agropecuários e agricultura familiar de 2017 (Censo Agropecuário), do IBGE. Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem.",
+      "help": "População, área e densidade de 2022 (Censo Demográfico) e estabelecimentos agropecuários e agricultura familiar de 2017 (Censo Agropecuário), do IBGE. Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem. Período: 2022 (população) e 2017 (estabelecimentos). Resolução ou escala: município. Unidades: habitantes; km²; habitantes por km²; número de estabelecimentos; ha. Licença: uso livre com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/censo-municipios.md",
       "icon": "field",
       "params": "{}"
     },
     {
       "id": "indicadores-pix",
       "label": "Pix (Banco Central)",
-      "help": "O Pix do último mês completo: valor pago e recebido (R$), transações pagas e pessoas físicas pagadoras. Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem.",
+      "help": "O Pix do último mês completo: valor pago e recebido (R$), transações pagas e pessoas físicas pagadoras. Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem. Período: o último mês completo publicado. Resolução ou escala: município. Unidades: R$; número de transações; número de pessoas. Licença: ODbL (dados abertos do Banco Central). Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/indicadores-pix.md",
       "icon": "field",
       "params": "{}"
     },
     {
       "id": "indicadores-credito",
       "label": "Crédito rural de custeio (Banco Central)",
-      "help": "O custeio do último ano completo, do SICOR: total, Pronaf, agrícola e pecuário (R$) e área (ha). O SICOR é lento: cerca de 10 s para cada 6 municípios. Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem.",
+      "help": "O custeio do último ano completo, do SICOR: total, Pronaf, agrícola e pecuário (R$) e área (ha). O SICOR é lento: cerca de 10 s para cada 6 municípios. Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem. Período: o último ano completo. Resolução ou escala: município. Unidades: R$; ha. Licença: ODbL (dados abertos do Banco Central). Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/indicadores-credito.md",
       "icon": "field",
       "params": "{}"
     },
     {
       "id": "censo-agro",
       "label": "Censo Agropecuário 2017 (IBGE)",
-      "help": "Do Censo Agropecuário de 2017 (IBGE): estabelecimentos e agricultura familiar, utilização das terras (lavouras, pastagens e matas, ha), bovinos, pessoal ocupado, tratores, irrigação, uso de agrotóxicos, energia elétrica, orientação técnica e valor da produção (mil R$). Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem; o painel Fontes diz o que é cada campo.",
+      "help": "Do Censo Agropecuário de 2017 (IBGE): estabelecimentos e agricultura familiar, utilização das terras (lavouras, pastagens e matas, ha), bovinos, pessoal ocupado, tratores, irrigação, uso de agrotóxicos, energia elétrica, orientação técnica e valor da produção (mil R$). Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem; o painel Fontes diz o que é cada campo. Período: 2017 (período de referência de 01/10/2016 a 30/09/2017). Resolução ou escala: município. Unidades: número de estabelecimentos; ha; cabeças; pessoas; mil R$. Licença: uso livre com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/censo-agro.md",
       "icon": "field",
       "params": "{}"
     },
     {
       "id": "censo-agroecologia",
       "label": "Agroecologia (Censo Agropecuário 2017)",
-      "help": "Práticas agroecológicas do Censo Agropecuário de 2017 (IBGE), em número de estabelecimentos: agricultura ou pecuária orgânica, associação a cooperativa ou entidade, práticas de conservação (plantio em nível, rotação de culturas, pousio, proteção de encostas, recuperação de mata ciliar, reflorestamento de nascentes, manejo florestal), plantio direto (e sua área), cultivo mínimo, adubação orgânica ou química, quem não usou agrotóxicos e a área de sistemas agroflorestais (ha). Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem; o painel Fontes diz o que é cada campo.",
+      "help": "Práticas agroecológicas do Censo Agropecuário de 2017 (IBGE), em número de estabelecimentos: agricultura ou pecuária orgânica, associação a cooperativa ou entidade, práticas de conservação (plantio em nível, rotação de culturas, pousio, proteção de encostas, recuperação de mata ciliar, reflorestamento de nascentes, manejo florestal), plantio direto (e sua área), cultivo mínimo, adubação orgânica ou química, quem não usou agrotóxicos e a área de sistemas agroflorestais (ha). Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem; o painel Fontes diz o que é cada campo. Período: 2017. Resolução ou escala: município. Unidades: número de estabelecimentos; ha (plantio direto, SAFs). Licença: uso livre com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/censo-agroecologia.md",
       "icon": "field",
       "params": "{}"
     },
     {
       "id": "indicadores-tse",
       "label": "Eleitorado e comparecimento (TSE)",
-      "help": "Eleitorado, comparecimento e abstenção (%) no 1º turno de 2026 e de 2024, da divulgação oficial do TSE. Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem.",
+      "help": "Eleitorado, comparecimento e abstenção (%) no 1º turno de 2026 e de 2024, da divulgação oficial do TSE. Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem. Período: 1º turno de 2024 (municipal) e de 2026 (geral). Resolução ou escala: município. Unidades: eleitores; % de comparecimento e de abstenção. Licença: CC BY (dados abertos do TSE). Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/indicadores-tse.md",
       "icon": "field",
       "params": "{}"
     },
     {
       "id": "indicadores-caged",
       "label": "Emprego formal (Novo CAGED)",
-      "help": "Admissões, desligamentos e saldo nos últimos 12 meses e o saldo do último mês, do Novo CAGED (IPEA Data), num retrato que vem com o plugin. Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem.",
+      "help": "Admissões, desligamentos e saldo nos últimos 12 meses e o saldo do último mês, do Novo CAGED (IPEA Data), num retrato que vem com o plugin. Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem. Período: os 12 meses até o último mês do retrato que vem com o plugin. Resolução ou escala: município. Unidades: número de vínculos de emprego. Licença: dados abertos; licença do IPEA Data não declarada. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/indicadores-caged.md",
       "icon": "field",
       "params": "{}"
     },
     {
       "id": "indicadores-todos",
       "label": "Todos os indicadores",
-      "help": "Censos, Censo Agropecuário, agroecologia, Pix, crédito rural, eleições e emprego formal, de uma vez. Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem. No desktop, se o tempo de uma chamada acabar, o aviso pede um novo clique, que continua de onde parou.",
+      "help": "Censos, Censo Agropecuário, agroecologia, Pix, crédito rural, eleições e emprego formal, de uma vez. Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem. No desktop, se o tempo de uma chamada acabar, o aviso pede um novo clique, que continua de onde parou. Período: o de cada fonte. Resolução ou escala: município. Unidades: as de cada fonte. Licença: a de cada fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/indicadores-todos.md",
       "icon": "stats",
       "params": "{}"
     },
     {
       "id": "saude-estabelecimentos",
       "label": "Estabelecimentos de saúde (CNES, DATASUS)",
-      "help": "Os estabelecimentos de saúde ativos na área, do CNES do Ministério da Saúde (competência 04/2026, pelo geobr do Ipea), com nome, tipo, natureza jurídica, gestão e bairro. Os de pessoa física e de empresário individual, cujo nome é o de uma pessoa, ficam de fora. Só no desktop: o primeiro clique abre o arquivo do Brasil (98 MB, lido aos pedaços), o segundo recorta pela área.",
+      "help": "Os estabelecimentos de saúde ativos na área, do CNES do Ministério da Saúde (competência 04/2026, pelo geobr do Ipea), com nome, tipo, natureza jurídica, gestão e bairro. Os de pessoa física e de empresário individual, cujo nome é o de uma pessoa, ficam de fora. Só no desktop: o primeiro clique abre o arquivo do Brasil (98 MB, lido aos pedaços), o segundo recorta pela área. Período: competência 04/2026. Resolução ou escala: pontos (coordenada do CNES ou do endereço). Unidades: sem unidade. Licença: dados abertos do Ministério da Saúde, com citação da fonte; geobr sob licença MIT. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/saude-estabelecimentos.md",
       "icon": "point_layer",
       "params": "{}"
     },
     {
       "id": "mapbiomas-cobertura",
       "label": "Uso e cobertura (MapBiomas)",
-      "help": "O uso e a cobertura da terra do MapBiomas, com as cores da legenda oficial. O ano, de 1985 a 2025, vem da janela do comando; num RustGIS sem janelas de plugin, do controle MapBiomas: ano, no painel Área de trabalho (2025 até você mudar). Com uma área, de 2019 a 2024 e num RustGIS depois da 0.5.0, vem o raster das classes (Coleção 10, 30 m): só a área, recortada pelo contorno e posta na grade do projeto. Nos outros casos, um mapa para ver, do Brasil inteiro (Coleção 11), que vale por algumas horas. Cada ano vira uma camada.",
+      "help": "O uso e a cobertura da terra do MapBiomas, com as cores da legenda oficial. O ano, de 1985 a 2025, vem da janela do comando; num RustGIS sem janelas de plugin, do controle MapBiomas: ano, no painel Área de trabalho (2025 até você mudar). Com uma área, de 2019 a 2024 e num RustGIS depois da 0.5.0, vem o raster das classes (Coleção 10, 30 m): só a área, recortada pelo contorno e posta na grade do projeto. Nos outros casos, um mapa para ver, do Brasil inteiro (Coleção 11), que vale por algumas horas. Cada ano vira uma camada. Período: um ano de 1985 a 2025 (recortado pela área: 2019 a 2024). Resolução ou escala: 30 m (Landsat). Unidades: códigos da legenda do MapBiomas (valor do pixel). Licença: CC BY 4.0, pelos termos do MapBiomas. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/mapbiomas-cobertura.md",
       "icon": "unique",
       "params": "{\"ano\"?: de 1985 a 2025 (padrão: o do painel, ou 2025), \"recorte\"?: false para o mapa do Brasil inteiro mesmo com área}",
       "form": [
@@ -784,37 +784,54 @@
       ]
     },
     {
+      "id": "clms-cobertura",
+      "label": "Cobertura da terra 100 m (Copernicus)",
+      "help": "A cobertura da terra global do serviço de terra do Copernicus (CLMS Land Cover 100 m, coleção 3, feita com o satélite PROBA-V), de 2015 a 2019, com as cores e os nomes da legenda oficial: florestas fechadas e abertas, arbustos, vegetação herbácea, cultivos, área urbana, água e outras, 23 classes. Só a área: a janela lida da cópia oficial no Zenodo (sem login, licença CC BY 4.0), recortada pelo contorno e posta na grade do projeto com a classe mais frequente. As células do arquivo têm cerca de 100 m: numa grade mais fina, cada uma se repete. Áreas até uns 7° × 7° (um estado médio). Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área). Funciona no desktop e no app web. Período: um ano de 2015 a 2019 (2015 base; 2016 a 2018 consolidados; 2019 quase em tempo real). Resolução ou escala: 1/1008° (cerca de 100 m), posta na grade do projeto com a classe mais frequente. Unidades: códigos de classe da legenda do CLMS (valor do pixel). Licença: CC BY 4.0. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/clms-cobertura.md",
+      "icon": "unique",
+      "params": "{\"ano\"?: de 2015 a 2019 (padrão 2019)}",
+      "form": [
+        {
+          "name": "ano",
+          "label": "Ano",
+          "kind": "number",
+          "required": true,
+          "default": 2019,
+          "help": "O ano do mapa, de 2015 a 2019 (2015 é a base; 2016 a 2018, consolidados; 2019, quase em tempo real)."
+        }
+      ]
+    },
+    {
       "id": "chm-altura",
       "label": "Altura do dossel a 1 m (Meta CHMv2)",
-      "help": "A altura das árvores em metros, a cerca de 1 m, da Meta e do World Resources Institute (Canopy Height Maps v2, licença CC BY 4.0): estimada por um modelo de IA (DINOv3) sobre imagens de satélite de alta resolução, de datas diferentes conforme o lugar. Só a área, lida de cada tile que ela toca, posta na grade do projeto e recortada pelo contorno; numa grade mais grossa, lida da pirâmide do arquivo, que tira a média. Para ver as copas, use uma grade de 1 a 5 m (Grade do projeto) numa área pequena. O 0 é sem árvore, e também sem dado. Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área).",
+      "help": "A altura das árvores em metros, a cerca de 1 m, da Meta e do World Resources Institute (Canopy Height Maps v2, licença CC BY 4.0): estimada por um modelo de IA (DINOv3) sobre imagens de satélite de alta resolução, de datas diferentes conforme o lugar. Só a área, lida de cada tile que ela toca, posta na grade do projeto e recortada pelo contorno; numa grade mais grossa, lida da pirâmide do arquivo, que tira a média. Para ver as copas, use uma grade de 1 a 5 m (Grade do projeto) numa área pequena. O 0 é sem árvore, e também sem dado. Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área). Período: imagens de 2018 a 2024, de datas diferentes conforme o lugar. Resolução ou escala: cerca de 1 m (tiles de zoom 17). Unidades: metros. Licença: CC BY 4.0. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/chm-altura.md",
       "icon": "proportional",
       "params": "{\"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}"
     },
     {
       "id": "gedi-altura",
       "label": "Altura do dossel (GEDI)",
-      "help": "A altura do dossel em metros: a altura relativa em que volta 98% da energia da onda do laser (rh98), perto do topo das copas. Do GEDI L4D (ORNL DAAC da NASA): os disparos do laser do GEDI de 2019 a 2023 imputados a cada pixel de 30 m com séries do Landsat. Só a área, lida dos arquivos dos fusos UTM que ela cruza, posta na grade do projeto e recortada pelo contorno. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área); áreas grandes vêm de uma pirâmide do arquivo, com células maiores.",
+      "help": "A altura do dossel em metros: a altura relativa em que volta 98% da energia da onda do laser (rh98), perto do topo das copas. Do GEDI L4D (ORNL DAAC da NASA): os disparos do laser do GEDI de 2019 a 2023 imputados a cada pixel de 30 m com séries do Landsat. Só a área, lida dos arquivos dos fusos UTM que ela cruza, posta na grade do projeto e recortada pelo contorno. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área); áreas grandes vêm de uma pirâmide do arquivo, com células maiores. Período: disparos de 18/04/2019 a 16/03/2023. Resolução ou escala: 30 m. Unidades: metros. Licença: política de dados da NASA: uso livre e gratuito, com a citação. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/gedi-altura.md",
       "icon": "dra",
       "params": "{\"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}"
     },
     {
       "id": "gedi-biomassa",
       "label": "Biomassa acima do solo (GEDI)",
-      "help": "A densidade de biomassa acima do solo em Mg/ha (toneladas por hectare), do modelo do GEDI L4A. Do GEDI L4D (ORNL DAAC da NASA): os disparos do laser do GEDI de 2019 a 2023 imputados a cada pixel de 30 m com séries do Landsat. Só a área, lida dos arquivos dos fusos UTM que ela cruza, posta na grade do projeto e recortada pelo contorno. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área); áreas grandes vêm de uma pirâmide do arquivo, com células maiores.",
+      "help": "A densidade de biomassa acima do solo em Mg/ha (toneladas por hectare), do modelo do GEDI L4A. Do GEDI L4D (ORNL DAAC da NASA): os disparos do laser do GEDI de 2019 a 2023 imputados a cada pixel de 30 m com séries do Landsat. Só a área, lida dos arquivos dos fusos UTM que ela cruza, posta na grade do projeto e recortada pelo contorno. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área); áreas grandes vêm de uma pirâmide do arquivo, com células maiores. Período: disparos de 18/04/2019 a 16/03/2023. Resolução ou escala: 30 m. Unidades: Mg/ha (toneladas por hectare). Licença: política de dados da NASA: uso livre e gratuito, com a citação. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/gedi-biomassa.md",
       "icon": "proportional",
       "params": "{\"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}"
     },
     {
       "id": "gedi-cobertura",
       "label": "Cobertura do dossel (GEDI)",
-      "help": "A cobertura do dossel em %, a fração do chão coberta pelas copas, do GEDI L2B. Do GEDI L4D (ORNL DAAC da NASA): os disparos do laser do GEDI de 2019 a 2023 imputados a cada pixel de 30 m com séries do Landsat. Só a área, lida dos arquivos dos fusos UTM que ela cruza, posta na grade do projeto e recortada pelo contorno. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área); áreas grandes vêm de uma pirâmide do arquivo, com células maiores.",
+      "help": "A cobertura do dossel em %, a fração do chão coberta pelas copas, do GEDI L2B. Do GEDI L4D (ORNL DAAC da NASA): os disparos do laser do GEDI de 2019 a 2023 imputados a cada pixel de 30 m com séries do Landsat. Só a área, lida dos arquivos dos fusos UTM que ela cruza, posta na grade do projeto e recortada pelo contorno. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área); áreas grandes vêm de uma pirâmide do arquivo, com células maiores. Período: disparos de 18/04/2019 a 16/03/2023. Resolução ou escala: 30 m. Unidades: % (0 a 100). Licença: política de dados da NASA: uso livre e gratuito, com a citação. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/gedi-cobertura.md",
       "icon": "transparency",
       "params": "{\"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}"
     },
     {
       "id": "radar-vv",
       "label": "Radar VV (Sentinel-1, OPERA)",
-      "help": "A polarização VV: responde mais à rugosidade e à umidade do solo. O radar do Sentinel-1 corrigido do relevo (OPERA RTC-S1, JPL, pelo ASF DAAC da NASA), 30 m, em dB e com o filtro de Lee contra o granulado: os recortes da passagem mais recente (ou a do dia escolhido na janela do comando) que cruzam o polígono da área, juntados, recortados pela área e postos na grade do projeto. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Áreas de até cerca de 400 km.",
+      "help": "A polarização VV: responde mais à rugosidade e à umidade do solo. O radar do Sentinel-1 corrigido do relevo (OPERA RTC-S1, JPL, pelo ASF DAAC da NASA), 30 m, em dB e com o filtro de Lee contra o granulado: os recortes da passagem mais recente (ou a do dia escolhido na janela do comando) que cruzam o polígono da área, juntados, recortados pela área e postos na grade do projeto. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Áreas de até cerca de 400 km. Período: a passagem mais recente, ou a do dia escolhido (desde 2016). Resolução ou escala: 30 m. Unidades: dB (decibéis). Licença: dados da NASA sem restrição de uso, com citação; dados Copernicus Sentinel de uso livre e gratuito. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/radar-vv.md",
       "icon": "stretch",
       "params": "{\"data\"?: \"dd/mm/aaaa\", a passagem desse dia (padrão: a mais recente que cobre a área), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
       "form": [
@@ -829,7 +846,7 @@
     {
       "id": "radar-vh",
       "label": "Radar VH (Sentinel-1, OPERA)",
-      "help": "A polarização VH: responde mais ao volume da vegetação. O radar do Sentinel-1 corrigido do relevo (OPERA RTC-S1, JPL, pelo ASF DAAC da NASA), 30 m, em dB e com o filtro de Lee contra o granulado: os recortes da passagem mais recente (ou a do dia escolhido na janela do comando) que cruzam o polígono da área, juntados, recortados pela área e postos na grade do projeto. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Áreas de até cerca de 400 km.",
+      "help": "A polarização VH: responde mais ao volume da vegetação. O radar do Sentinel-1 corrigido do relevo (OPERA RTC-S1, JPL, pelo ASF DAAC da NASA), 30 m, em dB e com o filtro de Lee contra o granulado: os recortes da passagem mais recente (ou a do dia escolhido na janela do comando) que cruzam o polígono da área, juntados, recortados pela área e postos na grade do projeto. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Áreas de até cerca de 400 km. Período: a passagem mais recente, ou a do dia escolhido. Resolução ou escala: 30 m. Unidades: dB. Licença: dados da NASA sem restrição de uso, com citação; dados Copernicus Sentinel de uso livre e gratuito. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/radar-vh.md",
       "icon": "stretch",
       "params": "{\"data\"?: \"dd/mm/aaaa\", a passagem desse dia (padrão: a mais recente que cobre a área), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
       "form": [
@@ -844,7 +861,7 @@
     {
       "id": "radar-razao",
       "label": "Razão VH/VV (Sentinel-1, OPERA)",
-      "help": "A razão VH/VV, que separa vegetação de solo exposto; as camadas VV e VH da mesma passagem também ficam no mapa. O radar do Sentinel-1 corrigido do relevo (OPERA RTC-S1, JPL, pelo ASF DAAC da NASA), 30 m, em dB e com o filtro de Lee contra o granulado: os recortes da passagem mais recente (ou a do dia escolhido na janela do comando) que cruzam o polígono da área, juntados, recortados pela área e postos na grade do projeto. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Áreas de até cerca de 400 km.",
+      "help": "A razão VH/VV, que separa vegetação de solo exposto; as camadas VV e VH da mesma passagem também ficam no mapa. O radar do Sentinel-1 corrigido do relevo (OPERA RTC-S1, JPL, pelo ASF DAAC da NASA), 30 m, em dB e com o filtro de Lee contra o granulado: os recortes da passagem mais recente (ou a do dia escolhido na janela do comando) que cruzam o polígono da área, juntados, recortados pela área e postos na grade do projeto. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Áreas de até cerca de 400 km. Período: a passagem mais recente, ou a do dia escolhido. Resolução ou escala: 30 m. Unidades: dB (VH − VV). Licença: dados da NASA sem restrição de uso, com citação; dados Copernicus Sentinel de uso livre e gratuito. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/radar-razao.md",
       "icon": "rgb",
       "params": "{\"data\"?: \"dd/mm/aaaa\", a passagem desse dia (padrão: a mais recente que cobre a área), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
       "form": [
@@ -859,7 +876,7 @@
     {
       "id": "nisar-hh",
       "label": "Radar HH (NISAR, banda L)",
-      "help": "A polarização HH: responde mais aos troncos, ao solo e às construções. O radar de banda L do NISAR (NASA e ISRO), o GCOV corrigido do relevo, 20 m, em dB e com o filtro de Lee contra o granulado: as cenas da passagem mais recente (ou a do dia escolhido na janela do comando) que cruzam o polígono da área, tiradas do HDF5 e recortadas pelo retângulo da área pelo Harmony da NASA, juntadas, recortadas pela área e postas na grade do projeto. A banda L (24 cm) atravessa mais as copas que a banda C do Sentinel-1. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Áreas de até cerca de 110 km; cerca de 40 s por cena.",
+      "help": "A polarização HH: responde mais aos troncos, ao solo e às construções. O radar de banda L do NISAR (NASA e ISRO), o GCOV corrigido do relevo, 20 m, em dB e com o filtro de Lee contra o granulado: as cenas da passagem mais recente (ou a do dia escolhido na janela do comando) que cruzam o polígono da área, tiradas do HDF5 e recortadas pelo retângulo da área pelo Harmony da NASA, juntadas, recortadas pela área e postas na grade do projeto. A banda L (24 cm) atravessa mais as copas que a banda C do Sentinel-1. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Áreas de até cerca de 110 km; cerca de 40 s por cena. Período: a passagem mais recente, ou a do dia escolhido. Resolução ou escala: 20 m. Unidades: dB. Licença: dados da NASA de uso livre e aberto, com citação. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/nisar-hh.md",
       "icon": "stretch",
       "params": "{\"data\"?: \"dd/mm/aaaa\", a passagem desse dia (padrão: a mais recente que cobre a área), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
       "form": [
@@ -874,7 +891,7 @@
     {
       "id": "nisar-hv",
       "label": "Radar HV (NISAR, banda L)",
-      "help": "A polarização HV: responde mais ao volume da vegetação (galhos e copas). O radar de banda L do NISAR (NASA e ISRO), o GCOV corrigido do relevo, 20 m, em dB e com o filtro de Lee contra o granulado: as cenas da passagem mais recente (ou a do dia escolhido na janela do comando) que cruzam o polígono da área, tiradas do HDF5 e recortadas pelo retângulo da área pelo Harmony da NASA, juntadas, recortadas pela área e postas na grade do projeto. A banda L (24 cm) atravessa mais as copas que a banda C do Sentinel-1. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Áreas de até cerca de 110 km; cerca de 40 s por cena.",
+      "help": "A polarização HV: responde mais ao volume da vegetação (galhos e copas). O radar de banda L do NISAR (NASA e ISRO), o GCOV corrigido do relevo, 20 m, em dB e com o filtro de Lee contra o granulado: as cenas da passagem mais recente (ou a do dia escolhido na janela do comando) que cruzam o polígono da área, tiradas do HDF5 e recortadas pelo retângulo da área pelo Harmony da NASA, juntadas, recortadas pela área e postas na grade do projeto. A banda L (24 cm) atravessa mais as copas que a banda C do Sentinel-1. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Áreas de até cerca de 110 km; cerca de 40 s por cena. Período: a passagem mais recente, ou a do dia escolhido. Resolução ou escala: 20 m. Unidades: dB. Licença: dados da NASA de uso livre e aberto, com citação. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/nisar-hv.md",
       "icon": "stretch",
       "params": "{\"data\"?: \"dd/mm/aaaa\", a passagem desse dia (padrão: a mais recente que cobre a área), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
       "form": [
@@ -889,7 +906,7 @@
     {
       "id": "nisar-razao",
       "label": "Razão HV/HH (NISAR, banda L)",
-      "help": "A razão HV/HH, que separa vegetação de solo exposto e de cidade; as camadas HH e HV da mesma passagem também ficam no mapa. O radar de banda L do NISAR (NASA e ISRO), o GCOV corrigido do relevo, 20 m, em dB e com o filtro de Lee contra o granulado: as cenas da passagem mais recente (ou a do dia escolhido na janela do comando) que cruzam o polígono da área, tiradas do HDF5 e recortadas pelo retângulo da área pelo Harmony da NASA, juntadas, recortadas pela área e postas na grade do projeto. A banda L (24 cm) atravessa mais as copas que a banda C do Sentinel-1. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Áreas de até cerca de 110 km; cerca de 40 s por cena.",
+      "help": "A razão HV/HH, que separa vegetação de solo exposto e de cidade; as camadas HH e HV da mesma passagem também ficam no mapa. O radar de banda L do NISAR (NASA e ISRO), o GCOV corrigido do relevo, 20 m, em dB e com o filtro de Lee contra o granulado: as cenas da passagem mais recente (ou a do dia escolhido na janela do comando) que cruzam o polígono da área, tiradas do HDF5 e recortadas pelo retângulo da área pelo Harmony da NASA, juntadas, recortadas pela área e postas na grade do projeto. A banda L (24 cm) atravessa mais as copas que a banda C do Sentinel-1. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Áreas de até cerca de 110 km; cerca de 40 s por cena. Período: a passagem mais recente, ou a do dia escolhido. Resolução ou escala: 20 m. Unidades: dB (HV − HH). Licença: dados da NASA de uso livre e aberto, com citação. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/nisar-razao.md",
       "icon": "rgb",
       "params": "{\"data\"?: \"dd/mm/aaaa\", a passagem desse dia (padrão: a mais recente que cobre a área), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
       "form": [
@@ -904,7 +921,7 @@
     {
       "id": "nisar-cor",
       "label": "Composição colorida (NISAR, banda L)",
-      "help": "A composição colorida: HH no vermelho, HV no verde e HH − HV no azul. Cidade em rosa e magenta, mata em verde-claro, pasto e solo exposto em azul e roxo, água escura; as camadas HH, HV e a razão da mesma passagem também ficam no mapa. O radar de banda L do NISAR (NASA e ISRO), o GCOV corrigido do relevo, 20 m, em dB e com o filtro de Lee contra o granulado: as cenas da passagem mais recente (ou a do dia escolhido na janela do comando) que cruzam o polígono da área, tiradas do HDF5 e recortadas pelo retângulo da área pelo Harmony da NASA, juntadas, recortadas pela área e postas na grade do projeto. A banda L (24 cm) atravessa mais as copas que a banda C do Sentinel-1. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Áreas de até cerca de 110 km; cerca de 40 s por cena.",
+      "help": "A composição colorida: HH no vermelho, HV no verde e HH − HV no azul. Cidade em rosa e magenta, mata em verde-claro, pasto e solo exposto em azul e roxo, água escura; as camadas HH, HV e a razão da mesma passagem também ficam no mapa. O radar de banda L do NISAR (NASA e ISRO), o GCOV corrigido do relevo, 20 m, em dB e com o filtro de Lee contra o granulado: as cenas da passagem mais recente (ou a do dia escolhido na janela do comando) que cruzam o polígono da área, tiradas do HDF5 e recortadas pelo retângulo da área pelo Harmony da NASA, juntadas, recortadas pela área e postas na grade do projeto. A banda L (24 cm) atravessa mais as copas que a banda C do Sentinel-1. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Áreas de até cerca de 110 km; cerca de 40 s por cena. Período: a passagem mais recente, ou a do dia escolhido. Resolução ou escala: 20 m. Unidades: dB em cada canal. Licença: dados da NASA de uso livre e aberto, com citação. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/nisar-cor.md",
       "icon": "rgb",
       "params": "{\"data\"?: \"dd/mm/aaaa\", a passagem desse dia (padrão: a mais recente que cobre a área), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
       "form": [
@@ -919,7 +936,7 @@
     {
       "id": "dist-situacao",
       "label": "Perturbação da vegetação: situação (OPERA DIST-S1)",
-      "help": "A situação do alerta: a cor diz a etapa (amarelo, primeira detecção; laranja, provisória; vermelho, confirmada; roxo, encerrada, quando a vegetação voltou ao normal) e, mais escura, a confiança alta; sem perturbação fica transparente. As manchas vêm também como polígonos, com borda fina e o nome da classe na legenda; o raster, na grade, fica escondido. Na janela do comando, as cores podem ser as da paleta oficial da OPERA. O alerta de perturbação da vegetação do radar do Sentinel-1 (OPERA DIST-S1, JPL, pelo ASF DAAC da NASA), 30 m: o produto mais recente de cada tile (ou o de até o dia escolhido na janela do comando) que cruza o polígono da área, que acumula os alertas desde o começo do monitoramento (04/01/2026), juntado, recortado pela área e posto na grade do projeto. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Áreas de até cerca de 400 km.",
+      "help": "A situação do alerta: a cor diz a etapa (amarelo, primeira detecção; laranja, provisória; vermelho, confirmada; roxo, encerrada, quando a vegetação voltou ao normal) e, mais escura, a confiança alta; sem perturbação fica transparente. As manchas vêm também como polígonos, com borda fina e o nome da classe na legenda; o raster, na grade, fica escondido. Na janela do comando, as cores podem ser as da paleta oficial da OPERA. O alerta de perturbação da vegetação do radar do Sentinel-1 (OPERA DIST-S1, JPL, pelo ASF DAAC da NASA), 30 m: o produto mais recente de cada tile (ou o de até o dia escolhido na janela do comando) que cruza o polígono da área, que acumula os alertas desde o começo do monitoramento (04/01/2026), juntado, recortado pela área e posto na grade do projeto. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Áreas de até cerca de 400 km. Período: alertas acumulados desde 04/01/2026 até o produto mais recente (ou o dia escolhido). Resolução ou escala: 30 m. Unidades: classes (sem unidade). Licença: dados da NASA sem restrição de uso, com citação; dados Copernicus Sentinel de uso livre e gratuito. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/dist-situacao.md",
       "icon": "unique",
       "params": "{\"data\"?: \"dd/mm/aaaa\", os produtos até esse dia (padrão: os mais recentes), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30), \"paleta\"?: \"brasildata\" (padrão: a cor diz a etapa e, mais escura, a confiança alta) | \"oficial\" (a da OPERA)}",
       "form": [
@@ -946,7 +963,7 @@
     {
       "id": "dist-data",
       "label": "Perturbação da vegetação: data (OPERA DIST-S1)",
-      "help": "Quantos dias antes do produto mais recente a perturbação foi vista pela primeira vez: as mais novas em vermelho-escuro. O alerta de perturbação da vegetação do radar do Sentinel-1 (OPERA DIST-S1, JPL, pelo ASF DAAC da NASA), 30 m: o produto mais recente de cada tile (ou o de até o dia escolhido na janela do comando) que cruza o polígono da área, que acumula os alertas desde o começo do monitoramento (04/01/2026), juntado, recortado pela área e posto na grade do projeto. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Áreas de até cerca de 400 km.",
+      "help": "Quantos dias antes do produto mais recente a perturbação foi vista pela primeira vez: as mais novas em vermelho-escuro. O alerta de perturbação da vegetação do radar do Sentinel-1 (OPERA DIST-S1, JPL, pelo ASF DAAC da NASA), 30 m: o produto mais recente de cada tile (ou o de até o dia escolhido na janela do comando) que cruza o polígono da área, que acumula os alertas desde o começo do monitoramento (04/01/2026), juntado, recortado pela área e posto na grade do projeto. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Áreas de até cerca de 400 km. Período: desde 04/01/2026. Resolução ou escala: 30 m. Unidades: dias. Licença: dados da NASA sem restrição de uso, com citação; dados Copernicus Sentinel de uso livre e gratuito. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/dist-data.md",
       "icon": "history",
       "params": "{\"data\"?: \"dd/mm/aaaa\", os produtos até esse dia (padrão: os mais recentes), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
       "form": [
@@ -961,7 +978,7 @@
     {
       "id": "dist-confianca",
       "label": "Perturbação da vegetação: confiança (OPERA DIST-S1)",
-      "help": "A confiança do alerta, que cresce a cada passagem que confirma a perturbação. O alerta de perturbação da vegetação do radar do Sentinel-1 (OPERA DIST-S1, JPL, pelo ASF DAAC da NASA), 30 m: o produto mais recente de cada tile (ou o de até o dia escolhido na janela do comando) que cruza o polígono da área, que acumula os alertas desde o começo do monitoramento (04/01/2026), juntado, recortado pela área e posto na grade do projeto. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Áreas de até cerca de 400 km.",
+      "help": "A confiança do alerta, que cresce a cada passagem que confirma a perturbação. O alerta de perturbação da vegetação do radar do Sentinel-1 (OPERA DIST-S1, JPL, pelo ASF DAAC da NASA), 30 m: o produto mais recente de cada tile (ou o de até o dia escolhido na janela do comando) que cruza o polígono da área, que acumula os alertas desde o começo do monitoramento (04/01/2026), juntado, recortado pela área e posto na grade do projeto. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Áreas de até cerca de 400 km. Período: desde 04/01/2026. Resolução ou escala: 30 m. Unidades: índice de confiança (sem unidade). Licença: dados da NASA sem restrição de uso, com citação; dados Copernicus Sentinel de uso livre e gratuito. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/dist-confianca.md",
       "icon": "graduated",
       "params": "{\"data\"?: \"dd/mm/aaaa\", os produtos até esse dia (padrão: os mais recentes), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
       "form": [
@@ -976,7 +993,7 @@
     {
       "id": "dist-intensidade",
       "label": "Perturbação da vegetação: intensidade (OPERA DIST-S1)",
-      "help": "A intensidade: o maior desvio do sinal do radar em relação ao histórico do lugar, desde a primeira detecção. O alerta de perturbação da vegetação do radar do Sentinel-1 (OPERA DIST-S1, JPL, pelo ASF DAAC da NASA), 30 m: o produto mais recente de cada tile (ou o de até o dia escolhido na janela do comando) que cruza o polígono da área, que acumula os alertas desde o começo do monitoramento (04/01/2026), juntado, recortado pela área e posto na grade do projeto. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Áreas de até cerca de 400 km.",
+      "help": "A intensidade: o maior desvio do sinal do radar em relação ao histórico do lugar, desde a primeira detecção. O alerta de perturbação da vegetação do radar do Sentinel-1 (OPERA DIST-S1, JPL, pelo ASF DAAC da NASA), 30 m: o produto mais recente de cada tile (ou o de até o dia escolhido na janela do comando) que cruza o polígono da área, que acumula os alertas desde o começo do monitoramento (04/01/2026), juntado, recortado pela área e posto na grade do projeto. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Áreas de até cerca de 400 km. Período: desde 04/01/2026. Resolução ou escala: 30 m. Unidades: desvio do sinal (sem unidade). Licença: dados da NASA sem restrição de uso, com citação; dados Copernicus Sentinel de uso livre e gratuito. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/dist-intensidade.md",
       "icon": "contrast",
       "params": "{\"data\"?: \"dd/mm/aaaa\", os produtos até esse dia (padrão: os mais recentes), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
       "form": [
@@ -991,7 +1008,7 @@
     {
       "id": "inpe-focos-periodo",
       "label": "Focos de calor: período (INPE)",
-      "help": "Os focos de calor do INPE de uma data a outra (dia/mês/ano) do mês corrente (UTC): INPE, Programa Queimadas (Sisfogo, IBAMA/PAMGIA). Só o que cruza a área, recortado pela área; sem área, o que está na vista. Os dias vêm da janela do comando; num RustGIS sem janelas de plugin, o mês corrente inteiro.",
+      "help": "Os focos de calor do INPE de uma data a outra (dia/mês/ano) do mês corrente (UTC): INPE, Programa Queimadas (Sisfogo, IBAMA/PAMGIA). Só o que cruza a área, recortado pela área; sem área, o que está na vista. Os dias vêm da janela do comando; num RustGIS sem janelas de plugin, o mês corrente inteiro. Período: os dias escolhidos, dentro do mês corrente (UTC). Resolução ou escala: pontos (o centro do pixel do satélite: 375 m a 4 km, conforme o sensor). Unidades: sem unidade (cada ponto é um foco); data e hora em UTC. Licença: dados abertos; licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/inpe-focos-periodo.md",
       "icon": "time_slider",
       "params": "{\"de\"?: \"dd/mm/aaaa\" ou o dia do mês (1 a 31), \"ate\"?: \"dd/mm/aaaa\" ou o dia do mês (padrão: o mês corrente inteiro)}",
       "form": [
@@ -1012,7 +1029,7 @@
     {
       "id": "risco-fogo",
       "label": "Risco de fogo (INPE)",
-      "help": "O perigo meteorológico de fogo, de 0 a 1, do modelo de Risco de Fogo do INPE (Programa Queimadas, versão 11: dias de secura pela chuva, umidade, temperatura, vegetação, relevo e latitude): a média de 2001 a 2025 de um mês, a 1 km. Só a área, lida do arquivo do mês, posta na grade do projeto e recortada pelo contorno, nas cores das cinco classes do INPE: mínimo (abaixo de 0,15), baixo (até 0,40), médio (até 0,70), alto (até 0,95) e crítico. O mês vem da janela do comando, ou do controle Risco de fogo: mês no painel Área de trabalho (setembro até você mudar). Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área).",
+      "help": "O perigo meteorológico de fogo, de 0 a 1, do modelo de Risco de Fogo do INPE (Programa Queimadas, versão 11: dias de secura pela chuva, umidade, temperatura, vegetação, relevo e latitude): a média de 2001 a 2025 de um mês, a 1 km. Só a área, lida do arquivo do mês, posta na grade do projeto e recortada pelo contorno, nas cores das cinco classes do INPE: mínimo (abaixo de 0,15), baixo (até 0,40), médio (até 0,70), alto (até 0,95) e crítico. O mês vem da janela do comando, ou do controle Risco de fogo: mês no painel Área de trabalho (setembro até você mudar). Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área). Período: climatologia de um mês: a média de 2001 a 2025. Resolução ou escala: 0,01° (cerca de 1 km). Unidades: índice de 0 a 1. Licença: licença não declarada nos arquivos; uso com a citação do INPE e do método. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/risco-fogo.md",
       "icon": "classify",
       "params": "{\"mes\"?: de 1 a 12 (padrão: o do painel, ou 9, setembro), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
       "form": [
@@ -1043,7 +1060,7 @@
     {
       "id": "sol-radiacao",
       "label": "Radiação solar (NASA POWER)",
-      "help": "A irradiação global horizontal na superfície, com todos os céus (nuvens incluídas), em kWh/m² por dia: a média diária de 2001 a 2025, do NASA POWER (CERES SYN1deg, NASA Langley), em células de 1° (cerca de 110 km). As células em volta da área, com uma de margem, viram um raster de 1°, que é interpolado (bilinear) para a grade do projeto e recortado pela área: o mapa mostra como a radiação varia de uma célula para a outra, não detalhes menores que 1°. O período, o ano ou um mês, vem da janela do comando; num RustGIS sem janelas de plugin, a média do ano. Precisa de um RustGIS com o Polígonos para raster (raster.rasterize, desde a 0.6.0).",
+      "help": "A irradiação global horizontal na superfície, com todos os céus (nuvens incluídas), em kWh/m² por dia: a média diária de 2001 a 2025, do NASA POWER (CERES SYN1deg, NASA Langley), em células de 1° (cerca de 110 km). As células em volta da área, com uma de margem, viram um raster de 1°, que é interpolado (bilinear) para a grade do projeto e recortado pela área: o mapa mostra como a radiação varia de uma célula para a outra, não detalhes menores que 1°. O período, o ano ou um mês, vem da janela do comando; num RustGIS sem janelas de plugin, a média do ano. Precisa de um RustGIS com o Polígonos para raster (raster.rasterize, desde a 0.6.0). Período: média diária de 2001 a 2025, do ano ou de um mês. Resolução ou escala: 1° (cerca de 110 km), interpolada para a grade do projeto. Unidades: kWh/m² por dia. Licença: política de dados da NASA: uso livre e gratuito, com a citação. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/sol-radiacao.md",
       "icon": "brightness",
       "params": "{\"mes\"?: de 1 a 12, a média diária desse mês (padrão: a do ano), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
       "form": [
@@ -1075,7 +1092,7 @@
     {
       "id": "mapbiomas-irrigacao",
       "label": "Sistemas de irrigação (MapBiomas)",
-      "help": "Os sistemas de irrigação mapeados pelo MapBiomas a 30 m com imagens Landsat: pivô central (roxo), outros sistemas, sobretudo no Semiárido (azul-claro), e inundação, o arroz irrigado (rosa). O ano, de 1985 a 2025, vem da janela do comando; num RustGIS sem janelas de plugin, do controle MapBiomas: ano, no painel Área de trabalho (2025 até você mudar). Um mapa para ver, do Brasil inteiro, que vale por algumas horas: o MapBiomas não publica um arquivo dele que se leia pela área. Para a área equipada em números, há a do GMIA v5 (FAO); para os pivôs como polígonos, os da ANA.",
+      "help": "Os sistemas de irrigação mapeados pelo MapBiomas a 30 m com imagens Landsat: pivô central (roxo), outros sistemas, sobretudo no Semiárido (azul-claro), e inundação, o arroz irrigado (rosa). O ano, de 1985 a 2025, vem da janela do comando; num RustGIS sem janelas de plugin, do controle MapBiomas: ano, no painel Área de trabalho (2025 até você mudar). Um mapa para ver, do Brasil inteiro, que vale por algumas horas: o MapBiomas não publica um arquivo dele que se leia pela área. Para a área equipada em números, há a do GMIA v5 (FAO); para os pivôs como polígonos, os da ANA. Período: um ano de 1985 a 2025. Resolução ou escala: 30 m (Landsat). Unidades: classes (sem unidade). Licença: CC BY 4.0, pelos termos do MapBiomas. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/mapbiomas-irrigacao.md",
       "icon": "web_map",
       "params": "{\"ano\"?: de 1985 a 2025 (padrão: o do painel, ou 2025)}",
       "form": [
@@ -1092,21 +1109,21 @@
     {
       "id": "irrigacao-gmia",
       "label": "Área equipada para irrigação (GMIA v5, FAO)",
-      "help": "A porcentagem de cada célula de 5′ (cerca de 9 km) equipada para irrigação, por volta de 2005, do Global Map of Irrigation Areas versão 5 (FAO e Universidade de Bonn). Só a área, lida do arquivo mundial da FAO, posta na grade do projeto (cada célula da grade mostra a de 5′ onde cai) e recortada pelo contorno; a escala de cores vai de 0 ao máximo na área. Para a área irrigada por município, há o Censo Agropecuário 2017 (Agricultura). Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área).",
+      "help": "A porcentagem de cada célula de 5′ (cerca de 9 km) equipada para irrigação, por volta de 2005, do Global Map of Irrigation Areas versão 5 (FAO e Universidade de Bonn). Só a área, lida do arquivo mundial da FAO, posta na grade do projeto (cada célula da grade mostra a de 5′ onde cai) e recortada pelo contorno; a escala de cores vai de 0 ao máximo na área. Para a área irrigada por município, há o Censo Agropecuário 2017 (Agricultura). Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área). Período: por volta de 2005. Resolução ou escala: 5′ (cerca de 9 km). Unidades: % da área da célula. Licença: CC BY 4.0 (FAO). Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/irrigacao-gmia.md",
       "icon": "graduated",
       "params": "{\"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}"
     },
     {
       "id": "elevacao",
       "label": "Elevação (Copernicus GLO-30)",
-      "help": "Copernicus GLO-30 recortado pela área e posto na grade do projeto (Grade do projeto, no grupo Área). Sem grade, o primeiro clique cria a padrão: células de 30 m no UTM SIRGAS 2000 do fuso da área, ou no Albers do IBGE quando a área passa de um fuso.",
+      "help": "Copernicus GLO-30 recortado pela área e posto na grade do projeto (Grade do projeto, no grupo Área). Sem grade, o primeiro clique cria a padrão: células de 30 m no UTM SIRGAS 2000 do fuso da área, ou no Albers do IBGE quando a área passa de um fuso. Período: dados do TanDEM-X de 2011 a 2015. Resolução ou escala: 1″ (cerca de 30 m). Unidades: metros, no geoide EGM2008. Licença: licença do Copernicus DEM: uso livre e gratuito, com esta citação. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/elevacao.md",
       "icon": "relief",
       "params": "{\"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30); com grade, só o da grade é aceito}"
     },
     {
       "id": "gem15",
       "label": "Elevação a 15 m (Google GEM-15)",
-      "help": "Os modelos de elevação do Google a 15 m (GEM-15, experimental, de imagens estéreo de satélite até 2024, licença CC-BY 4.0): o terreno nu (DTM), a superfície com a vegetação e as construções (DSM) ou a altura acima do terreno (DSM menos DTM). Só a área, lida de cada célula de 1° que ela toca, posta na grade do projeto e recortada pelo contorno; numa grade mais grossa, lida da pirâmide do arquivo. Alturas no geoide EGM96; água e superfícies sem textura ficam sem dado, e o DTM é pior sob mata densa. Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área).",
+      "help": "Os modelos de elevação do Google a 15 m (GEM-15, experimental, de imagens estéreo de satélite até 2024, licença CC-BY 4.0): o terreno nu (DTM), a superfície com a vegetação e as construções (DSM) ou a altura acima do terreno (DSM menos DTM). Só a área, lida de cada célula de 1° que ela toca, posta na grade do projeto e recortada pelo contorno; numa grade mais grossa, lida da pirâmide do arquivo. Alturas no geoide EGM96; água e superfícies sem textura ficam sem dado, e o DTM é pior sob mata densa. Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área). Período: imagens estéreo de satélite até 2024. Resolução ou escala: 15 m. Unidades: metros, no geoide EGM96. Licença: CC-BY 4.0. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/gem15.md",
       "icon": "raster_layer",
       "params": "{\"modelo\"?: \"dtm\" (padrão) | \"dsm\" | \"altura\", \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
       "form": [
@@ -1437,6 +1454,12 @@
       },
       {
         "kind": "text",
+        "id": "ficha",
+        "label": "Ficha da camada",
+        "text": "O que é a última camada que chegou ao mapa: a fonte, o período, a resolução, as unidades, a legenda, a licença, a citação e os cuidados de uso. Traga uma camada para ver a ficha dela aqui; a tabela do botão Fontes tem as fichas de todas as camadas do mapa."
+      },
+      {
+        "kind": "text",
         "id": "sobre",
         "label": "Sobre o BrasilData",
         "text": "BrasilData 0.1.31, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Elpídio Filho, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nFontes dos dados: IBGE, INPE, ANA, ANP, ANEEL, INCRA, ANM, Kuzma, MMA, ICMBio, FUNAI, Serviço Florestal Brasileiro, IBAMA, DNIT e MapBiomas, pelos serviços de cada órgão; Copernicus DEM GLO-30 (DLR e Airbus, pelo espelho da OpenTopography); Banco Central (Pix e crédito rural); TSE; Novo CAGED (IPEA Data) e Ministério da Saúde (CNES, pelo geobr do Ipea).\n\nComo contribuir: sentiu falta de algum dado? Abra uma issue em https://github.com/elpidioassinaturas/BrasilData/issues com o nome do dado, o órgão que o publica, o endereço do serviço (WFS, ArcGIS REST, API ou arquivo) e para que você o usaria. Para trazer a fonte você mesmo, acrescente uma linha ao fontes.csv, rode python scripts/gerar.py e abra um pull request. Correções, avisos de serviço fora do ar e relatos de uso também são bem-vindos."
@@ -1679,6 +1702,7 @@
             "icon": "catalog",
             "items": [
               "mapbiomas-cobertura",
+              "clms-cobertura",
               "radar-vv",
               "radar-vh",
               "radar-razao",

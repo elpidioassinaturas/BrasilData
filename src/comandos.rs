@@ -123,7 +123,19 @@ const SEM_RECORTE: &[&str] = &[
     "mapbiomas-irrigacao",
 ];
 
+/// Roda o comando e, se ele traz uma camada de dados, põe a ficha dela no painel.
 fn executar(req: Request) -> Result<Value, String> {
+    let ficha = crate::ficha(&req.id);
+    let mut r = executar_comando(req)?;
+    if let Some(f) = ficha
+        && r.is_object()
+    {
+        r["panel"]["items"]["ficha"] = json!({"text": f.texto});
+    }
+    Ok(r)
+}
+
+fn executar_comando(req: Request) -> Result<Value, String> {
     if !SEM_RECORTE.contains(&req.id.as_str())
         && let Some(pendente) = afinar_area()?
     {
@@ -148,6 +160,7 @@ fn executar(req: Request) -> Result<Value, String> {
         "risco-fogo" => risco_de_fogo(&req),
         "gem15" => gem15_na_area(&req),
         "chm-altura" => chm_na_area(&req),
+        "clms-cobertura" => cobertura_clms(&req),
         "radar-vv" => radar(&req, Some(radar::Pol::Vv)),
         "radar-vh" => radar(&req, Some(radar::Pol::Vh)),
         "radar-razao" => radar(&req, None),
@@ -160,7 +173,6 @@ fn executar(req: Request) -> Result<Value, String> {
         "dist-confianca" => perturbacao(&req, dist::Camada::Confianca),
         "dist-intensidade" => perturbacao(&req, dist::Camada::Intensidade),
         "grade" => grade_do_projeto(&req),
-        "clms-cobertura" => cobertura_clms(&req),
         "fontes" => fontes(),
         "atualizacao" => atualizacao(),
         "sobre" => sobre(),
@@ -1277,6 +1289,8 @@ fn citacoes() -> Result<(Vec<Value>, String), String> {
             lista.push(json!({"layer": n, "source": gedi::CITACAO, "license": gedi::LICENCA}));
         } else if dist::eh_do_dist(&n) {
             lista.push(json!({"layer": n, "source": dist::CITACAO, "license": radar::LICENCA}));
+        } else if let Some(ano) = clms::ano_da_camada(&n) {
+            lista.push(json!({"layer": n, "source": clms::citacao(ano), "license": clms::LICENCA}));
         } else if n == chm::CAMADA {
             lista.push(json!({"layer": n, "source": chm::CITACAO, "license": chm::LICENCA}));
         } else if gem15::eh_do_gem15(&n) {
@@ -1289,8 +1303,6 @@ fn citacoes() -> Result<(Vec<Value>, String), String> {
     }
     let texto = if lista.is_empty() {
         "Nenhuma camada do BrasilData no mapa.".to_string()
-        } else if let Some(ano) = clms::ano_da_camada(&n) {
-            lista.push(json!({"layer": n, "source": clms::citacao(ano), "license": clms::LICENCA}));
     } else {
         lista
             .iter()
@@ -1323,10 +1335,22 @@ fn fontes() -> Result<Value, String> {
     let linhas: Vec<Value> = lista
         .iter()
         .map(|f| {
+            // A ficha da camada (do fichas.csv): o que é, o período, a escala, as unidades, a
+            // legenda, os cuidados, o app web e a página com o mapa exemplo.
+            let fi = crate::fichas::da_camada(f["layer"].as_str().unwrap_or(""), f["source"].as_str().unwrap_or(""));
+            let de = |c: fn(&crate::Ficha) -> &'static str| fi.map_or("", c);
             json!({"type": "Feature", "geometry": null, "properties": {
                 "camada": f["layer"].as_str().unwrap_or("").trim_start_matches(PREFIXO),
+                "o_que_e": de(|f| f.o_que_e),
+                "periodo": de(|f| f.periodo),
+                "resolucao": de(|f| f.resolucao),
+                "unidades": de(|f| f.unidades),
+                "legenda": de(|f| f.legenda),
                 "fonte": f["source"],
                 "licenca": f["license"],
+                "cuidados": de(|f| f.cuidados),
+                "app_web": de(|f| f.web),
+                "ficha": de(|f| f.pagina),
                 "servico": f["service"].as_str().unwrap_or(""),
                 "camada_do_servico": f["featureType"].as_str().unwrap_or(""),
             }})
@@ -3395,30 +3419,6 @@ fn tiles_do_chm(ts: &[chm::Tile]) -> Result<Result<Vec<chm::Tile>, Value>, Strin
     Ok(Ok(ts.iter().zip(&respostas).filter(|(t, r)| t.existe(r["text"].as_str().unwrap_or(""))).map(|(t, _)| t.clone()).collect()))
 }
 
-/// A altura do dossel da Meta e do WRI a cerca de 1 m na área ([`chm`]): a janela da área em cada
-/// tile que ela toca, posta na grade do projeto; os tiles se juntam e o mosaico é recortado pela
-/// área.
-fn chm_na_area(req: &Request) -> Result<Value, String> {
-    let celula = req.f64("celula");
-    if let Some(m) = celula {
-        grade::conferir_celula(m)?;
-    }
-    let (c, na_area) = retangulo()?;
-    if !na_area {
-        return Err("escolha a área primeiro (painel Área de trabalho, ou Área: seleção)".into());
-    }
-    let sem_janela = "a altura do dossel do CHMv2 precisa de um RustGIS que leia só a janela da área de um arquivo remoto (depois da 0.5.0): cada arquivo tem 32.768 × 32.768 células";
-    if !le_janela_remota()? {
-        return Err(sem_janela.into());
-    }
-    let todos = chm::tiles(c);
-    if todos.len() > chm::MAX_TILES {
-        return Err(format!(
-            "a área toca {} tiles do CHMv2 (cerca de 37 × 37 km cada); o limite de um clique é {}: escolha uma área menor",
-            todos.len(),
-            chm::MAX_TILES
-        ));
-    }
 /// A cobertura da terra do Copernicus a 100 m ([`clms`]) de um ano de 2015 a 2019 na área: a janela
 /// do retângulo lida do GeoTIFF do Zenodo, recortada pelo contorno e posta na grade do projeto com
 /// a classe mais frequente, com as cores e os nomes da legenda oficial.
@@ -3494,6 +3494,30 @@ fn cobertura_clms(req: &Request) -> Result<Value, String> {
     }))
 }
 
+/// A altura do dossel da Meta e do WRI a cerca de 1 m na área ([`chm`]): a janela da área em cada
+/// tile que ela toca, posta na grade do projeto; os tiles se juntam e o mosaico é recortado pela
+/// área.
+fn chm_na_area(req: &Request) -> Result<Value, String> {
+    let celula = req.f64("celula");
+    if let Some(m) = celula {
+        grade::conferir_celula(m)?;
+    }
+    let (c, na_area) = retangulo()?;
+    if !na_area {
+        return Err("escolha a área primeiro (painel Área de trabalho, ou Área: seleção)".into());
+    }
+    let sem_janela = "a altura do dossel do CHMv2 precisa de um RustGIS que leia só a janela da área de um arquivo remoto (depois da 0.5.0): cada arquivo tem 32.768 × 32.768 células";
+    if !le_janela_remota()? {
+        return Err(sem_janela.into());
+    }
+    let todos = chm::tiles(c);
+    if todos.len() > chm::MAX_TILES {
+        return Err(format!(
+            "a área toca {} tiles do CHMv2 (cerca de 37 × 37 km cada); o limite de um clique é {}: escolha uma área menor",
+            todos.len(),
+            chm::MAX_TILES
+        ));
+    }
     let ts = match tiles_do_chm(&todos)? {
         Ok(r) => r,
         Err(p) => return Ok(p),
