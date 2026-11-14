@@ -6,6 +6,7 @@ use crate::amostragem::{self, Candidato, Sorteio};
 use crate::aqueduct;
 use crate::censo;
 use crate::chm;
+use crate::clms;
 use crate::datas::{self, Data};
 use crate::dialogos;
 use crate::dist;
@@ -159,6 +160,7 @@ fn executar(req: Request) -> Result<Value, String> {
         "dist-confianca" => perturbacao(&req, dist::Camada::Confianca),
         "dist-intensidade" => perturbacao(&req, dist::Camada::Intensidade),
         "grade" => grade_do_projeto(&req),
+        "clms-cobertura" => cobertura_clms(&req),
         "fontes" => fontes(),
         "atualizacao" => atualizacao(),
         "sobre" => sobre(),
@@ -1287,6 +1289,8 @@ fn citacoes() -> Result<(Vec<Value>, String), String> {
     }
     let texto = if lista.is_empty() {
         "Nenhuma camada do BrasilData no mapa.".to_string()
+        } else if let Some(ano) = clms::ano_da_camada(&n) {
+            lista.push(json!({"layer": n, "source": clms::citacao(ano), "license": clms::LICENCA}));
     } else {
         lista
             .iter()
@@ -3415,6 +3419,81 @@ fn chm_na_area(req: &Request) -> Result<Value, String> {
             chm::MAX_TILES
         ));
     }
+/// A cobertura da terra do Copernicus a 100 m ([`clms`]) de um ano de 2015 a 2019 na área: a janela
+/// do retângulo lida do GeoTIFF do Zenodo, recortada pelo contorno e posta na grade do projeto com
+/// a classe mais frequente, com as cores e os nomes da legenda oficial.
+fn cobertura_clms(req: &Request) -> Result<Value, String> {
+    let ano = req.f64("ano").map(|a| a as i64).unwrap_or(clms::ULTIMO_ANO);
+    let url = clms::url(ano).ok_or(format!("o ano da cobertura do Copernicus é de {} a {}", clms::PRIMEIRO_ANO, clms::ULTIMO_ANO))?;
+    let (c, na_area) = retangulo()?;
+    if !na_area {
+        return Err("escolha a área primeiro (painel Área de trabalho, ou Área: seleção)".into());
+    }
+    let sem_janela = "a cobertura do Copernicus precisa de um RustGIS que leia só a janela da área de um arquivo remoto (depois da 0.5.0): o arquivo é o mundo inteiro, com 362.880 × 141.120 células";
+    if !le_janela_remota()? {
+        return Err(sem_janela.into());
+    }
+    if clms::celulas(c) > clms::MAX_CELULAS {
+        return Err(format!(
+            "a área é grande demais para a cobertura do Copernicus: a janela teria {:.0} milhões de células de 100 m, e o limite é {:.0} milhões (uns 7° × 7°, um estado médio); escolha uma área menor",
+            clms::celulas(c) / 1e6,
+            clms::MAX_CELULAS / 1e6
+        ));
+    }
+    let nome = clms::camada(ano);
+    let bruto = format!("{PREFIXO}Copernicus 100 m {ano} (janela)");
+    let recorte = format!("{PREFIXO}Copernicus 100 m {ano} (recorte)");
+    // A janela de um clique anterior serve se cobre a área (no desktop, o comando roda de novo
+    // quando ela chega).
+    let e = if nomes()?.contains(&bruto) { extensao(&bruto)? } else { None };
+    if !e.is_some_and(|e| retangulo_cabe(c, e)) {
+        tirar_janela(&bruto)?;
+        let p = json!({"url": url, "name": bruto, "bbox": clms::janela(c), "zoom": false});
+        let r = host::run("layer.addUrl", p).map_err(|e| {
+            if e.contains("429") {
+                "o Zenodo limita os pedidos por minuto e pediu uma pausa: clique de novo daqui a uns 30 segundos".to_string()
+            } else if falha_passageira(&e) || e.contains("timeout") {
+                format!("o Zenodo não respondeu agora: tente de novo daqui a pouco ({e})")
+            } else {
+                e
+            }
+        })?;
+        if r.get("pending").and_then(Value::as_bool) == Some(true) {
+            avisar(&format!(
+                "Cobertura da terra {ano} (Copernicus 100 m): lendo a janela da área no arquivo do Zenodo; a camada vem quando ela chegar"
+            ));
+            return Ok(r);
+        }
+        if r.get("inPlace").and_then(Value::as_bool) == Some(true) || r.get("window").is_none() {
+            tirar_janela(&bruto)?;
+            return Err(sem_janela.into());
+        }
+    }
+    let g = grade_para(c, None)?;
+    remover(&[&recorte, &nome])?;
+    let feito = (|| -> Result<Value, String> {
+        host::run("raster.process", json!({"layer": bruto, "operation": "clip", "polygon": AREA, "name": recorte}))?;
+        let r = host::run(
+            "raster.project",
+            json!({"layer": recorte, "crs": g.epsg, "cellSize": g.celula, "extent": GRADE, "resampling": "mode", "name": nome}),
+        )?;
+        host::run("style.importQgis", json!({"layer": nome, "text": clms::qml()}))?;
+        // O 255 (sem dado) e o 0 (sem dado de entrada) ficam transparentes.
+        let _ = host::run("raster.mask", json!({"layer": nome, "values": [0, 255]}));
+        Ok(r)
+    })();
+    remover(&[&bruto, &recorte])?;
+    let r = feito?;
+    avisar(&format!(
+        "{nome}: classes do Copernicus (CLMS Land Cover 100 m, {ano}) na grade do projeto, {}, com a classe mais frequente; cores e nomes da legenda oficial. A grade mais fina que 100 m repete a célula do arquivo",
+        g.texto()
+    ));
+    Ok(json!({
+        "layer": nome, "year": ano, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula,
+        "width": r["width"], "height": r["height"],
+    }))
+}
+
     let ts = match tiles_do_chm(&todos)? {
         Ok(r) => r,
         Err(p) => return Ok(p),

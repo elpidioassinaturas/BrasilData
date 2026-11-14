@@ -501,6 +501,20 @@ EM_MENUS = [
             "id": "chm-altura",
             "label": "Altura do dossel a 1 m (Meta CHMv2)",
             "help": "A altura das árvores em metros, a cerca de 1 m, da Meta e do World Resources Institute (Canopy Height Maps v2, licença CC BY 4.0): estimada por um modelo de IA (DINOv3) sobre imagens de satélite de alta resolução, de datas diferentes conforme o lugar. Só a área, lida de cada tile que ela toca, posta na grade do projeto e recortada pelo contorno; numa grade mais grossa, lida da pirâmide do arquivo, que tira a média. Para ver as copas, use uma grade de 1 a 5 m (Grade do projeto) numa área pequena. O 0 é sem árvore, e também sem dado. Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área).",
+    (
+        "Vegetação e meio ambiente",
+        "Uso e cobertura",
+        {
+            "id": "clms-cobertura",
+            "label": "Cobertura da terra 100 m (Copernicus)",
+            "help": "A cobertura da terra global do serviço de terra do Copernicus (CLMS Land Cover 100 m, coleção 3, feita com o satélite PROBA-V), de 2015 a 2019, com as cores e os nomes da legenda oficial: florestas fechadas e abertas, arbustos, vegetação herbácea, cultivos, área urbana, água e outras, 23 classes. Só a área: a janela lida da cópia oficial no Zenodo (sem login, licença CC BY 4.0), recortada pelo contorno e posta na grade do projeto com a classe mais frequente. As células do arquivo têm cerca de 100 m: numa grade mais fina, cada uma se repete. Áreas até uns 7° × 7° (um estado médio). Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área). Funciona no desktop e no app web.",
+            "icon": "unique",
+            "params": "{\"ano\"?: de 2015 a 2019 (padrão 2019)}",
+            "form": [
+                {"name": "ano", "label": "Ano", "kind": "number", "required": True, "default": 2019, "help": "O ano do mapa, de 2015 a 2019 (2015 é a base; 2016 a 2018, consolidados; 2019, quase em tempo real)."},
+            ],
+        },
+    ),
             "icon": "proportional",
             "params": "{\"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
         },

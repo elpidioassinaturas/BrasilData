@@ -16,6 +16,7 @@ pub mod aqueduct;
 mod catalogo;
 pub mod censo;
 pub mod chm;
+pub mod clms;
 pub mod datas;
 pub mod dialogos;
 pub mod dist;
