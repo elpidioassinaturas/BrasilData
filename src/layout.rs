@@ -41,6 +41,7 @@ const NOTA_GEM15: &str = "De imagens estéreo de satélite adquiridas até 2024;
 const NOTA_PREVISAO: &str = "Previsão de uma rodada de um modelo global, em nós de uma grade de 0,25° (cerca de 28 km) interpolados para a grade: mostra a tendência regional, não a chuva de cada lugar, e muda a cada rodada.";
 const NOTA_ENSEMBLE: &str = "Resumo dos membros de um ensemble (o mesmo modelo rodado com pequenas diferenças) em nós de uma grade de 0,25° a 1° interpolados: a chance é a fração dos membros que passa do limiar, não uma probabilidade calibrada.";
 const NOTA_CHIRPS: &str = "Estimativa por satélite (infravermelho) corrigida com estações (CHIRPS v3, 0,05°, cerca de 5,5 km); onde há poucas estações, erra mais nas chuvas fortes e no relevo.";
+const NOTA_PARDIG: &str = "Taxa de chuva instantânea estimada por IA a partir de satélites (PARDIG, Google DeepMind, 0,1°, cerca de 10 km, a cada 15 minutos); dado experimental, satura em 75 mm/h e erra mais no relevo e na garoa.";
 const NOTA_DIST: &str = "Alertas acumulados desde o início do monitoramento (04/01/2026). A primeira detecção ainda não foi confirmada e inclui mudanças sazonais.";
 
 /// A data no fim de um nome do DIST ("…, até 28/02/2026)").
@@ -137,6 +138,14 @@ pub fn receita(nome: &str) -> Option<Receita> {
             barra: Some(("Chuva no mês (mm)".into(), crate::tempo::marcas_da_chuva(crate::tempo::ESCALA_CHIRPS))),
             legenda: None,
             nota: Some(NOTA_CHIRPS),
+        });
+    }
+    if crate::pardig::eh_do_pardig(nome) {
+        return Some(Receita {
+            subtitulo: n.to_string(),
+            barra: Some(("Taxa de chuva (mm/h)".into(), 6)),
+            legenda: None,
+            nota: Some(NOTA_PARDIG),
         });
     }
     if nome == crate::irrigacao::CAMADA {

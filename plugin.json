@@ -2,7 +2,7 @@
   "id": "brasildata",
   "name": "BrasilData",
   "version": "0.1.31",
-  "description": "Dados públicos do Brasil para a área do usuário (IBGE, MMA, ICMBio, INPE, ANA, ANEEL, ANP, SFB/CAR, INCRA, FUNAI, IBAMA, ANM, DNIT, Ministério da Saúde, Copernicus, NASA/ASF, FAO, WRI, Open-Meteo, CHIRPS): só o que cruza a área, recortado por ela, com a fonte e a licença de cada camada.",
+  "description": "Dados públicos do Brasil para a área do usuário (IBGE, MMA, ICMBio, INPE, CEMADEN, ANA, ANEEL, ANP, SFB/CAR, INCRA, FUNAI, IBAMA, ANM, DNIT, Ministério da Saúde, Copernicus, NASA/ASF, FAO, WRI, Open-Meteo, CHIRPS, Google DeepMind): só o que cruza a área, recortado por ela, com a fonte e a licença de cada camada.",
   "author": "Elpídio Filho",
   "homepage": "https://github.com/elpidioassinaturas/BrasilData",
   "license": "MIT",
@@ -1307,6 +1307,35 @@
       ]
     },
     {
+      "id": "cemaden-chuva",
+      "label": "Chuva nas estações (CEMADEN)",
+      "help": "A chuva medida agora nas estações da rede do CEMADEN (pluviômetros automáticos, do semiárido e das estações hidrológicas, geotécnicas e agrometeorológicas): os acumulados de 1, 3, 6, 12, 24, 48, 72 e 96 horas e a hora da última leitura (UTC), atualizados a cada 10 minutos, com as cores da chuva em 24 horas. Só as estações dentro da área, recortadas por ela; sem área, as da vista. Os valores vêm do serviço do mapa interativo do CEMADEN, por estado (até 6 estados por vez), e as coordenadas, da lista das estações que vem no plugin: uma estação instalada depois desta versão fica de fora, e o aviso diz quantas. Só no app desktop: o servidor não aceita pedidos do app web. Período: agora: os acumulados de 1, 3, 6, 12, 24, 48, 72 e 96 horas até a última leitura, atualizados a cada 10 minutos. Resolução ou escala: pontos (a posição de cada estação); leituras a cada 10 minutos com chuva e a cada hora sem. Unidades: mm (chuva_10min, chuva_1h a chuva_96h); leitura_utc em UTC (aaaa-mm-dd hh:mm). Licença: licença não declarada para os dados; citar a fonte (o conteúdo do portal do CEMADEN é CC BY-ND 3.0). Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/cemaden-chuva.md",
+      "icon": "point_layer",
+      "params": "{}"
+    },
+    {
+      "id": "pardig-agora",
+      "label": "Chuva agora (PARDIG)",
+      "help": "A taxa de chuva de agora, em mm/h, estimada por IA a partir de satélites (PARDIG, do Google DeepMind e do Google Research, treinado no radar do satélite GPM da NASA e da JAXA), a 0,1° (cerca de 10 km), a cada 15 minutos. O quadro mais recente sai com umas 5 horas de atraso (de 2 a 8 horas: os quadros chegam em lotes de 6 horas); com a hora na janela do comando, o daquele momento, de 1999 em diante. Só a área, lida do quadro mundial no Google Cloud Storage, posta na grade do projeto e recortada pelo contorno. Dado experimental, não é alerta oficial. Só no app desktop: o servidor não aceita pedidos do app web. Precisa de um RustGIS que leia a janela de um store Zarr (layer.addZarr com bbox). Período: um quadro de 15 minutos: o mais recente (umas 5 horas de atraso) ou o de uma hora pedida, de 1999 em diante (PARDIG-LR de 1999 a 2015, PARDIG-NRT de 2016 em diante). Resolução ou escala: 0,1° (cerca de 10 km), a cada 15 minutos. Unidades: mm/h (a taxa instantânea, não o acumulado). Licença: CC BY 4.0 (dado experimental, fornecido como está). Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/pardig-agora.md",
+      "icon": "history",
+      "params": "{\"quando\"?: \"dd/mm/aaaa hh:mm\", no horário de Brasília (padrão: o quadro mais recente), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+      "form": [
+        {
+          "name": "quando",
+          "label": "Data e hora",
+          "kind": "text",
+          "help": "dd/mm/aaaa hh:mm, no horário de Brasília (por exemplo 16/11/2026 07:30), de 01/01/1999 em diante; arredonda para baixo aos 15 minutos. Vazio: o quadro mais recente."
+        }
+      ]
+    },
+    {
+      "id": "cemaden-alertas",
+      "label": "Alertas vigentes (CEMADEN)",
+      "help": "Os alertas de risco geo-hidrológico vigentes do CEMADEN (risco hidrológico, como enxurradas e inundações, e movimentos de massa, como deslizamentos), nos níveis moderado, alto e muito alto, emitidos para a Defesa Civil: o município inteiro com alerta, nas cores do nível, com o evento, o nível e a hora da emissão e da última atualização (horário de Brasília). Vêm inteiros, sem recorte, os municípios com alerta que têm ao menos 3% dentro da área, porque o alerta vale para o município todo (uma lasca da divisa de um vizinho não conta); sem área, os do retângulo da vista. Sem alerta na área, o aviso diz quantos há no Brasil. Só no app desktop: o servidor não aceita pedidos do app web. Período: agora: os alertas em vigor no momento do clique. Resolução ou escala: município (o contorno da malha intermediária do IBGE que vem no plugin). Unidades: sem unidade; emitido e atualizado no horário de Brasília (aaaa-mm-dd hh:mm). Licença: licença não declarada para os dados; citar a fonte (o conteúdo do portal do CEMADEN é CC BY-ND 3.0). Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/cemaden-alertas.md",
+      "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
       "id": "sol-radiacao",
       "label": "Radiação solar (NASA POWER)",
       "help": "A irradiação global horizontal na superfície, com todos os céus (nuvens incluídas), em kWh/m² por dia: a média diária de 2001 a 2025, do NASA POWER (CERES SYN1deg, NASA Langley), em células de 1° (cerca de 110 km). As células em volta da área, com uma de margem, viram um raster de 1°, que é interpolado (bilinear) para a grade do projeto e recortado pela área: o mapa mostra como a radiação varia de uma célula para a outra, não detalhes menores que 1°. O período, o ano ou um mês, vem da janela do comando; num RustGIS sem janelas de plugin, a média do ano. Precisa de um RustGIS com o Polígonos para raster (raster.rasterize, desde a 0.6.0). Período: média diária de 2001 a 2025, do ano ou de um mês. Resolução ou escala: 1° (cerca de 110 km), interpolada para a grade do projeto. Unidades: kWh/m² por dia. Licença: política de dados da NASA: uso livre e gratuito, com a citação. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/sol-radiacao.md",
@@ -1904,7 +1933,16 @@
             "menu": "Chuva observada",
             "icon": "history",
             "items": [
-              "chirps-mes"
+              "chirps-mes",
+              "cemaden-chuva",
+              "pardig-agora"
+            ]
+          },
+          {
+            "menu": "Desastres",
+            "icon": "polygon_layer",
+            "items": [
+              "cemaden-alertas"
             ]
           },
           {

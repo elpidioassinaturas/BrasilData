@@ -3,7 +3,7 @@
 //! legenda, os cuidados e se funciona no app web.
 
 use crate::{
-    Ficha, PREFIXO, chm, clms, dist, gedi, gem15, indicadores, irrigacao, mapbiomas, nisar, radar, risco_fogo, sol, tema_da_camada,
+    Ficha, PREFIXO, cemaden, chm, clms, dist, gedi, gem15, indicadores, irrigacao, mapbiomas, nisar, radar, risco_fogo, sol, tema_da_camada,
 };
 
 /// O comando que traz a camada `nome` do mapa. `fonte` é a citação dela na tabela Fontes: a
@@ -33,6 +33,10 @@ pub fn comando_da_camada(nome: &str, fonte: &str) -> Option<&'static str> {
         "mapbiomas-irrigacao"
     } else if n.starts_with("Estabelecimentos de saúde") {
         "saude-estabelecimentos"
+    } else if nome == cemaden::CHUVA {
+        "cemaden-chuva"
+    } else if nome == cemaden::ALERTAS {
+        "cemaden-alertas"
     } else if nisar::eh_do_nisar(nome) {
         if n.starts_with("Radar HH") {
             "nisar-hh"
@@ -107,6 +111,8 @@ mod tests {
     fn as_camadas_do_mapa_achadas_pelo_nome() {
         let casos = [
             ("BrasilData: Solos (BDiA 1:250.000)", "solos"),
+            ("BrasilData: Chuva nas estações (CEMADEN)", "cemaden-chuva"),
+            ("BrasilData: Alertas vigentes (CEMADEN)", "cemaden-alertas"),
             ("BrasilData: Radar HV em dB (NISAR, 01/11/2026)", "nisar-hv"),
             ("BrasilData: Composição HH, HV, HH − HV (NISAR, 01/11/2026)", "nisar-cor"),
             ("BrasilData: Razão VH/VV em dB (Sentinel-1, 26/10/2026)", "radar-razao"),

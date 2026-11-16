@@ -4,6 +4,7 @@ use rustgis_plugin::{Request, Value, geojson, host, json};
 
 use crate::amostragem::{self, Candidato, Sorteio};
 use crate::aqueduct;
+use crate::cemaden;
 use crate::censo;
 use crate::chm;
 use crate::clms;
@@ -28,6 +29,8 @@ use crate::sol;
 use crate::tempo;
 use crate::versao;
 use crate::zoom;
+// A Chuva agora (PARDIG) fica em comandos/agora.rs.
+mod agora;
 use crate::{AREA, PREFIXO, TEMAS, Tema, falha_passageira, pedido_de_feicoes, tema_da_camada, tiles};
 
 /// Os nomes das camadas dos censos, depois de [`PREFIXO`].
@@ -161,6 +164,7 @@ fn executar_comando(req: Request) -> Result<Value, String> {
         "chuva-ensemble" => chuva_do_ensemble(&req),
         "temperatura-prevista" => temperatura_prevista(&req),
         "chirps-mes" => chuva_do_mes(&req),
+        "pardig-agora" => agora::chuva_agora(&req),
         "irrigacao-gmia" => irrigacao_na_area(req.f64("celula")),
         "risco-fogo" => risco_de_fogo(&req),
         "gem15" => gem15_na_area(&req),
@@ -195,6 +199,8 @@ fn executar_comando(req: Request) -> Result<Value, String> {
         "indicadores-caged" => indicadores(&[Fonte::Caged]),
         "censo-setores" => censo_setores(),
         "saude-estabelecimentos" => estabelecimentos_de_saude(),
+        "cemaden-chuva" => chuva_cemaden(),
+        "cemaden-alertas" => alertas_cemaden(),
         id if gedi::Variavel::do_comando(id).is_some() => {
             gedi_na_area(gedi::Variavel::do_comando(id).ok_or("comando do GEDI")?, req.f64("celula"))
         }
@@ -1280,6 +1286,10 @@ fn citacoes() -> Result<(Vec<Value>, String), String> {
             lista.push(json!({"layer": n, "source": mapbiomas::CITACAO_IRRIGACAO, "license": mapbiomas::LICENCA}));
         } else if n == camada_de_saude() {
             lista.push(json!({"layer": n, "source": saude::CITACAO, "license": saude::LICENCA}));
+        } else if n == cemaden::CHUVA {
+            lista.push(json!({"layer": n, "source": cemaden::CITACAO, "license": cemaden::LICENCA}));
+        } else if n == cemaden::ALERTAS {
+            lista.push(json!({"layer": n, "source": cemaden::CITACAO_ALERTAS, "license": cemaden::LICENCA}));
         } else if nisar::eh_do_nisar(&n) {
             lista.push(json!({"layer": n, "source": nisar::CITACAO, "license": nisar::LICENCA}));
         } else if radar::eh_do_radar(&n) {
@@ -1290,6 +1300,8 @@ fn citacoes() -> Result<(Vec<Value>, String), String> {
             lista.push(json!({"layer": n, "source": tempo::citacao_da_camada(&n), "license": tempo::LICENCA}));
         } else if tempo::eh_do_chirps(&n) {
             lista.push(json!({"layer": n, "source": tempo::CITACAO_CHIRPS, "license": tempo::LICENCA_CHIRPS}));
+        } else if crate::pardig::eh_do_pardig(&n) {
+            lista.push(json!({"layer": n, "source": crate::pardig::CITACAO, "license": crate::pardig::LICENCA}));
         } else if risco_fogo::mes_da_camada(&n).is_some() {
             lista.push(json!({"layer": n, "source": risco_fogo::CITACAO, "license": risco_fogo::LICENCA}));
         } else if n == irrigacao::CAMADA {
@@ -2679,6 +2691,262 @@ fn estabelecimentos_de_saude() -> Result<Value, String> {
     }
     avisar(&format!("{nome}: {ficaram} de {lidos} na área ({fora}; Ministério da Saúde, pelo geobr)"));
     Ok(json!({"layer": nome, "read": lidos, "features": ficaram, "inactive": desativados, "personal": de_pessoa}))
+}
+
+/// Mais UFs que isto no retângulo é área grande demais para a chuva do CEMADEN: cada UF é um
+/// pedido de até uns 250 KB, e o serviço não filtra pelo retângulo.
+const MAX_UFS_CEMADEN: usize = 6;
+
+/// Mais estações que isto no retângulo é área grande demais: cada uma custa umas 150 mil
+/// instruções (o ponto montado em texto), e a cota de um comando é de 5×10⁸ no RustGIS 0.6.
+const MAX_ESTACOES_CEMADEN: usize = 1500;
+
+/// `aaaa-mm-dd hh:mm` como `dd/mm/aaaa hh:mm`.
+fn data_br(iso: &str) -> String {
+    match (iso.get(..4), iso.get(5..7), iso.get(8..10), iso.get(11..16)) {
+        (Some(a), Some(m), Some(d), Some(h)) => format!("{d}/{m}/{a} {h}"),
+        _ => iso.to_string(),
+    }
+}
+
+/// Põe as `feicoes` no mapa como `nome`, no lugar da anterior: recortadas pela área quando
+/// `recortar` (a camada `(sem recorte)` entra, o clip a recorta e ela sai). Devolve quantas
+/// ficaram; sem nenhuma, a camada sai.
+fn por_feicoes(nome: &str, feicoes: &[String], recortar: bool) -> Result<u64, String> {
+    let bruto = format!("{nome} (sem recorte)");
+    remover(&[nome, &bruto])?;
+    let n = feicoes.len() as u64;
+    // O GeoJSON vai como texto, montado aqui: como `Value`, centenas de pontos passavam da cota
+    // de instruções do comando (ver `cemaden::chuva_dos_bytes`).
+    let camada = |nome: &str| -> Result<(), String> {
+        let req = format!(
+            r#"{{"op":"host.addLayer","params":{{"name":{},"geojson":{{"type":"FeatureCollection","features":[{}]}}}}}}"#,
+            serde_json::to_string(nome).map_err(|e| e.to_string())?,
+            feicoes.join(",")
+        );
+        let r: Value = serde_json::from_slice(&chamar_cru(&req)?).map_err(|e| format!("resposta ilegível do host.addLayer ({e})"))?;
+        match r.get("error") {
+            Some(e) => Err(e.as_str().map(str::to_string).unwrap_or_else(|| e.to_string())),
+            None => Ok(()),
+        }
+    };
+    if !recortar {
+        camada(nome)?;
+        return Ok(n);
+    }
+    camada(&bruto)?;
+    let r = host::run("gp.run", json!({"tool": "clip", "params": {"input": bruto, "clip": AREA}}))?;
+    let recortada = r.get("layer").cloned().ok_or("o clip não disse a camada que fez")?;
+    host::run("layer.rename", json!({"layer": recortada, "name": nome}))?;
+    remover(&[&bruto])?;
+    let ficaram = feicoes_da_camada(nome)?.unwrap_or(0);
+    if ficaram == 0 {
+        remover(&[nome])?;
+    }
+    Ok(ficaram)
+}
+
+/// Aplica a `camada` o estilo `texto` (do `style.add`) de nome `estilo`. Se o usuário tinha dado
+/// outro à camada anterior, [`devolver_estilos`] o põe de volta depois.
+fn estilo_padrao(camada: &str, estilo: &str, texto: &str) {
+    let _ = host::run("style.remove", json!({"name": estilo}));
+    if host::run("style.add", json!({"text": texto})).is_ok() {
+        let _ = host::run("style.apply", json!({"layer": camada, "name": estilo}));
+    }
+}
+
+#[link(wasm_import_module = "rustgis")]
+unsafe extern "C" {
+    #[link_name = "call"]
+    fn host_call(ptr: *const u8, len: usize) -> i32;
+    #[link_name = "result"]
+    fn host_result(ptr: *mut u8);
+}
+
+/// Um pedido ao RustGIS (`{"op", "params"}`, já em texto), com a resposta em bytes
+/// (`{"ok": ...}` ou `{"error": ...}`), como o `host::call` do SDK faz, mas sem ler a resposta
+/// como JSON nem montar o pedido como `Value`.
+fn chamar_cru(req: &str) -> Result<Vec<u8>, String> {
+    // SAFETY: como no SDK: o RustGIS lê `len` bytes de `req`, que vive durante a chamada, e
+    // escreve em `buf` exatamente os `len` bytes da resposta que mediu.
+    let n = unsafe { host_call(req.as_ptr(), req.len()) };
+    let len = usize::try_from(n).map_err(|_| String::from("o RustGIS não respondeu"))?;
+    let mut buf: Vec<u8> = Vec::with_capacity(len);
+    unsafe {
+        host_result(buf.as_mut_ptr());
+        buf.set_len(len);
+    }
+    Ok(buf)
+}
+
+/// O `host.fetch` de cada endereço, com as respostas em bytes, sem lê-las como JSON: o
+/// `host::call` do SDK lê a resposta inteira (o texto e o JSON do documento) e a copia, e a
+/// chuva de três estados do CEMADEN (uns 250 KB cada) já passa da cota de instruções do
+/// comando. Uma resposta curta (um erro, o pedido pendente do app web) é lida. Como em
+/// [`buscar`], `Ok(Err(p))` é um pedido pendente: o RustGIS roda o comando de novo.
+fn buscar_bytes(urls: &[String]) -> Result<Result<Vec<Vec<u8>>, Value>, String> {
+    let mut respostas = Vec::new();
+    let mut pendente = None;
+    for url in urls {
+        let buf = chamar_cru(&json!({"op": "host.fetch", "params": {"url": url}}).to_string())?;
+        if buf.len() < 16_384 {
+            let v: Value = serde_json::from_slice(&buf).map_err(|e| format!("{url}: resposta ilegível ({e})"))?;
+            if let Some(e) = v.get("error") {
+                return Err(e.as_str().map(str::to_string).unwrap_or_else(|| e.to_string()));
+            }
+            if v["ok"].get("pending").and_then(Value::as_bool) == Some(true) {
+                pendente = Some(v["ok"].clone());
+                continue;
+            }
+        }
+        respostas.push(buf);
+    }
+    Ok(match pendente {
+        Some(p) => Err(p),
+        None => Ok(respostas),
+    })
+}
+
+/// A chuva medida nas estações do CEMADEN na área: os acumulados de 1 a 96 horas e os 10
+/// minutos mais recentes, de cada estação, recortados pela área (sem área, os da vista).
+fn chuva_cemaden() -> Result<Value, String> {
+    let nome = cemaden::CHUVA;
+    let curto = nome.trim_start_matches(PREFIXO);
+    let (c, area) = retangulo()?;
+    let onde = if area { "na área" } else { "na vista" };
+    let ufs = cemaden::ufs_no_retangulo(c);
+    if ufs.is_empty() {
+        remover(&[nome])?;
+        avisar(&format!("{curto}: nenhuma estação do CEMADEN {onde}"));
+        return Ok(json!({"layer": null, "features": 0}));
+    }
+    let no_retangulo = cemaden::quantas_no_retangulo(c);
+    if no_retangulo > MAX_ESTACOES_CEMADEN {
+        return Err(format!(
+            "o retângulo da área tem {no_retangulo} estações do CEMADEN; o limite é {MAX_ESTACOES_CEMADEN} por vez: escolha uma área menor"
+        ));
+    }
+    if ufs.len() > MAX_UFS_CEMADEN {
+        return Err(format!(
+            "a área cruza {} estados ({}); a chuva do CEMADEN vem por estado, e o limite é {MAX_UFS_CEMADEN}: escolha uma área menor",
+            ufs.len(),
+            ufs.join(", ")
+        ));
+    }
+    let urls: Vec<String> = ufs.iter().map(|u| cemaden::url_chuva(u)).collect();
+    let respostas = match buscar_bytes(&urls)? {
+        Ok(r) => r,
+        Err(p) => return Ok(p),
+    };
+    let bytes: Vec<&[u8]> = respostas.iter().map(Vec::as_slice).collect();
+    let chuva = cemaden::chuva_dos_bytes(&bytes, c);
+    let lidas = chuva.feicoes.len() as u64;
+    let novas = if chuva.sem_coordenadas > 0 {
+        format!(
+            "; {} estações de {} ficaram de fora, sem coordenadas no plugin (instaladas depois desta versão)",
+            chuva.sem_coordenadas,
+            ufs.join(", ")
+        )
+    } else {
+        String::new()
+    };
+    if lidas == 0 {
+        remover(&[nome])?;
+        avisar(&format!("{curto}: nenhuma estação {onde}{novas}"));
+        return Ok(json!({"layer": null, "features": 0}));
+    }
+    let ficaram = por_feicoes(nome, &chuva.feicoes, area)?;
+    if ficaram == 0 {
+        avisar(&format!("{curto}: nenhuma estação dentro da área ({lidas} no retângulo){novas}"));
+        return Ok(json!({"layer": null, "read": lidas, "features": 0}));
+    }
+    estilo_padrao(nome, cemaden::ESTILO_CHUVA, &cemaden::estilo_chuva());
+    let ultima = chuva.ultima.as_deref().map(|u| format!("; leitura mais recente em {} UTC", data_br(u))).unwrap_or_default();
+    let recorte = if area { format!(" de {lidas} no retângulo, recortadas pela área") } else { " na vista".into() };
+    avisar(&format!(
+        "{curto}: {ficaram} {}{recorte} ({} no retângulo com leitura nas últimas 24 h{ultima}){novas}. Fonte: CEMADEN; só no app desktop",
+        if ficaram == 1 { "estação" } else { "estações" },
+        chuva.com_leitura
+    ));
+    Ok(
+        json!({"layer": nome, "read": lidas, "features": ficaram, "withReading": chuva.com_leitura, "latest": chuva.ultima, "missingCoordinates": chuva.sem_coordenadas}),
+    )
+}
+
+/// Os códigos dos municípios (`feicoes`, com o `cod_ibge`) que têm ao menos
+/// [`cemaden::FRACAO_MINIMA`] dentro da área: o RustGIS recorta uma cópia, e o plugin compara as
+/// áreas. As camadas do recorte saem do mapa.
+fn municipios_dentro_da_area(feicoes: &[Value]) -> Result<Vec<String>, String> {
+    let teste = format!("{PREFIXO}municípios com alerta (teste)");
+    let pedacos = format!("{teste}, recortados");
+    remover(&[&teste, &pedacos])?;
+    let mut fc = json!({"type": "FeatureCollection"});
+    fc["features"] = Value::Array(feicoes.to_vec());
+    host::add_layer(&teste, fc)?;
+    let feito = (|| -> Result<Vec<String>, String> {
+        let r = host::run("gp.run", json!({"tool": "clip", "params": {"input": teste, "clip": AREA}}))?;
+        let recortada = r.get("layer").cloned().ok_or("o clip não disse a camada que fez")?;
+        host::run("layer.rename", json!({"layer": recortada, "name": pedacos}))?;
+        let lidos = host::features(&pedacos, false)?;
+        let lista = lidos["features"].as_array().map_or(&[][..], Vec::as_slice);
+        Ok(cemaden::dentro_da_area(feicoes, lista))
+    })();
+    remover(&[&teste, &pedacos])?;
+    feito
+}
+
+/// Os alertas de risco geo-hidrológico vigentes do CEMADEN nos municípios da área (sem área, os
+/// do retângulo da vista), com o contorno inteiro do município: o alerta vale para ele todo, como
+/// os limites, que também vêm inteiros.
+fn alertas_cemaden() -> Result<Value, String> {
+    let nome = cemaden::ALERTAS;
+    let curto = nome.trim_start_matches(PREFIXO);
+    let (c, area) = retangulo()?;
+    let onde = if area { "nos municípios da área" } else { "nos municípios da vista" };
+    let r = match buscar_varios(&[cemaden::URL_ALERTAS.to_string()])? {
+        Ok(r) => r,
+        Err(p) => return Ok(p),
+    };
+    let lista = cemaden::alertas(&r[0]);
+    // Pelo retângulo do contorno embutido e, com área, pela parte do município dentro dela: o
+    // retângulo de um estado pega municípios do vizinho, e um município vizinho deixa na área uma
+    // lasca da divisa (o contorno embutido não é o oficial).
+    let mut feicoes = cemaden::alertas_no_retangulo(&lista, c, malhas::geometria);
+    if area && !feicoes.is_empty() {
+        let dentro = municipios_dentro_da_area(&feicoes)?;
+        feicoes.retain(|f| f["properties"]["cod_ibge"].as_str().is_some_and(|cod| dentro.iter().any(|d| d == cod)));
+    }
+    let no_brasil = match lista.len() {
+        0 => "nenhum no Brasil agora".to_string(),
+        n => format!("{n} no Brasil agora"),
+    };
+    if feicoes.is_empty() {
+        remover(&[nome])?;
+        avisar(&format!("{curto}: nenhum alerta vigente {onde} ({no_brasil}; CEMADEN)"));
+        return Ok(json!({"layer": null, "features": 0, "brazil": lista.len()}));
+    }
+    let resumo: Vec<String> = feicoes
+        .iter()
+        .map(|f| {
+            let p = &f["properties"];
+            format!(
+                "{}/{}: {}, {}",
+                p["municipio"].as_str().unwrap_or(""),
+                p["uf"].as_str().unwrap_or(""),
+                p["evento"].as_str().unwrap_or("").to_lowercase(),
+                p["nivel"].as_str().unwrap_or("").to_lowercase()
+            )
+        })
+        .collect();
+    let textos: Vec<String> = feicoes.iter().map(Value::to_string).collect();
+    let n = por_feicoes(nome, &textos, false)?;
+    estilo_padrao(nome, cemaden::ESTILO_ALERTAS, &cemaden::estilo_alertas());
+    avisar(&format!(
+        "{curto}: {n} {} {onde} ({}; {no_brasil}). Fonte: CEMADEN; só no app desktop",
+        if n == 1 { "alerta" } else { "alertas" },
+        resumo.join("; ")
+    ));
+    Ok(json!({"layer": nome, "features": n, "brazil": lista.len()}))
 }
 
 /// O nome do mapa de uso e cobertura de `ano`.

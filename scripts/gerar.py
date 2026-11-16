@@ -887,6 +887,47 @@ EM_MENUS = [
     ),
     (
         "Tempo e clima",
+        "Chuva observada",
+        {
+            "id": "cemaden-chuva",
+            "label": "Chuva nas estações (CEMADEN)",
+            "help": "A chuva medida agora nas estações da rede do CEMADEN (pluviômetros automáticos, do semiárido e das estações hidrológicas, geotécnicas e agrometeorológicas): os acumulados de 1, 3, 6, 12, 24, 48, 72 e 96 horas e a hora da última leitura (UTC), atualizados a cada 10 minutos, com as cores da chuva em 24 horas. Só as estações dentro da área, recortadas por ela; sem área, as da vista. Os valores vêm do serviço do mapa interativo do CEMADEN, por estado (até 6 estados por vez), e as coordenadas, da lista das estações que vem no plugin: uma estação instalada depois desta versão fica de fora, e o aviso diz quantas. Só no app desktop: o servidor não aceita pedidos do app web.",
+            "icon": "point_layer",
+            "params": "{}",
+        },
+    ),
+    (
+        "Tempo e clima",
+        "Chuva observada",
+        {
+            "id": "pardig-agora",
+            "label": "Chuva agora (PARDIG)",
+            "help": "A taxa de chuva de agora, em mm/h, estimada por IA a partir de satélites (PARDIG, do Google DeepMind e do Google Research, treinado no radar do satélite GPM da NASA e da JAXA), a 0,1° (cerca de 10 km), a cada 15 minutos. O quadro mais recente sai com umas 5 horas de atraso (de 2 a 8 horas: os quadros chegam em lotes de 6 horas); com a hora na janela do comando, o daquele momento, de 1999 em diante. Só a área, lida do quadro mundial no Google Cloud Storage, posta na grade do projeto e recortada pelo contorno. Dado experimental, não é alerta oficial. Só no app desktop: o servidor não aceita pedidos do app web. Precisa de um RustGIS que leia a janela de um store Zarr (layer.addZarr com bbox).",
+            "icon": "history",
+            "params": "{\"quando\"?: \"dd/mm/aaaa hh:mm\", no horário de Brasília (padrão: o quadro mais recente), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+            "form": [
+                {
+                    "name": "quando",
+                    "label": "Data e hora",
+                    "kind": "text",
+                    "help": "dd/mm/aaaa hh:mm, no horário de Brasília (por exemplo 16/11/2026 07:30), de 01/01/1999 em diante; arredonda para baixo aos 15 minutos. Vazio: o quadro mais recente."
+                }
+            ]
+        },
+    ),
+    (
+        "Tempo e clima",
+        "Desastres",
+        {
+            "id": "cemaden-alertas",
+            "label": "Alertas vigentes (CEMADEN)",
+            "help": "Os alertas de risco geo-hidrológico vigentes do CEMADEN (risco hidrológico, como enxurradas e inundações, e movimentos de massa, como deslizamentos), nos níveis moderado, alto e muito alto, emitidos para a Defesa Civil: o município inteiro com alerta, nas cores do nível, com o evento, o nível e a hora da emissão e da última atualização (horário de Brasília). Vêm inteiros, sem recorte, os municípios com alerta que têm ao menos 3% dentro da área, porque o alerta vale para o município todo (uma lasca da divisa de um vizinho não conta); sem área, os do retângulo da vista. Sem alerta na área, o aviso diz quantos há no Brasil. Só no app desktop: o servidor não aceita pedidos do app web.",
+            "icon": "polygon_layer",
+            "params": "{}",
+        },
+    ),
+    (
+        "Tempo e clima",
         "Clima",
         {
             "id": "sol-radiacao",
@@ -1129,7 +1170,7 @@ TOPICOS = {
     "Território": ["Limites", "Recortes especiais", "Cadastro fundiário", "Terras indígenas"],
     "Sociedade e economia": ["População", "Economia", "Agricultura", "Eleições", "Saúde"],
     "Meio físico": ["Geologia e recursos minerais", "Relevo", "Solos"],
-    "Tempo e clima": ["Previsão", "Chuva observada", "Clima"],
+    "Tempo e clima": ["Previsão", "Chuva observada", "Desastres", "Clima"],
     "Água": ["Hidrografia", "Bacias", "Recursos hídricos"],
     "Vegetação e meio ambiente": ["Vegetação", "Uso e cobertura", "Desmatamento", "Queimadas", "Áreas protegidas", "Fiscalização"],
     "Infraestrutura": ["Energia", "Petróleo e gás", "Transportes"],
@@ -1282,7 +1323,7 @@ def manifesto(linhas: list[dict], fichas: dict[str, dict]) -> str:
         "id": "brasildata",
         "name": "BrasilData",
         "version": VERSAO,
-        "description": "Dados públicos do Brasil para a área do usuário (IBGE, MMA, ICMBio, INPE, ANA, ANEEL, ANP, SFB/CAR, INCRA, FUNAI, IBAMA, ANM, DNIT, Ministério da Saúde, Copernicus, NASA/ASF, FAO, WRI, Open-Meteo, CHIRPS): só o que cruza a área, recortado por ela, com a fonte e a licença de cada camada.",
+        "description": "Dados públicos do Brasil para a área do usuário (IBGE, MMA, ICMBio, INPE, CEMADEN, ANA, ANEEL, ANP, SFB/CAR, INCRA, FUNAI, IBAMA, ANM, DNIT, Ministério da Saúde, Copernicus, NASA/ASF, FAO, WRI, Open-Meteo, CHIRPS, Google DeepMind): só o que cruza a área, recortado por ela, com a fonte e a licença de cada camada.",
         "author": AUTOR,
         "homepage": REPOSITORIO,
         "license": LICENCA,

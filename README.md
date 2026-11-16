@@ -48,6 +48,7 @@ comando e mostra embaixo o que ele fez. São eles:
 | Chuva do ensemble | o ensemble (ECMWF ENS, AIFS-ENS ou GEFS), o que mostrar (a chance de passar de um limiar, a média ou os cenários seco e chuvoso), o limiar e os dias |
 | Temperatura prevista | a máxima, a mínima ou a média do dia, o modelo e os dias |
 | Chuva do mês (CHIRPS) | o mês (vazio: o mais recente) |
+| Chuva agora (PARDIG) | a data e a hora, no horário de Brasília (vazio: o quadro mais recente) |
 | Elevação a 15 m (GEM-15) | o modelo: terreno nu (DTM), superfície (DSM) ou altura acima do terreno |
 
 As janelas vêm num RustGIS com as janelas de comando de plugin (opengeos/RustGIS#1547, depois da
@@ -247,7 +248,7 @@ estilo.
 | Território | Limites (IBGE: Brasil, Grandes Regiões, estados, regiões intermediárias e imediatas, meso e microrregiões, municípios, distritos, subdistritos e bairros), Recortes especiais (IBGE: Amazônia Legal, Semiárido, MATOPIBA, SUDENE, municípios costeiros, regiões metropolitanas, aglomerações, concentrações e arranjos urbanos, hierarquia urbana), Cadastro fundiário (SFB, INCRA), Terras indígenas (FUNAI) |
 | Sociedade e economia | População (IBGE: setores censitários, censos, áreas de ponderação, área urbana e rural, favelas e comunidades urbanas), Economia (Banco Central, Novo CAGED), Agricultura (Banco Central, IBGE), Eleições (TSE), Saúde (estabelecimentos do CNES, DATASUS) e Todos os indicadores |
 | Meio físico | Geologia e recursos minerais (IBGE, ANM, MapBiomas), Relevo (IBGE, Copernicus; GEM-15 do Google a 15 m), Solos (IBGE) |
-| Tempo e clima | Previsão (pelo Open-Meteo: a chuva prevista do ECMWF IFS, do AIFS, do GFS e do ICON, a chance e a faixa provável de chuva dos ensembles ECMWF ENS, AIFS-ENS e GEFS, e a temperatura prevista), Chuva observada (o total do mês do CHIRPS v3), Clima (radiação solar do NASA POWER; climatologia do Risco de Fogo do INPE) |
+| Tempo e clima | Previsão (pelo Open-Meteo: a chuva prevista do ECMWF IFS, do AIFS, do GFS e do ICON, a chance e a faixa provável de chuva dos ensembles ECMWF ENS, AIFS-ENS e GEFS, e a temperatura prevista), Chuva observada (o total do mês do CHIRPS v3; a taxa de chuva de agora do PARDIG, Google DeepMind; a chuva medida nas estações do CEMADEN), Desastres (alertas vigentes do CEMADEN), Clima (radiação solar do NASA POWER; climatologia do Risco de Fogo do INPE) |
 | Água | Hidrografia (IBGE, ANA), Bacias (IBGE, ANA), Recursos hídricos (ANA; estresse hídrico do Aqueduct 4.0, WRI; sistemas de irrigação do MapBiomas; área equipada para irrigação do GMIA v5, FAO) |
 | Vegetação e meio ambiente | Vegetação (IBGE; altura do dossel do GEDI, NASA, e do CHMv2 a 1 m, Meta e WRI), Uso e cobertura (MapBiomas; radar Sentinel-1 do ASF/NASA), Desmatamento (INPE: PRODES e DETER; alertas de perturbação OPERA DIST-S1 do ASF/NASA), Queimadas (INPE: focos de calor das últimas 48 horas, dos últimos 7 dias e do mês corrente, e a climatologia mensal do Risco de Fogo; um período com datas, por script: `plugin:brasildata/inpe-focos-periodo={"de": "01/11/2026", "ate": "06/11/2026"}`), Áreas protegidas (MMA, ICMBio), Fiscalização (IBAMA) |
 | Infraestrutura | Energia (ANEEL), Petróleo e gás (ANP), Transportes (DNIT) |
@@ -456,6 +457,27 @@ Fora da tabela, com a citação no comando **Fontes**:
   desktop: o servidor não manda CORS. O README da v3 não declara licença; o Climate Hazards
   Center distribui o CHIRPS como domínio público. Por script:
   `plugin:brasildata/chirps-mes={"mes": "10/2026"}`;
+- **Chuva nas estações e alertas:** CEMADEN/MCTI (Centro Nacional de Monitoramento e Alertas de
+  Desastres Naturais), rede observacional de estações ("data from the CEMADEN/MCTI observational
+  network") e alertas de risco geo-hidrológico, sem login. A chuva vem do serviço do mapa
+  interativo (`getJson2.php`, por estado, atualizado a cada 10 minutos): os acumulados de 1 a 96
+  horas de cada estação, com as coordenadas das tabelas que vêm no plugin (`cemaden.csv` e o
+  índice `cemaden.bin`, de `scripts/baixar_cemaden.py`, para rodar de novo a cada versão: uma
+  estação instalada depois fica de fora, e o aviso diz quantas). A área pode cruzar até 6 estados
+  e ter até 1.500 estações no retângulo. Os alertas vigentes vêm do painel de alertas
+  (`wsAlertas2`), um por município, com o contorno do município da malha embutida, inteiro: entram
+  os municípios com ao menos 3% dentro da área. O CEMADEN não declara licença para os dados (o
+  portal é CC BY-ND 3.0): cite a fonte. Só no app desktop: os servidores não mandam CORS. As séries
+  históricas ficam na PED do CEMADEN (ped.cemaden.gov.br, cadastro gratuito), fora do plugin;
+- **Chuva agora:** Google DeepMind e Google Research, PARDIG (Shalev et al. 2026,
+  arXiv:2611.13941, CC BY 4.0): a taxa de chuva estimada por IA a partir de satélites, treinada no
+  radar do GPM, a 0,1° e a cada 15 minutos, de 1999 em diante. O quadro mais recente sai com umas
+  5 horas de atraso; o plugin, que não tem relógio, acha-o pela listagem do bucket público
+  `gs://pardig_1` (uma bisseção de cerca de dez pedidos pequenos). Só a janela da área, lida do
+  store Zarr do quadro pelo próprio RustGIS (`layer.addZarr` com `bbox`), passada a mm/h, posta na
+  grade do projeto e recortada pela área. Só no app desktop: o bucket não manda CORS. Dado
+  experimental, não é alerta oficial. Por script:
+  `plugin:brasildata/pardig-agora={"quando": "16/11/2026 07:30"}`;
 - **Estresse hídrico:** WRI, Aqueduct 4.0 (Kuzma et al. 2023, CC BY 4.0), pelo serviço Aqueduct
   Water Risk do ArcGIS Living Atlas: a retirada de água sobre a oferta renovável, por sub-bacia
   HydroBASINS de nível 6 e unidade administrativa. O plugin acrescenta o campo `estresse`, com as

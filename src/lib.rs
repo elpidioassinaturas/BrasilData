@@ -14,6 +14,7 @@
 pub mod amostragem;
 pub mod aqueduct;
 mod catalogo;
+pub mod cemaden;
 pub mod censo;
 pub mod chm;
 pub mod clms;
@@ -36,6 +37,7 @@ pub mod malhas;
 pub mod mapbiomas;
 pub mod municipios;
 pub mod nisar;
+pub mod pardig;
 pub mod radar;
 pub mod risco_fogo;
 pub mod saude;
