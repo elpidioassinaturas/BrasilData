@@ -2,7 +2,7 @@
 
 <!-- Gerado por scripts/gerar.py a partir do fontes.csv e do fichas.csv; não edite à mão. -->
 
-A ficha de cada uma das 139 camadas que os botões da aba BrasilData trazem: o que é, a fonte, o período, a resolução, as unidades, a legenda, a licença, a citação, os cuidados de uso, se funciona no app web, e um mapa exemplo feito com o plugin (o botão Layout). Os mapas exemplo são de Viçosa (MG), ou da Zona da Mata mineira para os produtos de baixa resolução; os temas que não existem lá vêm de outro município, dito em cada ficha. Os mapas saem do `scripts/mapas_exemplo.py`.
+A ficha de cada uma das 140 camadas que os botões da aba BrasilData trazem: o que é, a fonte, o período, a resolução, as unidades, a legenda, a licença, a citação, os cuidados de uso, se funciona no app web, e um mapa exemplo feito com o plugin (o botão Layout). Os mapas exemplo são de Viçosa (MG), ou da Zona da Mata mineira para os produtos de baixa resolução; os temas que não existem lá vêm de outro município, dito em cada ficha. Os mapas saem do `scripts/mapas_exemplo.py`.
 
 ## Território
 
@@ -141,6 +141,7 @@ A ficha de cada uma das 139 camadas que os botões da aba BrasilData trazem: o q
 | [Focos de calor do mês corrente (INPE)](inpe-focos-mes.md) | Vegetação e meio ambiente › Queimadas | Os focos de calor do mês corrente (Programa Queimadas do INPE). |
 | [Uso e cobertura (MapBiomas)](mapbiomas-cobertura.md) | Vegetação e meio ambiente › Uso e cobertura | O uso e a cobertura da terra do MapBiomas: floresta, savana, campo, pastagem, agricultura, silvicultura, área urbana, água... |
 | [Altura do dossel a 1 m (Meta CHMv2)](chm-altura.md) | Vegetação e meio ambiente › Vegetação | A altura das árvores a cerca de 1 m, estimada por um modelo de IA (DINOv3) sobre imagens de satélite de alta resolução (Meta e WRI). |
+| [Índice de vegetação (cubo do INPE)](bdc-indice.md) | Vegetação e meio ambiente › Cubo de dados do INPE | O NDVI ou o EVI do cubo de dados do INPE (Brazil Data Cube), resumido num período: a média, a máxima, a mínima ou o desvio das datas de 16 dias. |
 | [Altura do dossel (GEDI)](gedi-altura.md) | Vegetação e meio ambiente › Vegetação | A altura do dossel (rh98): a altura em que volta 98% da energia do laser do GEDI, perto do topo das copas. |
 | [Biomassa acima do solo (GEDI)](gedi-biomassa.md) | Vegetação e meio ambiente › Vegetação | A densidade de biomassa acima do solo, do modelo do GEDI L4A. |
 | [Cobertura do dossel (GEDI)](gedi-cobertura.md) | Vegetação e meio ambiente › Vegetação | A cobertura do dossel: a fração do chão coberta pelas copas, do GEDI L2B. |

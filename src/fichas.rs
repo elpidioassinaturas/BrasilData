@@ -75,6 +75,8 @@ pub fn comando_da_camada(nome: &str, fonte: &str) -> Option<&'static str> {
         }
     } else if nome == chm::CAMADA {
         "chm-altura"
+    } else if crate::bdc::satelite_da_camada(nome).is_some() {
+        "bdc-indice"
     } else if gem15::eh_do_gem15(nome) {
         "gem15"
     } else if clms::ano_da_camada(nome).is_some() {

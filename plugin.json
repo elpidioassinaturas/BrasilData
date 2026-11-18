@@ -1,7 +1,7 @@
 {
   "id": "brasildata",
   "name": "BrasilData",
-  "version": "0.1.34",
+  "version": "0.1.35",
   "description": "Dados públicos do Brasil para a área do usuário (IBGE, MMA, ICMBio, INPE, CEMADEN, ANA, ANEEL, ANP, SFB/CAR, INCRA, FUNAI, IBAMA, ANM, DNIT, Ministério da Saúde, Copernicus, NASA/ASF, FAO, WRI, Open-Meteo, CHIRPS, Google DeepMind): só o que cruza a área, recortado por ela, com a fonte e a licença de cada camada.",
   "author": "Elpídio Filho",
   "homepage": "https://github.com/elpidioassinaturas/BrasilData",
@@ -906,6 +906,67 @@
       ]
     },
     {
+      "id": "bdc-indice",
+      "label": "Índice de vegetação (cubo do INPE)",
+      "help": "O NDVI ou o EVI do cubo de dados do INPE (Brazil Data Cube), dos compostos de 16 dias do Sentinel-2, do Landsat, do CBERS-4 WFI ou do MODIS, resumido num período: a média das datas, a máxima, a mínima ou o desvio-padrão. Os compostos já tiram as nuvens (o pixel mais limpo de cada 16 dias). Só a área, lida pelo RustGIS da coleção no STAC do INPE (sem login), posta na grade do projeto e recortada pelo contorno. Sem período, os 3 meses até a data mais recente do cubo. Precisa de um RustGIS com o resumo de um cubo STAC (cube.reduce, desde a 0.6.0); só no app desktop e no rustgis-cli. Período: Sentinel-2 desde 2017, Landsat desde 1990, CBERS-4 desde 2016, MODIS desde 2000, até a data mais recente. Resolução ou escala: 10 m (Sentinel-2), 30 m (Landsat), 64 m (CBERS-4 WFI) ou 232 m (MODIS). Unidades: índice, de -1 a 1 (a vegetação vai de 0,2 a 0,9). Licença: Sentinel-2: dados Copernicus, livres com atribuição; Landsat: domínio público (USGS); CBERS-4: CC BY 4.0 (INPE); MODIS: sem restrição de uso (NASA LP DAAC). Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/bdc-indice.md",
+      "icon": "dra",
+      "params": "{\"satelite\"?: \"sentinel-2\" (padrão) | \"landsat\" | \"cbers-4\" | \"modis\", \"indice\"?: \"NDVI\" (padrão) | \"EVI\", \"inicio\"?, \"fim\"?: dd/mm/aaaa ou aaaa-mm-dd (padrão: os 3 meses até a data mais recente), \"estatistica\"?: \"media\" (padrão) | \"maxima\" | \"minima\" | \"desvio\", \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+      "form": [
+        {
+          "name": "satelite",
+          "label": "Satélite",
+          "kind": "choice",
+          "required": true,
+          "choices": [
+            "Sentinel-2 (10 m, desde 2017)",
+            "Landsat (30 m, desde 1990)",
+            "CBERS-4 WFI (64 m, desde 2016)",
+            "MODIS (250 m, desde 2000)"
+          ],
+          "default": "Sentinel-2 (10 m, desde 2017)",
+          "help": "O cubo de 16 dias do INPE: o Sentinel-2 tem o detalhe (10 m) e começa em 2017; o Landsat vai até 1990, a 30 m; o CBERS-4 WFI, satélite sino-brasileiro, a 64 m; o MODIS, a 250 m, desde 2000, para áreas grandes."
+        },
+        {
+          "name": "indice",
+          "label": "Índice",
+          "kind": "choice",
+          "required": true,
+          "choices": [
+            "NDVI",
+            "EVI"
+          ],
+          "default": "NDVI",
+          "help": "O NDVI mede o verde da vegetação; o EVI satura menos nas florestas densas."
+        },
+        {
+          "name": "inicio",
+          "label": "Início (dd/mm/aaaa)",
+          "kind": "text",
+          "help": "A primeira data. Vazio: 3 meses antes do fim."
+        },
+        {
+          "name": "fim",
+          "label": "Fim (dd/mm/aaaa)",
+          "kind": "text",
+          "help": "A última data. Vazio: a mais recente do cubo. O período vai de 16 dias a 3 anos."
+        },
+        {
+          "name": "estatistica",
+          "label": "Resumo das datas",
+          "kind": "choice",
+          "required": true,
+          "choices": [
+            "Média das datas",
+            "Máxima",
+            "Mínima",
+            "Desvio-padrão"
+          ],
+          "default": "Média das datas",
+          "help": "A média mostra a vegetação típica do período; a máxima, o auge do verde; a mínima, a seca; o desvio-padrão, o quanto ela variou (a lavoura muda muito; a mata, pouco)."
+        }
+      ]
+    },
+    {
       "id": "chm-altura",
       "label": "Altura do dossel a 1 m (Meta CHMv2)",
       "help": "A altura das árvores em metros, a cerca de 1 m, da Meta e do World Resources Institute (Canopy Height Maps v2, licença CC BY 4.0): estimada por um modelo de IA (DINOv3) sobre imagens de satélite de alta resolução, de datas diferentes conforme o lugar. Só a área, lida de cada tile que ela toca, posta na grade do projeto e recortada pelo contorno; numa grade mais grossa, lida da pirâmide do arquivo, que tira a média. Para ver as copas, use uma grade de 1 a 5 m (Grade do projeto) numa área pequena. O 0 é sem árvore, e também sem dado. Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área). Período: imagens de 2018 a 2024, de datas diferentes conforme o lugar. Resolução ou escala: cerca de 1 m (tiles de zoom 17). Unidades: metros. Licença: CC BY 4.0. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/chm-altura.md",
@@ -1754,7 +1815,7 @@
         "kind": "text",
         "id": "sobre",
         "label": "Sobre o BrasilData",
-        "text": "BrasilData 0.1.34, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Elpídio Filho, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nFontes dos dados: IBGE, IDE-Sisema, INPE, ANA, ANP, ANEEL, INCRA, ANM, Kuzma, MMA, ICMBio, FUNAI, Serviço Florestal Brasileiro, IBAMA, DNIT e MapBiomas, pelos serviços de cada órgão; Copernicus DEM GLO-30 (DLR e Airbus, pelo espelho da OpenTopography); Banco Central (Pix e crédito rural); TSE; Novo CAGED (IPEA Data); Ministério da Saúde (CNES, pelo geobr do Ipea); Open-Meteo (previsão do ECMWF, da NOAA e do DWD) e CHIRPS v3 (Climate Hazards Center, UCSB).\n\nComo contribuir: sentiu falta de algum dado? Abra uma issue em https://github.com/elpidioassinaturas/BrasilData/issues com o nome do dado, o órgão que o publica, o endereço do serviço (WFS, ArcGIS REST, API ou arquivo) e para que você o usaria. Para trazer a fonte você mesmo, acrescente uma linha ao fontes.csv, rode python scripts/gerar.py e abra um pull request. Correções, avisos de serviço fora do ar e relatos de uso também são bem-vindos."
+        "text": "BrasilData 0.1.35, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Elpídio Filho, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nFontes dos dados: IBGE, IDE-Sisema, INPE, ANA, ANP, ANEEL, INCRA, ANM, Kuzma, MMA, ICMBio, FUNAI, Serviço Florestal Brasileiro, IBAMA, DNIT e MapBiomas, pelos serviços de cada órgão; Copernicus DEM GLO-30 (DLR e Airbus, pelo espelho da OpenTopography); Banco Central (Pix e crédito rural); TSE; Novo CAGED (IPEA Data); Ministério da Saúde (CNES, pelo geobr do Ipea); Open-Meteo (previsão do ECMWF, da NOAA e do DWD) e CHIRPS v3 (Climate Hazards Center, UCSB).\n\nComo contribuir: sentiu falta de algum dado? Abra uma issue em https://github.com/elpidioassinaturas/BrasilData/issues com o nome do dado, o órgão que o publica, o endereço do serviço (WFS, ArcGIS REST, API ou arquivo) e para que você o usaria. Para trazer a fonte você mesmo, acrescente uma linha ao fontes.csv, rode python scripts/gerar.py e abra um pull request. Correções, avisos de serviço fora do ar e relatos de uso também são bem-vindos."
       }
     ]
   },
@@ -2024,6 +2085,13 @@
               "gedi-altura",
               "gedi-biomassa",
               "gedi-cobertura"
+            ]
+          },
+          {
+            "menu": "Cubo de dados do INPE",
+            "icon": "bands",
+            "items": [
+              "bdc-indice"
             ]
           },
           {

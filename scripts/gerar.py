@@ -37,7 +37,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.34"
+VERSAO = "0.1.35"
 
 # As escolhas das janelas dos comandos: o texto que a janela manda é o da escolha, e o
 # src/dialogos.rs o traduz no valor do parâmetro (um teste confere que ele conhece todas).
@@ -66,6 +66,16 @@ MODELOS_ENSEMBLE = ["ECMWF ENS, 51 membros (15 dias)", "ECMWF AIFS-ENS, de IA, 5
 MEDIDAS_ENSEMBLE = ["Chance de passar do limiar (%)", "Média dos membros (mm)", "Cenário seco: percentil 10 (mm)", "Cenário chuvoso: percentil 90 (mm)"]
 TEMPERATURAS = ["Máxima do dia (média dos dias)", "Mínima do dia (média dos dias)", "Média do dia"]
 MODELOS_GEM15 = ["Terreno nu (DTM)", "Superfície, com vegetação e construções (DSM)", "Altura acima do terreno (DSM menos DTM)"]
+# As escolhas do cubo de dados do INPE (as mesmas de src/dialogos.rs).
+SATELITES_BDC = ["Sentinel-2 (10 m, desde 2017)", "Landsat (30 m, desde 1990)", "CBERS-4 WFI (64 m, desde 2016)", "MODIS (250 m, desde 2000)"]
+INDICES_BDC = ["NDVI", "EVI"]
+ESTATISTICAS_BDC = ["Média das datas", "Máxima", "Mínima", "Desvio-padrão"]
+CAMPOS_BDC = [
+    {"name": "satelite", "label": "Satélite", "kind": "choice", "required": True, "choices": SATELITES_BDC, "default": SATELITES_BDC[0], "help": "O cubo de 16 dias do INPE: o Sentinel-2 tem o detalhe (10 m) e começa em 2017; o Landsat vai até 1990, a 30 m; o CBERS-4 WFI, satélite sino-brasileiro, a 64 m; o MODIS, a 250 m, desde 2000, para áreas grandes."},
+    {"name": "indice", "label": "Índice", "kind": "choice", "required": True, "choices": INDICES_BDC, "default": INDICES_BDC[0], "help": "O NDVI mede o verde da vegetação; o EVI satura menos nas florestas densas."},
+    {"name": "inicio", "label": "Início (dd/mm/aaaa)", "kind": "text", "help": "A primeira data. Vazio: 3 meses antes do fim."},
+    {"name": "fim", "label": "Fim (dd/mm/aaaa)", "kind": "text", "help": "A última data. Vazio: a mais recente do cubo. O período vai de 16 dias a 3 anos."},
+]
 
 # Os comandos que não vêm da tabela, com o grupo da aba em que ficam. Na aba, o grupo Área
 # tem o painel (a escolha do território pelo nome), a área pela seleção e o desenho; o comando
@@ -528,6 +538,20 @@ EM_MENUS = [
             "params": "{\"ano\"?: de 2015 a 2019 (padrão 2019)}",
             "form": [
                 {"name": "ano", "label": "Ano", "kind": "number", "required": True, "default": 2019, "help": "O ano do mapa, de 2015 a 2019 (2015 é a base; 2016 a 2018, consolidados; 2019, quase em tempo real)."},
+            ],
+        },
+    ),
+    (
+        "Vegetação e meio ambiente",
+        "Cubo de dados do INPE",
+        {
+            "id": "bdc-indice",
+            "label": "Índice de vegetação (cubo do INPE)",
+            "help": "O NDVI ou o EVI do cubo de dados do INPE (Brazil Data Cube), dos compostos de 16 dias do Sentinel-2, do Landsat, do CBERS-4 WFI ou do MODIS, resumido num período: a média das datas, a máxima, a mínima ou o desvio-padrão. Os compostos já tiram as nuvens (o pixel mais limpo de cada 16 dias). Só a área, lida pelo RustGIS da coleção no STAC do INPE (sem login), posta na grade do projeto e recortada pelo contorno. Sem período, os 3 meses até a data mais recente do cubo. Precisa de um RustGIS com o resumo de um cubo STAC (cube.reduce, desde a 0.6.0); só no app desktop e no rustgis-cli.",
+            "icon": "dra",
+            "params": "{\"satelite\"?: \"sentinel-2\" (padrão) | \"landsat\" | \"cbers-4\" | \"modis\", \"indice\"?: \"NDVI\" (padrão) | \"EVI\", \"inicio\"?, \"fim\"?: dd/mm/aaaa ou aaaa-mm-dd (padrão: os 3 meses até a data mais recente), \"estatistica\"?: \"media\" (padrão) | \"maxima\" | \"minima\" | \"desvio\", \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+            "form": CAMPOS_BDC + [
+                {"name": "estatistica", "label": "Resumo das datas", "kind": "choice", "required": True, "choices": ESTATISTICAS_BDC, "default": ESTATISTICAS_BDC[0], "help": "A média mostra a vegetação típica do período; a máxima, o auge do verde; a mínima, a seca; o desvio-padrão, o quanto ela variou (a lavoura muda muito; a mata, pouco)."},
             ],
         },
     ),
@@ -1181,7 +1205,7 @@ TOPICOS = {
     "Meio físico": ["Geologia e recursos minerais", "Relevo", "Solos"],
     "Tempo e clima": ["Previsão", "Chuva observada", "Desastres", "Clima"],
     "Água": ["Hidrografia", "Bacias", "Recursos hídricos"],
-    "Vegetação e meio ambiente": ["Vegetação", "Uso e cobertura", "Desmatamento", "Queimadas", "Áreas protegidas", "Fiscalização"],
+    "Vegetação e meio ambiente": ["Vegetação", "Cubo de dados do INPE", "Uso e cobertura", "Desmatamento", "Queimadas", "Áreas protegidas", "Fiscalização"],
     "Infraestrutura": ["Energia", "Petróleo e gás", "Transportes"],
 }
 GRUPOS = list(TOPICOS)
@@ -1211,6 +1235,7 @@ MENU_ICONES = {
     "Bacias": "dissolve",
     "Recursos hídricos": "graduated",
     "Vegetação": "dra",
+    "Cubo de dados do INPE": "bands",
     "Uso e cobertura": "catalog",
     "Desmatamento": "time_slider",
     "Queimadas": "locate",

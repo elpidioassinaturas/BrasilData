@@ -4,6 +4,7 @@ use rustgis_plugin::{Request, Value, geojson, host, json};
 
 use crate::amostragem::{self, Candidato, Sorteio};
 use crate::aqueduct;
+use crate::bdc;
 use crate::cemaden;
 use crate::censo;
 use crate::chm;
@@ -193,6 +194,7 @@ fn executar_comando(req: Request) -> Result<Value, String> {
         "risco-fogo" => risco_de_fogo(&req),
         "gem15" => gem15_na_area(&req),
         "chm-altura" => chm_na_area(&req),
+        "bdc-indice" => bdc_indice(&req),
         "clms-cobertura" => cobertura_clms(&req),
         "radar-vv" => radar(&req, Some(radar::Pol::Vv)),
         "radar-vh" => radar(&req, Some(radar::Pol::Vh)),
@@ -1404,6 +1406,8 @@ fn citacoes() -> Result<(Vec<Value>, String), String> {
             lista.push(json!({"layer": n, "source": clms::citacao(ano), "license": clms::LICENCA}));
         } else if n == chm::CAMADA {
             lista.push(json!({"layer": n, "source": chm::CITACAO, "license": chm::LICENCA}));
+        } else if let Some(sat) = bdc::satelite_da_camada(&n) {
+            lista.push(json!({"layer": n, "source": sat.citacao(), "license": sat.licenca()}));
         } else if gem15::eh_do_gem15(&n) {
             lista.push(json!({"layer": n, "source": gem15::CITACAO, "license": gem15::LICENCA}));
         } else if n == ELEVACAO {
@@ -4334,6 +4338,154 @@ fn cobertura_clms(req: &Request) -> Result<Value, String> {
     Ok(json!({
         "layer": nome, "year": ano, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula,
         "width": r["width"], "height": r["height"],
+    }))
+}
+
+/// Se o RustGIS tem o comando `id` com o parâmetro `param` (`info.commands`).
+fn tem_parametro(id: &str, param: &str) -> Result<bool, String> {
+    let lista = host::run("info.commands", json!({}))?;
+    let comandos = lista.get("commands").unwrap_or(&lista);
+    Ok(comandos
+        .as_array()
+        .into_iter()
+        .flatten()
+        .find(|c| c["id"].as_str() == Some(id))
+        .and_then(|c| c["params"].as_str())
+        .is_some_and(|p| p.contains(&format!("\"{param}\""))))
+}
+
+/// O satélite, o índice, o início e o fim de um pedido ao cubo do INPE.
+type PedidoBdc = (bdc::Satelite, bdc::Indice, Data, Data);
+
+/// O satélite, o índice e o período de um comando do cubo do INPE ([`bdc`]): os do script ou da
+/// janela; sem período, os últimos 3 meses da coleção (o plugin não tem relógio: a última data
+/// vem do STAC do BDC). `Err(pendente)` dentro do `Ok` quando o STAC ficou para depois (app web).
+fn pedido_do_bdc(req: &Request) -> Result<Result<PedidoBdc, Value>, String> {
+    let s = match req.str("satelite") {
+        Some(t) => bdc::Satelite::ler(t).ok_or(format!("satélite '{t}': use sentinel-2, landsat, cbers-4 ou modis"))?,
+        None => bdc::Satelite::Sentinel2,
+    };
+    let i = match req.str("indice") {
+        Some(t) => bdc::Indice::ler(t).ok_or(format!("índice '{t}': use NDVI ou EVI"))?,
+        None => bdc::Indice::Ndvi,
+    };
+    let data = |k: &str| -> Result<Option<Data>, String> {
+        req.str(k).map(|t| bdc::ler_data(t).ok_or(format!("a data '{t}' não é dd/mm/aaaa"))).transpose()
+    };
+    let (inicio, fim) = (data("inicio")?, data("fim")?);
+    let (inicio, fim) = match (inicio, fim) {
+        (Some(a), Some(b)) => (a, b),
+        _ => {
+            let url = format!("{}collections/{}", bdc::STAC, s.colecao());
+            let r = match buscar_varios(&[url])? {
+                Ok(r) => r,
+                Err(p) => return Ok(Err(p)),
+            };
+            let ultimo = r.first().and_then(bdc::fim_da_colecao).ok_or("o STAC do INPE não disse a última data da coleção")?;
+            match (inicio, fim) {
+                (Some(a), None) => (a, ultimo),
+                (None, Some(b)) => (bdc::periodo_padrao(b).0, b),
+                _ => bdc::periodo_padrao(ultimo),
+            }
+        }
+    };
+    bdc::conferir_periodo(s, inicio, fim)?;
+    Ok(Ok((s, i, inicio, fim)))
+}
+
+/// O índice de vegetação do cubo do INPE num período, resumido (a média, a máxima, a mínima ou o
+/// desvio das datas de 16 dias): lido só na área pelo `cube.reduce` do RustGIS, posto na grade do
+/// projeto e recortado pelo contorno.
+fn bdc_indice(req: &Request) -> Result<Value, String> {
+    let (c, na_area) = retangulo()?;
+    if !na_area {
+        return Err("escolha a área primeiro (painel Área de trabalho, ou Área: seleção)".into());
+    }
+    if !tem_parametro("cube.reduce", "collection")? {
+        return Err("o índice do cubo do INPE precisa de um RustGIS que resuma um cubo STAC na área (cube.reduce, desde a 0.6.0)".into());
+    }
+    let e = match req.str("estatistica") {
+        Some(t) => bdc::Estatistica::ler(t).ok_or(format!("estatística '{t}': use media, maxima, minima ou desvio"))?,
+        None => bdc::Estatistica::Media,
+    };
+    let (s, i, inicio, fim) = match pedido_do_bdc(req)? {
+        Ok(p) => p,
+        Err(p) => return Ok(p),
+    };
+    let g = grade_para(c, req.f64("celula"))?;
+    let nome = bdc::camada(s, i, e, inicio, fim);
+    let lido = format!("{nome} (lido)");
+    let na_grade = format!("{nome} (na grade)");
+    // O que um clique anterior leu serve: no app, o comando roda de novo quando a leitura chega.
+    // Nada se tira antes da leitura (ver executar).
+    if !nomes()?.contains(&lido) {
+        let r = host::run(
+            "cube.reduce",
+            json!({
+                "url": bdc::STAC, "collection": s.colecao(), "asset": i.banda(), "bbox": c,
+                "start": inicio.iso(), "end": fim.iso(), "cellSize": bdc::celula_de_leitura(s, g.celula),
+                "resampling": "average", "stat": e.stat(), "name": lido,
+            }),
+        )
+        .map_err(|e| {
+            if falha_passageira(&e) || e.contains("timeout") {
+                format!("o cubo do INPE não respondeu agora: tente de novo daqui a pouco ({e})")
+            } else {
+                e
+            }
+        })?;
+        if pendente(&r) {
+            avisar(&format!(
+                "{} do {} (cubo do INPE): lendo a área de {} a {}; a camada vem quando chegar",
+                i.banda(),
+                s.nome(),
+                inicio.texto(),
+                fim.texto()
+            ));
+            return Ok(r);
+        }
+        if r["dates"].as_u64() == Some(0) {
+            remover(&[&lido])?;
+            return Err(format!("o cubo do {} não tem datas na área de {} a {}", s.nome(), inicio.texto(), fim.texto()));
+        }
+    }
+    remover(&[&nome, &na_grade])?;
+    let resampling = if bdc::celula_de_leitura(s, g.celula) < g.celula { "average" } else { "bilinear" };
+    let feito = (|| -> Result<(), String> {
+        host::run(
+            "raster.project",
+            json!({"layer": lido, "crs": g.epsg, "cellSize": g.celula, "extent": GRADE, "resampling": resampling, "name": na_grade}),
+        )?;
+        recortar(&na_grade, AREA, &nome)?;
+        let (rampa, cores) = bdc::rampa(i);
+        let _ = host::run("ramp.add", json!({"text": cores, "format": "gdal", "name": rampa}));
+        if host::run("raster.symbology", json!({"layer": nome, "type": "stretch", "ramp": rampa})).is_err() {
+            host::run("raster.symbology", json!({"layer": nome, "type": "stretch", "ramp": "RdYlGn"}))?;
+        }
+        if e != bdc::Estatistica::Desvio {
+            let (a, b) = i.escala();
+            let _ = host::run("raster.stretch", json!({"layer": nome, "type": "custom", "min": a, "max": b}));
+        }
+        Ok(())
+    })();
+    remover(&[&lido, &na_grade])?;
+    feito?;
+    let media = host::run("raster.info", json!({"layer": nome}))
+        .ok()
+        .and_then(|i| i["bands"][0]["mean"].as_f64())
+        .map(|m| format!("; média na área: {}", format!("{m:.2}").replace('.', ",")))
+        .unwrap_or_default();
+    let texto = format!(
+        "{}: das datas de 16 dias do cubo do {} (coleção {} do INPE), na grade do projeto, {}{media}",
+        nome.trim_start_matches(PREFIXO),
+        s.nome(),
+        s.colecao(),
+        g.texto()
+    );
+    avisar(&texto);
+    Ok(json!({
+        "layer": nome, "satellite": s.id(), "collection": s.colecao(), "index": i.banda(), "stat": e.stat(),
+        "start": inicio.iso(), "end": fim.iso(), "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula,
     }))
 }
 

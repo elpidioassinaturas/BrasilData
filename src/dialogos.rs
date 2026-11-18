@@ -59,6 +59,21 @@ pub const MODELOS_GEM15: [(&str, &str); 3] = [
     ("Altura acima do terreno (DSM menos DTM)", "altura"),
 ];
 
+/// As escolhas do satélite do cubo do INPE e o `satelite` de cada uma.
+pub const SATELITES_BDC: [(&str, &str); 4] = [
+    ("Sentinel-2 (10 m, desde 2017)", "sentinel-2"),
+    ("Landsat (30 m, desde 1990)", "landsat"),
+    ("CBERS-4 WFI (64 m, desde 2016)", "cbers-4"),
+    ("MODIS (250 m, desde 2000)", "modis"),
+];
+
+/// As escolhas do índice do cubo do INPE e o `indice` de cada uma.
+pub const INDICES_BDC: [(&str, &str); 2] = [("NDVI", "ndvi"), ("EVI", "evi")];
+
+/// As escolhas do resumo das datas do cubo do INPE e a `estatistica` de cada uma.
+pub const ESTATISTICAS_BDC: [(&str, &str); 4] =
+    [("Média das datas", "media"), ("Máxima", "maxima"), ("Mínima", "minima"), ("Desvio-padrão", "desvio")];
+
 /// As escolhas de um parâmetro e o valor de cada uma.
 type Escolhas = &'static [(&'static str, &'static str)];
 
@@ -69,6 +84,9 @@ const TROCAS: &[(&str, &str, Escolhas)] = &[
     ("layout", "estilo", &ESTILOS),
     ("dist-situacao", "paleta", &PALETAS),
     ("gem15", "modelo", &MODELOS_GEM15),
+    ("bdc-indice", "satelite", &SATELITES_BDC),
+    ("bdc-indice", "indice", &INDICES_BDC),
+    ("bdc-indice", "estatistica", &ESTATISTICAS_BDC),
     ("chuva-prevista", "modelo", &ESCOLHAS_DETERMINISTICOS),
     ("temperatura-prevista", "modelo", &ESCOLHAS_DETERMINISTICOS),
     ("temperatura-prevista", "tipo", &ESCOLHAS_TEMPERATURAS),
