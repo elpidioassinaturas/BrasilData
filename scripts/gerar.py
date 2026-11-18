@@ -382,6 +382,15 @@ def sobre(linhas: list[dict]) -> tuple[str, str]:
 
 
 # Comandos que não vêm da tabela e ficam num grupo da aba: (tópico, subtópico ou None, comando).
+# Os comandos cujos dados pedem o login Earthdata: o RustGIS (desde o #2378) desenha uma chave no
+# botão, verde com o token guardado e vermelha sem ele; os anteriores ignoram o campo "login".
+LOGIN_EARTHDATA = {
+    "gedi-altura", "gedi-biomassa", "gedi-cobertura",
+    "radar-vv", "radar-vh", "radar-razao",
+    "nisar-hh", "nisar-hv", "nisar-razao", "nisar-cor",
+    "dist-situacao", "dist-data", "dist-confianca", "dist-intensidade",
+}
+
 EM_MENUS = [
     (
         "Sociedade e economia",
@@ -1310,6 +1319,12 @@ def manifesto(linhas: list[dict], fichas: dict[str, dict]) -> str:
             sys.exit(f"{g}: a aba tem os subtópicos {menus}, e TOPICOS diz {TOPICOS[g]}")
         # No grupo Área, o painel, a seleção, o desenho e a grade vêm antes dos menus.
         itens.sort(key=lambda i: TOPICOS[g].index(i["menu"]) if isinstance(i, dict) else (-1 if i in NA_ABA_AREA else len(TOPICOS[g])))
+    faltam = LOGIN_EARTHDATA - {c["id"] for c in comandos}
+    if faltam:
+        sys.exit(f"LOGIN_EARTHDATA nomeia comandos que não existem: {', '.join(sorted(faltam))}")
+    for c in comandos:
+        if c["id"] in LOGIN_EARTHDATA:
+            c["login"] = "earthdata"
     usados = [(c["id"], c["icon"]) for c in comandos] + [("painel", PAINEL["icon"])]
     usados += [(i["menu"], i["icon"]) for itens in grupos.values() for i in itens if isinstance(i, dict)]
     fora = [f"{quem} ({icone})" for quem, icone in usados if icone not in ICONES_DO_RUSTGIS]

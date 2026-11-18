@@ -917,21 +917,24 @@
       "label": "Altura do dossel (GEDI)",
       "help": "A altura do dossel em metros: a altura relativa em que volta 98% da energia da onda do laser (rh98), perto do topo das copas. Do GEDI L4D (ORNL DAAC da NASA): os disparos do laser do GEDI de 2019 a 2023 imputados a cada pixel de 30 m com séries do Landsat. Só a área, lida dos arquivos dos fusos UTM que ela cruza, posta na grade do projeto e recortada pelo contorno. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área); áreas grandes vêm de uma pirâmide do arquivo, com células maiores. Período: disparos de 18/04/2019 a 16/03/2023. Resolução ou escala: 30 m. Unidades: metros. Licença: política de dados da NASA: uso livre e gratuito, com a citação. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/gedi-altura.md",
       "icon": "dra",
-      "params": "{\"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}"
+      "params": "{\"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+      "login": "earthdata"
     },
     {
       "id": "gedi-biomassa",
       "label": "Biomassa acima do solo (GEDI)",
       "help": "A densidade de biomassa acima do solo em Mg/ha (toneladas por hectare), do modelo do GEDI L4A. Do GEDI L4D (ORNL DAAC da NASA): os disparos do laser do GEDI de 2019 a 2023 imputados a cada pixel de 30 m com séries do Landsat. Só a área, lida dos arquivos dos fusos UTM que ela cruza, posta na grade do projeto e recortada pelo contorno. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área); áreas grandes vêm de uma pirâmide do arquivo, com células maiores. Período: disparos de 18/04/2019 a 16/03/2023. Resolução ou escala: 30 m. Unidades: Mg/ha (toneladas por hectare). Licença: política de dados da NASA: uso livre e gratuito, com a citação. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/gedi-biomassa.md",
       "icon": "proportional",
-      "params": "{\"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}"
+      "params": "{\"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+      "login": "earthdata"
     },
     {
       "id": "gedi-cobertura",
       "label": "Cobertura do dossel (GEDI)",
       "help": "A cobertura do dossel em %, a fração do chão coberta pelas copas, do GEDI L2B. Do GEDI L4D (ORNL DAAC da NASA): os disparos do laser do GEDI de 2019 a 2023 imputados a cada pixel de 30 m com séries do Landsat. Só a área, lida dos arquivos dos fusos UTM que ela cruza, posta na grade do projeto e recortada pelo contorno. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área); áreas grandes vêm de uma pirâmide do arquivo, com células maiores. Período: disparos de 18/04/2019 a 16/03/2023. Resolução ou escala: 30 m. Unidades: % (0 a 100). Licença: política de dados da NASA: uso livre e gratuito, com a citação. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/gedi-cobertura.md",
       "icon": "transparency",
-      "params": "{\"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}"
+      "params": "{\"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+      "login": "earthdata"
     },
     {
       "id": "radar-vv",
@@ -946,7 +949,8 @@
           "kind": "text",
           "help": "A passagem do satélite desse dia, dd/mm/aaaa. Vazio: a mais recente que cobre a área."
         }
-      ]
+      ],
+      "login": "earthdata"
     },
     {
       "id": "radar-vh",
@@ -961,7 +965,8 @@
           "kind": "text",
           "help": "A passagem do satélite desse dia, dd/mm/aaaa. Vazio: a mais recente que cobre a área."
         }
-      ]
+      ],
+      "login": "earthdata"
     },
     {
       "id": "radar-razao",
@@ -976,7 +981,8 @@
           "kind": "text",
           "help": "A passagem do satélite desse dia, dd/mm/aaaa. Vazio: a mais recente que cobre a área."
         }
-      ]
+      ],
+      "login": "earthdata"
     },
     {
       "id": "nisar-hh",
@@ -991,7 +997,8 @@
           "kind": "text",
           "help": "A passagem do satélite desse dia, dd/mm/aaaa. Vazio: a mais recente que cobre a área."
         }
-      ]
+      ],
+      "login": "earthdata"
     },
     {
       "id": "nisar-hv",
@@ -1006,7 +1013,8 @@
           "kind": "text",
           "help": "A passagem do satélite desse dia, dd/mm/aaaa. Vazio: a mais recente que cobre a área."
         }
-      ]
+      ],
+      "login": "earthdata"
     },
     {
       "id": "nisar-razao",
@@ -1021,7 +1029,8 @@
           "kind": "text",
           "help": "A passagem do satélite desse dia, dd/mm/aaaa. Vazio: a mais recente que cobre a área."
         }
-      ]
+      ],
+      "login": "earthdata"
     },
     {
       "id": "nisar-cor",
@@ -1036,7 +1045,8 @@
           "kind": "text",
           "help": "A passagem do satélite desse dia, dd/mm/aaaa. Vazio: a mais recente que cobre a área."
         }
-      ]
+      ],
+      "login": "earthdata"
     },
     {
       "id": "dist-situacao",
@@ -1063,7 +1073,8 @@
           "default": "A do BrasilData: etapa e confiança",
           "help": "A do BrasilData: a cor diz a etapa do alerta e, mais escura, a confiança alta. A oficial: a paleta da OPERA."
         }
-      ]
+      ],
+      "login": "earthdata"
     },
     {
       "id": "dist-data",
@@ -1078,7 +1089,8 @@
           "kind": "text",
           "help": "Os produtos até esse dia, dd/mm/aaaa: o alerta como estava então. Vazio: os mais recentes."
         }
-      ]
+      ],
+      "login": "earthdata"
     },
     {
       "id": "dist-confianca",
@@ -1093,7 +1105,8 @@
           "kind": "text",
           "help": "Os produtos até esse dia, dd/mm/aaaa: o alerta como estava então. Vazio: os mais recentes."
         }
-      ]
+      ],
+      "login": "earthdata"
     },
     {
       "id": "dist-intensidade",
@@ -1108,7 +1121,8 @@
           "kind": "text",
           "help": "Os produtos até esse dia, dd/mm/aaaa: o alerta como estava então. Vazio: os mais recentes."
         }
-      ]
+      ],
+      "login": "earthdata"
     },
     {
       "id": "inpe-focos-periodo",
