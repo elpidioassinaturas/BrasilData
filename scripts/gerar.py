@@ -37,7 +37,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.32"
+VERSAO = "0.1.33"
 
 # As escolhas das janelas dos comandos: o texto que a janela manda é o da escolha, e o
 # src/dialogos.rs o traduz no valor do parâmetro (um teste confere que ele conhece todas).

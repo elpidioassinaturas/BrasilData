@@ -129,9 +129,22 @@ const SEM_RECORTE: &[&str] = &[
 ];
 
 /// Roda o comando e, se ele traz uma camada de dados, põe a ficha dela no painel.
+///
+/// Um comando que deixa um download pendente não pode ter criado ou tirado camadas: quando o
+/// download chega, o RustGIS 0.7.0 roda o comando de novo e o recusa ("the live source or account
+/// changed since this request started"), desfazendo o comando inteiro, e cada clique repetiria o
+/// mesmo. Por isso a área já vem com a grade ([`por_area`]), e um comando que precisou criar ou
+/// refazer a grade para nela, com a grade feita ([`GRADE_FEITA`]): o clique seguinte lê os dados.
 fn executar(req: Request) -> Result<Value, String> {
     let ficha = crate::ficha(&req.id);
-    let mut r = executar_comando(req)?;
+    let mut r = match executar_comando(req) {
+        Err(e) if e == GRADE_FEITA => {
+            let t = "Grade do projeto feita para a área. Clique de novo para trazer os dados";
+            avisar(t);
+            json!({"grid": GRADE, "report": t})
+        }
+        r => r?,
+    };
     if let Some(f) = ficha
         && r.is_object()
     {
@@ -140,9 +153,19 @@ fn executar(req: Request) -> Result<Value, String> {
     Ok(r)
 }
 
+/// Se a resposta `r` de um comando diz que um download ficou pendente (`"pending"`: `true` ou
+/// quantos).
+fn pendente(r: &Value) -> bool {
+    match &r["pending"] {
+        Value::Bool(b) => *b,
+        Value::Number(n) => n.as_u64().is_some_and(|n| n > 0),
+        _ => false,
+    }
+}
+
 fn executar_comando(req: Request) -> Result<Value, String> {
     if !SEM_RECORTE.contains(&req.id.as_str())
-        && let Some(pendente) = afinar_area()?
+        && let Some(pendente) = afinar_area(true)?
     {
         return Ok(pendente);
     }
@@ -263,16 +286,24 @@ fn por_area(fc: Value) -> Result<Value, String> {
     let texto = descrever(&fc);
     // A grade acompanha a área, com as mesmas escolhas; no automático, o fuso pode mudar. Ela
     // vem antes, para a área ficar como a camada ativa.
-    let grade = match grade_no_mapa()? {
-        Some(g) => Some(por_grade(Grade::nova(caixa, g.escolha, g.celula))?),
-        None => None,
-    };
+    // Sem grade, a padrão (30 m, sistema automático): um comando de dados que a criasse antes de
+    // pedir as janelas seria recusado quando elas chegam (ver executar).
+    let havia = grade_no_mapa()?;
+    let nova = havia.is_none();
+    let grade = Some(match havia {
+        Some(g) => por_grade(Grade::nova(caixa, g.escolha, g.celula))?,
+        None => por_grade(Grade::nova(caixa, Escolha::Automatico, grade::CELULA_PADRAO))?,
+    });
     remover(&[AREA])?;
     host::add_layer(AREA, fc)?;
     vista_no_sistema(caixa, grade.as_ref().map(|g| g.epsg));
     // Escolhida pelo nome, a área pode estar longe da vista.
     host::run("layer.zoomTo", json!({"layer": AREA}))?;
     match &grade {
+        Some(g) if nova => avisar(&format!(
+            "Área do BrasilData: {texto}. Grade do projeto: {}; para outra, use Grade do projeto no painel Área de trabalho",
+            g.texto()
+        )),
         Some(g) => avisar(&format!("Área do BrasilData: {texto}. Grade refeita para ela: {}", g.texto())),
         None => avisar(&format!("Área do BrasilData: {texto}")),
     }
@@ -353,18 +384,27 @@ fn grade_para(c: [f64; 4], celula: Option<f64>) -> Result<Grade, String> {
                     grade::texto_da_celula(m)
                 ));
             }
-            if g.cobre(c) { g } else { por_grade(Grade::nova(c, g.escolha, g.celula))? }
+            if g.cobre(c) {
+                g
+            } else {
+                por_grade(Grade::nova(c, g.escolha, g.celula))?;
+                return Err(GRADE_FEITA.into());
+            }
         }
         None => {
             let m = celula.unwrap_or(grade::CELULA_PADRAO);
             grade::conferir_celula(m)?;
             let g = por_grade(Grade::nova(c, Escolha::Automatico, m))?;
             avisar(&format!("Grade do projeto criada: {}. Para outra, use Grade do projeto no painel Área de trabalho", g.texto()));
-            g
+            return Err(GRADE_FEITA.into());
         }
     };
     Ok(g)
 }
+
+/// O "erro" com que [`grade_para`] para um comando depois de criar ou refazer a grade: o
+/// [`executar`] o troca por uma resposta, e o comando não é desfeito (ver lá por quê).
+const GRADE_FEITA: &str = "BrasilData: grade feita (aviso interno)";
 
 /// O que a área é, pelos nomes nas feições (os do painel, ou os da malha do IBGE em
 /// `nm_mun` e `sigla_uf`), e o retângulo.
@@ -468,7 +508,45 @@ fn area_municipio(req: &Request) -> Result<Value, String> {
             ));
         }
     };
-    area_de(&m.into())
+    area_municipal(&m.into())
+}
+
+/// A área de `t` com o contorno oficial do IBGE, quando `t` é um município ([`afinar_area`]).
+///
+/// O limite oficial é pedido antes de mudar o mapa: no app ele chega depois, e o comando, que
+/// fica pendente sem ter mexido no projeto, roda de novo quando ele chega e põe a área já com ele.
+/// Pôr a área e só então pedir o limite não dá: a nova rodada seria recusada porque a área mudou
+/// desde o começo do comando, e ele seria desfeito.
+fn area_municipal(t: &Territorio) -> Result<Value, String> {
+    if let [codigo] = t.codigos.as_slice()
+        && codigo.len() == 7
+    {
+        let oficial = format!("{AREA} (limite oficial {codigo})");
+        if camada_no_projeto(&oficial)?.is_none() {
+            match host::run("layer.addUrl", json!({"url": malhas::url_oficial(codigo), "name": oficial, "zoom": false})) {
+                Ok(a) if a.get("pending").and_then(Value::as_bool) == Some(true) => {
+                    avisar(&format!("Área: baixando o limite oficial de {} (IBGE); a área aparece quando ele chegar", t.nome));
+                    return Ok(a);
+                }
+                Ok(_) => {}
+                Err(e) => host::log(&format!("área: o limite oficial do IBGE não veio ({e})")),
+            }
+        }
+    }
+    let mut r = area_de(t)?;
+    if afinar_area(false)?.is_some() {
+        // O limite oficial passa um pouco do contorno embutido: a grade, feita para ele, é
+        // refeita para cobrir o oficial (senão o primeiro comando de dados a refaria).
+        let (c, _) = retangulo()?;
+        if let Some(g) = grade_no_mapa()?
+            && !g.cobre(c)
+        {
+            let g = por_grade(Grade::nova(c, g.escolha, g.celula))?;
+            r["bbox"] = json!(c);
+            r["panel"]["items"]["grade-texto"] = json!({"text": g.texto()});
+        }
+    }
+    Ok(r)
 }
 
 /// Se a camada `camada` (como [`camada_no_projeto`] a descreve) tem o campo `campo`.
@@ -497,7 +575,20 @@ fn campo_fixo(camada: &str, campo: &str, valor: &str) -> Result<(), String> {
 /// e pequena); sem rede, segue com a embutida. As outras áreas (estado, meso e microrregião, que já
 /// vêm na malha máxima; seleção e desenho) ficam como estão. No app, o pedido pendente: o limite
 /// chega depois do clique.
-fn afinar_area() -> Result<Option<Value>, String> {
+fn afinar_area(de_dados: bool) -> Result<Option<Value>, String> {
+    // Trocado o contorno, o comando para aqui. Seguir com a área trocada e uma janela pendente
+    // não dá: quando a janela chega, o RustGIS roda o comando de novo e o recusa porque a área
+    // mudou desde o começo ("the live source or account changed since this request started");
+    // o comando inteiro é desfeito, a troca também, e cada clique repetia o mesmo.
+    let trocada = |de: &str| -> Value {
+        let t = if de_dados {
+            format!("Área: contorno trocado pelo {de} do IBGE. Clique de novo para trazer os dados")
+        } else {
+            format!("Área: contorno trocado pelo {de} do IBGE")
+        };
+        avisar(&t);
+        json!({"area": AREA, "report": t})
+    };
     let Some(camada) = camada_no_projeto(AREA)? else {
         return Ok(None);
     };
@@ -528,8 +619,7 @@ fn afinar_area() -> Result<Option<Value>, String> {
         campo_fixo(&oficial, "malha", "oficial")?;
         remover(&[AREA])?;
         host::run("layer.rename", json!({"layer": oficial, "name": AREA}))?;
-        host::log("área: contorno trocado pelo limite oficial do IBGE");
-        return Ok(None);
+        return Ok(Some(trocada("limite oficial")));
     }
     remover(&[&oficial])?;
     // A reserva: a malha máxima da API, pequena, lida pelo plugin.
@@ -539,8 +629,7 @@ fn afinar_area() -> Result<Option<Value>, String> {
             if novo != fc {
                 remover(&[AREA])?;
                 host::add_layer(AREA, novo)?;
-                host::log("área: contorno trocado pela malha máxima do IBGE");
-                return Ok(None);
+                return Ok(Some(trocada("contorno da malha máxima")));
             }
         }
         Ok(Err(p)) => return Ok(Some(p)),
@@ -1805,7 +1894,7 @@ fn dist_na_grade(
         let junto = if na_area.len() == 1 {
             na_area[0].clone()
         } else {
-            mosaicar(&na_area, &mosaico)?;
+            mosaicar_com(&na_area, &mosaico, "max")?;
             temporarias.push(mosaico.clone());
             mosaico.clone()
         };
@@ -1988,11 +2077,38 @@ fn recortar_retangulo(camada: &str, c: [f64; 4], celula: f64, nome: &str) -> Res
 }
 
 /// Junta os rasters `entradas` (o primeiro vale onde se sobrepõem) numa camada nova `nome`: pelo
-/// `raster.mosaic`, ou pelo `geolibre:mosaic` sem a extensão Imagens.
+/// `raster.mosaic`, ou, sem a extensão Imagens, como [`mosaico_sem_imagens`] diz, com a média onde
+/// se sobrepõem.
 fn mosaicar(entradas: &[String], nome: &str) -> Result<(), String> {
-    com_imagens("raster.mosaic", json!({"inputs": entradas, "name": nome}), || {
-        ferramenta("geolibre:mosaic", json!({"inputs": entradas}), nome)
-    })
+    mosaicar_com(entradas, nome, "mean")
+}
+
+/// [`mosaicar`], com a estatística `stat` do `cube.reduce` onde as entradas se sobrepõem sem a
+/// extensão Imagens (`"max"` no DIST-S1: a data mais recente, a situação mais adiantada).
+fn mosaicar_com(entradas: &[String], nome: &str, stat: &str) -> Result<(), String> {
+    com_imagens("raster.mosaic", json!({"inputs": entradas, "name": nome}), || mosaico_sem_imagens(entradas, nome, stat))
+}
+
+/// O mosaico sem a extensão Imagens. Rasters na mesma grade (as janelas postas na grade do projeto,
+/// sem valor fora de si): o `cube.reduce` com `stat`, que toma o que falta (NaN) como falta. O
+/// GeoLibre não serve aí: ele não toma NaN por sem-dado, e o `geolibre:mosaic` de entradas de mesma
+/// extensão sai igual à primeira (o GEM-15 de Viçosa vinha só com a faixa de uma célula, média de
+/// 639 m em vez de 717). Rasters de extensões diferentes (tiles baixados inteiros): o
+/// `geolibre:mosaic`, que os une.
+fn mosaico_sem_imagens(entradas: &[String], nome: &str, stat: &str) -> Result<(), String> {
+    let grade = |l: &str| -> Option<Value> {
+        let i = host::run("raster.info", json!({"layer": l})).ok()?;
+        Some(json!([i["width"], i["height"], i["extent"], i["crs"]]))
+    };
+    let primeira = entradas.first().and_then(|e| grade(e));
+    let mesma_grade = primeira.is_some() && entradas.iter().skip(1).all(|e| grade(e) == primeira);
+    if !mesma_grade {
+        return ferramenta("geolibre:mosaic", json!({"inputs": entradas}), nome);
+    }
+    // O cube.reduce quer uma data por camada: datas quaisquer, uma por entrada.
+    let datas: Vec<String> = (0..entradas.len()).map(|i| format!("{}-01-01", 2000 + i)).collect();
+    host::run("cube.reduce", json!({"layers": entradas, "dates": datas, "stat": stat, "name": nome}))?;
+    Ok(())
 }
 
 /// A diferença `depois` − `antes`, numa camada nova `nome`: pelo `raster.change difference`, ou
@@ -2297,7 +2413,10 @@ fn escolher_area(req: &Request) -> Result<Value, String> {
         },
     };
     let t = municipios::territorio(no).ok_or_else(|| format!("'{no}' não é um nó da árvore Limites políticos do painel {PAINEL}"))?;
-    let mut r = area_de(&t)?;
+    let mut r = area_municipal(&t)?;
+    if pendente(&r) {
+        return Ok(r);
+    }
     desistir_do_desenho(&mut r)?;
     r["panel"]["items"][ARVORE]["nodes"] = municipios::arvore(municipios::regiao_do_no(no));
     Ok(r)
@@ -4273,7 +4392,7 @@ fn chm_na_area(req: &Request) -> Result<Value, String> {
         let nome = chm::nome_da_janela(t, k);
         if ha.contains(&nome)
             && let Some(e) = extensao(&nome)?
-            && retangulo_cabe([j[0].max(c[0]), j[1].max(c[1]), j[2].min(c[2]), j[3].min(c[3])], e)
+            && retangulo_cabe(chm::a_cobrir(t, c), e)
         {
             lidas.push(nome);
             continue;
@@ -4568,7 +4687,7 @@ enum Recorte {
 fn cobertura_recortada(ano: i64) -> Result<Recorte, String> {
     // O contorno oficial do município, antes de recortar (o comando não passa por ele na entrada,
     // para o mapa de mosaicos não gastar um clique).
-    if let Some(pendente) = afinar_area()? {
+    if let Some(pendente) = afinar_area(true)? {
         return Ok(Recorte::Feito(pendente));
     }
     let (c, _) = retangulo()?;

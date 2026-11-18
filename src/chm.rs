@@ -141,6 +141,16 @@ pub fn janela(t: &Tile, c: [f64; 4], lado: f64) -> Option<[f64; 4]> {
     Some([o - m, s - m, l + m, n + m])
 }
 
+/// O que a janela lida do tile `t` precisa cobrir para servir à área `c`: a parte de `c` dentro
+/// do tile. A [`janela`] pedida passa da borda do tile pela margem, mas o arquivo acaba nela: medir
+/// a janela que chegou contra a pedida a dava por incompleta, e no app desktop o comando, ao rodar
+/// de novo quando ela chegava, a tirava e pedia outra vez; o RustGIS respondia com a camada já
+/// tirada ("removed or undone before the command ran again").
+pub fn a_cobrir(t: &Tile, c: [f64; 4]) -> [f64; 4] {
+    let r = t.retangulo;
+    [c[0].max(r[0]), c[1].max(r[1]), c[2].min(r[2]), c[3].min(r[3])]
+}
+
 /// Quantos valores a janela `j` tem lida com células de `lado` metros de Web Mercator.
 pub fn valores(j: [f64; 4], lado: f64) -> f64 {
     let y = |lat: f64| RAIO * lat.to_radians().tan().asinh();
@@ -217,6 +227,24 @@ mod tests {
         assert_eq!(nivel_que_cabe(&[j], 4), Some(4));
         assert_eq!(reamostragem(30.0, 17.96), "average");
         assert_eq!(reamostragem(10.0, 8.98), "bilinear");
+    }
+
+    #[test]
+    fn a_janela_basta_ate_a_borda_do_tile() {
+        // Viçosa toca dois tiles: o que cada janela precisa cobrir acaba na borda do tile, mesmo
+        // com a margem da janela pedida passando dela.
+        let c = [-43.003, -20.838, -42.754, -20.655];
+        let ts = tiles(c);
+        assert_eq!(ts.len(), 2);
+        for t in &ts {
+            let j = janela(t, c, lado_do_nivel(4)).unwrap();
+            let a = a_cobrir(t, c);
+            let r = t.retangulo;
+            assert!(a[0] >= r[0] && a[1] >= r[1] && a[2] <= r[2] && a[3] <= r[3], "{a:?} dentro de {r:?}");
+            assert!(a[0] >= j[0] && a[1] >= j[1] && a[2] <= j[2] && a[3] <= j[3]);
+            // A janela pedida passa da borda do tile em algum lado.
+            assert!(j[0] < r[0] || j[1] < r[1] || j[2] > r[2] || j[3] > r[3]);
+        }
     }
 
     #[test]
