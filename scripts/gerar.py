@@ -38,6 +38,21 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 VERSAO = "0.1.38"
+AUTOR = "Elpídio Filho"
+LABORATORIO = "Laboratório de Geoprocessamento e Pedometria (LABGEO)"
+INSTITUICAO = "Universidade Federal de Viçosa (UFV)"
+LICENCA = "MIT"
+REPOSITORIO = "https://github.com/elpidioassinaturas/BrasilData"
+
+# A autoria: os dois primeiros parágrafos do texto Sobre, e o que a janela do botão Sobre mostra
+# ao abrir, sem Executar.
+AUTORIA = (
+    f"BrasilData {VERSAO}, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\n"
+    f"Autor: {AUTOR}, do {LABORATORIO} da {INSTITUICAO}.\n"
+    f"Licença: {LICENCA}, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: "
+    "o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\n"
+    f"Repositório: {REPOSITORIO}"
+)
 
 # As escolhas das janelas dos comandos: o texto que a janela manda é o da escolha, e o
 # src/dialogos.rs o traduz no valor do parâmetro (um teste confere que ele conhece todas).
@@ -336,11 +351,11 @@ FIM = [
         {
             "id": "sobre",
             "label": "Sobre",
-            "help": "A autoria do BrasilData, a versão, a licença, o repositório, as fontes dos dados e como contribuir. Escolha o que ler e clique em Executar: o texto aparece aqui embaixo, e você pode selecioná-lo e copiá-lo. A janela fica aberta até você fechá-la no X do canto de cima. O texto completo também fica em Sobre o BrasilData, no fim do painel Área de trabalho.",
+            "help": AUTORIA + "\n\nPara ler as fontes dos dados ou como contribuir, escolha em Mostrar e clique em Executar. A janela fica aberta até o X do canto de cima.",
             "icon": "about",
             "params": "{\"parte\"?: \"tudo\" (padrão) | \"autoria\" | \"fontes\" | \"contribuir\"}",
             "form": [
-                {"name": "parte", "label": "Mostrar", "kind": "choice", "required": True, "choices": PARTES_SOBRE, "default": PARTES_SOBRE[0], "help": "O texto inteiro, ou só uma parte dele."},
+                {"name": "parte", "label": "Mostrar", "kind": "choice", "required": True, "choices": PARTES_SOBRE, "default": PARTES_SOBRE[2], "help": "Uma parte do texto Sobre, ou ele inteiro."},
             ],
         },
     ),
@@ -349,11 +364,6 @@ FIM = [
 # A seção Sobre: a autoria e o resto, no fim do painel (o RustGIS não tem janela de texto para um
 # plugin, e um comando não abre o painel) e, resumida, no aviso do botão Sobre. O autor, a
 # licença e o repositório são os do manifesto.
-AUTOR = "Elpídio Filho"
-LABORATORIO = "Laboratório de Geoprocessamento e Pedometria (LABGEO)"
-INSTITUICAO = "Universidade Federal de Viçosa (UFV)"
-LICENCA = "MIT"
-REPOSITORIO = "https://github.com/elpidioassinaturas/BrasilData"
 # As fontes fora do fontes.csv, depois dos órgãos das camadas vetoriais.
 OUTRAS_FONTES = [
     "Copernicus DEM GLO-30 (DLR e Airbus, pelo espelho da OpenTopography)",
@@ -380,11 +390,7 @@ def sobre(linhas: list[dict]) -> tuple[str, str]:
     orgaos = sorted(conta, key=lambda o: -conta[o])
     texto = "\n\n".join(
         [
-            f"BrasilData {VERSAO}, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.",
-            f"Autor: {AUTOR}, do {LABORATORIO} da {INSTITUICAO}.\n"
-            f"Licença: {LICENCA}, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: "
-            "o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\n"
-            f"Repositório: {REPOSITORIO}",
+            AUTORIA,
             f"Fontes dos dados: {', '.join(orgaos[:-1])} e {orgaos[-1]}, pelos serviços de cada órgão; "
             f"{'; '.join(OUTRAS_FONTES[:-1])} e {OUTRAS_FONTES[-1]}.",
             "Como contribuir: sentiu falta de algum dado? Abra uma issue em "
