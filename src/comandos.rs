@@ -4500,8 +4500,12 @@ fn layout_do_mapa(req: &Request) -> Result<Value, String> {
     if r.barra.is_some() {
         fora.push(principal.clone());
     }
+    // O MapBiomas recortado com a camada das classes logo abaixo: a legenda mostra os nomes das
+    // classes (a camada delas), e não os códigos do raster.
+    let com_classes = mapbiomas::recortes_com_classes(&no_mapa);
+    fora.extend(com_classes.iter().filter(|n| !fora.contains(n)).cloned().collect::<Vec<_>>());
     if let Some(id) = elemento("Legend") {
-        let sobra = visiveis.iter().any(|v| !fora.contains(v));
+        let sobra = visiveis.iter().any(|v| !fora.contains(v)) || !com_classes.is_empty();
         // Um título a mais tira uma linha da caixa, que tem a altura das classes: só nas receitas
         // com classes nomeadas (o DIST), em que ela cabe.
         let mut u = json!({"layout": nome, "element": id, "exclude": fora, "visible": sobra});
@@ -4609,14 +4613,22 @@ fn cobertura_recortada(ano: i64) -> Result<Recorte, String> {
     let r = feito?;
     // As cores e os nomes da legenda oficial: o recorte do GeoLibre (sem a extensão Imagens) perde a
     // tabela de cores do arquivo, que o raster.process levava junto.
-    host::run("style.importQgis", json!({"layer": nome, "text": mapbiomas::qml()}))?;
+    host::run("style.importQgis", json!({"layer": nome, "text": mapbiomas::qml(None)}))?;
     // Uma área grande vem de uma pirâmide do arquivo: as células lidas são maiores que as da grade.
     let piramide = mapbiomas::celula_da_janela(c)
         .map(|m| format!(" A área é grande para 30 m: a janela veio da pirâmide de {} m do arquivo.", m - 1.0))
         .unwrap_or_default();
     // Os nomes das classes, para a legenda do layout e o identificar. Sem eles o raster serve igual.
     let nomes_das_classes = match poligonos_das_classes(&nome, &classes, c, g.epsg, g.celula) {
-        Ok(()) => format!(" Os nomes das classes estão na camada {classes}, logo abaixo."),
+        Ok(()) => {
+            // O estilo do raster só com as classes da área: o painel Camadas lista uma linha por
+            // classe do estilo, e não as 38 da Coleção 10.
+            let presentes = classes_presentes(&classes);
+            if !presentes.is_empty() {
+                let _ = host::run("style.importQgis", json!({"layer": nome, "text": mapbiomas::qml(Some(&presentes))}));
+            }
+            format!(" Os nomes das classes estão na camada {classes}, logo abaixo.")
+        }
         Err(e) => {
             host::log(&format!("classes do MapBiomas: {e}"));
             let _ = remover(&[&classes]);
@@ -4631,6 +4643,19 @@ fn cobertura_recortada(ano: i64) -> Result<Recorte, String> {
         "layer": nome, "year": ano, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula,
         "width": r["width"], "height": r["height"],
     })))
+}
+
+/// Os códigos das classes do MapBiomas que a camada das classes `camada` tem (campo `VALUE`), pela
+/// seleção, que não traz a geometria para o plugin (os polígonos de uma área grande passariam do
+/// combustível de um comando). Vazio se não deu para saber; a seleção da camada fica limpa.
+fn classes_presentes(camada: &str) -> Vec<u8> {
+    let tem = |v: u8| {
+        host::run("select.byAttributes", json!({"layer": camada, "where": format!("VALUE = {v}")}))
+            .is_ok_and(|r| r["selected"].as_u64().is_some_and(|n| n > 0))
+    };
+    let presentes = mapbiomas::CLASSES_10.iter().map(|(v, ..)| *v).filter(|v| tem(*v)).collect();
+    let _ = host::run("select.clear", json!({"layer": camada}));
+    presentes
 }
 
 /// As classes do raster `raster` do MapBiomas como polígonos, uma feição por classe, com o nome da

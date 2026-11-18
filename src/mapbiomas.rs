@@ -202,15 +202,46 @@ pub fn celula_das_classes(c: [f64; 4], celula: f64) -> f64 {
 /// O estilo do raster recortado, no QML que o `style.importQgis` lê: cada código com a cor e o nome
 /// da legenda oficial. O `raster.process` leva junto a tabela de cores do arquivo, mas o recorte do
 /// GeoLibre (o caminho sem a extensão Imagens do RustGIS 0.7.0) a perde: com este estilo, os dois
-/// saem iguais, e o painel Camadas mostra o nome de cada classe.
-pub fn qml() -> String {
+/// saem iguais.
+///
+/// Com `presentes`, só essas classes (as da área): o painel Camadas lista uma linha por classe
+/// do estilo. Os nomes vão no QML, mas o RustGIS 0.7.0 nomeia as classes de um raster só pelo
+/// arquivo e mostra os códigos; os nomes ficam na camada das classes ([`nome_das_classes`]).
+///
+/// Args:
+///     presentes: os códigos a pôr no estilo; `None` para todas as classes da Coleção 10.
+///
+/// Returns:
+///     O texto do QML.
+pub fn qml(presentes: Option<&[u8]>) -> String {
     let xml = |t: &str| t.replace('&', "&amp;").replace('"', "&quot;").replace('<', "&lt;").replace('>', "&gt;");
     let mut q = String::from(r#"<qgis><pipe><rasterrenderer type="paletted" band="1" opacity="1"><colorPalette>"#);
-    for (v, nome, cor) in CLASSES_10 {
+    for (v, nome, cor) in CLASSES_10.iter().filter(|(v, ..)| presentes.is_none_or(|p| p.contains(v))) {
         q.push_str(&format!(r#"<paletteEntry value="{v}" color="{cor}" alpha="255" label="{}"/>"#, xml(nome)));
     }
     q.push_str("</colorPalette></rasterrenderer></pipe></qgis>");
     q
+}
+
+/// Os rasters recortados do MapBiomas que têm, no mapa, a camada das classes do mesmo ano: na
+/// legenda do layout, a camada das classes (com os nomes) fica no lugar deles (que dariam os
+/// códigos, desde que o RustGIS lista as classes de um raster, opengeos/RustGIS#1758).
+///
+/// Args:
+///     nomes: os nomes das camadas do mapa.
+///
+/// Returns:
+///     Os nomes desses rasters.
+pub fn recortes_com_classes(nomes: &[String]) -> Vec<String> {
+    nomes
+        .iter()
+        .filter(|n| eh_das_classes(n))
+        .filter_map(|n| {
+            let ano = n.strip_prefix("Uso e cobertura da terra em ")?.get(..4)?;
+            let raster = format!("{}Uso e cobertura {ano} (MapBiomas, recortado)", crate::PREFIXO);
+            nomes.contains(&raster).then_some(raster)
+        })
+        .collect()
 }
 
 /// A expressão do `edit.calculateField` que dá ao campo `classe` o nome da classe de `VALUE`.
@@ -264,10 +295,29 @@ mod tests {
 
     #[test]
     fn o_estilo_do_recorte_tem_as_cores_e_os_nomes_da_legenda() {
-        let q = qml();
+        let q = qml(None);
         assert!(q.contains(r##"<paletteEntry value="3" color="#1f8d49" alpha="255" label="Formação Florestal"/>"##));
         assert_eq!(q.matches("<paletteEntry ").count(), CLASSES_10.len());
         assert!(q.starts_with("<qgis>") && q.ends_with("</qgis>"));
+        // Só as classes da área.
+        let q = qml(Some(&[3, 15, 24]));
+        assert_eq!(q.matches("<paletteEntry ").count(), 3);
+        assert!(q.contains(r#"value="15""#) && !q.contains(r#"value="9""#));
+    }
+
+    #[test]
+    fn o_raster_com_classes_sai_da_legenda() {
+        let nomes: Vec<String> = [
+            "BrasilData: Uso e cobertura 2024 (MapBiomas, recortado)",
+            "Uso e cobertura da terra em 2024 (MapBiomas)",
+            "BrasilData: Uso e cobertura 2019 (MapBiomas, recortado)",
+            "BrasilData: área",
+        ]
+        .map(String::from)
+        .into();
+        // O de 2019 não tem a camada das classes: fica na legenda.
+        assert_eq!(recortes_com_classes(&nomes), ["BrasilData: Uso e cobertura 2024 (MapBiomas, recortado)"]);
+        assert!(recortes_com_classes(&nomes[..1]).is_empty());
     }
 
     #[test]
