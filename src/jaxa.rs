@@ -4,7 +4,9 @@
 //!
 //! Cada conjunto é uma coleção STAC estática, um catálogo por mês (`collection.json`), que o
 //! `cube.reduce` do RustGIS lê só na área. O plugin converte a unidade (a taxa de chuva em mm/h
-//! para mm/dia, o kelvin para °C), põe o resultado na grade do projeto e recorta pela área. Este
+//! para mm/dia, o kelvin para °C) e recorta pela área, na resolução original do dado (de 2,8 a
+//! 22 km, em graus), sem passar pela grade do projeto: interpolar células de 11 km para 30 m não
+//! dá detalhe, e no Brasil inteiro daria bilhões de células. Este
 //! módulo tem as escolhas, as conversões, os nomes e as citações; quem chama o RustGIS é o
 //! `comandos.rs`.
 
@@ -101,6 +103,16 @@ impl Variavel {
             Variavel::Temperatura(Turno::Noite) => ("Temperatura da superfície à noite", true),
             Variavel::Evapotranspiracao => ("Evapotranspiração", true),
             Variavel::Seca => ("Índice de seca (SPI)", false),
+        }
+    }
+
+    /// A resolução original do dado, em que a camada sai.
+    pub fn resolucao(self) -> &'static str {
+        match self {
+            Variavel::Chuva | Variavel::Umidade => "0,1° (cerca de 11 km)",
+            Variavel::Temperatura(_) => "1/24° (cerca de 4,6 km)",
+            Variavel::Evapotranspiracao => "0,05° (cerca de 5,5 km)",
+            Variavel::Seca => "cerca de 22 km",
         }
     }
 

@@ -298,9 +298,11 @@ fn por_area(fc: Value) -> Result<Value, String> {
     // pedir as janelas seria recusado quando elas chegam (ver executar).
     let havia = grade_no_mapa()?;
     let nova = havia.is_none();
+    // A célula padrão cresce com a área; a de uma grade que já havia fica, a não ser que passe do
+    // limite do RustGIS nesta área (uma grade de 30 m no Brasil inteiro teria 23 bilhões de células).
     let grade = Some(match havia {
-        Some(g) => por_grade(Grade::nova(caixa, g.escolha, g.celula))?,
-        None => por_grade(Grade::nova(caixa, Escolha::Automatico, grade::CELULA_PADRAO))?,
+        Some(g) => por_grade(Grade::nova(caixa, g.escolha, celula_que_cabe(caixa, g.celula)))?,
+        None => por_grade(Grade::nova(caixa, Escolha::Automatico, grade::celula_padrao(caixa)))?,
     });
     remover(&[AREA])?;
     host::add_layer(AREA, fc)?;
@@ -365,6 +367,14 @@ fn grade_do_projeto(req: &Request) -> Result<Value, String> {
         Some(v) => Escolha::do_parametro(v)?,
         None => posicao("grade-sistema").and_then(|i| Escolha::DO_PAINEL.get(i).copied()).unwrap_or(Escolha::Automatico),
     };
+    if grade::celulas(c, celula) > grade::MAX_CELULAS {
+        return Err(format!(
+            "uma grade de {} teria cerca de {} milhões de células nesta área, mais que o RustGIS aceita (1 bilhão): escolha {} ou mais",
+            grade::texto_da_celula(celula),
+            (grade::celulas(c, celula) / 1e6).round(),
+            grade::texto_da_celula(grade::celula_padrao(c))
+        ));
+    }
     let g = por_grade(Grade::nova(c, escolha, celula))?;
     vista_no_sistema(c, Some(g.epsg));
     avisar(&format!(
@@ -377,9 +387,10 @@ fn grade_do_projeto(req: &Request) -> Result<Value, String> {
 }
 
 /// A grade para um raster na área de retângulo `c`: a do mapa, refeita se não cobre mais a área
-/// (a camada da área trocada à mão), ou, sem grade, a padrão (sistema automático) com
-/// `celula` ou 30 m. Um `celula` diferente do da grade é recusado: os rasters ficariam
-/// desalinhados.
+/// (a camada da área trocada à mão) ou se as células dela não cabem no RustGIS nesta área, ou,
+/// sem grade, a padrão (sistema automático) com `celula` ou a célula padrão da área (30 m num
+/// município, maior numa área grande). Um `celula` diferente do da grade é recusado: os rasters
+/// ficariam desalinhados.
 fn grade_para(c: [f64; 4], celula: Option<f64>) -> Result<Grade, String> {
     let g = match grade_no_mapa()? {
         Some(g) => {
@@ -392,15 +403,16 @@ fn grade_para(c: [f64; 4], celula: Option<f64>) -> Result<Grade, String> {
                     grade::texto_da_celula(m)
                 ));
             }
-            if g.cobre(c) {
+            let m = celula_que_cabe(c, g.celula);
+            if g.cobre(c) && m == g.celula {
                 g
             } else {
-                por_grade(Grade::nova(c, g.escolha, g.celula))?;
+                por_grade(Grade::nova(c, g.escolha, m))?;
                 return Err(GRADE_FEITA.into());
             }
         }
         None => {
-            let m = celula.unwrap_or(grade::CELULA_PADRAO);
+            let m = celula.unwrap_or(grade::celula_padrao(c));
             grade::conferir_celula(m)?;
             let g = por_grade(Grade::nova(c, Escolha::Automatico, m))?;
             avisar(&format!("Grade do projeto criada: {}. Para outra, use Grade do projeto no painel Área de trabalho", g.texto()));
@@ -408,6 +420,22 @@ fn grade_para(c: [f64; 4], celula: Option<f64>) -> Result<Grade, String> {
         }
     };
     Ok(g)
+}
+
+/// A célula `celula` da grade, ou, se nesta área de retângulo `c` ela passa do limite do RustGIS
+/// ([`grade::MAX_CELULAS`]), a padrão da área, dito num aviso.
+fn celula_que_cabe(c: [f64; 4], celula: f64) -> f64 {
+    if grade::celulas(c, celula) <= grade::MAX_CELULAS {
+        return celula;
+    }
+    let m = grade::celula_padrao(c);
+    avisar(&format!(
+        "Grade do projeto: células de {} dariam cerca de {} milhões nesta área, mais que o RustGIS aceita; ficou com {}",
+        grade::texto_da_celula(celula),
+        (grade::celulas(c, celula) / 1e6).round(),
+        grade::texto_da_celula(m)
+    ));
+    m
 }
 
 /// O "erro" com que [`grade_para`] para um comando depois de criar ou refazer a grade: o
@@ -4499,8 +4527,9 @@ fn bdc_indice(req: &Request) -> Result<Value, String> {
 
 /// Um dado mensal do JAXA Earth na área ([`jaxa`]), resumido num período (a média, a máxima, a
 /// mínima ou o desvio dos meses): lido só na área pelo `cube.reduce` do RustGIS na coleção estática
-/// do conjunto, convertido para a unidade do texto, posto na grade do projeto e recortado pelo
-/// contorno. Sem período, os 3 meses até o último com dados (lido no `collection.json`).
+/// do conjunto, convertido para a unidade do texto e recortado pelo contorno, na resolução original
+/// do dado (fora da grade do projeto). Sem período, os 3 meses até o último com dados (lido no
+/// `collection.json`).
 fn jaxa_na_area(req: &Request, v: jaxa::Variavel) -> Result<Value, String> {
     let (c, na_area) = retangulo()?;
     if !na_area {
@@ -4529,11 +4558,9 @@ fn jaxa_na_area(req: &Request, v: jaxa::Variavel) -> Result<Value, String> {
         }
     };
     jaxa::conferir_periodo(v, inicio, fim)?;
-    let g = grade_para(c, req.f64("celula"))?;
     let nome = jaxa::camada(v, e, inicio, fim);
     let lido = format!("{nome} (lido)");
     let convertido = format!("{nome} (convertido)");
-    let na_grade = format!("{nome} (na grade)");
     // O que um clique anterior leu serve: no app, o comando roda de novo quando a leitura chega.
     // Nada se tira antes da leitura (ver executar).
     if !nomes()?.contains(&lido) {
@@ -4564,9 +4591,9 @@ fn jaxa_na_area(req: &Request, v: jaxa::Variavel) -> Result<Value, String> {
             return Ok(r);
         }
     }
-    remover(&[&nome, &convertido, &na_grade])?;
+    remover(&[&nome, &convertido])?;
     let feito = (|| -> Result<(), String> {
-        // As células do JAXA (de 2,8 a 11 km) são maiores que as da grade: bilinear.
+        // Na resolução original: as células do JAXA, recortadas pela área, sem reamostrar.
         let origem = match v.expressao(e) {
             Some(x) => {
                 host::run("raster.function", json!({"layer": lido, "function": "bandMath", "expression": x, "name": convertido}))?;
@@ -4574,11 +4601,7 @@ fn jaxa_na_area(req: &Request, v: jaxa::Variavel) -> Result<Value, String> {
             }
             None => lido.clone(),
         };
-        host::run(
-            "raster.project",
-            json!({"layer": origem, "crs": g.epsg, "cellSize": g.celula, "extent": GRADE, "resampling": "bilinear", "name": na_grade}),
-        )?;
-        recortar(&na_grade, AREA, &nome)?;
+        recortar(&origem, AREA, &nome)?;
         let (rampa, cores) = v.rampa();
         let _ = host::run("ramp.add", json!({"text": cores, "format": "gdal", "name": rampa}));
         if host::run("raster.symbology", json!({"layer": nome, "type": "stretch", "ramp": rampa})).is_err() {
@@ -4590,7 +4613,7 @@ fn jaxa_na_area(req: &Request, v: jaxa::Variavel) -> Result<Value, String> {
         }
         Ok(())
     })();
-    remover(&[&lido, &convertido, &na_grade])?;
+    remover(&[&lido, &convertido])?;
     feito?;
     let media = host::run("raster.info", json!({"layer": nome}))
         .ok()
@@ -4598,15 +4621,15 @@ fn jaxa_na_area(req: &Request, v: jaxa::Variavel) -> Result<Value, String> {
         .map(|m| format!("; média na área: {}{}", format!("{m:.2}").replace('.', ","), com_espaco(v.unidade())))
         .unwrap_or_default();
     avisar(&format!(
-        "{}: dos meses do JAXA Earth ({}){}, na grade do projeto, {} (as células do JAXA, de 2,8 a 11 km, interpoladas){media}",
+        "{}: dos meses do JAXA Earth ({}){}, na resolução original do dado, {}, recortada pela área (fora da grade do projeto){media}",
         nome.trim_start_matches(PREFIXO),
         v.conjunto(),
         if v.unidade().is_empty() { String::new() } else { format!(", em {}", v.unidade()) },
-        g.texto()
+        v.resolucao()
     ));
     Ok(json!({
         "layer": nome, "dataset": v.conjunto(), "band": v.banda(), "unit": v.unidade(), "stat": e.stat(),
-        "start": inicio.iso(), "end": fim.iso(), "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula,
+        "start": inicio.iso(), "end": fim.iso(), "resolution": v.resolucao(),
     }))
 }
 
@@ -4834,7 +4857,11 @@ fn layout_do_mapa(req: &Request) -> Result<Value, String> {
     let epsg = g.as_ref().map_or_else(|| Escolha::Automatico.epsg(c), |g| g.epsg);
     host::run("map.projection", json!({"type": format!("EPSG:{epsg}")}))?;
     let passo = layout::passo_da_grade(c);
-    let celula = g.as_ref().map(|g| format!("; células de {}", grade::texto_da_celula(g.celula))).unwrap_or_default();
+    // Um dado do JAXA Earth sai na resolução original, fora da grade: a célula dele, não a da grade.
+    let celula = match jaxa::variavel_da_camada(&principal) {
+        Some(v) => format!("; células do dado: {}", v.resolucao()),
+        None => g.as_ref().map(|g| format!("; células de {}", grade::texto_da_celula(g.celula))).unwrap_or_default(),
+    };
     let referencia = [
         format!("Projeção: {}", grade::nome_do_sistema(epsg)),
         format!("Grade de {}, coordenadas em metros{celula}", grade::texto_da_celula(passo)),

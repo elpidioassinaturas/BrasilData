@@ -36,7 +36,8 @@ const NOTA_IRRIGACAO_MAPBIOMAS: &str = "Cores da legenda oficial do MapBiomas: r
 const NOTA_COBERTURA_MAPBIOMAS: &str =
     "Cores da legenda oficial do MapBiomas (brasil.mapbiomas.org). Mapa do Brasil inteiro, não recortado pela área.";
 const NOTA_RISCO_FOGO: &str = "Perigo meteorológico de fogo do modelo do INPE (versão 11), não a ocorrência de fogo. Classes do INPE: mínimo, abaixo de 0,15; baixo, de 0,15 a 0,40; médio, de 0,40 a 0,70; alto, de 0,70 a 0,95; crítico, acima de 0,95.";
-const NOTA_JAXA: &str = "Médias mensais do JAXA Earth em células de 2,8 a 11 km, interpoladas para a grade: mostram o padrão regional, não o detalhe de cada lugar.";
+const NOTA_JAXA: &str =
+    "Dados mensais do JAXA Earth na resolução original, em células de 2,8 a 22 km: mostram o padrão regional, não o detalhe de cada lugar.";
 const NOTA_BDC: &str = "Compostos de 16 dias do cubo de dados do INPE (Brazil Data Cube), com o pixel mais limpo de cada período; nuvens e sombras persistentes ainda podem aparecer.";
 const NOTA_CHM: &str = "Altura estimada por um modelo de IA (DINOv3) sobre imagens de satélite de alta resolução de datas diferentes; 0 é sem árvore (ou sem dado).";
 const NOTA_GEM15: &str = "De imagens estéreo de satélite adquiridas até 2024; alturas no geoide EGM96. Água e superfícies sem textura ficam sem dado; sob mata densa, o terreno é estimado.";

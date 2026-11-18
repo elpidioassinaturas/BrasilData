@@ -20,8 +20,31 @@ pub const GRADE: &str = "BrasilData: grade";
 /// Os tamanhos de célula do painel, em metros.
 pub const CELULAS: [f64; 9] = [10.0, 20.0, 30.0, 50.0, 90.0, 100.0, 250.0, 500.0, 1000.0];
 
-/// A célula de quem não escolhe: 30 m, a do Copernicus GLO-30 e do MapBiomas.
+/// A célula de quem não escolhe, numa área pequena: 30 m, a do Copernicus GLO-30 e do MapBiomas.
 pub const CELULA_PADRAO: f64 = 30.0;
+
+/// Quantas células, no máximo, a grade padrão tem: uma área maior ganha uma célula maior
+/// ([`celula_padrao`]). Um município e a Zona da Mata ficam com 30 m; Minas Gerais, com 250 m; o
+/// Brasil, com 500 m.
+pub const MAX_CELULAS_PADRAO: f64 = 1.0e8;
+
+/// Quantas células um raster pode ter no RustGIS ("more than this computer's 1000000000"): uma
+/// grade com mais não serve a nenhum comando.
+pub const MAX_CELULAS: f64 = 1.0e9;
+
+/// Quantas células, mais ou menos, uma grade de `celula` metros tem no retângulo `c` (em graus).
+pub fn celulas(c: [f64; 4], celula: f64) -> f64 {
+    let lat = ((c[1] + c[3]) / 2.0).to_radians().cos();
+    let (largura, altura) = ((c[2] - c[0]).abs() * 111_320.0 * lat, (c[3] - c[1]).abs() * 110_574.0);
+    largura * altura / (celula * celula)
+}
+
+/// A célula padrão para a área de retângulo `c`: a menor do painel, de [`CELULA_PADRAO`] para
+/// cima, que deixa a grade com até [`MAX_CELULAS_PADRAO`] células; numa área ainda maior, a maior
+/// do painel.
+pub fn celula_padrao(c: [f64; 4]) -> f64 {
+    CELULAS.into_iter().filter(|m| *m >= CELULA_PADRAO).find(|m| celulas(c, *m) <= MAX_CELULAS_PADRAO).unwrap_or(CELULAS[CELULAS.len() - 1])
+}
 
 /// Os sistemas geográficos (em graus), que não servem para células em metros.
 const EM_GRAUS: [u32; 3] = [4326, 4674, 4618];
@@ -213,6 +236,21 @@ impl Grade {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_celula_padrao_acompanha_a_area() {
+        let vicosa = [-43.003, -20.838, -42.754, -20.655];
+        let zona_da_mata = [-43.37, -22.92, -40.56, -20.52];
+        let minas = [-51.05, -22.93, -39.85, -14.23];
+        let brasil = [-73.99, -33.75, -28.84, 5.27];
+        assert_eq!(celula_padrao(vicosa), 30.0);
+        assert_eq!(celula_padrao(zona_da_mata), 30.0);
+        assert_eq!(celula_padrao(minas), 250.0);
+        assert_eq!(celula_padrao(brasil), 500.0);
+        // O erro do RustGIS: o Brasil a 30 m tem uns 23 bilhões de células.
+        assert!(celulas(brasil, 30.0) > MAX_CELULAS);
+        assert!(celulas(brasil, 500.0) < MAX_CELULAS_PADRAO);
+    }
 
     const TERESINA: [f64; 4] = [-42.9707, -5.5866, -42.599, -4.7863];
     /// O Piauí passa dos fusos 23 e 24.

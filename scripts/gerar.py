@@ -37,7 +37,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.36"
+VERSAO = "0.1.37"
 
 # As escolhas das janelas dos comandos: o texto que a janela manda é o da escolha, e o
 # src/dialogos.rs o traduz no valor do parâmetro (um teste confere que ele conhece todas).
@@ -77,8 +77,8 @@ CAMPOS_JAXA = [
     {"name": "fim", "label": "Fim (dd/mm/aaaa)", "kind": "text", "help": "O último dia do período. Vazio: o fim do último mês com dados. Até 5 anos."},
     {"name": "estatistica", "label": "Resumo dos meses", "kind": "choice", "required": True, "choices": ESTATISTICAS_BDC, "default": ESTATISTICAS_BDC[0], "help": "A média dos meses do período, a máxima, a mínima ou o desvio-padrão (o quanto variou)."},
 ]
-PARAMS_JAXA = "\"inicio\"?, \"fim\"?: dd/mm/aaaa ou aaaa-mm-dd (padrão: os 3 meses até o último com dados), \"estatistica\"?: \"media\" (padrão) | \"maxima\" | \"minima\" | \"desvio\", \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)"
-FIM_JAXA = " Do JAXA Earth (a agência espacial do Japão), por mês, lido só na área pelo RustGIS (sem login), posto na grade do projeto (as células do JAXA são de 2,8 a 11 km: o mapa mostra o padrão regional) e recortado pelo contorno. Sem período, os 3 meses até o último com dados. Uso livre com o crédito \"JAXA\"; uso comercial, avisando a JAXA antes. Precisa de um RustGIS com o resumo de um cubo STAC (cube.reduce, desde a 0.6.0); só no app desktop e no rustgis-cli."
+PARAMS_JAXA = "\"inicio\"?, \"fim\"?: dd/mm/aaaa ou aaaa-mm-dd (padrão: os 3 meses até o último com dados), \"estatistica\"?: \"media\" (padrão) | \"maxima\" | \"minima\" | \"desvio\""
+FIM_JAXA = " Do JAXA Earth (a agência espacial do Japão), por mês, lido só na área pelo RustGIS (sem login) e recortado pelo contorno, na resolução original do dado (células de 2,8 a 22 km, em graus), fora da grade do projeto: o mapa mostra o padrão regional. Sem período, os 3 meses até o último com dados. Uso livre com o crédito \"JAXA\"; uso comercial, avisando a JAXA antes. Precisa de um RustGIS com o resumo de um cubo STAC (cube.reduce, desde a 0.6.0); só no app desktop e no rustgis-cli."
 CAMPOS_BDC = [
     {"name": "satelite", "label": "Satélite", "kind": "choice", "required": True, "choices": SATELITES_BDC, "default": SATELITES_BDC[0], "help": "O cubo de 16 dias do INPE: o Sentinel-2 tem o detalhe (10 m) e começa em 2017; o Landsat vai até 1990, a 30 m; o CBERS-4 WFI, satélite sino-brasileiro, a 64 m; o MODIS, a 250 m, desde 2000, para áreas grandes."},
     {"name": "indice", "label": "Índice", "kind": "choice", "required": True, "choices": INDICES_BDC, "default": INDICES_BDC[0], "help": "O NDVI mede o verde da vegetação; o EVI satura menos nas florestas densas."},
