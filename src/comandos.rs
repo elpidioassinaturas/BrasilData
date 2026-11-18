@@ -1967,22 +1967,32 @@ fn manchas_da_situacao(retangulo: &str, raster: &str, ate: Data, paleta: dist::P
     let manchas = dist::nome_das_manchas(ate);
     let bruto = format!("{manchas} (sem recorte)");
     let em_graus = format!("{manchas} (em graus)");
-    remover(&[&manchas, &bruto, &em_graus])?;
-    // As regiões diferentes de 0 (sem perturbação) e do sem dado, com o código em `VALUE`. A
-    // ferramenta do GeoLibre não grava em todo sistema (o Albers do IBGE, EPSG:10857, que a grade
-    // usa quando a área passa de um fuso, ela recusa): então as manchas saem de uma cópia em graus,
-    // com as mesmas células.
-    if let Err(e) = ferramenta("geolibre:raster_to_vector_polygons", json!({"input": retangulo}), &bruto) {
-        host::log(&format!("manchas: no sistema da grade não deu ({e}); vão em graus"));
-        remover(&[&bruto])?;
-        host::run(
-            "raster.project",
-            json!({"layer": retangulo, "crs": 4326, "cellSize": celula / 111_320.0, "resampling": "nearest", "name": em_graus}),
-        )?;
-        let feito = ferramenta("geolibre:raster_to_vector_polygons", json!({"input": em_graus}), &bruto);
-        remover(&[&em_graus])?;
-        feito?;
-    }
+    let codigos = format!("{manchas} (códigos)");
+    remover(&[&manchas, &bruto, &em_graus, &codigos])?;
+    // Só os códigos 1 a 8: o 0 (sem perturbação) e o sem dado viram sem dado declarado. Sem a
+    // extensão Imagens, o mosaico (cube.reduce) deixa NaN onde não há tile, e a ferramenta do
+    // GeoLibre, que não toma NaN por sem dado, não cria camada nenhuma ("GeoJSON: expected value").
+    let faixas: Vec<[u8; 3]> = (1..=8u8).map(|v| [v, v + 1, v]).collect();
+    host::run("raster.function", json!({"layer": retangulo, "function": "remap", "ranges": faixas, "name": codigos}))?;
+    // As regiões dos códigos, com o código em `VALUE`. A ferramenta do GeoLibre não grava em todo
+    // sistema (o Albers do IBGE, EPSG:10857, que a grade usa quando a área passa de um fuso, ela
+    // recusa): então as manchas saem de uma cópia em graus, com as mesmas células.
+    let vetorizado = (|| -> Result<(), String> {
+        if let Err(e) = ferramenta("geolibre:raster_to_vector_polygons", json!({"input": codigos}), &bruto) {
+            host::log(&format!("manchas: no sistema da grade não deu ({e}); vão em graus"));
+            remover(&[&bruto])?;
+            host::run(
+                "raster.project",
+                json!({"layer": codigos, "crs": 4326, "cellSize": celula / 111_320.0, "resampling": "nearest", "name": em_graus}),
+            )?;
+            let feito = ferramenta("geolibre:raster_to_vector_polygons", json!({"input": em_graus}), &bruto);
+            remover(&[&em_graus])?;
+            feito?;
+        }
+        Ok(())
+    })();
+    remover(&[&codigos])?;
+    vetorizado?;
     let r = host::run("gp.run", json!({"tool": "clip", "params": {"input": bruto, "clip": AREA}}))?;
     let recortada = r.get("layer").cloned().ok_or("o clip não disse a camada que fez")?;
     host::run("layer.rename", json!({"layer": recortada, "name": manchas}))?;
