@@ -54,6 +54,14 @@ pub use catalogo::{FICHAS, SOBRE, SOBRE_AVISO, TEMAS};
 
 /// Uma parte do texto [`SOBRE`]: `tudo`, `autoria` (a versão, o autor, a licença e o repositório),
 /// `fontes` ou `contribuir`. As partes são os parágrafos que o `scripts/gerar.py` escreve.
+/// As abas Sobre do fim do painel: o comando, o rótulo e a parte do texto de cada uma (os mesmos
+/// do `scripts/gerar.py`, ABAS_SOBRE).
+pub const ABAS_SOBRE: [(&str, &str, &str); 3] = [
+    ("sobre-autoria", "Autoria", "autoria"),
+    ("sobre-fontes", "Fontes dos dados", "fontes"),
+    ("sobre-contribuir", "Como contribuir", "contribuir"),
+];
+
 pub fn parte_do_sobre(parte: &str) -> Option<String> {
     let p: Vec<&str> = SOBRE.split("\n\n").collect();
     match parte {
@@ -416,7 +424,7 @@ mod tests {
     fn o_sobre_tem_a_autoria_a_versao_e_cabe_no_rustgis() {
         for t in [SOBRE, SOBRE_AVISO] {
             assert!(
-                t.contains("Elpídio Filho")
+                t.contains("Professor Elpídio")
                     && t.contains("LABGEO")
                     && t.contains("UFV")
                     && t.contains("MIT")
@@ -435,6 +443,9 @@ mod tests {
         assert!(parte_do_sobre("contribuir").is_some_and(|t| t.starts_with("Como contribuir:")));
         assert_eq!(parte_do_sobre("tudo").as_deref(), Some(SOBRE));
         assert_eq!(parte_do_sobre("outra"), None);
+        for (_, _, parte) in ABAS_SOBRE {
+            assert!(parte_do_sobre(parte).is_some(), "{parte}");
+        }
     }
 
     #[test]

@@ -102,6 +102,27 @@
       "params": "{\"no\": \"br\" | \"reg:2\" | \"uf:PI\" | \"meso:2204\" | \"micro:22010\" | \"mun:2211001\"} (por script), ou o nó escolhido na árvore limites do painel"
     },
     {
+      "id": "sobre-autoria",
+      "label": "Autoria",
+      "help": "Mostra autoria do BrasilData no fim do painel Área de trabalho.",
+      "icon": "about",
+      "params": "{}"
+    },
+    {
+      "id": "sobre-fontes",
+      "label": "Fontes dos dados",
+      "help": "Mostra fontes dos dados do BrasilData no fim do painel Área de trabalho.",
+      "icon": "about",
+      "params": "{}"
+    },
+    {
+      "id": "sobre-contribuir",
+      "label": "Como contribuir",
+      "help": "Mostra como contribuir do BrasilData no fim do painel Área de trabalho.",
+      "icon": "about",
+      "params": "{}"
+    },
+    {
       "id": "indicadores",
       "label": "Indicadores por município",
       "help": "Os indicadores das fontes escolhidas na camada Indicadores por município.",
@@ -1855,23 +1876,16 @@
     {
       "id": "sobre",
       "label": "Sobre",
-      "help": "BrasilData 0.1.38, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Elpídio Filho, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nPara ler as fontes dos dados ou como contribuir, escolha em Mostrar e clique em Executar. A janela fica aberta até o X do canto de cima.",
+      "help": "BrasilData 0.1.38, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nAs fontes dos dados e como contribuir estão nas abas do fim do painel Área de trabalho: basta clicar nelas. Para lê-las aqui, marque a caixa e clique em Executar. A janela fica aberta até o X do canto de cima.",
       "icon": "about",
-      "params": "{\"parte\"?: \"tudo\" (padrão) | \"autoria\" | \"fontes\" | \"contribuir\"}",
+      "params": "{\"completo\"?: true para as fontes e como contribuir | \"parte\"?: \"tudo\" (padrão) | \"autoria\" | \"fontes\" | \"contribuir\"}",
       "form": [
         {
-          "name": "parte",
-          "label": "Mostrar",
-          "kind": "choice",
-          "required": true,
-          "choices": [
-            "Tudo",
-            "Autoria e licença",
-            "Fontes dos dados",
-            "Como contribuir"
-          ],
-          "default": "Fontes dos dados",
-          "help": "Uma parte do texto Sobre, ou ele inteiro."
+          "name": "completo",
+          "label": "Mostrar também as fontes e como contribuir",
+          "kind": "bool",
+          "default": false,
+          "help": "Marcada, Executar mostra as fontes dos dados e como contribuir; desmarcada, a autoria."
         }
       ]
     }
@@ -2015,10 +2029,22 @@
         "text": "O que é a última camada que chegou ao mapa: a fonte, o período, a resolução, as unidades, a legenda, a licença, a citação e os cuidados de uso. Traga uma camada para ver a ficha dela aqui; a tabela do botão Fontes tem as fichas de todas as camadas do mapa."
       },
       {
+        "kind": "button",
+        "command": "sobre-autoria"
+      },
+      {
+        "kind": "button",
+        "command": "sobre-fontes"
+      },
+      {
+        "kind": "button",
+        "command": "sobre-contribuir"
+      },
+      {
         "kind": "text",
         "id": "sobre",
-        "label": "Sobre o BrasilData",
-        "text": "BrasilData 0.1.38, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Elpídio Filho, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nFontes dos dados: IBGE, IDE-Sisema, INPE, ANA, ANP, ANEEL, INCRA, ANM, Kuzma, MMA, ICMBio, FUNAI, Serviço Florestal Brasileiro, IBAMA, DNIT e MapBiomas, pelos serviços de cada órgão; Copernicus DEM GLO-30 (DLR e Airbus, pelo espelho da OpenTopography); Banco Central (Pix e crédito rural); TSE; Novo CAGED (IPEA Data); Ministério da Saúde (CNES, pelo geobr do Ipea); Open-Meteo (previsão do ECMWF, da NOAA e do DWD) e CHIRPS v3 (Climate Hazards Center, UCSB).\n\nComo contribuir: sentiu falta de algum dado? Abra uma issue em https://github.com/elpidioassinaturas/BrasilData/issues com o nome do dado, o órgão que o publica, o endereço do serviço (WFS, ArcGIS REST, API ou arquivo) e para que você o usaria. Para trazer a fonte você mesmo, acrescente uma linha ao fontes.csv, rode python scripts/gerar.py e abra um pull request. Correções, avisos de serviço fora do ar e relatos de uso também são bem-vindos."
+        "label": "Sobre o BrasilData: Autoria",
+        "text": "BrasilData 0.1.38, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData"
       }
     ]
   },

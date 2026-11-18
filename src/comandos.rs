@@ -125,6 +125,9 @@ const SEM_RECORTE: &[&str] = &[
     "fontes",
     "atualizacao",
     "sobre",
+    "sobre-autoria",
+    "sobre-fontes",
+    "sobre-contribuir",
     // Os mapas do MapBiomas são do Brasil inteiro: a área não muda nada neles.
     "mapbiomas-cobertura",
     "mapbiomas-irrigacao",
@@ -217,6 +220,7 @@ fn executar_comando(req: Request) -> Result<Value, String> {
         "fontes" => fontes(),
         "atualizacao" => atualizacao(),
         "sobre" => sobre(&req),
+        "sobre-autoria" | "sobre-fontes" | "sobre-contribuir" => aba_sobre(&req.id),
         "amostra-aleatoria" => amostra_aleatoria(&req),
         "amostra-estratificada" => amostra_estratificada(&req),
         "amostra-sistematica" => amostra_sistematica(&req),
@@ -5634,21 +5638,37 @@ fn amostra_sistematica(req: &Request) -> Result<Value, String> {
     Ok(resposta_da_amostra(req, amostragem::SISTEMATICA, n, &texto, json!({})))
 }
 
-/// A autoria e o resto da seção Sobre: o resumo no aviso e o texto inteiro na resposta (a da
-/// linha de comando e dos scripts) e no painel, onde ele já está desde a instalação. O RustGIS
-/// não tem janela de texto para um plugin, e um comando não abre o painel.
-/// O texto Sobre, ou uma parte dele (`parte`), no `report`: a janela do comando o mostra e fica
-/// aberta até o usuário fechá-la. Sem `parte` (um RustGIS sem janelas de plugin, antes da 0.7.0,
-/// roda o botão direto), vai também o aviso curto, que o RustGIS mostra e tira logo.
+/// O botão Sobre: a janela do comando mostra a autoria ao abrir (a ajuda dele); Executar põe no
+/// `report` as fontes e como contribuir (`completo`), ou a autoria. Por script, `parte` escolhe a
+/// parte (tudo, o padrão, autoria, fontes ou contribuir). Sem nenhum dos dois (um RustGIS sem
+/// janelas de plugin, antes da 0.7.0, roda o botão direto), vai também o aviso curto, que o
+/// RustGIS mostra e tira logo.
 fn sobre(req: &Request) -> Result<Value, String> {
+    let completo = req.params.get("completo").and_then(Value::as_bool);
     let parte = req.str("parte");
-    let texto = crate::parte_do_sobre(parte.unwrap_or("tudo")).ok_or("parte: use tudo, autoria, fontes ou contribuir")?;
-    if parte.is_none() {
+    let texto = match (completo, parte) {
+        (Some(true), _) => format!(
+            "{}\n\n{}",
+            crate::parte_do_sobre("fontes").unwrap_or_default(),
+            crate::parte_do_sobre("contribuir").unwrap_or_default()
+        ),
+        (Some(false), _) => crate::parte_do_sobre("autoria").unwrap_or_default(),
+        (None, p) => crate::parte_do_sobre(p.unwrap_or("tudo")).ok_or("parte: use tudo, autoria, fontes ou contribuir")?,
+    };
+    if completo.is_none() && parte.is_none() {
         avisar(crate::SOBRE_AVISO);
     }
+    Ok(json!({"version": versao::ESTA, "text": crate::SOBRE, "report": texto}))
+}
+
+/// Uma aba Sobre do fim do painel ([`crate::ABAS_SOBRE`]): o texto dela no lugar do da aba
+/// anterior, com o nome da aba no título.
+fn aba_sobre(id: &str) -> Result<Value, String> {
+    let (_, rotulo, parte) = crate::ABAS_SOBRE.iter().find(|(c, _, _)| *c == id).ok_or("aba Sobre desconhecida")?;
+    let texto = crate::parte_do_sobre(parte).ok_or("parte do Sobre desconhecida")?;
     Ok(json!({
-        "version": versao::ESTA, "text": crate::SOBRE, "report": texto,
-        "panel": {"items": {"sobre": {"text": crate::SOBRE}}},
+        "report": texto,
+        "panel": {"items": {"sobre": {"text": texto, "label": format!("Sobre o BrasilData: {rotulo}")}}},
     }))
 }
 

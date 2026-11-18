@@ -77,10 +77,6 @@ pub const ESTATISTICAS_BDC: [(&str, &str); 4] =
 /// As escolhas do turno da temperatura do JAXA e o `turno` de cada uma.
 pub const TURNOS_JAXA: [(&str, &str); 2] = [("De dia (por volta das 10h30)", "dia"), ("À noite (por volta das 22h30)", "noite")];
 
-/// As partes do texto Sobre e a `parte` de cada uma.
-pub const PARTES_SOBRE: [(&str, &str); 4] =
-    [("Tudo", "tudo"), ("Autoria e licença", "autoria"), ("Fontes dos dados", "fontes"), ("Como contribuir", "contribuir")];
-
 /// As escolhas de um parâmetro e o valor de cada uma.
 type Escolhas = &'static [(&'static str, &'static str)];
 
@@ -91,7 +87,6 @@ const TROCAS: &[(&str, &str, Escolhas)] = &[
     ("layout", "estilo", &ESTILOS),
     ("dist-situacao", "paleta", &PALETAS),
     ("gem15", "modelo", &MODELOS_GEM15),
-    ("sobre", "parte", &PARTES_SOBRE),
     ("bdc-indice", "satelite", &SATELITES_BDC),
     ("bdc-indice", "indice", &INDICES_BDC),
     ("bdc-indice", "estatistica", &ESTATISTICAS_BDC),

@@ -39,6 +39,8 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 VERSAO = "0.1.38"
 AUTOR = "Elpídio Filho"
+# Como o texto Sobre chama o autor (o manifesto e o README levam o nome completo).
+AUTOR_SOBRE = "Professor Elpídio"
 LABORATORIO = "Laboratório de Geoprocessamento e Pedometria (LABGEO)"
 INSTITUICAO = "Universidade Federal de Viçosa (UFV)"
 LICENCA = "MIT"
@@ -48,7 +50,7 @@ REPOSITORIO = "https://github.com/elpidioassinaturas/BrasilData"
 # ao abrir, sem Executar.
 AUTORIA = (
     f"BrasilData {VERSAO}, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\n"
-    f"Autor: {AUTOR}, do {LABORATORIO} da {INSTITUICAO}.\n"
+    f"Autor: {AUTOR_SOBRE}, do {LABORATORIO} da {INSTITUICAO}.\n"
     f"Licença: {LICENCA}, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: "
     "o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\n"
     f"Repositório: {REPOSITORIO}"
@@ -86,7 +88,8 @@ SATELITES_BDC = ["Sentinel-2 (10 m, desde 2017)", "Landsat (30 m, desde 1990)", 
 INDICES_BDC = ["NDVI", "EVI"]
 ESTATISTICAS_BDC = ["Média das datas", "Máxima", "Mínima", "Desvio-padrão"]
 # As partes do texto Sobre (as mesmas de src/dialogos.rs).
-PARTES_SOBRE = ["Tudo", "Autoria e licença", "Fontes dos dados", "Como contribuir"]
+# As abas Sobre do fim do painel: o comando de cada uma e o rótulo (os mesmos de src/lib.rs, ABAS_SOBRE).
+ABAS_SOBRE = [("sobre-autoria", "Autoria"), ("sobre-fontes", "Fontes dos dados"), ("sobre-contribuir", "Como contribuir")]
 # As escolhas do turno da temperatura do JAXA (as mesmas de src/dialogos.rs).
 TURNOS_JAXA = ["De dia (por volta das 10h30)", "À noite (por volta das 22h30)"]
 CAMPOS_JAXA = [
@@ -351,11 +354,11 @@ FIM = [
         {
             "id": "sobre",
             "label": "Sobre",
-            "help": AUTORIA + "\n\nPara ler as fontes dos dados ou como contribuir, escolha em Mostrar e clique em Executar. A janela fica aberta até o X do canto de cima.",
+            "help": AUTORIA + "\n\nAs fontes dos dados e como contribuir estão nas abas do fim do painel Área de trabalho: basta clicar nelas. Para lê-las aqui, marque a caixa e clique em Executar. A janela fica aberta até o X do canto de cima.",
             "icon": "about",
-            "params": "{\"parte\"?: \"tudo\" (padrão) | \"autoria\" | \"fontes\" | \"contribuir\"}",
+            "params": "{\"completo\"?: true para as fontes e como contribuir | \"parte\"?: \"tudo\" (padrão) | \"autoria\" | \"fontes\" | \"contribuir\"}",
             "form": [
-                {"name": "parte", "label": "Mostrar", "kind": "choice", "required": True, "choices": PARTES_SOBRE, "default": PARTES_SOBRE[2], "help": "Uma parte do texto Sobre, ou ele inteiro."},
+                {"name": "completo", "label": "Mostrar também as fontes e como contribuir", "kind": "bool", "default": False, "help": "Marcada, Executar mostra as fontes dos dados e como contribuir; desmarcada, a autoria."},
             ],
         },
     ),
@@ -401,8 +404,8 @@ def sobre(linhas: list[dict]) -> tuple[str, str]:
         ]
     )
     aviso = (
-        f"BrasilData {VERSAO}, de {AUTOR} (LABGEO/UFV), sob a licença {LICENCA}: {REPOSITORIO}. A autoria, as fontes "
-        "dos dados e como contribuir estão em Sobre o BrasilData, no fim do painel Área de trabalho."
+        f"BrasilData {VERSAO}, do {AUTOR_SOBRE} (LABGEO/UFV), sob a licença {LICENCA}: {REPOSITORIO}. A autoria, as fontes "
+        "dos dados e como contribuir estão nas abas Sobre, no fim do painel Área de trabalho."
     )
     if len(texto) > MAX_SOBRE:
         sys.exit(f"o texto Sobre tem {len(texto)} caracteres; o RustGIS aceita até {MAX_SOBRE}")
@@ -1104,6 +1107,17 @@ EM_MENUS = [
         },
     ),
 ]
+# Os comandos das abas Sobre, só nos botões do fim do painel (fora da aba do RustGIS).
+SOBRE_ABAS = [
+    {
+        "id": cid,
+        "label": rotulo,
+        "help": f"Mostra {rotulo.lower()} do BrasilData no fim do painel Área de trabalho.",
+        "icon": "about",
+        "params": "{}",
+    }
+    for cid, rotulo in ABAS_SOBRE
+]
 # Comandos só para scripts e a linha de comando, fora da aba.
 SO_SCRIPTS = [
     {
@@ -1122,7 +1136,7 @@ def ler() -> list[dict]:
     ids = set()
     for n, l in enumerate(linhas, start=2):
         onde = f"fontes.csv, linha {n}"
-        if l["id"] in ids or any(l["id"] == c["id"] for c in AREA + DO_PAINEL + SO_SCRIPTS + AMOSTRAGEM + [c for _, c in FIM] + [c for _, _, c in EM_MENUS]):
+        if l["id"] in ids or any(l["id"] == c["id"] for c in AREA + DO_PAINEL + SOBRE_ABAS + SO_SCRIPTS + AMOSTRAGEM + [c for _, c in FIM] + [c for _, _, c in EM_MENUS]):
             sys.exit(f"{onde}: o id '{l['id']}' se repete")
         ids.add(l["id"])
         for campo, valores in (
@@ -1168,7 +1182,7 @@ AREAS_EXEMPLO = {
     "brasil": ("br", "Brasil"),
 }
 # Os comandos que não trazem camada de dados: sem ficha.
-SEM_FICHA = {"area-selecao", "area-desenho", "area-municipio", "grade", "painel", "escolher-area", "layout", "fontes", "atualizacao", "sobre", "indicadores", "amostra-aleatoria", "amostra-estratificada", "amostra-sistematica"}
+SEM_FICHA = {"area-selecao", "area-desenho", "area-municipio", "grade", "painel", "escolher-area", "layout", "fontes", "atualizacao", "sobre", "sobre-autoria", "sobre-fontes", "sobre-contribuir", "indicadores", "amostra-aleatoria", "amostra-estratificada", "amostra-sistematica"}
 # Onde ficam as fichas no repositório.
 PAGINAS = "docs/camadas"
 # O texto da ficha no painel antes de a primeira camada chegar.
@@ -1358,13 +1372,13 @@ ICONES = {"poligono": "polygon_layer", "linha": "line_layer", "ponto": "point_la
 def nomes_dos_comandos(linhas: list[dict]) -> dict[str, str]:
     """O nome de cada comando de dados: o da camada (fontes.csv) ou o do botão, numa linha."""
     nomes = {l["id"]: l["nome"] for l in linhas}
-    for c in AREA + DO_PAINEL + SO_SCRIPTS + AMOSTRAGEM + [c for _, c in FIM] + [c for _, _, c in EM_MENUS]:
+    for c in AREA + DO_PAINEL + SOBRE_ABAS + SO_SCRIPTS + AMOSTRAGEM + [c for _, c in FIM] + [c for _, _, c in EM_MENUS]:
         nomes.setdefault(c["id"], c["label"].replace("\n", " "))
     return nomes
 
 
 def manifesto(linhas: list[dict], fichas: dict[str, dict]) -> str:
-    comandos = AREA + DO_PAINEL + SO_SCRIPTS
+    comandos = AREA + DO_PAINEL + SOBRE_ABAS + SO_SCRIPTS
     grupos: dict[str, list] = {"Área": list(NA_ABA_AREA)}
     for l in linhas:
         onde = "recortado pela área" if l["recorta"] == "sim" else "inteiro, no retângulo da área"
@@ -1439,7 +1453,10 @@ def manifesto(linhas: list[dict], fichas: dict[str, dict]) -> str:
     if len(grupos) > 8:
         sys.exit(f"a aba tem {len(grupos)} grupos; o RustGIS aceita até 8")
     ficha = {"kind": "text", "id": "ficha", "label": "Ficha da camada", "text": FICHA_VAZIA}
-    painel = dict(PAINEL, items=PAINEL["items"] + [ficha, {"kind": "text", "id": "sobre", "label": "Sobre o BrasilData", "text": sobre(linhas)[0]}])
+    # Sobre: as abas (botões lado a lado) e, embaixo, o texto da aba clicada; abre na Autoria.
+    abas = [{"kind": "button", "command": cid} for cid, _ in ABAS_SOBRE]
+    texto_sobre = {"kind": "text", "id": "sobre", "label": f"Sobre o BrasilData: {ABAS_SOBRE[0][1]}", "text": AUTORIA}
+    painel = dict(PAINEL, items=PAINEL["items"] + [ficha] + abas + [texto_sobre])
     m = {
         "id": "brasildata",
         "name": "BrasilData",
