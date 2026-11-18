@@ -52,6 +52,19 @@ pub mod zoom;
 
 pub use catalogo::{FICHAS, SOBRE, SOBRE_AVISO, TEMAS};
 
+/// Uma parte do texto [`SOBRE`]: `tudo`, `autoria` (a versão, o autor, a licença e o repositório),
+/// `fontes` ou `contribuir`. As partes são os parágrafos que o `scripts/gerar.py` escreve.
+pub fn parte_do_sobre(parte: &str) -> Option<String> {
+    let p: Vec<&str> = SOBRE.split("\n\n").collect();
+    match parte {
+        "tudo" => Some(SOBRE.to_string()),
+        "autoria" => Some(format!("{}\n\n{}", p.first()?, p.get(1)?)),
+        "fontes" => p.get(2).map(|t| t.to_string()),
+        "contribuir" => p.get(3).map(|t| t.to_string()),
+        _ => None,
+    }
+}
+
 /// O nome da camada da área.
 pub const AREA: &str = "BrasilData: área";
 
@@ -417,6 +430,11 @@ mod tests {
         assert!(SOBRE.contains("Como contribuir") && SOBRE.contains("IBGE") && SOBRE.contains("Copernicus"));
         // O texto declarado de um painel vai até 2.000 caracteres; um aviso é cortado em 500.
         assert!(SOBRE.chars().count() <= 2000 && SOBRE_AVISO.chars().count() + "BrasilData: ".len() <= 500);
+        assert!(parte_do_sobre("autoria").is_some_and(|t| t.contains("Autor:") && t.contains("Licença:")));
+        assert!(parte_do_sobre("fontes").is_some_and(|t| t.starts_with("Fontes dos dados:")));
+        assert!(parte_do_sobre("contribuir").is_some_and(|t| t.starts_with("Como contribuir:")));
+        assert_eq!(parte_do_sobre("tudo").as_deref(), Some(SOBRE));
+        assert_eq!(parte_do_sobre("outra"), None);
     }
 
     #[test]

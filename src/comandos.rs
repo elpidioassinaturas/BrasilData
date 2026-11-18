@@ -216,7 +216,7 @@ fn executar_comando(req: Request) -> Result<Value, String> {
         "grade" => grade_do_projeto(&req),
         "fontes" => fontes(),
         "atualizacao" => atualizacao(),
-        "sobre" => sobre(),
+        "sobre" => sobre(&req),
         "amostra-aleatoria" => amostra_aleatoria(&req),
         "amostra-estratificada" => amostra_estratificada(&req),
         "amostra-sistematica" => amostra_sistematica(&req),
@@ -5637,9 +5637,19 @@ fn amostra_sistematica(req: &Request) -> Result<Value, String> {
 /// A autoria e o resto da seção Sobre: o resumo no aviso e o texto inteiro na resposta (a da
 /// linha de comando e dos scripts) e no painel, onde ele já está desde a instalação. O RustGIS
 /// não tem janela de texto para um plugin, e um comando não abre o painel.
-fn sobre() -> Result<Value, String> {
-    avisar(crate::SOBRE_AVISO);
-    Ok(json!({"version": versao::ESTA, "text": crate::SOBRE, "panel": {"items": {"sobre": {"text": crate::SOBRE}}}}))
+/// O texto Sobre, ou uma parte dele (`parte`), no `report`: a janela do comando o mostra e fica
+/// aberta até o usuário fechá-la. Sem `parte` (um RustGIS sem janelas de plugin, antes da 0.7.0,
+/// roda o botão direto), vai também o aviso curto, que o RustGIS mostra e tira logo.
+fn sobre(req: &Request) -> Result<Value, String> {
+    let parte = req.str("parte");
+    let texto = crate::parte_do_sobre(parte.unwrap_or("tudo")).ok_or("parte: use tudo, autoria, fontes ou contribuir")?;
+    if parte.is_none() {
+        avisar(crate::SOBRE_AVISO);
+    }
+    Ok(json!({
+        "version": versao::ESTA, "text": crate::SOBRE, "report": texto,
+        "panel": {"items": {"sobre": {"text": crate::SOBRE}}},
+    }))
 }
 
 /// Compara esta versão com a última release no GitHub e diz como atualizar.

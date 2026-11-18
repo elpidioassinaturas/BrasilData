@@ -37,7 +37,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.37"
+VERSAO = "0.1.38"
 
 # As escolhas das janelas dos comandos: o texto que a janela manda é o da escolha, e o
 # src/dialogos.rs o traduz no valor do parâmetro (um teste confere que ele conhece todas).
@@ -70,6 +70,8 @@ MODELOS_GEM15 = ["Terreno nu (DTM)", "Superfície, com vegetação e construçõ
 SATELITES_BDC = ["Sentinel-2 (10 m, desde 2017)", "Landsat (30 m, desde 1990)", "CBERS-4 WFI (64 m, desde 2016)", "MODIS (250 m, desde 2000)"]
 INDICES_BDC = ["NDVI", "EVI"]
 ESTATISTICAS_BDC = ["Média das datas", "Máxima", "Mínima", "Desvio-padrão"]
+# As partes do texto Sobre (as mesmas de src/dialogos.rs).
+PARTES_SOBRE = ["Tudo", "Autoria e licença", "Fontes dos dados", "Como contribuir"]
 # As escolhas do turno da temperatura do JAXA (as mesmas de src/dialogos.rs).
 TURNOS_JAXA = ["De dia (por volta das 10h30)", "À noite (por volta das 22h30)"]
 CAMPOS_JAXA = [
@@ -334,9 +336,12 @@ FIM = [
         {
             "id": "sobre",
             "label": "Sobre",
-            "help": "A autoria do BrasilData, a versão, a licença, o repositório, as fontes dos dados e como contribuir. O texto completo fica em Sobre o BrasilData, no fim do painel Área de trabalho.",
+            "help": "A autoria do BrasilData, a versão, a licença, o repositório, as fontes dos dados e como contribuir. Escolha o que ler e clique em Executar: o texto aparece aqui embaixo, e você pode selecioná-lo e copiá-lo. A janela fica aberta até você fechá-la no X do canto de cima. O texto completo também fica em Sobre o BrasilData, no fim do painel Área de trabalho.",
             "icon": "about",
-            "params": "{}",
+            "params": "{\"parte\"?: \"tudo\" (padrão) | \"autoria\" | \"fontes\" | \"contribuir\"}",
+            "form": [
+                {"name": "parte", "label": "Mostrar", "kind": "choice", "required": True, "choices": PARTES_SOBRE, "default": PARTES_SOBRE[0], "help": "O texto inteiro, ou só uma parte dele."},
+            ],
         },
     ),
 ]
