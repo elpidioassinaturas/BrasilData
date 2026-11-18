@@ -22,6 +22,7 @@ pub mod datas;
 pub mod dialogos;
 pub mod dist;
 pub mod estilo;
+pub mod extensoes;
 pub mod fichas;
 pub mod grade;
 pub mod indicadores;

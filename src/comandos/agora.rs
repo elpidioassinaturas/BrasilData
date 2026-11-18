@@ -137,7 +137,7 @@ pub(super) fn chuva_agora(req: &Request) -> Result<Value, String> {
             "raster.project",
             json!({"layer": pardig::EM_MM, "crs": g.epsg, "cellSize": g.celula, "extent": GRADE, "resampling": pardig::reamostragem(g.celula), "name": pardig::NA_GRADE}),
         )?;
-        host::run("raster.process", json!({"layer": pardig::NA_GRADE, "operation": "clip", "polygon": AREA, "name": saida}))?;
+        super::recortar(pardig::NA_GRADE, AREA, &saida)?;
         host::run("raster.mask", json!({"layer": saida, "min": 0.0, "max": 1000.0}))?;
         pintar(&saida, &pintura);
         Ok(())

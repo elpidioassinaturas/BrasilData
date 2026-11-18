@@ -1,0 +1,4 @@
+# Os CSV embutidos no plugin ficam com LF em qualquer sistema: o cemaden.bin guarda posições
+# em bytes do cemaden.csv, e um CRLF do checkout no Windows as desloca.
+*.csv text eol=lf
+*.bin binary

@@ -12,6 +12,7 @@ use crate::datas::{self, Data};
 use crate::dialogos;
 use crate::dist;
 use crate::estilo;
+use crate::extensoes;
 use crate::gedi;
 use crate::gem15;
 use crate::grade::{self, Escolha, GRADE, Grade};
@@ -1459,12 +1460,12 @@ fn elevacao(celula: Option<f64>) -> Result<Value, String> {
         partes[0].clone()
     } else {
         let m = "BrasilData: mosaico".to_string();
-        host::run("raster.mosaic", json!({"inputs": partes, "name": m}))?;
+        mosaicar(&partes, &m)?;
         temporarias.push(m.clone());
         m
     };
     let recorte = "BrasilData: recorte".to_string();
-    host::run("raster.process", json!({"layer": mosaico, "operation": "clip", "polygon": AREA, "name": recorte}))?;
+    recortar(&mosaico, AREA, &recorte)?;
     temporarias.push(recorte.clone());
     // O Copernicus tem ~30 m: para células maiores, a média dos pixels; senão, bilinear.
     let resampling = if g.celula > 45.0 { "average" } else { "bilinear" };
@@ -1597,7 +1598,7 @@ fn sar_na_grade(pedidos: &[(String, String)], sar: &Sar, g: &Grade, c: [f64; 4],
             host::run("raster.project", json!({"layer": f, "crs": g.epsg, "cellSize": g.celula, "resampling": resampling, "name": q}))?;
             // Só o retângulo da área: os recortes passam bastante dela, e o mosaico de uma
             // mesorregião inteira passaria do limite de 120 milhões de valores de um raster.
-            host::run("raster.process", json!({"layer": q, "operation": "clip", "extent": c, "name": a}))?;
+            recortar_retangulo(q, c, g.celula, a)?;
             temporarias.push(a.clone());
             // O bruto, o filtrado e o projetado saem já, para poupar memória.
             host::run("layer.remove", json!({"layer": [bruto, f, q]}))?;
@@ -1605,11 +1606,11 @@ fn sar_na_grade(pedidos: &[(String, String)], sar: &Sar, g: &Grade, c: [f64; 4],
         let junto = if na_area.len() == 1 {
             na_area[0].clone()
         } else {
-            host::run("raster.mosaic", json!({"inputs": na_area, "name": mosaico}))?;
+            mosaicar(&na_area, &mosaico)?;
             temporarias.push(mosaico.clone());
             mosaico.clone()
         };
-        host::run("raster.process", json!({"layer": junto, "operation": "clip", "polygon": AREA, "name": recorte}))?;
+        recortar(&junto, AREA, &recorte)?;
         temporarias.push(recorte.clone());
         // Já na rede da grade: a extensão dela, sem reamostrar.
         host::run(
@@ -1796,7 +1797,7 @@ fn dist_na_grade(
             // Cada tile na rede da grade (os tiles podem estar em fusos UTM diferentes), só no
             // retângulo da área, como no radar.
             host::run("raster.project", json!({"layer": bruto, "crs": g.epsg, "cellSize": g.celula, "resampling": resampling, "name": q}))?;
-            host::run("raster.process", json!({"layer": q, "operation": "clip", "extent": c, "name": a}))?;
+            recortar_retangulo(q, c, g.celula, a)?;
             temporarias.push(a.clone());
             host::run("layer.remove", json!({"layer": [bruto, q]}))?;
         }
@@ -1804,11 +1805,11 @@ fn dist_na_grade(
         let junto = if na_area.len() == 1 {
             na_area[0].clone()
         } else {
-            host::run("raster.mosaic", json!({"inputs": na_area, "name": mosaico}))?;
+            mosaicar(&na_area, &mosaico)?;
             temporarias.push(mosaico.clone());
             mosaico.clone()
         };
-        host::run("raster.process", json!({"layer": junto, "operation": "clip", "polygon": AREA, "name": recorte}))?;
+        recortar(&junto, AREA, &recorte)?;
         temporarias.push(recorte.clone());
         let saida = if camada == dist::Camada::Data { &na_rede } else { &nome.to_string() };
         host::run(
@@ -1951,6 +1952,57 @@ fn ferramenta(tool: &str, params: Value, nome: &str) -> Result<(), String> {
     Ok(())
 }
 
+/// Se a extensão Imagens do RustGIS 0.7.0 está desligada (módulo [`extensoes`]). Um RustGIS sem
+/// extensões (0.6.0 e antes) não tem o `extension.list`: lá os comandos de raster estão sempre.
+fn sem_imagens() -> bool {
+    host::run("extension.list", json!({})).is_ok_and(|l| extensoes::imagens_desligada(&l))
+}
+
+/// Roda um comando da extensão Imagens; se ela estiver desligada (perguntada antes, ou recusado
+/// agora), roda `sem` no lugar, que faz o mesmo pelas ferramentas do GeoLibre.
+fn com_imagens(comando: &str, params: Value, sem: impl FnOnce() -> Result<(), String>) -> Result<(), String> {
+    if sem_imagens() {
+        return sem();
+    }
+    match host::run(comando, params) {
+        Err(e) if extensoes::recusa_de_extensao(&e) => sem(),
+        r => r.map(|_| ()),
+    }
+}
+
+/// Recorta o raster `camada` pelo polígono da camada `poligono`, numa camada nova `nome`: pelo
+/// `raster.process clip`, ou pelo `geolibre:clip_raster_to_polygon` sem a extensão Imagens.
+fn recortar(camada: &str, poligono: &str, nome: &str) -> Result<(), String> {
+    com_imagens("raster.process", json!({"layer": camada, "operation": "clip", "polygon": poligono, "name": nome}), || {
+        ferramenta("geolibre:clip_raster_to_polygon", json!({"input": camada, "polygons": poligono}), nome)
+    })
+}
+
+/// Recorta o raster `camada` pelo retângulo `c` (oeste, sul, leste, norte, em graus), numa camada
+/// nova `nome`. Sem a extensão Imagens, o `raster.project` faz o mesmo no próprio sistema da
+/// camada, com células `celula` e a origem [0, 0] da grade, sem reamostrar.
+fn recortar_retangulo(camada: &str, c: [f64; 4], celula: f64, nome: &str) -> Result<(), String> {
+    com_imagens("raster.process", json!({"layer": camada, "operation": "clip", "extent": c, "name": nome}), || {
+        host::run("raster.project", json!({"layer": camada, "cellSize": celula, "extent": c, "name": nome})).map(|_| ())
+    })
+}
+
+/// Junta os rasters `entradas` (o primeiro vale onde se sobrepõem) numa camada nova `nome`: pelo
+/// `raster.mosaic`, ou pelo `geolibre:mosaic` sem a extensão Imagens.
+fn mosaicar(entradas: &[String], nome: &str) -> Result<(), String> {
+    com_imagens("raster.mosaic", json!({"inputs": entradas, "name": nome}), || {
+        ferramenta("geolibre:mosaic", json!({"inputs": entradas}), nome)
+    })
+}
+
+/// A diferença `depois` − `antes`, numa camada nova `nome`: pelo `raster.change difference`, ou
+/// pelo `geolibre:subtract` sem a extensão Imagens.
+fn diferenca(antes: &str, depois: &str, nome: &str) -> Result<(), String> {
+    com_imagens("raster.change", json!({"before": antes, "after": depois, "method": "difference", "name": nome}), || {
+        ferramenta("geolibre:subtract", json!({"input1": depois, "input2": antes}), nome)
+    })
+}
+
 /// O radar do Sentinel-1 (OPERA RTC-S1) na área: uma polarização, ou a razão VH/VV (que deixa
 /// as duas no mapa também). Por padrão, a passagem mais recente que cobre a área; por script,
 /// a de um dia.
@@ -1986,7 +2038,7 @@ fn radar(req: &Request, qual: Option<radar::Pol>) -> Result<Value, String> {
         let razao = radar::nome_da_razao(data);
         remover(&[&razao])?;
         // Em dB, a razão VH/VV é a diferença VH − VV.
-        host::run("raster.change", json!({"before": feitas[0], "after": feitas[1], "method": "difference", "name": razao}))?;
+        diferenca(&feitas[0], &feitas[1], &razao)?;
         let (min, max) = radar::ESCALA_DA_RAZAO;
         let _ = host::run("raster.stretch", json!({"layer": razao, "type": "custom", "min": min, "max": max}));
         camada = razao;
@@ -2102,7 +2154,7 @@ fn radar_nisar(req: &Request, qual: Option<nisar::Pol>) -> Result<Value, String>
         let razao = nisar::nome_da_razao(data);
         remover(&[&razao])?;
         // Em dB, a razão HV/HH é a diferença HV − HH.
-        host::run("raster.change", json!({"before": feitas[0], "after": feitas[1], "method": "difference", "name": razao}))?;
+        diferenca(&feitas[0], &feitas[1], &razao)?;
         let (min, max) = nisar::ESCALA_DA_RAZAO;
         let _ = host::run("raster.stretch", json!({"layer": razao, "type": "custom", "min": min, "max": max}));
         camada = razao;
@@ -3207,10 +3259,10 @@ fn gedi_na_area(v: gedi::Variavel, celula: Option<f64>) -> Result<Value, String>
         let mosaico = if na_grade.len() == 1 {
             na_grade[0].clone()
         } else {
-            host::run("raster.mosaic", json!({"inputs": na_grade, "name": junto}))?;
+            mosaicar(&na_grade, &junto)?;
             junto.clone()
         };
-        host::run("raster.process", json!({"layer": mosaico, "operation": "clip", "polygon": AREA, "name": saida}))?;
+        recortar(&mosaico, AREA, saida)?;
         let (min, max) = v.validos();
         host::run("raster.mask", json!({"layer": saida, "min": min, "max": max}))?;
         let (a, b) = v.escala();
@@ -3290,7 +3342,7 @@ fn sol_na_area(req: &Request) -> Result<Value, String> {
             "raster.project",
             json!({"layer": sol::RASTER_1, "crs": g.epsg, "cellSize": g.celula, "extent": GRADE, "resampling": "bilinear", "name": sol::NA_GRADE}),
         )?;
-        host::run("raster.process", json!({"layer": sol::NA_GRADE, "operation": "clip", "polygon": AREA, "name": saida}))?;
+        recortar(sol::NA_GRADE, AREA, &saida)?;
         host::run("raster.mask", json!({"layer": saida, "min": 0.0, "max": 15.0}))?;
         let (rampa, cores) = sol::RAMPA;
         // A rampa já registrada (de um clique anterior) fica como está.
@@ -3424,7 +3476,7 @@ fn previsao_para_grade(c: [f64; 4], celula: Option<f64>, fc: Value, passo: f64, 
             "raster.project",
             json!({"layer": tempo::RASTER, "crs": g.epsg, "cellSize": g.celula, "extent": GRADE, "resampling": "bilinear", "name": tempo::NA_GRADE}),
         )?;
-        host::run("raster.process", json!({"layer": tempo::NA_GRADE, "operation": "clip", "polygon": AREA, "name": saida}))?;
+        recortar(tempo::NA_GRADE, AREA, saida)?;
         host::run("raster.mask", json!({"layer": saida, "min": p.aceitos.0, "max": p.aceitos.1}))?;
         pintar(saida, p);
         Ok(())
@@ -3687,7 +3739,7 @@ fn chuva_do_mes(req: &Request) -> Result<Value, String> {
             "raster.project",
             json!({"layer": nome_da_janela, "crs": g.epsg, "cellSize": g.celula, "extent": GRADE, "resampling": tempo::reamostragem_chirps(g.celula), "name": tempo::NA_GRADE_CHIRPS}),
         )?;
-        host::run("raster.process", json!({"layer": tempo::NA_GRADE_CHIRPS, "operation": "clip", "polygon": AREA, "name": saida}))?;
+        recortar(tempo::NA_GRADE_CHIRPS, AREA, &saida)?;
         host::run("raster.mask", json!({"layer": saida, "min": 0.0, "max": 5000.0}))?;
         pintar(&saida, &pintura);
         Ok(())
@@ -3741,7 +3793,7 @@ fn irrigacao_na_area(celula: Option<f64>) -> Result<Value, String> {
             "raster.project",
             json!({"layer": irrigacao::JANELA, "crs": g.epsg, "cellSize": g.celula, "extent": GRADE, "resampling": irrigacao::reamostragem(g.celula), "name": irrigacao::NA_GRADE}),
         )?;
-        host::run("raster.process", json!({"layer": irrigacao::NA_GRADE, "operation": "clip", "polygon": AREA, "name": saida}))?;
+        recortar(irrigacao::NA_GRADE, AREA, saida)?;
         // O -9 do arquivo e o que não for porcentagem viram sem dado.
         host::run("raster.mask", json!({"layer": saida, "min": 0.0, "max": 100.0}))?;
         let (rampa, cores) = irrigacao::RAMPA;
@@ -3859,7 +3911,7 @@ fn risco_de_fogo(req: &Request) -> Result<Value, String> {
             "raster.project",
             json!({"layer": nome_da_janela, "crs": g.epsg, "cellSize": g.celula, "extent": GRADE, "resampling": risco_fogo::reamostragem(g.celula), "name": risco_fogo::NA_GRADE}),
         )?;
-        host::run("raster.process", json!({"layer": risco_fogo::NA_GRADE, "operation": "clip", "polygon": AREA, "name": saida}))?;
+        recortar(risco_fogo::NA_GRADE, AREA, &saida)?;
         host::run("raster.mask", json!({"layer": saida, "min": 0.0, "max": 1.0}))?;
         // A rampa já registrada (de um clique anterior) fica como está.
         let _ = host::run("ramp.add", json!({"text": risco_fogo::rampa(), "format": "gdal", "name": risco_fogo::RAMPA}));
@@ -4022,7 +4074,7 @@ fn gem15_na_area(req: &Request) -> Result<Value, String> {
                 na_grade[0].clone()
             } else {
                 let m = format!("{PREFIXO}GEM-15 {a:?} junto");
-                host::run("raster.mosaic", json!({"inputs": na_grade, "name": m}))?;
+                mosaicar(&na_grade, &m)?;
                 temporarias.push(m.clone());
                 m
             };
@@ -4036,7 +4088,7 @@ fn gem15_na_area(req: &Request) -> Result<Value, String> {
         } else {
             por_arquivo[0].clone()
         };
-        host::run("raster.process", json!({"layer": inteiro, "operation": "clip", "polygon": AREA, "name": saida}))?;
+        recortar(&inteiro, AREA, saida)?;
         if modelo == gem15::Modelo::Altura {
             let _ = host::run("raster.symbology", json!({"layer": saida, "type": "stretch", "ramp": "YlGn"}));
             let _ = host::run("raster.stretch", json!({"layer": saida, "type": "custom", "min": 0.0, "max": 30.0}));
@@ -4134,7 +4186,7 @@ fn cobertura_clms(req: &Request) -> Result<Value, String> {
     let g = grade_para(c, None)?;
     remover(&[&recorte, &nome])?;
     let feito = (|| -> Result<Value, String> {
-        host::run("raster.process", json!({"layer": bruto, "operation": "clip", "polygon": AREA, "name": recorte}))?;
+        recortar(&bruto, AREA, &recorte)?;
         let r = host::run(
             "raster.project",
             json!({"layer": recorte, "crs": g.epsg, "cellSize": g.celula, "extent": GRADE, "resampling": "mode", "name": nome}),
@@ -4278,10 +4330,10 @@ fn chm_na_area(req: &Request) -> Result<Value, String> {
         let mosaico = if na_grade.len() == 1 {
             na_grade[0].clone()
         } else {
-            host::run("raster.mosaic", json!({"inputs": na_grade, "name": junto}))?;
+            mosaicar(&na_grade, &junto)?;
             junto.clone()
         };
-        host::run("raster.process", json!({"layer": mosaico, "operation": "clip", "polygon": AREA, "name": recortado}))?;
+        recortar(&mosaico, AREA, &recortado)?;
         host::run("raster.function", json!({"layer": recortado, "function": "bandMath", "expression": "b1 - 1", "name": saida}))?;
         // As cores da altura do GEDI, para que as duas se comparem.
         let (rampa, cores) = gedi::Variavel::Altura.rampa();
@@ -4547,15 +4599,17 @@ fn cobertura_recortada(ano: i64) -> Result<Recorte, String> {
     let g = grade_para(c, None)?;
     let classes = mapbiomas::nome_das_classes(ano);
     remover(&[&recorte, &nome, &classes])?;
-    let feito =
-        host::run("raster.process", json!({"layer": bruto, "operation": "clip", "polygon": AREA, "name": recorte})).and_then(|_| {
-            host::run(
-                "raster.project",
-                json!({"layer": recorte, "crs": g.epsg, "cellSize": g.celula, "extent": GRADE, "resampling": "mode", "name": nome}),
-            )
-        });
+    let feito = recortar(&bruto, AREA, &recorte).and_then(|_| {
+        host::run(
+            "raster.project",
+            json!({"layer": recorte, "crs": g.epsg, "cellSize": g.celula, "extent": GRADE, "resampling": "mode", "name": nome}),
+        )
+    });
     remover(&[&bruto, &recorte])?;
     let r = feito?;
+    // As cores e os nomes da legenda oficial: o recorte do GeoLibre (sem a extensão Imagens) perde a
+    // tabela de cores do arquivo, que o raster.process levava junto.
+    host::run("style.importQgis", json!({"layer": nome, "text": mapbiomas::qml()}))?;
     // Uma área grande vem de uma pirâmide do arquivo: as células lidas são maiores que as da grade.
     let piramide = mapbiomas::celula_da_janela(c)
         .map(|m| format!(" A área é grande para 30 m: a janela veio da pirâmide de {} m do arquivo.", m - 1.0))

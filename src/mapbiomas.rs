@@ -199,6 +199,20 @@ pub fn celula_das_classes(c: [f64; 4], celula: f64) -> f64 {
     if n <= MAX_CELULAS_CLASSES { celula } else { celula * (n / MAX_CELULAS_CLASSES).sqrt().ceil() }
 }
 
+/// O estilo do raster recortado, no QML que o `style.importQgis` lê: cada código com a cor e o nome
+/// da legenda oficial. O `raster.process` leva junto a tabela de cores do arquivo, mas o recorte do
+/// GeoLibre (o caminho sem a extensão Imagens do RustGIS 0.7.0) a perde: com este estilo, os dois
+/// saem iguais, e o painel Camadas mostra o nome de cada classe.
+pub fn qml() -> String {
+    let xml = |t: &str| t.replace('&', "&amp;").replace('"', "&quot;").replace('<', "&lt;").replace('>', "&gt;");
+    let mut q = String::from(r#"<qgis><pipe><rasterrenderer type="paletted" band="1" opacity="1"><colorPalette>"#);
+    for (v, nome, cor) in CLASSES_10 {
+        q.push_str(&format!(r#"<paletteEntry value="{v}" color="{cor}" alpha="255" label="{}"/>"#, xml(nome)));
+    }
+    q.push_str("</colorPalette></rasterrenderer></pipe></qgis>");
+    q
+}
+
 /// A expressão do `edit.calculateField` que dá ao campo `classe` o nome da classe de `VALUE`.
 pub fn expressao_das_classes() -> String {
     let casos: String = CLASSES_10.iter().map(|(v, nome, _)| format!(" WHEN VALUE = {v} THEN '{nome}'")).collect();
@@ -246,6 +260,14 @@ mod tests {
         assert!(u.ends_with("&pixelValue=1&pixelValue=2&pixelValue=3&tenantId=mapbiomas"));
         assert!(eh_da_irrigacao(&camada_da_irrigacao(2024)));
         assert!(!eh_da_irrigacao("BrasilData: Uso e cobertura 2024 (MapBiomas)"));
+    }
+
+    #[test]
+    fn o_estilo_do_recorte_tem_as_cores_e_os_nomes_da_legenda() {
+        let q = qml();
+        assert!(q.contains(r##"<paletteEntry value="3" color="#1f8d49" alpha="255" label="Formação Florestal"/>"##));
+        assert_eq!(q.matches("<paletteEntry ").count(), CLASSES_10.len());
+        assert!(q.starts_with("<qgis>") && q.ends_with("</qgis>"));
     }
 
     #[test]
