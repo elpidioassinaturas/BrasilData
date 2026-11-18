@@ -26,8 +26,8 @@ um subtópico e os itens do menu são as camadas, com a fonte entre parênteses.
 categorias temáticas da ISO 19115 e do Perfil MGB da INDE, juntadas para caber nos 8 grupos que o
 RustGIS aceita. O grupo Área tem o painel **Área de trabalho**, a Grade do projeto, o comando
 Fontes, a verificação de atualização e o **Sobre**: a autoria, a versão, a licença, o repositório,
-as fontes dos dados e como contribuir, num aviso curto e, inteiro, em **Sobre o BrasilData**, no
-fim do painel.
+as fontes dos dados e como contribuir. A janela do botão mostra a autoria ao abrir; no fim do
+painel, as abas **Autoria**, **Fontes dos dados** e **Como contribuir** mostram cada parte num clique.
 
 Os comandos que têm escolhas abrem uma **janela** com os seus parâmetros; o **Executar** roda o
 comando e mostra embaixo o que ele fez. São eles:
