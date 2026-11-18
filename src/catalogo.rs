@@ -3005,6 +3005,66 @@ pub const FICHAS: &[Ficha] = &[
         texto: "Índice de vegetação (cubo do INPE)\nO NDVI ou o EVI do cubo de dados do INPE (Brazil Data Cube), resumido num período: a média, a máxima, a mínima ou o desvio das datas de 16 dias.\nFonte: INPE (Brazil Data Cube).\nPeríodo: Sentinel-2 desde 2017, Landsat desde 1990, CBERS-4 desde 2016, MODIS desde 2000, até a data mais recente.\nResolução ou escala: 10 m (Sentinel-2), 30 m (Landsat), 64 m (CBERS-4 WFI) ou 232 m (MODIS).\nUnidades: índice, de -1 a 1 (a vegetação vai de 0,2 a 0,9).\nLegenda: Escala contínua do marrom (solo exposto) ao verde (vegetação densa), de 0 a 0,9 no NDVI e de 0 a 0,8 no EVI.\nCuidados: Os compostos de 16 dias guardam o pixel mais limpo, mas nuvens e sombras persistentes ainda aparecem; um período curto na estação chuvosa pode ter falhas. O desvio-padrão mede a variação, não o verde.\nLicença: Sentinel-2: dados Copernicus, livres com atribuição; Landsat: domínio público (USGS); CBERS-4: CC BY 4.0 (INPE); MODIS: sem restrição de uso (NASA LP DAAC).\nCitação: Brazil Data Cube (INPE), cubos de 16 dias S2-16D-2, LANDSAT-16D-1, CBERS4-WFI-16D-2 e MOD13Q1 v6.1; Ferreira et al. 2020, Earth Observation Data Cubes for Brazil, Remote Sensing 12(24), 4033, doi:10.3390/rs12244033.\nApp web: não: só no desktop (o resumo do cubo, cube.reduce, lê o STAC no desktop).\nFicha e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/bdc-indice.md",
     },
     Ficha {
+        id: "jaxa-chuva",
+        o_que_e: "A chuva estimada por satélite do GSMaP, ajustada com pluviômetros, em mm por dia, resumida nos meses do período.",
+        periodo: "desde março de 2000, por mês",
+        resolucao: "0,1° (cerca de 11 km)",
+        unidades: "mm por dia",
+        legenda: "Escala do branco ao azul, de 0 a 12 mm por dia.",
+        cuidados: "Estimativa por satélite: a chuva forte e localizada (temporais) fica diluída na célula de 11 km; num município pequeno o mapa tem poucas células.",
+        web: "não: só no desktop (o resumo do cubo, cube.reduce, lê o STAC no desktop)",
+        pagina: "https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/jaxa-chuva.md",
+        texto: "Chuva por satélite (GSMaP, JAXA)\nA chuva estimada por satélite do GSMaP, ajustada com pluviômetros, em mm por dia, resumida nos meses do período.\nFonte: JAXA (agência espacial do Japão).\nPeríodo: desde março de 2000, por mês.\nResolução ou escala: 0,1° (cerca de 11 km).\nUnidades: mm por dia.\nLegenda: Escala do branco ao azul, de 0 a 12 mm por dia.\nCuidados: Estimativa por satélite: a chuva forte e localizada (temporais) fica diluída na célula de 11 km; num município pequeno o mapa tem poucas células.\nLicença: termos do JAXA Earth: uso livre, com o crédito \"JAXA\" e o nome do conjunto; uso comercial, avisando a JAXA antes.\nCitação: Japan Aerospace Exploration Agency, GSMaP (Monthly), v6, doi:10.57746/EO.01gs73bktym5xwr10j34rwqgj8, pelo JAXA Earth API.\nApp web: não: só no desktop (o resumo do cubo, cube.reduce, lê o STAC no desktop).\nFicha e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/jaxa-chuva.md",
+    },
+    Ficha {
+        id: "jaxa-umidade",
+        o_que_e: "A umidade da camada de cima do solo, do radiômetro de micro-ondas AMSR2 (GCOM-W), resumida nos meses do período.",
+        periodo: "desde julho de 2012, por mês",
+        resolucao: "0,1° (cerca de 11 km)",
+        unidades: "% (volume de água no solo)",
+        legenda: "Escala do marrom (seco) ao verde-azulado (úmido), de 0 a 30 %.",
+        cuidados: "Lê só os primeiros centímetros; subestima sob floresta densa e exagera perto de rios e do mar. Use como padrão relativo.",
+        web: "não: só no desktop (o resumo do cubo, cube.reduce, lê o STAC no desktop)",
+        pagina: "https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/jaxa-umidade.md",
+        texto: "Umidade do solo (AMSR2, JAXA)\nA umidade da camada de cima do solo, do radiômetro de micro-ondas AMSR2 (GCOM-W), resumida nos meses do período.\nFonte: JAXA (agência espacial do Japão).\nPeríodo: desde julho de 2012, por mês.\nResolução ou escala: 0,1° (cerca de 11 km).\nUnidades: % (volume de água no solo).\nLegenda: Escala do marrom (seco) ao verde-azulado (úmido), de 0 a 30 %.\nCuidados: Lê só os primeiros centímetros; subestima sob floresta densa e exagera perto de rios e do mar. Use como padrão relativo.\nLicença: termos do JAXA Earth: uso livre, com o crédito \"JAXA\" e o nome do conjunto; uso comercial, avisando a JAXA antes.\nCitação: Japan Aerospace Exploration Agency, GCOM-W/AMSR2 L3 Soil Moisture Content (1-Month, 0.1 deg), v3, doi:10.57746/EO.01gs73b17zekqwyj4hh9xpqgy7, pelo JAXA Earth API.\nApp web: não: só no desktop (o resumo do cubo, cube.reduce, lê o STAC no desktop).\nFicha e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/jaxa-umidade.md",
+    },
+    Ficha {
+        id: "jaxa-temperatura",
+        o_que_e: "A temperatura da superfície da terra, do sensor SGLI (GCOM-C), de dia ou à noite, resumida nos meses do período.",
+        periodo: "desde 2018, por mês",
+        resolucao: "1/24° (cerca de 4,6 km)",
+        unidades: "°C",
+        legenda: "Escala do azul ao vermelho, de 10 a 45 °C.",
+        cuidados: "É a temperatura da superfície (solo, telhado, copa), não a do ar: de dia passa da do ar em vários graus. Meses nublados têm menos observações.",
+        web: "não: só no desktop (o resumo do cubo, cube.reduce, lê o STAC no desktop)",
+        pagina: "https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/jaxa-temperatura.md",
+        texto: "Temperatura da superfície (GCOM-C, JAXA)\nA temperatura da superfície da terra, do sensor SGLI (GCOM-C), de dia ou à noite, resumida nos meses do período.\nFonte: JAXA (agência espacial do Japão).\nPeríodo: desde 2018, por mês.\nResolução ou escala: 1/24° (cerca de 4,6 km).\nUnidades: °C.\nLegenda: Escala do azul ao vermelho, de 10 a 45 °C.\nCuidados: É a temperatura da superfície (solo, telhado, copa), não a do ar: de dia passa da do ar em vários graus. Meses nublados têm menos observações.\nLicença: termos do JAXA Earth: uso livre, com o crédito \"JAXA\" e o nome do conjunto; uso comercial, avisando a JAXA antes.\nCitação: Japan Aerospace Exploration Agency, GCOM-C/SGLI L3 Map Land surface temperature (LST) (1-Month, 1/24 deg), v3, doi:10.57746/EO.01gs73bfs5sbzhyxg4j9ytajsa, pelo JAXA Earth API.\nApp web: não: só no desktop (o resumo do cubo, cube.reduce, lê o STAC no desktop).\nFicha e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/jaxa-temperatura.md",
+    },
+    Ficha {
+        id: "jaxa-evapotranspiracao",
+        o_que_e: "A evapotranspiração (a água que o solo e as plantas devolvem ao ar), do JASMES com o sensor SGLI (GCOM-C), resumida nos meses do período.",
+        periodo: "desde abril de 2025, por mês",
+        resolucao: "0,05° (cerca de 5,5 km)",
+        unidades: "mm por dia",
+        legenda: "Escala do amarelo ao verde, de 0 a 6 mm por dia.",
+        cuidados: "Estimada por um modelo com dados de satélite; os meses antes de abril de 2025 não estão no STAC do JAXA Earth.",
+        web: "não: só no desktop (o resumo do cubo, cube.reduce, lê o STAC no desktop)",
+        pagina: "https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/jaxa-evapotranspiracao.md",
+        texto: "Evapotranspiração (GCOM-C, JAXA)\nA evapotranspiração (a água que o solo e as plantas devolvem ao ar), do JASMES com o sensor SGLI (GCOM-C), resumida nos meses do período.\nFonte: JAXA (agência espacial do Japão).\nPeríodo: desde abril de 2025, por mês.\nResolução ou escala: 0,05° (cerca de 5,5 km).\nUnidades: mm por dia.\nLegenda: Escala do amarelo ao verde, de 0 a 6 mm por dia.\nCuidados: Estimada por um modelo com dados de satélite; os meses antes de abril de 2025 não estão no STAC do JAXA Earth.\nLicença: termos do JAXA Earth: uso livre, com o crédito \"JAXA\" e o nome do conjunto; uso comercial, avisando a JAXA antes.\nCitação: Japan Aerospace Exploration Agency, JASMES Evapotranspiration (ET) (Monthly, 0.05 deg), v1, doi:10.57746/EO.01jjxj3qr7wrdzskzjs9cmxhnf, pelo JAXA Earth API.\nApp web: não: só no desktop (o resumo do cubo, cube.reduce, lê o STAC no desktop).\nFicha e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/jaxa-evapotranspiracao.md",
+    },
+    Ficha {
+        id: "jaxa-seca",
+        o_que_e: "O índice de precipitação padronizado (SPI) do GSMaP: quanto a chuva do mês fugiu da normal, em desvios-padrão, resumido nos meses do período.",
+        periodo: "desde junho de 2019, por mês",
+        resolucao: "cerca de 22 km",
+        unidades: "desvios-padrão (sem unidade)",
+        legenda: "Escala do marrom (seca, -2) ao verde (chuva acima do normal, +2).",
+        cuidados: "Abaixo de -1 é seca; abaixo de -2, seca extrema. A normal é a do próprio GSMaP. Num município pequeno, o mapa tem uma ou duas células.",
+        web: "não: só no desktop (o resumo do cubo, cube.reduce, lê o STAC no desktop)",
+        pagina: "https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/jaxa-seca.md",
+        texto: "Índice de seca SPI (GSMaP, JAXA)\nO índice de precipitação padronizado (SPI) do GSMaP: quanto a chuva do mês fugiu da normal, em desvios-padrão, resumido nos meses do período.\nFonte: JAXA (agência espacial do Japão).\nPeríodo: desde junho de 2019, por mês.\nResolução ou escala: cerca de 22 km.\nUnidades: desvios-padrão (sem unidade).\nLegenda: Escala do marrom (seca, -2) ao verde (chuva acima do normal, +2).\nCuidados: Abaixo de -1 é seca; abaixo de -2, seca extrema. A normal é a do próprio GSMaP. Num município pequeno, o mapa tem uma ou duas células.\nLicença: termos do JAXA Earth: uso livre, com o crédito \"JAXA\" e o nome do conjunto; uso comercial, avisando a JAXA antes.\nCitação: Japan Aerospace Exploration Agency, GSMaP SPI, Standardized Precipitation Index (Monthly), pelo JAXA Earth API.\nApp web: não: só no desktop (o resumo do cubo, cube.reduce, lê o STAC no desktop).\nFicha e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/jaxa-seca.md",
+    },
+    Ficha {
         id: "gedi-altura",
         o_que_e: "A altura do dossel (rh98): a altura em que volta 98% da energia do laser do GEDI, perto do topo das copas.",
         periodo: "disparos de 18/04/2019 a 16/03/2023",
@@ -3356,7 +3416,7 @@ pub const FICHAS: &[Ficha] = &[
 
 /// O texto da seção Sobre (o do painel Área de trabalho): autoria, versão, licença, repositório,
 /// fontes e como contribuir.
-pub const SOBRE: &str = "BrasilData 0.1.35, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Elpídio Filho, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nFontes dos dados: IBGE, IDE-Sisema, INPE, ANA, ANP, ANEEL, INCRA, ANM, Kuzma, MMA, ICMBio, FUNAI, Serviço Florestal Brasileiro, IBAMA, DNIT e MapBiomas, pelos serviços de cada órgão; Copernicus DEM GLO-30 (DLR e Airbus, pelo espelho da OpenTopography); Banco Central (Pix e crédito rural); TSE; Novo CAGED (IPEA Data); Ministério da Saúde (CNES, pelo geobr do Ipea); Open-Meteo (previsão do ECMWF, da NOAA e do DWD) e CHIRPS v3 (Climate Hazards Center, UCSB).\n\nComo contribuir: sentiu falta de algum dado? Abra uma issue em https://github.com/elpidioassinaturas/BrasilData/issues com o nome do dado, o órgão que o publica, o endereço do serviço (WFS, ArcGIS REST, API ou arquivo) e para que você o usaria. Para trazer a fonte você mesmo, acrescente uma linha ao fontes.csv, rode python scripts/gerar.py e abra um pull request. Correções, avisos de serviço fora do ar e relatos de uso também são bem-vindos.";
+pub const SOBRE: &str = "BrasilData 0.1.36, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Elpídio Filho, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nFontes dos dados: IBGE, IDE-Sisema, INPE, ANA, ANP, ANEEL, INCRA, ANM, Kuzma, MMA, ICMBio, FUNAI, Serviço Florestal Brasileiro, IBAMA, DNIT e MapBiomas, pelos serviços de cada órgão; Copernicus DEM GLO-30 (DLR e Airbus, pelo espelho da OpenTopography); Banco Central (Pix e crédito rural); TSE; Novo CAGED (IPEA Data); Ministério da Saúde (CNES, pelo geobr do Ipea); Open-Meteo (previsão do ECMWF, da NOAA e do DWD) e CHIRPS v3 (Climate Hazards Center, UCSB).\n\nComo contribuir: sentiu falta de algum dado? Abra uma issue em https://github.com/elpidioassinaturas/BrasilData/issues com o nome do dado, o órgão que o publica, o endereço do serviço (WFS, ArcGIS REST, API ou arquivo) e para que você o usaria. Para trazer a fonte você mesmo, acrescente uma linha ao fontes.csv, rode python scripts/gerar.py e abra um pull request. Correções, avisos de serviço fora do ar e relatos de uso também são bem-vindos.";
 
 /// O aviso do botão Sobre: o resumo do [`SOBRE`].
-pub const SOBRE_AVISO: &str = "BrasilData 0.1.35, de Elpídio Filho (LABGEO/UFV), sob a licença MIT: https://github.com/elpidioassinaturas/BrasilData. A autoria, as fontes dos dados e como contribuir estão em Sobre o BrasilData, no fim do painel Área de trabalho.";
+pub const SOBRE_AVISO: &str = "BrasilData 0.1.36, de Elpídio Filho (LABGEO/UFV), sob a licença MIT: https://github.com/elpidioassinaturas/BrasilData. A autoria, as fontes dos dados e como contribuir estão em Sobre o BrasilData, no fim do painel Área de trabalho.";

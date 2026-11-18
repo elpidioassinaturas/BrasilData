@@ -19,6 +19,7 @@ use crate::gem15;
 use crate::grade::{self, Escolha, GRADE, Grade};
 use crate::indicadores::{self, Fonte};
 use crate::irrigacao;
+use crate::jaxa;
 use crate::layout;
 use crate::malhas;
 use crate::mapbiomas;
@@ -195,6 +196,11 @@ fn executar_comando(req: Request) -> Result<Value, String> {
         "gem15" => gem15_na_area(&req),
         "chm-altura" => chm_na_area(&req),
         "bdc-indice" => bdc_indice(&req),
+        "jaxa-chuva" => jaxa_na_area(&req, jaxa::Variavel::Chuva),
+        "jaxa-umidade" => jaxa_na_area(&req, jaxa::Variavel::Umidade),
+        "jaxa-temperatura" => jaxa_na_area(&req, jaxa::Variavel::Temperatura(turno_do_jaxa(&req)?)),
+        "jaxa-evapotranspiracao" => jaxa_na_area(&req, jaxa::Variavel::Evapotranspiracao),
+        "jaxa-seca" => jaxa_na_area(&req, jaxa::Variavel::Seca),
         "clms-cobertura" => cobertura_clms(&req),
         "radar-vv" => radar(&req, Some(radar::Pol::Vv)),
         "radar-vh" => radar(&req, Some(radar::Pol::Vh)),
@@ -1408,6 +1414,8 @@ fn citacoes() -> Result<(Vec<Value>, String), String> {
             lista.push(json!({"layer": n, "source": chm::CITACAO, "license": chm::LICENCA}));
         } else if let Some(sat) = bdc::satelite_da_camada(&n) {
             lista.push(json!({"layer": n, "source": sat.citacao(), "license": sat.licenca()}));
+        } else if let Some(v) = jaxa::variavel_da_camada(&n) {
+            lista.push(json!({"layer": n, "source": v.citacao(), "license": jaxa::LICENCA}));
         } else if gem15::eh_do_gem15(&n) {
             lista.push(json!({"layer": n, "source": gem15::CITACAO, "license": gem15::LICENCA}));
         } else if n == ELEVACAO {
@@ -4487,6 +4495,132 @@ fn bdc_indice(req: &Request) -> Result<Value, String> {
         "layer": nome, "satellite": s.id(), "collection": s.colecao(), "index": i.banda(), "stat": e.stat(),
         "start": inicio.iso(), "end": fim.iso(), "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula,
     }))
+}
+
+/// Um dado mensal do JAXA Earth na área ([`jaxa`]), resumido num período (a média, a máxima, a
+/// mínima ou o desvio dos meses): lido só na área pelo `cube.reduce` do RustGIS na coleção estática
+/// do conjunto, convertido para a unidade do texto, posto na grade do projeto e recortado pelo
+/// contorno. Sem período, os 3 meses até o último com dados (lido no `collection.json`).
+fn jaxa_na_area(req: &Request, v: jaxa::Variavel) -> Result<Value, String> {
+    let (c, na_area) = retangulo()?;
+    if !na_area {
+        return Err("escolha a área primeiro (painel Área de trabalho, ou Área: seleção)".into());
+    }
+    if !tem_parametro("cube.reduce", "collection")? {
+        return Err("os dados do JAXA Earth precisam de um RustGIS que resuma um cubo STAC na área (cube.reduce, desde a 0.6.0)".into());
+    }
+    let e = match req.str("estatistica") {
+        Some(t) => bdc::Estatistica::ler(t).ok_or(format!("estatística '{t}': use media, maxima, minima ou desvio"))?,
+        None => bdc::Estatistica::Media,
+    };
+    let data = |k: &str| -> Result<Option<Data>, String> {
+        req.str(k).map(|t| bdc::ler_data(t).ok_or(format!("a data '{t}' não é dd/mm/aaaa"))).transpose()
+    };
+    let (inicio, fim) = match (data("inicio")?, data("fim")?) {
+        (Some(a), Some(b)) => (a, b),
+        (a, b) => {
+            let r = match buscar_varios(&[v.colecao()])? {
+                Ok(r) => r,
+                Err(p) => return Ok(p),
+            };
+            let ultimo = r.first().and_then(jaxa::ultimo_mes).ok_or("o JAXA Earth não disse o último mês do conjunto")?;
+            let (i, f) = jaxa::periodo_padrao(ultimo);
+            (a.unwrap_or(i), b.unwrap_or(f))
+        }
+    };
+    jaxa::conferir_periodo(v, inicio, fim)?;
+    let g = grade_para(c, req.f64("celula"))?;
+    let nome = jaxa::camada(v, e, inicio, fim);
+    let lido = format!("{nome} (lido)");
+    let convertido = format!("{nome} (convertido)");
+    let na_grade = format!("{nome} (na grade)");
+    // O que um clique anterior leu serve: no app, o comando roda de novo quando a leitura chega.
+    // Nada se tira antes da leitura (ver executar).
+    if !nomes()?.contains(&lido) {
+        let r = host::run(
+            "cube.reduce",
+            json!({
+                "url": v.colecao(), "collection": v.conjunto(), "asset": v.banda(), "bbox": c,
+                "start": inicio.iso(), "end": fim.iso(), "stat": e.stat(), "name": lido,
+            }),
+        )
+        .map_err(|e| {
+            if falha_passageira(&e) || e.contains("timeout") {
+                format!("o JAXA Earth não respondeu agora: tente de novo daqui a pouco ({e})")
+            } else if e.contains("no item") {
+                format!("o JAXA Earth não tem este dado na área de {} a {}", inicio.texto(), fim.texto())
+            } else {
+                e
+            }
+        })?;
+        if pendente(&r) {
+            avisar(&format!(
+                "{} ({}, JAXA Earth): lendo a área de {} a {}; a camada vem quando chegar",
+                v.titulo().0,
+                v.fonte(),
+                inicio.texto(),
+                fim.texto()
+            ));
+            return Ok(r);
+        }
+    }
+    remover(&[&nome, &convertido, &na_grade])?;
+    let feito = (|| -> Result<(), String> {
+        // As células do JAXA (de 2,8 a 11 km) são maiores que as da grade: bilinear.
+        let origem = match v.expressao(e) {
+            Some(x) => {
+                host::run("raster.function", json!({"layer": lido, "function": "bandMath", "expression": x, "name": convertido}))?;
+                convertido.clone()
+            }
+            None => lido.clone(),
+        };
+        host::run(
+            "raster.project",
+            json!({"layer": origem, "crs": g.epsg, "cellSize": g.celula, "extent": GRADE, "resampling": "bilinear", "name": na_grade}),
+        )?;
+        recortar(&na_grade, AREA, &nome)?;
+        let (rampa, cores) = v.rampa();
+        let _ = host::run("ramp.add", json!({"text": cores, "format": "gdal", "name": rampa}));
+        if host::run("raster.symbology", json!({"layer": nome, "type": "stretch", "ramp": rampa})).is_err() {
+            host::run("raster.symbology", json!({"layer": nome, "type": "stretch", "ramp": "Viridis"}))?;
+        }
+        if e != bdc::Estatistica::Desvio {
+            let (a, b) = v.escala();
+            let _ = host::run("raster.stretch", json!({"layer": nome, "type": "custom", "min": a, "max": b}));
+        }
+        Ok(())
+    })();
+    remover(&[&lido, &convertido, &na_grade])?;
+    feito?;
+    let media = host::run("raster.info", json!({"layer": nome}))
+        .ok()
+        .and_then(|i| i["bands"][0]["mean"].as_f64())
+        .map(|m| format!("; média na área: {}{}", format!("{m:.2}").replace('.', ","), com_espaco(v.unidade())))
+        .unwrap_or_default();
+    avisar(&format!(
+        "{}: dos meses do JAXA Earth ({}){}, na grade do projeto, {} (as células do JAXA, de 2,8 a 11 km, interpoladas){media}",
+        nome.trim_start_matches(PREFIXO),
+        v.conjunto(),
+        if v.unidade().is_empty() { String::new() } else { format!(", em {}", v.unidade()) },
+        g.texto()
+    ));
+    Ok(json!({
+        "layer": nome, "dataset": v.conjunto(), "band": v.banda(), "unit": v.unidade(), "stat": e.stat(),
+        "start": inicio.iso(), "end": fim.iso(), "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula,
+    }))
+}
+
+/// " mm/dia", ou nada sem unidade.
+fn com_espaco(unidade: &str) -> String {
+    if unidade.is_empty() { String::new() } else { format!(" {unidade}") }
+}
+
+/// O turno da temperatura do JAXA (`turno`: dia, o padrão, ou noite).
+fn turno_do_jaxa(req: &Request) -> Result<jaxa::Turno, String> {
+    match req.str("turno") {
+        Some(t) => jaxa::Turno::ler(t).ok_or(format!("turno '{t}': use dia ou noite")),
+        None => Ok(jaxa::Turno::Dia),
+    }
 }
 
 /// A altura do dossel da Meta e do WRI a cerca de 1 m na área ([`chm`]): a janela da área em cada

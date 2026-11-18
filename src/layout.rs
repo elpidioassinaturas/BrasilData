@@ -36,6 +36,7 @@ const NOTA_IRRIGACAO_MAPBIOMAS: &str = "Cores da legenda oficial do MapBiomas: r
 const NOTA_COBERTURA_MAPBIOMAS: &str =
     "Cores da legenda oficial do MapBiomas (brasil.mapbiomas.org). Mapa do Brasil inteiro, não recortado pela área.";
 const NOTA_RISCO_FOGO: &str = "Perigo meteorológico de fogo do modelo do INPE (versão 11), não a ocorrência de fogo. Classes do INPE: mínimo, abaixo de 0,15; baixo, de 0,15 a 0,40; médio, de 0,40 a 0,70; alto, de 0,70 a 0,95; crítico, acima de 0,95.";
+const NOTA_JAXA: &str = "Médias mensais do JAXA Earth em células de 2,8 a 11 km, interpoladas para a grade: mostram o padrão regional, não o detalhe de cada lugar.";
 const NOTA_BDC: &str = "Compostos de 16 dias do cubo de dados do INPE (Brazil Data Cube), com o pixel mais limpo de cada período; nuvens e sombras persistentes ainda podem aparecer.";
 const NOTA_CHM: &str = "Altura estimada por um modelo de IA (DINOv3) sobre imagens de satélite de alta resolução de datas diferentes; 0 é sem árvore (ou sem dado).";
 const NOTA_GEM15: &str = "De imagens estéreo de satélite adquiridas até 2024; alturas no geoide EGM96. Água e superfícies sem textura ficam sem dado; sob mata densa, o terreno é estimado.";
@@ -55,9 +56,19 @@ fn data_no_nome(n: &str) -> Option<&str> {
 const NOTA_NISAR_COR: &str = "Vermelho: HH (−11 a −1 dB); verde: HV (−18 a −8 dB); azul: HH − HV (4 a 11 dB). Cidade em rosa e magenta (eco duplo das construções), mata em verde-claro (volume das copas), pasto e solo exposto em azul e roxo, água escura.";
 
 /// A receita da camada `nome`, se o layout a conhece.
-/// ", de 01/06/2025 a 31/08/2025" de um nome do cubo do INPE, ou nada.
+/// O nome antes do período e o período ("01/06/2025 a 31/08/2025"), cortados no " de " seguido de
+/// uma data: "Temperatura da superfície de dia média de 01/08/2026 a …" tem outro " de " antes.
+fn resumo_e_periodo(n: &str) -> (&str, Option<&str>) {
+    let corte = n.match_indices(" de ").map(|(i, _)| i).find(|&i| n[i + 4..].starts_with(|c: char| c.is_ascii_digit()));
+    match corte {
+        Some(i) => (&n[..i], n[i + 4..].split_once(" (").map(|(p, _)| p)),
+        None => (n, None),
+    }
+}
+
+/// ", de 01/06/2025 a 31/08/2025" de um nome do cubo do INPE ou do JAXA, ou nada.
 fn periodo_no_nome(n: &str) -> String {
-    n.split_once(" de ").and_then(|(_, r)| r.split_once(" (")).map(|(p, _)| format!(", de {p}")).unwrap_or_default()
+    resumo_e_periodo(n).1.map(|p| format!(", de {p}")).unwrap_or_default()
 }
 
 pub fn receita(nome: &str) -> Option<Receita> {
@@ -162,12 +173,22 @@ pub fn receita(nome: &str) -> Option<Receita> {
             nota: Some(NOTA_IRRIGACAO),
         });
     }
+    if let Some(v) = crate::jaxa::variavel_da_camada(nome) {
+        let resumo = resumo_e_periodo(n).0;
+        let unidade = if v.unidade().is_empty() { String::new() } else { format!(" ({})", v.unidade()) };
+        return Some(Receita {
+            subtitulo: format!("{resumo} pelo JAXA Earth ({}, meses){}", v.fonte(), periodo_no_nome(n)),
+            barra: Some((format!("{}{unidade}", resumo), 8)),
+            legenda: None,
+            nota: Some(NOTA_JAXA),
+        });
+    }
     if let Some(s) = crate::bdc::satelite_da_camada(nome)
         && !crate::bdc::eh_serie(nome)
     {
         // "NDVI médio de 01/06/2025 a 31/08/2025": o índice é a primeira ou a última palavra
         // antes do período ("Desvio do NDVI").
-        let resumo = n.split(" de ").next().unwrap_or(n);
+        let resumo = resumo_e_periodo(n).0;
         let indice = if resumo.contains("EVI") { "EVI" } else { "NDVI" };
         return Some(Receita {
             subtitulo: format!("{} pelo cubo de dados do INPE ({}, 16 dias){}", resumo, s.nome(), periodo_no_nome(n)),
@@ -379,6 +400,11 @@ mod tests {
     fn as_outras_receitas() {
         assert_eq!(receita("BrasilData: Elevação (Copernicus GLO-30)").unwrap().barra, Some(("Altitude (m)".into(), 5)));
         assert_eq!(receita(crate::chm::CAMADA).unwrap().barra, Some(("Altura do dossel (m)".into(), 8)));
+        let t = receita("BrasilData: Temperatura da superfície de dia média de 01/08/2026 a 31/10/2026 (GCOM-C, JAXA Earth)").unwrap();
+        assert_eq!(t.subtitulo, "Temperatura da superfície de dia média pelo JAXA Earth (GCOM-C, meses), de 01/08/2026 a 31/10/2026");
+        assert_eq!(t.barra, Some(("Temperatura da superfície de dia média (°C)".into(), 8)));
+        let b = receita("BrasilData: NDVI médio de 01/06/2025 a 31/08/2025 (Sentinel-2, cubo do INPE)").unwrap();
+        assert_eq!(b.subtitulo, "NDVI médio pelo cubo de dados do INPE (Sentinel-2, 16 dias), de 01/06/2025 a 31/08/2025");
         assert_eq!(receita(crate::gem15::Modelo::Altura.camada()).unwrap().barra, Some(("Altura acima do terreno (m)".into(), 5)));
         let r = receita("BrasilData: Radar VV em dB (Sentinel-1, 26/10/2026)").unwrap();
         assert_eq!(r.subtitulo, "Radar VV do Sentinel-1 em 26/10/2026, corrigido do relevo (OPERA RTC-S1)");

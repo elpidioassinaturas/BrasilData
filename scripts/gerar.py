@@ -37,7 +37,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.35"
+VERSAO = "0.1.36"
 
 # As escolhas das janelas dos comandos: o texto que a janela manda é o da escolha, e o
 # src/dialogos.rs o traduz no valor do parâmetro (um teste confere que ele conhece todas).
@@ -70,6 +70,15 @@ MODELOS_GEM15 = ["Terreno nu (DTM)", "Superfície, com vegetação e construçõ
 SATELITES_BDC = ["Sentinel-2 (10 m, desde 2017)", "Landsat (30 m, desde 1990)", "CBERS-4 WFI (64 m, desde 2016)", "MODIS (250 m, desde 2000)"]
 INDICES_BDC = ["NDVI", "EVI"]
 ESTATISTICAS_BDC = ["Média das datas", "Máxima", "Mínima", "Desvio-padrão"]
+# As escolhas do turno da temperatura do JAXA (as mesmas de src/dialogos.rs).
+TURNOS_JAXA = ["De dia (por volta das 10h30)", "À noite (por volta das 22h30)"]
+CAMPOS_JAXA = [
+    {"name": "inicio", "label": "Início (dd/mm/aaaa)", "kind": "text", "help": "O primeiro dia do período (vale o mês dele). Vazio: os 3 meses até o último com dados."},
+    {"name": "fim", "label": "Fim (dd/mm/aaaa)", "kind": "text", "help": "O último dia do período. Vazio: o fim do último mês com dados. Até 5 anos."},
+    {"name": "estatistica", "label": "Resumo dos meses", "kind": "choice", "required": True, "choices": ESTATISTICAS_BDC, "default": ESTATISTICAS_BDC[0], "help": "A média dos meses do período, a máxima, a mínima ou o desvio-padrão (o quanto variou)."},
+]
+PARAMS_JAXA = "\"inicio\"?, \"fim\"?: dd/mm/aaaa ou aaaa-mm-dd (padrão: os 3 meses até o último com dados), \"estatistica\"?: \"media\" (padrão) | \"maxima\" | \"minima\" | \"desvio\", \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)"
+FIM_JAXA = " Do JAXA Earth (a agência espacial do Japão), por mês, lido só na área pelo RustGIS (sem login), posto na grade do projeto (as células do JAXA são de 2,8 a 11 km: o mapa mostra o padrão regional) e recortado pelo contorno. Sem período, os 3 meses até o último com dados. Uso livre com o crédito \"JAXA\"; uso comercial, avisando a JAXA antes. Precisa de um RustGIS com o resumo de um cubo STAC (cube.reduce, desde a 0.6.0); só no app desktop e no rustgis-cli."
 CAMPOS_BDC = [
     {"name": "satelite", "label": "Satélite", "kind": "choice", "required": True, "choices": SATELITES_BDC, "default": SATELITES_BDC[0], "help": "O cubo de 16 dias do INPE: o Sentinel-2 tem o detalhe (10 m) e começa em 2017; o Landsat vai até 1990, a 30 m; o CBERS-4 WFI, satélite sino-brasileiro, a 64 m; o MODIS, a 250 m, desde 2000, para áreas grandes."},
     {"name": "indice", "label": "Índice", "kind": "choice", "required": True, "choices": INDICES_BDC, "default": INDICES_BDC[0], "help": "O NDVI mede o verde da vegetação; o EVI satura menos nas florestas densas."},
@@ -785,6 +794,66 @@ EM_MENUS = [
     ),
     (
         "Tempo e clima",
+        "Satélites do JAXA",
+        {
+            "id": "jaxa-chuva",
+            "label": "Chuva por satélite (GSMaP, JAXA)",
+            "help": "A chuva estimada por satélite do GSMaP (Global Satellite Mapping of Precipitation, a partir dos satélites GPM e de outros, ajustada com pluviômetros), em mm por dia: a média dos meses do período, desde março de 2000, a 0,1° (cerca de 11 km)." + FIM_JAXA,
+            "icon": "graduated",
+            "params": "{" + PARAMS_JAXA + "}",
+            "form": CAMPOS_JAXA,
+        },
+    ),
+    (
+        "Tempo e clima",
+        "Satélites do JAXA",
+        {
+            "id": "jaxa-umidade",
+            "label": "Umidade do solo (AMSR2, JAXA)",
+            "help": "A umidade da camada de cima do solo, em %, do radiômetro de micro-ondas AMSR2 (satélite GCOM-W, passagem do dia), desde julho de 2012, a 0,1° (cerca de 11 km). Os valores são baixos e escuros sob a floresta e altos perto de rios e do mar: use como padrão relativo, para comparar lugares e meses." + FIM_JAXA,
+            "icon": "dissolve",
+            "params": "{" + PARAMS_JAXA + "}",
+            "form": CAMPOS_JAXA,
+        },
+    ),
+    (
+        "Tempo e clima",
+        "Satélites do JAXA",
+        {
+            "id": "jaxa-temperatura",
+            "label": "Temperatura da superfície (GCOM-C, JAXA)",
+            "help": "A temperatura da superfície da terra, em °C, do sensor SGLI (satélite GCOM-C), de dia (por volta das 10h30) ou à noite (por volta das 22h30), desde 2018, a 1/24° (cerca de 4,6 km). Com nuvem, o mês fica com menos observações." + FIM_JAXA,
+            "icon": "brightness",
+            "params": "{\"turno\"?: \"dia\" (padrão) | \"noite\", " + PARAMS_JAXA + "}",
+            "form": [{"name": "turno", "label": "Hora da passagem", "kind": "choice", "required": True, "choices": TURNOS_JAXA, "default": TURNOS_JAXA[0], "help": "De dia, a superfície aquecida pelo sol (o asfalto e o solo exposto ficam quentes); à noite, o calor que ela guarda."}] + CAMPOS_JAXA,
+        },
+    ),
+    (
+        "Tempo e clima",
+        "Satélites do JAXA",
+        {
+            "id": "jaxa-evapotranspiracao",
+            "label": "Evapotranspiração (GCOM-C, JAXA)",
+            "help": "A água que o solo e as plantas devolvem ao ar, em mm por dia: a evapotranspiração do JASMES, do sensor SGLI (satélite GCOM-C), a 0,05° (cerca de 5,5 km), desde abril de 2025 (os meses anteriores não estão no STAC do JAXA Earth)." + FIM_JAXA,
+            "icon": "dra",
+            "params": "{" + PARAMS_JAXA + "}",
+            "form": CAMPOS_JAXA,
+        },
+    ),
+    (
+        "Tempo e clima",
+        "Satélites do JAXA",
+        {
+            "id": "jaxa-seca",
+            "label": "Índice de seca SPI (GSMaP, JAXA)",
+            "help": "O índice de precipitação padronizado (SPI) do GSMaP: quanto a chuva do mês fugiu da normal, em desvios-padrão (abaixo de -1, seca; abaixo de -2, seca extrema; acima de 1, chuva acima do normal), desde junho de 2019, a cerca de 22 km." + FIM_JAXA,
+            "icon": "classify",
+            "params": "{" + PARAMS_JAXA + "}",
+            "form": CAMPOS_JAXA,
+        },
+    ),
+    (
+        "Tempo e clima",
         "Previsão",
         {
             "id": "chuva-prevista",
@@ -1203,7 +1272,7 @@ TOPICOS = {
     "Território": ["Limites", "Recortes especiais", "Cadastro fundiário", "Terras indígenas"],
     "Sociedade e economia": ["População", "Economia", "Agricultura", "Eleições", "Saúde"],
     "Meio físico": ["Geologia e recursos minerais", "Relevo", "Solos"],
-    "Tempo e clima": ["Previsão", "Chuva observada", "Desastres", "Clima"],
+    "Tempo e clima": ["Previsão", "Chuva observada", "Desastres", "Clima", "Satélites do JAXA"],
     "Água": ["Hidrografia", "Bacias", "Recursos hídricos"],
     "Vegetação e meio ambiente": ["Vegetação", "Cubo de dados do INPE", "Uso e cobertura", "Desmatamento", "Queimadas", "Áreas protegidas", "Fiscalização"],
     "Infraestrutura": ["Energia", "Petróleo e gás", "Transportes"],
@@ -1232,6 +1301,7 @@ MENU_ICONES = {
     "Previsão": "time_next",
     "Chuva observada": "history",
     "Clima": "brightness",
+    "Satélites do JAXA": "globe_view",
     "Bacias": "dissolve",
     "Recursos hídricos": "graduated",
     "Vegetação": "dra",

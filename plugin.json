@@ -1,7 +1,7 @@
 {
   "id": "brasildata",
   "name": "BrasilData",
-  "version": "0.1.35",
+  "version": "0.1.36",
   "description": "Dados públicos do Brasil para a área do usuário (IBGE, MMA, ICMBio, INPE, CEMADEN, ANA, ANEEL, ANP, SFB/CAR, INCRA, FUNAI, IBAMA, ANM, DNIT, Ministério da Saúde, Copernicus, NASA/ASF, FAO, WRI, Open-Meteo, CHIRPS, Google DeepMind): só o que cruza a área, recortado por ela, com a fonte e a licença de cada camada.",
   "author": "Elpídio Filho",
   "homepage": "https://github.com/elpidioassinaturas/BrasilData",
@@ -1238,6 +1238,193 @@
       ]
     },
     {
+      "id": "jaxa-chuva",
+      "label": "Chuva por satélite (GSMaP, JAXA)",
+      "help": "A chuva estimada por satélite do GSMaP (Global Satellite Mapping of Precipitation, a partir dos satélites GPM e de outros, ajustada com pluviômetros), em mm por dia: a média dos meses do período, desde março de 2000, a 0,1° (cerca de 11 km). Do JAXA Earth (a agência espacial do Japão), por mês, lido só na área pelo RustGIS (sem login), posto na grade do projeto (as células do JAXA são de 2,8 a 11 km: o mapa mostra o padrão regional) e recortado pelo contorno. Sem período, os 3 meses até o último com dados. Uso livre com o crédito \"JAXA\"; uso comercial, avisando a JAXA antes. Precisa de um RustGIS com o resumo de um cubo STAC (cube.reduce, desde a 0.6.0); só no app desktop e no rustgis-cli. Período: desde março de 2000, por mês. Resolução ou escala: 0,1° (cerca de 11 km). Unidades: mm por dia. Licença: termos do JAXA Earth: uso livre, com o crédito \"JAXA\" e o nome do conjunto; uso comercial, avisando a JAXA antes. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/jaxa-chuva.md",
+      "icon": "graduated",
+      "params": "{\"inicio\"?, \"fim\"?: dd/mm/aaaa ou aaaa-mm-dd (padrão: os 3 meses até o último com dados), \"estatistica\"?: \"media\" (padrão) | \"maxima\" | \"minima\" | \"desvio\", \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+      "form": [
+        {
+          "name": "inicio",
+          "label": "Início (dd/mm/aaaa)",
+          "kind": "text",
+          "help": "O primeiro dia do período (vale o mês dele). Vazio: os 3 meses até o último com dados."
+        },
+        {
+          "name": "fim",
+          "label": "Fim (dd/mm/aaaa)",
+          "kind": "text",
+          "help": "O último dia do período. Vazio: o fim do último mês com dados. Até 5 anos."
+        },
+        {
+          "name": "estatistica",
+          "label": "Resumo dos meses",
+          "kind": "choice",
+          "required": true,
+          "choices": [
+            "Média das datas",
+            "Máxima",
+            "Mínima",
+            "Desvio-padrão"
+          ],
+          "default": "Média das datas",
+          "help": "A média dos meses do período, a máxima, a mínima ou o desvio-padrão (o quanto variou)."
+        }
+      ]
+    },
+    {
+      "id": "jaxa-umidade",
+      "label": "Umidade do solo (AMSR2, JAXA)",
+      "help": "A umidade da camada de cima do solo, em %, do radiômetro de micro-ondas AMSR2 (satélite GCOM-W, passagem do dia), desde julho de 2012, a 0,1° (cerca de 11 km). Os valores são baixos e escuros sob a floresta e altos perto de rios e do mar: use como padrão relativo, para comparar lugares e meses. Do JAXA Earth (a agência espacial do Japão), por mês, lido só na área pelo RustGIS (sem login), posto na grade do projeto (as células do JAXA são de 2,8 a 11 km: o mapa mostra o padrão regional) e recortado pelo contorno. Sem período, os 3 meses até o último com dados. Uso livre com o crédito \"JAXA\"; uso comercial, avisando a JAXA antes. Precisa de um RustGIS com o resumo de um cubo STAC (cube.reduce, desde a 0.6.0); só no app desktop e no rustgis-cli. Período: desde julho de 2012, por mês. Resolução ou escala: 0,1° (cerca de 11 km). Unidades: % (volume de água no solo). Licença: termos do JAXA Earth: uso livre, com o crédito \"JAXA\" e o nome do conjunto; uso comercial, avisando a JAXA antes. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/jaxa-umidade.md",
+      "icon": "dissolve",
+      "params": "{\"inicio\"?, \"fim\"?: dd/mm/aaaa ou aaaa-mm-dd (padrão: os 3 meses até o último com dados), \"estatistica\"?: \"media\" (padrão) | \"maxima\" | \"minima\" | \"desvio\", \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+      "form": [
+        {
+          "name": "inicio",
+          "label": "Início (dd/mm/aaaa)",
+          "kind": "text",
+          "help": "O primeiro dia do período (vale o mês dele). Vazio: os 3 meses até o último com dados."
+        },
+        {
+          "name": "fim",
+          "label": "Fim (dd/mm/aaaa)",
+          "kind": "text",
+          "help": "O último dia do período. Vazio: o fim do último mês com dados. Até 5 anos."
+        },
+        {
+          "name": "estatistica",
+          "label": "Resumo dos meses",
+          "kind": "choice",
+          "required": true,
+          "choices": [
+            "Média das datas",
+            "Máxima",
+            "Mínima",
+            "Desvio-padrão"
+          ],
+          "default": "Média das datas",
+          "help": "A média dos meses do período, a máxima, a mínima ou o desvio-padrão (o quanto variou)."
+        }
+      ]
+    },
+    {
+      "id": "jaxa-temperatura",
+      "label": "Temperatura da superfície (GCOM-C, JAXA)",
+      "help": "A temperatura da superfície da terra, em °C, do sensor SGLI (satélite GCOM-C), de dia (por volta das 10h30) ou à noite (por volta das 22h30), desde 2018, a 1/24° (cerca de 4,6 km). Com nuvem, o mês fica com menos observações. Do JAXA Earth (a agência espacial do Japão), por mês, lido só na área pelo RustGIS (sem login), posto na grade do projeto (as células do JAXA são de 2,8 a 11 km: o mapa mostra o padrão regional) e recortado pelo contorno. Sem período, os 3 meses até o último com dados. Uso livre com o crédito \"JAXA\"; uso comercial, avisando a JAXA antes. Precisa de um RustGIS com o resumo de um cubo STAC (cube.reduce, desde a 0.6.0); só no app desktop e no rustgis-cli. Período: desde 2018, por mês. Resolução ou escala: 1/24° (cerca de 4,6 km). Unidades: °C. Licença: termos do JAXA Earth: uso livre, com o crédito \"JAXA\" e o nome do conjunto; uso comercial, avisando a JAXA antes. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/jaxa-temperatura.md",
+      "icon": "brightness",
+      "params": "{\"turno\"?: \"dia\" (padrão) | \"noite\", \"inicio\"?, \"fim\"?: dd/mm/aaaa ou aaaa-mm-dd (padrão: os 3 meses até o último com dados), \"estatistica\"?: \"media\" (padrão) | \"maxima\" | \"minima\" | \"desvio\", \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+      "form": [
+        {
+          "name": "turno",
+          "label": "Hora da passagem",
+          "kind": "choice",
+          "required": true,
+          "choices": [
+            "De dia (por volta das 10h30)",
+            "À noite (por volta das 22h30)"
+          ],
+          "default": "De dia (por volta das 10h30)",
+          "help": "De dia, a superfície aquecida pelo sol (o asfalto e o solo exposto ficam quentes); à noite, o calor que ela guarda."
+        },
+        {
+          "name": "inicio",
+          "label": "Início (dd/mm/aaaa)",
+          "kind": "text",
+          "help": "O primeiro dia do período (vale o mês dele). Vazio: os 3 meses até o último com dados."
+        },
+        {
+          "name": "fim",
+          "label": "Fim (dd/mm/aaaa)",
+          "kind": "text",
+          "help": "O último dia do período. Vazio: o fim do último mês com dados. Até 5 anos."
+        },
+        {
+          "name": "estatistica",
+          "label": "Resumo dos meses",
+          "kind": "choice",
+          "required": true,
+          "choices": [
+            "Média das datas",
+            "Máxima",
+            "Mínima",
+            "Desvio-padrão"
+          ],
+          "default": "Média das datas",
+          "help": "A média dos meses do período, a máxima, a mínima ou o desvio-padrão (o quanto variou)."
+        }
+      ]
+    },
+    {
+      "id": "jaxa-evapotranspiracao",
+      "label": "Evapotranspiração (GCOM-C, JAXA)",
+      "help": "A água que o solo e as plantas devolvem ao ar, em mm por dia: a evapotranspiração do JASMES, do sensor SGLI (satélite GCOM-C), a 0,05° (cerca de 5,5 km), desde abril de 2025 (os meses anteriores não estão no STAC do JAXA Earth). Do JAXA Earth (a agência espacial do Japão), por mês, lido só na área pelo RustGIS (sem login), posto na grade do projeto (as células do JAXA são de 2,8 a 11 km: o mapa mostra o padrão regional) e recortado pelo contorno. Sem período, os 3 meses até o último com dados. Uso livre com o crédito \"JAXA\"; uso comercial, avisando a JAXA antes. Precisa de um RustGIS com o resumo de um cubo STAC (cube.reduce, desde a 0.6.0); só no app desktop e no rustgis-cli. Período: desde abril de 2025, por mês. Resolução ou escala: 0,05° (cerca de 5,5 km). Unidades: mm por dia. Licença: termos do JAXA Earth: uso livre, com o crédito \"JAXA\" e o nome do conjunto; uso comercial, avisando a JAXA antes. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/jaxa-evapotranspiracao.md",
+      "icon": "dra",
+      "params": "{\"inicio\"?, \"fim\"?: dd/mm/aaaa ou aaaa-mm-dd (padrão: os 3 meses até o último com dados), \"estatistica\"?: \"media\" (padrão) | \"maxima\" | \"minima\" | \"desvio\", \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+      "form": [
+        {
+          "name": "inicio",
+          "label": "Início (dd/mm/aaaa)",
+          "kind": "text",
+          "help": "O primeiro dia do período (vale o mês dele). Vazio: os 3 meses até o último com dados."
+        },
+        {
+          "name": "fim",
+          "label": "Fim (dd/mm/aaaa)",
+          "kind": "text",
+          "help": "O último dia do período. Vazio: o fim do último mês com dados. Até 5 anos."
+        },
+        {
+          "name": "estatistica",
+          "label": "Resumo dos meses",
+          "kind": "choice",
+          "required": true,
+          "choices": [
+            "Média das datas",
+            "Máxima",
+            "Mínima",
+            "Desvio-padrão"
+          ],
+          "default": "Média das datas",
+          "help": "A média dos meses do período, a máxima, a mínima ou o desvio-padrão (o quanto variou)."
+        }
+      ]
+    },
+    {
+      "id": "jaxa-seca",
+      "label": "Índice de seca SPI (GSMaP, JAXA)",
+      "help": "O índice de precipitação padronizado (SPI) do GSMaP: quanto a chuva do mês fugiu da normal, em desvios-padrão (abaixo de -1, seca; abaixo de -2, seca extrema; acima de 1, chuva acima do normal), desde junho de 2019, a cerca de 22 km. Do JAXA Earth (a agência espacial do Japão), por mês, lido só na área pelo RustGIS (sem login), posto na grade do projeto (as células do JAXA são de 2,8 a 11 km: o mapa mostra o padrão regional) e recortado pelo contorno. Sem período, os 3 meses até o último com dados. Uso livre com o crédito \"JAXA\"; uso comercial, avisando a JAXA antes. Precisa de um RustGIS com o resumo de um cubo STAC (cube.reduce, desde a 0.6.0); só no app desktop e no rustgis-cli. Período: desde junho de 2019, por mês. Resolução ou escala: cerca de 22 km. Unidades: desvios-padrão (sem unidade). Licença: termos do JAXA Earth: uso livre, com o crédito \"JAXA\" e o nome do conjunto; uso comercial, avisando a JAXA antes. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/jaxa-seca.md",
+      "icon": "classify",
+      "params": "{\"inicio\"?, \"fim\"?: dd/mm/aaaa ou aaaa-mm-dd (padrão: os 3 meses até o último com dados), \"estatistica\"?: \"media\" (padrão) | \"maxima\" | \"minima\" | \"desvio\", \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+      "form": [
+        {
+          "name": "inicio",
+          "label": "Início (dd/mm/aaaa)",
+          "kind": "text",
+          "help": "O primeiro dia do período (vale o mês dele). Vazio: os 3 meses até o último com dados."
+        },
+        {
+          "name": "fim",
+          "label": "Fim (dd/mm/aaaa)",
+          "kind": "text",
+          "help": "O último dia do período. Vazio: o fim do último mês com dados. Até 5 anos."
+        },
+        {
+          "name": "estatistica",
+          "label": "Resumo dos meses",
+          "kind": "choice",
+          "required": true,
+          "choices": [
+            "Média das datas",
+            "Máxima",
+            "Mínima",
+            "Desvio-padrão"
+          ],
+          "default": "Média das datas",
+          "help": "A média dos meses do período, a máxima, a mínima ou o desvio-padrão (o quanto variou)."
+        }
+      ]
+    },
+    {
       "id": "chuva-prevista",
       "label": "Chuva prevista (Open-Meteo)",
       "help": "A chuva prevista somada nos próximos dias, a partir de hoje (horário de Brasília), de um modelo global de previsão do tempo pelo Open-Meteo: o ECMWF IFS (o padrão), o AIFS do ECMWF (de inteligência artificial), o GFS da NOAA, o ICON do DWD ou o melhor do Open-Meteo para o lugar. Os valores diários vêm nos nós de uma grade de 0,25° (cerca de 28 km) que cercam a área e viram um raster, interpolado (bilinear) para a grade do projeto e recortado pela área. Numa área grande, a grade de pontos fica mais aberta (até 400 pontos). Uma rodada só oscila muito na segunda semana: para a faixa provável, use a Chuva do ensemble. O modelo e os dias vêm da janela do comando; num RustGIS sem janelas de plugin, o ECMWF IFS em 15 dias. Precisa de um RustGIS com o Polígonos para raster (raster.rasterize, desde a 0.6.0). Período: de hoje até 16 dias à frente (15 nos modelos do ECMWF, 7 no ICON), da rodada mais recente do modelo; muda a cada rodada, de 6 em 6 ou de 12 em 12 horas. Resolução ou escala: nós de uma grade de 0,25° (cerca de 28 km) em volta da área, mais abertos numa área grande (até 400 pontos), interpolados para a grade do projeto. Unidades: mm. Licença: CC BY 4.0 (Open-Meteo; dados do ECMWF e do DWD em CC BY 4.0, da NOAA em domínio público); a API gratuita do Open-Meteo é para uso não comercial. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/chuva-prevista.md",
@@ -1815,7 +2002,7 @@
         "kind": "text",
         "id": "sobre",
         "label": "Sobre o BrasilData",
-        "text": "BrasilData 0.1.35, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Elpídio Filho, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nFontes dos dados: IBGE, IDE-Sisema, INPE, ANA, ANP, ANEEL, INCRA, ANM, Kuzma, MMA, ICMBio, FUNAI, Serviço Florestal Brasileiro, IBAMA, DNIT e MapBiomas, pelos serviços de cada órgão; Copernicus DEM GLO-30 (DLR e Airbus, pelo espelho da OpenTopography); Banco Central (Pix e crédito rural); TSE; Novo CAGED (IPEA Data); Ministério da Saúde (CNES, pelo geobr do Ipea); Open-Meteo (previsão do ECMWF, da NOAA e do DWD) e CHIRPS v3 (Climate Hazards Center, UCSB).\n\nComo contribuir: sentiu falta de algum dado? Abra uma issue em https://github.com/elpidioassinaturas/BrasilData/issues com o nome do dado, o órgão que o publica, o endereço do serviço (WFS, ArcGIS REST, API ou arquivo) e para que você o usaria. Para trazer a fonte você mesmo, acrescente uma linha ao fontes.csv, rode python scripts/gerar.py e abra um pull request. Correções, avisos de serviço fora do ar e relatos de uso também são bem-vindos."
+        "text": "BrasilData 0.1.36, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Elpídio Filho, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nFontes dos dados: IBGE, IDE-Sisema, INPE, ANA, ANP, ANEEL, INCRA, ANM, Kuzma, MMA, ICMBio, FUNAI, Serviço Florestal Brasileiro, IBAMA, DNIT e MapBiomas, pelos serviços de cada órgão; Copernicus DEM GLO-30 (DLR e Airbus, pelo espelho da OpenTopography); Banco Central (Pix e crédito rural); TSE; Novo CAGED (IPEA Data); Ministério da Saúde (CNES, pelo geobr do Ipea); Open-Meteo (previsão do ECMWF, da NOAA e do DWD) e CHIRPS v3 (Climate Hazards Center, UCSB).\n\nComo contribuir: sentiu falta de algum dado? Abra uma issue em https://github.com/elpidioassinaturas/BrasilData/issues com o nome do dado, o órgão que o publica, o endereço do serviço (WFS, ArcGIS REST, API ou arquivo) e para que você o usaria. Para trazer a fonte você mesmo, acrescente uma linha ao fontes.csv, rode python scripts/gerar.py e abra um pull request. Correções, avisos de serviço fora do ar e relatos de uso também são bem-vindos."
       }
     ]
   },
@@ -2026,6 +2213,17 @@
             "items": [
               "sol-radiacao",
               "risco-fogo"
+            ]
+          },
+          {
+            "menu": "Satélites do JAXA",
+            "icon": "globe_view",
+            "items": [
+              "jaxa-chuva",
+              "jaxa-umidade",
+              "jaxa-temperatura",
+              "jaxa-evapotranspiracao",
+              "jaxa-seca"
             ]
           }
         ]

@@ -74,6 +74,9 @@ pub const INDICES_BDC: [(&str, &str); 2] = [("NDVI", "ndvi"), ("EVI", "evi")];
 pub const ESTATISTICAS_BDC: [(&str, &str); 4] =
     [("Média das datas", "media"), ("Máxima", "maxima"), ("Mínima", "minima"), ("Desvio-padrão", "desvio")];
 
+/// As escolhas do turno da temperatura do JAXA e o `turno` de cada uma.
+pub const TURNOS_JAXA: [(&str, &str); 2] = [("De dia (por volta das 10h30)", "dia"), ("À noite (por volta das 22h30)", "noite")];
+
 /// As escolhas de um parâmetro e o valor de cada uma.
 type Escolhas = &'static [(&'static str, &'static str)];
 
@@ -87,6 +90,12 @@ const TROCAS: &[(&str, &str, Escolhas)] = &[
     ("bdc-indice", "satelite", &SATELITES_BDC),
     ("bdc-indice", "indice", &INDICES_BDC),
     ("bdc-indice", "estatistica", &ESTATISTICAS_BDC),
+    ("jaxa-chuva", "estatistica", &ESTATISTICAS_BDC),
+    ("jaxa-umidade", "estatistica", &ESTATISTICAS_BDC),
+    ("jaxa-temperatura", "estatistica", &ESTATISTICAS_BDC),
+    ("jaxa-temperatura", "turno", &TURNOS_JAXA),
+    ("jaxa-evapotranspiracao", "estatistica", &ESTATISTICAS_BDC),
+    ("jaxa-seca", "estatistica", &ESTATISTICAS_BDC),
     ("chuva-prevista", "modelo", &ESCOLHAS_DETERMINISTICOS),
     ("temperatura-prevista", "modelo", &ESCOLHAS_DETERMINISTICOS),
     ("temperatura-prevista", "tipo", &ESCOLHAS_TEMPERATURAS),
