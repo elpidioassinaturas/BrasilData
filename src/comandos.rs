@@ -11,6 +11,7 @@ use crate::chm;
 use crate::clms;
 use crate::datas::{self, Data};
 use crate::dialogos;
+use crate::era5;
 use crate::dist;
 use crate::estilo;
 use crate::extensoes;
@@ -204,6 +205,9 @@ fn executar_comando(req: Request) -> Result<Value, String> {
         "jaxa-temperatura" => jaxa_na_area(&req, jaxa::Variavel::Temperatura(turno_do_jaxa(&req)?)),
         "jaxa-evapotranspiracao" => jaxa_na_area(&req, jaxa::Variavel::Evapotranspiracao),
         "jaxa-seca" => jaxa_na_area(&req, jaxa::Variavel::Seca),
+        "era5-chuva" => era5_na_area(&req, era5::Variavel::Chuva),
+        "era5-temperatura" => era5_na_area(&req, era5::Variavel::Temperatura(tempo::temperatura(req.str("tipo"))?)),
+        "era5-umidade" => era5_na_area(&req, era5::Variavel::Umidade),
         "clms-cobertura" => cobertura_clms(&req),
         "radar-vv" => radar(&req, Some(radar::Pol::Vv)),
         "radar-vh" => radar(&req, Some(radar::Pol::Vh)),
@@ -1428,6 +1432,8 @@ fn citacoes() -> Result<(Vec<Value>, String), String> {
             lista.push(json!({"layer": n, "source": sol::CITACAO, "license": sol::LICENCA}));
         } else if tempo::eh_da_previsao(&n) {
             lista.push(json!({"layer": n, "source": tempo::citacao_da_camada(&n), "license": tempo::LICENCA}));
+        } else if era5::eh_do_era5(&n) {
+            lista.push(json!({"layer": n, "source": era5::CITACAO, "license": era5::LICENCA}));
         } else if tempo::eh_do_chirps(&n) {
             lista.push(json!({"layer": n, "source": tempo::CITACAO_CHIRPS, "license": tempo::LICENCA_CHIRPS}));
         } else if crate::pardig::eh_do_pardig(&n) {
@@ -3567,39 +3573,12 @@ fn preparar_previsao(req: &Request) -> Result<([f64; 4], Option<f64>), String> {
 /// segue adiante): o RustGIS guarda por 10 minutos as respostas que chegaram e por 30 s os
 /// erros, e o clique seguinte, depois desses 30 s, só pede o que faltou.
 fn buscar_previsao(urls: &[String], pontos: usize) -> Result<Result<Vec<Value>, Value>, String> {
-    let mut respostas = Vec::new();
-    let (mut pendente, mut esperando, mut faltam, mut motivo) = (None, 0, 0, String::new());
-    for url in urls {
-        match host::call("host.fetch", json!({"url": url})) {
-            Ok(r) if r.get("pending").and_then(Value::as_bool) == Some(true) => {
-                pendente = Some(r);
-                esperando += 1;
-                if esperando == 8 {
-                    break;
-                }
-            }
-            Ok(r) => respostas.push(r.get("json").cloned().ok_or(format!("{url}: a resposta não é JSON"))?),
-            Err(e) if e.contains("429") => {
-                return Err("o Open-Meteo recusou por excesso de pedidos: espere um minuto, ou use uma área menor".into());
-            }
-            Err(e) if e.contains("timeout") || e.contains("timed out") => {
-                faltam += 1;
-                motivo = e;
-            }
-            Err(e) => return Err(e),
-        }
-    }
-    if let Some(p) = pendente {
-        return Ok(Err(p));
-    }
-    if faltam > 0 {
-        avisar(&format!(
-            "Previsão do Open-Meteo incompleta: o servidor demorou mais do que o RustGIS espera (20 s por pedido, 60 s por clique), e chegaram {} de {} grupos de pontos, guardados por 10 minutos. Clique de novo daqui a 30 segundos para buscar os {faltam} que faltam ({motivo})",
-            urls.len() - faltam,
-            urls.len()
-        ));
-        return Ok(Err(json!({"incomplete": faltam, "of": urls.len()})));
-    }
+    let respostas = match buscar_open_meteo(urls, true)? {
+        Ok(r) => r,
+        Err(p) => return Ok(Err(p)),
+    };
+    let respostas: Vec<Value> =
+        respostas.into_iter().map(|mut r| r.get_mut("json").map(Value::take).ok_or("o Open-Meteo não respondeu em JSON".to_string())).collect::<Result<_, _>>()?;
     if let Some(e) = respostas.iter().find_map(tempo::erro) {
         return Err(e);
     }
@@ -3616,6 +3595,47 @@ fn buscar_previsao(urls: &[String], pontos: usize) -> Result<Result<Vec<Value>, 
         return Err(format!("o Open-Meteo devolveu {} lugares para {pontos} pontos", lugares.len()));
     }
     Ok(Ok(lugares))
+}
+
+/// As respostas do `host.fetch` aos endereços do Open-Meteo, na ordem deles (com o `json` ou, com
+/// `com_json` falso, só o `text`, que o RustGIS 0.7.0 deixa de ler como JSON); ou, para o comando
+/// devolver, o pedido pendente (app web) ou a resposta incompleta (ver [`buscar_previsao`]).
+fn buscar_open_meteo(urls: &[String], com_json: bool) -> Result<Result<Vec<Value>, Value>, String> {
+    let mut respostas = Vec::new();
+    let (mut pendente, mut esperando, mut faltam, mut motivo) = (None, 0, 0, String::new());
+    for url in urls {
+        let pedido = if com_json { json!({"url": url}) } else { json!({"url": url, "json": false}) };
+        match host::call("host.fetch", pedido) {
+            Ok(r) if r.get("pending").and_then(Value::as_bool) == Some(true) => {
+                pendente = Some(r);
+                esperando += 1;
+                if esperando == 8 {
+                    break;
+                }
+            }
+            Ok(r) => respostas.push(r),
+            Err(e) if e.contains("429") => {
+                return Err("o Open-Meteo recusou por excesso de pedidos: espere um minuto, ou use uma área menor".into());
+            }
+            Err(e) if e.contains("timeout") || e.contains("timed out") => {
+                faltam += 1;
+                motivo = e;
+            }
+            Err(e) => return Err(e),
+        }
+    }
+    if let Some(p) = pendente {
+        return Ok(Err(p));
+    }
+    if faltam > 0 {
+        avisar(&format!(
+            "Resposta do Open-Meteo incompleta: o servidor demorou mais do que o RustGIS espera (20 s por pedido, 60 s por clique), e chegaram {} de {} grupos de pontos, guardados por 10 minutos. Clique de novo daqui a 30 segundos para buscar os {faltam} que faltam ({motivo})",
+            urls.len() - faltam,
+            urls.len()
+        ));
+        return Ok(Err(json!({"incomplete": faltam, "of": urls.len()})));
+    }
+    Ok(Ok(respostas))
 }
 
 /// O primeiro e o último dia da previsão, da primeira resposta que os tiver.
@@ -3830,6 +3850,102 @@ fn temperatura_prevista(req: &Request) -> Result<Value, String> {
         aviso_de_corte(m, dias_pedidos(req, tempo::DIAS_TEMPERATURA), dias)
     ));
     Ok(json!({"layer": saida, "points": n, "step": passo, "days": dias, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula}))
+}
+
+/// Um dado do ERA5 na área ([`era5`]), resumido num período: os valores diários da API histórica
+/// do Open-Meteo nos nós de 0,25° em volta da área (mais abertos num período longo, pelo custo),
+/// interpolados para a grade do projeto e recortados pela área. Sem período, o último ano completo.
+fn era5_na_area(req: &Request, v: era5::Variavel) -> Result<Value, String> {
+    let r = era5::resumo(req.str("resumo"))?;
+    let (c, celula) = preparar_previsao(req)?;
+    let data = |k: &str| -> Result<Option<Data>, String> {
+        req.str(k).map(|t| bdc::ler_data(t).ok_or(format!("a data '{t}' não é dd/mm/aaaa"))).transpose()
+    };
+    let (inicio, fim) = match (data("inicio")?, data("fim")?) {
+        (Some(a), Some(b)) => (a, b),
+        (a, b) => {
+            // O plugin não tem relógio: o dia de hoje vem de um pedido mínimo à previsão.
+            let resposta = match buscar_previsao(&[era5::HOJE.to_string()], 1)? {
+                Ok(l) => l,
+                Err(p) => return Ok(p),
+            };
+            let hoje = resposta.first().and_then(era5::hoje).ok_or("o Open-Meteo não disse o dia de hoje: diga o início e o fim")?;
+            let (i, f) = era5::periodo_padrao(hoje);
+            (a.unwrap_or(i), b.unwrap_or(f))
+        }
+    };
+    era5::conferir_periodo(inicio, fim)?;
+    let dias = era5::dias(inicio, fim);
+    let (passo, pts) = tempo::pontos(c, era5::PASSO, era5::max_pontos(dias));
+    if passo > era5::PASSO_MAX {
+        return Err(era5::longo_demais(dias, tempo::pontos(c, era5::PASSO_MAX, usize::MAX).1.len()));
+    }
+    let respostas = match buscar_open_meteo(&era5::pedidos(v, inicio, fim, &pts), false)? {
+        Ok(r) => r,
+        Err(p) => return Ok(p),
+    };
+    let mut series = Vec::with_capacity(pts.len());
+    for r in &respostas {
+        let texto = r["text"].as_str().unwrap_or_default();
+        if let Some(e) = era5::erro_do_texto(texto) {
+            return Err(e);
+        }
+        series.extend(era5::series(texto, v));
+    }
+    drop(respostas);
+    if series.len() != pts.len() {
+        return Err(format!("o Open-Meteo devolveu {} lugares para {} pontos", series.len(), pts.len()));
+    }
+    let sem_dados = || format!("o Open-Meteo não tem o ERA5 de {} a {} na área", inicio.texto(), fim.texto());
+    let com_dados = era5::dias_com_dados(&series, dias);
+    if com_dados == 0 {
+        return Err(sem_dados());
+    }
+    if com_dados < dias {
+        let ultimo = era5::mais_dias(inicio, com_dados - 1);
+        return Err(format!("o ERA5 do Open-Meteo vai até {} (sai com uns 5 dias de atraso): use um fim até esse dia", ultimo.texto()));
+    }
+    let valores: Vec<Option<f64>> = series.iter().map(|s| era5::valor(s, v, r, dias)).collect();
+    let fc = tempo::celulas(&pts, &valores, passo);
+    let n = match fc["features"].as_array().map_or(0, Vec::len) {
+        0 => return Err(sem_dados()),
+        n => n,
+    };
+    let saida = era5::camada(v, r, inicio, fim);
+    let unidade = v.unidade(r);
+    let escala = era5::escala(v, r, dias);
+    let rampa_chuva = tempo::rampa_chuva(escala.1);
+    let pintura = match v {
+        era5::Variavel::Chuva => Pintura { rampa: (&rampa_chuva.0, &rampa_chuva.1), reserva: "YlGnBu", escala, aceitos: (0.0, 200_000.0) },
+        era5::Variavel::Temperatura(_) => Pintura { rampa: tempo::RAMPA_TEMPERATURA, reserva: "RdYlBu", escala, aceitos: (-60.0, 60.0) },
+        era5::Variavel::Umidade => Pintura { rampa: era5::RAMPA_UMIDADE, reserva: "BrBG", escala, aceitos: (0.0, 100.0) },
+    };
+    let g = previsao_para_grade(c, celula, fc, passo, &saida, &pintura)?;
+    let o_que = match (v, r) {
+        (era5::Variavel::Chuva, era5::Resumo::Total) => "a chuva somada".to_string(),
+        (era5::Variavel::Chuva, era5::Resumo::PorAno) => "a chuva média por ano".to_string(),
+        (era5::Variavel::Temperatura(tempo::Temperatura::Media), _) => "a temperatura média do ar a 2 m".to_string(),
+        (era5::Variavel::Temperatura(t), _) => format!("a temperatura {} do dia a 2 m, em média", t.nome()),
+        (era5::Variavel::Umidade, _) => "a umidade média dos primeiros 7 cm do solo".to_string(),
+    };
+    let aberta = if passo > era5::PASSO {
+        format!(" (a grade de pontos abriu de 0,25° para {} para caber no limite do Open-Meteo, que pesa os pontos pelos dias)", texto_do_passo(passo))
+    } else {
+        String::new()
+    };
+    avisar(&format!(
+        "{}: {o_que} de {} a {} ({dias} dias), da reanálise ERA5 (ECMWF/Copernicus, pelo Open-Meteo), em {n} pontos a cada {}{aberta}, interpolada para a grade do projeto, {}{}",
+        saida.trim_start_matches(era5::PREFIXO),
+        inicio.texto(),
+        fim.texto(),
+        texto_do_passo(passo),
+        g.texto(),
+        media_na_area(&saida, unidade)
+    ));
+    Ok(json!({
+        "layer": saida, "points": n, "step": passo, "days": dias, "start": inicio.iso(), "end": fim.iso(), "unit": unidade,
+        "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula,
+    }))
 }
 
 /// O mês do CHIRPS: o pedido ("mm/aaaa") ou o mais recente da pasta do Climate Hazards Center.

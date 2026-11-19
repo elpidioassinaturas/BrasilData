@@ -450,6 +450,20 @@ Fora da tabela, com a citação no comando **Fontes**:
   `plugin:brasildata/chuva-prevista={"modelo": "gfs", "dias": 7}`,
   `plugin:brasildata/chuva-ensemble={"medida": "chance", "limiar": 150}` e
   `plugin:brasildata/temperatura-prevista={"tipo": "minima", "dias": 3}`;
+- **Clima passado (ERA5):** a reanálise ERA5 do ECMWF (Hersbach et al. 2023, Copernicus Climate
+  Change Service, doi:10.24381/cds.adbb2d47; licença do Copernicus: uso livre com a citação), pela
+  API histórica do Open-Meteo (CC BY 4.0; a API gratuita é para uso não comercial): a chuva (total
+  ou média por ano), a temperatura do ar a 2 m (máxima, mínima ou média do dia, ajustada à
+  altitude) e a umidade do solo de 0 a 7 cm, de um dia a 30 anos desde 1940. Os valores diários
+  vêm nos nós da grade de 0,25° que cercam a área e viram um raster, como na previsão. O cubo
+  ERA5 do catálogo do RustGIS (ARCO-ERA5, em Zarr) guarda uma hora do globo por pedaço e levaria
+  uns 23 minutos por mês: por isso o plugin usa o Open-Meteo. A API gratuita pesa cada ponto pelos
+  dias pedidos, até uns 500 por clique: num período longo ou numa área grande, a grade abre até
+  1°, e acima disso o comando diz o período que cabe. As respostas são lidas como texto
+  (`host.fetch` com `"json": false`, do RustGIS 0.7.0): montar o JSON de 30 anos passaria do
+  orçamento de processamento de um clique. Sem período, o ano passado inteiro. Por script:
+  `plugin:brasildata/era5-chuva={"resumo": "anual", "inicio": "01/01/1991", "fim": "31/12/2020"}`,
+  `plugin:brasildata/era5-temperatura={"tipo": "minima"}` e `plugin:brasildata/era5-umidade={}`;
 - **Chuva do mês:** Climate Hazards Center (UC Santa Barbara), CHIRPS v3.0 (Funk et al. 2015,
   Scientific Data 2, 150066, doi:10.1038/sdata.2015.66): a chuva total do mês por satélite e
   estações, a 0,05°, de 1981 até o último mês fechado. Só a janela da área, lida do COG mundial

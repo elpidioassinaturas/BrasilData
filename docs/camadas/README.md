@@ -2,7 +2,7 @@
 
 <!-- Gerado por scripts/gerar.py a partir do fontes.csv e do fichas.csv; não edite à mão. -->
 
-A ficha de cada uma das 145 camadas que os botões da aba BrasilData trazem: o que é, a fonte, o período, a resolução, as unidades, a legenda, a licença, a citação, os cuidados de uso, se funciona no app web, e um mapa exemplo feito com o plugin (o botão Layout). Os mapas exemplo são de Viçosa (MG), ou da Zona da Mata mineira para os produtos de baixa resolução; os temas que não existem lá vêm de outro município, dito em cada ficha. Os mapas saem do `scripts/mapas_exemplo.py`.
+A ficha de cada uma das 148 camadas que os botões da aba BrasilData trazem: o que é, a fonte, o período, a resolução, as unidades, a legenda, a licença, a citação, os cuidados de uso, se funciona no app web, e um mapa exemplo feito com o plugin (o botão Layout). Os mapas exemplo são de Viçosa (MG), ou da Zona da Mata mineira para os produtos de baixa resolução; os temas que não existem lá vêm de outro município, dito em cada ficha. Os mapas saem do `scripts/mapas_exemplo.py`.
 
 ## Território
 
@@ -82,6 +82,9 @@ A ficha de cada uma das 145 camadas que os botões da aba BrasilData trazem: o q
 
 | Camada | Onde na aba | O que é |
 |---|---|---|
+| [Chuva do ERA5 (reanálise, desde 1940)](era5-chuva.md) | Tempo e clima › Clima passado (ERA5) | A chuva de um período passado na reanálise ERA5 do ECMWF: o total do período ou a média por ano. |
+| [Temperatura do ERA5 (reanálise, desde 1940)](era5-temperatura.md) | Tempo e clima › Clima passado (ERA5) | A temperatura do ar a 2 m num período passado na reanálise ERA5 do ECMWF: a média da máxima do dia, da mínima ou da média, ajustada à altitude de cada ponto. |
+| [Umidade do solo do ERA5 (reanálise, desde 1940)](era5-umidade.md) | Tempo e clima › Clima passado (ERA5) | A umidade da camada de cima do solo (0 a 7 cm) num período passado na reanálise ERA5 do ECMWF: a média dos dias. |
 | [Chuva por satélite (GSMaP, JAXA)](jaxa-chuva.md) | Tempo e clima › Satélites do JAXA | A chuva estimada por satélite do GSMaP, ajustada com pluviômetros, em mm por dia, resumida nos meses do período. |
 | [Umidade do solo (AMSR2, JAXA)](jaxa-umidade.md) | Tempo e clima › Satélites do JAXA | A umidade da camada de cima do solo, do radiômetro de micro-ondas AMSR2 (GCOM-W), resumida nos meses do período. |
 | [Temperatura da superfície (GCOM-C, JAXA)](jaxa-temperatura.md) | Tempo e clima › Satélites do JAXA | A temperatura da superfície da terra, do sensor SGLI (GCOM-C), de dia ou à noite, resumida nos meses do período. |

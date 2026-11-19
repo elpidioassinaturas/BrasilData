@@ -28,6 +28,7 @@ pub mod fichas;
 pub mod grade;
 pub mod indicadores;
 pub mod irrigacao;
+pub mod era5;
 pub mod jaxa;
 // O que fala com o RustGIS só compila no wasm: fora dele (nos testes), as importações do
 // RustGIS ficariam sem resolver no linker do Windows.

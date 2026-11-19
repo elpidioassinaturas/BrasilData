@@ -1259,6 +1259,94 @@
       ]
     },
     {
+      "id": "era5-chuva",
+      "label": "Chuva do ERA5 (reanálise, desde 1940)",
+      "help": "A chuva de um período passado, em mm: o total do período ou a média por ano, que num período de 30 anos é a normal do lugar. Da reanálise ERA5 do ECMWF (Copernicus Climate Change Service), a 0,25° (cerca de 28 km), desde 1940, pela API histórica do Open-Meteo (sem login): os valores diários vêm nos nós da grade que cercam a área e viram um raster, interpolado (bilinear) para a grade do projeto e recortado pela área. O mapa mostra o clima regional, não o de cada encosta. Num período longo ou numa área grande, a grade de pontos fica mais aberta, até 1°: a API gratuita do Open-Meteo pesa cada ponto pelos dias pedidos (30 anos cabem num município; Minas Gerais inteira, uns 500 dias). Acima disso, o comando diz o período que cabe. O ERA5 sai com uns 5 dias de atraso. Sem período, o ano passado inteiro. A reanálise é um modelo ajustado às observações, não a medida de uma estação. Precisa de um RustGIS com o Polígonos para raster (raster.rasterize, desde a 0.6.0). Período: desde 01/01/1940, por dia, até uns 5 dias atrás; até 30 anos num município, uns 500 dias em Minas Gerais inteira. Resolução ou escala: nós de uma grade de 0,25° (cerca de 28 km) em volta da área, mais abertos (até 1°) num período longo ou numa área grande, interpolados para a grade do projeto. Unidades: mm (total) ou mm por ano. Licença: licença do Copernicus (C3S): uso livre, com a citação; Open-Meteo em CC BY 4.0, e a API gratuita é para uso não comercial. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/era5-chuva.md",
+      "icon": "graduated",
+      "params": "{\"resumo\"?: \"total\" (padrão) | \"anual\", \"inicio\"?, \"fim\"?: dd/mm/aaaa ou aaaa-mm-dd, desde 01/01/1940, até 30 anos (padrão: o ano passado inteiro), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+      "form": [
+        {
+          "name": "resumo",
+          "label": "Resumo",
+          "kind": "choice",
+          "required": true,
+          "choices": [
+            "Total do período (mm)",
+            "Média por ano (mm por ano)"
+          ],
+          "default": "Total do período (mm)",
+          "help": "A chuva somada no período, ou a média por ano (num período de vários anos)."
+        },
+        {
+          "name": "inicio",
+          "label": "Início (dd/mm/aaaa)",
+          "kind": "text",
+          "help": "O primeiro dia do período, desde 01/01/1940. Vazio: 1º de janeiro do ano passado."
+        },
+        {
+          "name": "fim",
+          "label": "Fim (dd/mm/aaaa)",
+          "kind": "text",
+          "help": "O último dia do período, até uns 5 dias atrás. Vazio: 31 de dezembro do ano passado. Até 30 anos."
+        }
+      ]
+    },
+    {
+      "id": "era5-temperatura",
+      "label": "Temperatura do ERA5 (reanálise, desde 1940)",
+      "help": "A temperatura do ar a 2 m num período passado, em °C: a média da máxima do dia, da mínima ou da média, ajustada à altitude de cada ponto. Da reanálise ERA5 do ECMWF (Copernicus Climate Change Service), a 0,25° (cerca de 28 km), desde 1940, pela API histórica do Open-Meteo (sem login): os valores diários vêm nos nós da grade que cercam a área e viram um raster, interpolado (bilinear) para a grade do projeto e recortado pela área. O mapa mostra o clima regional, não o de cada encosta. Num período longo ou numa área grande, a grade de pontos fica mais aberta, até 1°: a API gratuita do Open-Meteo pesa cada ponto pelos dias pedidos (30 anos cabem num município; Minas Gerais inteira, uns 500 dias). Acima disso, o comando diz o período que cabe. O ERA5 sai com uns 5 dias de atraso. Sem período, o ano passado inteiro. A reanálise é um modelo ajustado às observações, não a medida de uma estação. Precisa de um RustGIS com o Polígonos para raster (raster.rasterize, desde a 0.6.0). Período: desde 01/01/1940, por dia, até uns 5 dias atrás; até 30 anos num município, uns 500 dias em Minas Gerais inteira. Resolução ou escala: nós de uma grade de 0,25° (cerca de 28 km) em volta da área, mais abertos (até 1°) num período longo ou numa área grande, interpolados para a grade do projeto. Unidades: °C. Licença: licença do Copernicus (C3S): uso livre, com a citação; Open-Meteo em CC BY 4.0, e a API gratuita é para uso não comercial. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/era5-temperatura.md",
+      "icon": "stretch",
+      "params": "{\"tipo\"?: \"maxima\" (padrão) | \"minima\" | \"media\", \"inicio\"?, \"fim\"?: dd/mm/aaaa ou aaaa-mm-dd, desde 01/01/1940, até 30 anos (padrão: o ano passado inteiro), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+      "form": [
+        {
+          "name": "tipo",
+          "label": "Temperatura",
+          "kind": "choice",
+          "required": true,
+          "choices": [
+            "Máxima do dia (média dos dias)",
+            "Mínima do dia (média dos dias)",
+            "Média do dia"
+          ],
+          "default": "Média do dia",
+          "help": "A máxima ou a mínima de cada dia, em média no período, ou a média do dia."
+        },
+        {
+          "name": "inicio",
+          "label": "Início (dd/mm/aaaa)",
+          "kind": "text",
+          "help": "O primeiro dia do período, desde 01/01/1940. Vazio: 1º de janeiro do ano passado."
+        },
+        {
+          "name": "fim",
+          "label": "Fim (dd/mm/aaaa)",
+          "kind": "text",
+          "help": "O último dia do período, até uns 5 dias atrás. Vazio: 31 de dezembro do ano passado. Até 30 anos."
+        }
+      ]
+    },
+    {
+      "id": "era5-umidade",
+      "label": "Umidade do solo do ERA5 (reanálise, desde 1940)",
+      "help": "A umidade da camada de cima do solo (0 a 7 cm) num período passado, em % do volume: a média dos dias. Da reanálise ERA5 do ECMWF (Copernicus Climate Change Service), a 0,25° (cerca de 28 km), desde 1940, pela API histórica do Open-Meteo (sem login): os valores diários vêm nos nós da grade que cercam a área e viram um raster, interpolado (bilinear) para a grade do projeto e recortado pela área. O mapa mostra o clima regional, não o de cada encosta. Num período longo ou numa área grande, a grade de pontos fica mais aberta, até 1°: a API gratuita do Open-Meteo pesa cada ponto pelos dias pedidos (30 anos cabem num município; Minas Gerais inteira, uns 500 dias). Acima disso, o comando diz o período que cabe. O ERA5 sai com uns 5 dias de atraso. Sem período, o ano passado inteiro. A reanálise é um modelo ajustado às observações, não a medida de uma estação. Precisa de um RustGIS com o Polígonos para raster (raster.rasterize, desde a 0.6.0). Período: desde 01/01/1940, por dia, até uns 5 dias atrás; até 30 anos num município, uns 500 dias em Minas Gerais inteira. Resolução ou escala: nós de uma grade de 0,25° (cerca de 28 km) em volta da área, mais abertos (até 1°) num período longo ou numa área grande, interpolados para a grade do projeto. Unidades: % do volume. Licença: licença do Copernicus (C3S): uso livre, com a citação; Open-Meteo em CC BY 4.0, e a API gratuita é para uso não comercial. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/era5-umidade.md",
+      "icon": "dissolve",
+      "params": "{\"inicio\"?, \"fim\"?: dd/mm/aaaa ou aaaa-mm-dd, desde 01/01/1940, até 30 anos (padrão: o ano passado inteiro), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+      "form": [
+        {
+          "name": "inicio",
+          "label": "Início (dd/mm/aaaa)",
+          "kind": "text",
+          "help": "O primeiro dia do período, desde 01/01/1940. Vazio: 1º de janeiro do ano passado."
+        },
+        {
+          "name": "fim",
+          "label": "Fim (dd/mm/aaaa)",
+          "kind": "text",
+          "help": "O último dia do período, até uns 5 dias atrás. Vazio: 31 de dezembro do ano passado. Até 30 anos."
+        }
+      ]
+    },
+    {
       "id": "jaxa-chuva",
       "label": "Chuva por satélite (GSMaP, JAXA)",
       "help": "A chuva estimada por satélite do GSMaP (Global Satellite Mapping of Precipitation, a partir dos satélites GPM e de outros, ajustada com pluviômetros), em mm por dia: a média dos meses do período, desde março de 2000, a 0,1° (cerca de 11 km). Do JAXA Earth (a agência espacial do Japão), por mês, lido só na área pelo RustGIS (sem login) e recortado pelo contorno, na resolução original do dado (células de 2,8 a 22 km, em graus), fora da grade do projeto: o mapa mostra o padrão regional. Sem período, os 3 meses até o último com dados. Uso livre com o crédito \"JAXA\"; uso comercial, avisando a JAXA antes. Precisa de um RustGIS com o resumo de um cubo STAC (cube.reduce, desde a 0.6.0); só no app desktop e no rustgis-cli. Período: desde março de 2000, por mês. Resolução ou escala: 0,1° (cerca de 11 km). Unidades: mm por dia. Licença: termos do JAXA Earth: uso livre, com o crédito \"JAXA\" e o nome do conjunto; uso comercial, avisando a JAXA antes. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/jaxa-chuva.md",
@@ -2255,6 +2343,15 @@
             "items": [
               "sol-radiacao",
               "risco-fogo"
+            ]
+          },
+          {
+            "menu": "Clima passado (ERA5)",
+            "icon": "time_slider",
+            "items": [
+              "era5-chuva",
+              "era5-temperatura",
+              "era5-umidade"
             ]
           },
           {

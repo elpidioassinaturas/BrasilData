@@ -38,6 +38,7 @@ const NOTA_COBERTURA_MAPBIOMAS: &str =
 const NOTA_RISCO_FOGO: &str = "Perigo meteorológico de fogo do modelo do INPE (versão 11), não a ocorrência de fogo. Classes do INPE: mínimo, abaixo de 0,15; baixo, de 0,15 a 0,40; médio, de 0,40 a 0,70; alto, de 0,70 a 0,95; crítico, acima de 0,95.";
 const NOTA_JAXA: &str =
     "Dados mensais do JAXA Earth na resolução original, em células de 2,8 a 22 km: mostram o padrão regional, não o detalhe de cada lugar.";
+const NOTA_ERA5: &str = "Reanálise ERA5 do ECMWF (Copernicus), em nós de uma grade de 0,25° (cerca de 28 km) ou mais aberta, interpolados para a grade: mostra o clima regional, não o de cada encosta ou vale.";
 const NOTA_BDC: &str = "Compostos de 16 dias do cubo de dados do INPE (Brazil Data Cube), com o pixel mais limpo de cada período; nuvens e sombras persistentes ainda podem aparecer.";
 const NOTA_CHM: &str = "Altura estimada por um modelo de IA (DINOv3) sobre imagens de satélite de alta resolução de datas diferentes; 0 é sem árvore (ou sem dado).";
 const NOTA_GEM15: &str = "De imagens estéreo de satélite adquiridas até 2024; alturas no geoide EGM96. Água e superfícies sem textura ficam sem dado; sob mata densa, o terreno é estimado.";
@@ -172,6 +173,19 @@ pub fn receita(nome: &str) -> Option<Receita> {
             barra: Some(("Área equipada para irrigação (% da célula)".into(), 5)),
             legenda: None,
             nota: Some(NOTA_IRRIGACAO),
+        });
+    }
+    if let Some(c) = crate::era5::comando_da_camada(nome) {
+        let resumo = resumo_e_periodo(n).0;
+        let marcas = match c {
+            "era5-temperatura" => 5,
+            _ => 6,
+        };
+        return Some(Receita {
+            subtitulo: format!("{resumo} pela reanálise ERA5 (ECMWF/Copernicus, valores diários){}", periodo_no_nome(n)),
+            barra: Some((format!("{resumo} ({})", crate::era5::unidade_da_camada(nome)), marcas)),
+            legenda: None,
+            nota: Some(NOTA_ERA5),
         });
     }
     if let Some(v) = crate::jaxa::variavel_da_camada(nome) {
@@ -404,6 +418,11 @@ mod tests {
         let t = receita("BrasilData: Temperatura da superfície de dia média de 01/08/2026 a 31/10/2026 (GCOM-C, JAXA Earth)").unwrap();
         assert_eq!(t.subtitulo, "Temperatura da superfície de dia média pelo JAXA Earth (GCOM-C, meses), de 01/08/2026 a 31/10/2026");
         assert_eq!(t.barra, Some(("Temperatura da superfície de dia média (°C)".into(), 8)));
+        let e = receita("BrasilData: Chuva média por ano de 01/01/1991 a 31/12/2020 (ERA5)").unwrap();
+        assert_eq!(e.subtitulo, "Chuva média por ano pela reanálise ERA5 (ECMWF/Copernicus, valores diários), de 01/01/1991 a 31/12/2020");
+        assert_eq!(e.barra, Some(("Chuva média por ano (mm por ano)".into(), 6)));
+        let e = receita("BrasilData: Temperatura máxima do ar, média de 01/01/2025 a 31/12/2025 (ERA5)").unwrap();
+        assert_eq!(e.barra, Some(("Temperatura máxima do ar, média (°C)".into(), 5)));
         let b = receita("BrasilData: NDVI médio de 01/06/2025 a 31/08/2025 (Sentinel-2, cubo do INPE)").unwrap();
         assert_eq!(b.subtitulo, "NDVI médio pelo cubo de dados do INPE (Sentinel-2, 16 dias), de 01/06/2025 a 31/08/2025");
         assert_eq!(receita(crate::gem15::Modelo::Altura.camada()).unwrap().barra, Some(("Altura acima do terreno (m)".into(), 5)));

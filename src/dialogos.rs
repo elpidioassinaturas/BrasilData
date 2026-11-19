@@ -96,6 +96,8 @@ const TROCAS: &[(&str, &str, Escolhas)] = &[
     ("jaxa-temperatura", "turno", &TURNOS_JAXA),
     ("jaxa-evapotranspiracao", "estatistica", &ESTATISTICAS_BDC),
     ("jaxa-seca", "estatistica", &ESTATISTICAS_BDC),
+    ("era5-chuva", "resumo", &crate::era5::ESCOLHAS_RESUMOS),
+    ("era5-temperatura", "tipo", &ESCOLHAS_TEMPERATURAS),
     ("chuva-prevista", "modelo", &ESCOLHAS_DETERMINISTICOS),
     ("temperatura-prevista", "modelo", &ESCOLHAS_DETERMINISTICOS),
     ("temperatura-prevista", "tipo", &ESCOLHAS_TEMPERATURAS),

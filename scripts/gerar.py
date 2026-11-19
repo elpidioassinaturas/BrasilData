@@ -82,6 +82,14 @@ MODELOS_PREVISAO = ["ECMWF IFS (15 dias)", "ECMWF AIFS, de IA (15 dias)", "GFS d
 MODELOS_ENSEMBLE = ["ECMWF ENS, 51 membros (15 dias)", "ECMWF AIFS-ENS, de IA, 51 membros (15 dias)", "GEFS da NOAA, 31 membros (16 dias)"]
 MEDIDAS_ENSEMBLE = ["Chance de passar do limiar (%)", "Média dos membros (mm)", "Cenário seco: percentil 10 (mm)", "Cenário chuvoso: percentil 90 (mm)"]
 TEMPERATURAS = ["Máxima do dia (média dos dias)", "Mínima do dia (média dos dias)", "Média do dia"]
+# O resumo da chuva do ERA5 (o mesmo de src/era5.rs, ESCOLHAS_RESUMOS).
+RESUMOS_ERA5 = ["Total do período (mm)", "Média por ano (mm por ano)"]
+CAMPOS_ERA5 = [
+    {"name": "inicio", "label": "Início (dd/mm/aaaa)", "kind": "text", "help": "O primeiro dia do período, desde 01/01/1940. Vazio: 1º de janeiro do ano passado."},
+    {"name": "fim", "label": "Fim (dd/mm/aaaa)", "kind": "text", "help": "O último dia do período, até uns 5 dias atrás. Vazio: 31 de dezembro do ano passado. Até 30 anos."},
+]
+PARAMS_ERA5 = "\"inicio\"?, \"fim\"?: dd/mm/aaaa ou aaaa-mm-dd, desde 01/01/1940, até 30 anos (padrão: o ano passado inteiro), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)"
+FIM_ERA5 = " Da reanálise ERA5 do ECMWF (Copernicus Climate Change Service), a 0,25° (cerca de 28 km), desde 1940, pela API histórica do Open-Meteo (sem login): os valores diários vêm nos nós da grade que cercam a área e viram um raster, interpolado (bilinear) para a grade do projeto e recortado pela área. O mapa mostra o clima regional, não o de cada encosta. Num período longo ou numa área grande, a grade de pontos fica mais aberta, até 1°: a API gratuita do Open-Meteo pesa cada ponto pelos dias pedidos (30 anos cabem num município; Minas Gerais inteira, uns 500 dias). Acima disso, o comando diz o período que cabe. O ERA5 sai com uns 5 dias de atraso. Sem período, o ano passado inteiro. A reanálise é um modelo ajustado às observações, não a medida de uma estação. Precisa de um RustGIS com o Polígonos para raster (raster.rasterize, desde a 0.6.0)."
 MODELOS_GEM15 = ["Terreno nu (DTM)", "Superfície, com vegetação e construções (DSM)", "Altura acima do terreno (DSM menos DTM)"]
 # As escolhas do cubo de dados do INPE (as mesmas de src/dialogos.rs).
 SATELITES_BDC = ["Sentinel-2 (10 m, desde 2017)", "Landsat (30 m, desde 1990)", "CBERS-4 WFI (64 m, desde 2016)", "MODIS (250 m, desde 2000)"]
@@ -808,6 +816,42 @@ EM_MENUS = [
     ),
     (
         "Tempo e clima",
+        "Clima passado (ERA5)",
+        {
+            "id": "era5-chuva",
+            "label": "Chuva do ERA5 (reanálise, desde 1940)",
+            "help": "A chuva de um período passado, em mm: o total do período ou a média por ano, que num período de 30 anos é a normal do lugar." + FIM_ERA5,
+            "icon": "graduated",
+            "params": "{\"resumo\"?: \"total\" (padrão) | \"anual\", " + PARAMS_ERA5 + "}",
+            "form": [{"name": "resumo", "label": "Resumo", "kind": "choice", "required": True, "choices": RESUMOS_ERA5, "default": RESUMOS_ERA5[0], "help": "A chuva somada no período, ou a média por ano (num período de vários anos)."}] + CAMPOS_ERA5,
+        },
+    ),
+    (
+        "Tempo e clima",
+        "Clima passado (ERA5)",
+        {
+            "id": "era5-temperatura",
+            "label": "Temperatura do ERA5 (reanálise, desde 1940)",
+            "help": "A temperatura do ar a 2 m num período passado, em °C: a média da máxima do dia, da mínima ou da média, ajustada à altitude de cada ponto." + FIM_ERA5,
+            "icon": "stretch",
+            "params": "{\"tipo\"?: \"maxima\" (padrão) | \"minima\" | \"media\", " + PARAMS_ERA5 + "}",
+            "form": [{"name": "tipo", "label": "Temperatura", "kind": "choice", "required": True, "choices": TEMPERATURAS, "default": TEMPERATURAS[2], "help": "A máxima ou a mínima de cada dia, em média no período, ou a média do dia."}] + CAMPOS_ERA5,
+        },
+    ),
+    (
+        "Tempo e clima",
+        "Clima passado (ERA5)",
+        {
+            "id": "era5-umidade",
+            "label": "Umidade do solo do ERA5 (reanálise, desde 1940)",
+            "help": "A umidade da camada de cima do solo (0 a 7 cm) num período passado, em % do volume: a média dos dias." + FIM_ERA5,
+            "icon": "dissolve",
+            "params": "{" + PARAMS_ERA5 + "}",
+            "form": CAMPOS_ERA5,
+        },
+    ),
+    (
+        "Tempo e clima",
         "Satélites do JAXA",
         {
             "id": "jaxa-chuva",
@@ -1297,7 +1341,7 @@ TOPICOS = {
     "Território": ["Limites", "Recortes especiais", "Cadastro fundiário", "Terras indígenas"],
     "Sociedade e economia": ["População", "Economia", "Agricultura", "Eleições", "Saúde"],
     "Meio físico": ["Geologia e recursos minerais", "Relevo", "Solos"],
-    "Tempo e clima": ["Previsão", "Chuva observada", "Desastres", "Clima", "Satélites do JAXA"],
+    "Tempo e clima": ["Previsão", "Chuva observada", "Desastres", "Clima", "Clima passado (ERA5)", "Satélites do JAXA"],
     "Água": ["Hidrografia", "Bacias", "Recursos hídricos"],
     "Vegetação e meio ambiente": ["Vegetação", "Cubo de dados do INPE", "Uso e cobertura", "Desmatamento", "Queimadas", "Áreas protegidas", "Fiscalização"],
     "Infraestrutura": ["Energia", "Petróleo e gás", "Transportes"],
@@ -1326,6 +1370,7 @@ MENU_ICONES = {
     "Previsão": "time_next",
     "Chuva observada": "history",
     "Clima": "brightness",
+    "Clima passado (ERA5)": "time_slider",
     "Satélites do JAXA": "globe_view",
     "Bacias": "dissolve",
     "Recursos hídricos": "graduated",

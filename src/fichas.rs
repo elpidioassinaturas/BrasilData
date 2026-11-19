@@ -79,6 +79,8 @@ pub fn comando_da_camada(nome: &str, fonte: &str) -> Option<&'static str> {
         "bdc-indice"
     } else if let Some(v) = crate::jaxa::variavel_da_camada(nome) {
         v.comando()
+    } else if let Some(c) = crate::era5::comando_da_camada(nome) {
+        c
     } else if gem15::eh_do_gem15(nome) {
         "gem15"
     } else if clms::ano_da_camada(nome).is_some() {
