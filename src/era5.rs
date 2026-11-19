@@ -151,8 +151,7 @@ pub fn pedidos(v: Variavel, inicio: Data, fim: Data, pts: &[[f64; 2]]) -> Vec<St
 
 /// Um pedido mínimo à previsão, só para saber o dia de hoje em Brasília (o plugin não tem
 /// relógio).
-pub const HOJE: &str =
-    "https://api.open-meteo.com/v1/forecast?latitude=-15.75&longitude=-47.75&daily=precipitation_sum&forecast_days=1&timezone=America%2FSao_Paulo";
+pub const HOJE: &str = "https://api.open-meteo.com/v1/forecast?latitude=-15.75&longitude=-47.75&daily=precipitation_sum&forecast_days=1&timezone=America%2FSao_Paulo";
 
 /// O dia de hoje na resposta de [`HOJE`].
 pub fn hoje(resposta: &Value) -> Option<Data> {
@@ -318,7 +317,8 @@ pub const RAMPA_UMIDADE: (&str, &str) =
 pub const CITACAO: &str = "Hersbach, H. et al. (2023): ERA5 hourly data on single levels from 1940 to present. Copernicus Climate Change Service (C3S) Climate Data Store (CDS), doi:10.24381/cds.adbb2d47, pela API histórica do Open-Meteo (Zippenfenig, P. 2023. Open-Meteo.com Weather API, doi:10.5281/zenodo.7970649): valores diários nos nós de uma grade de 0,25° em volta da área, interpolados para a grade do projeto e recortados pela área. Contém informação modificada do Copernicus Climate Change Service";
 
 /// A licença.
-pub const LICENCA: &str = "licença do Copernicus (C3S): uso livre, com a citação; Open-Meteo em CC BY 4.0, e a API gratuita é para uso não comercial";
+pub const LICENCA: &str =
+    "licença do Copernicus (C3S): uso livre, com a citação; Open-Meteo em CC BY 4.0, e a API gratuita é para uso não comercial";
 
 #[cfg(test)]
 mod tests {
@@ -361,7 +361,10 @@ mod tests {
         // 30 anos: 2 pontos por endereço (o Open-Meteo leva uns 3 s por ponto).
         let seis = [[0.0, 0.0]; 6];
         assert_eq!(pedidos(Variavel::Umidade, d("01/01/1991"), d("31/12/2020"), &seis).len(), 3);
-        assert!(pedidos(Variavel::Temperatura(Temperatura::Minima), d("01/01/2025"), d("02/01/2025"), &pts)[0].contains("daily=temperature_2m_min&"));
+        assert!(
+            pedidos(Variavel::Temperatura(Temperatura::Minima), d("01/01/2025"), d("02/01/2025"), &pts)[0]
+                .contains("daily=temperature_2m_min&")
+        );
     }
 
     #[test]
@@ -392,7 +395,9 @@ mod tests {
         assert!((valor(&u[0], Variavel::Umidade, Resumo::Total, 2).unwrap() - 35.0).abs() < 1e-9);
         let ano = vec![Some(2.0); 365];
         assert!((valor(&ano, Variavel::Chuva, Resumo::PorAno, 365).unwrap() - 730.5).abs() < 1e-9);
-        assert!(erro_do_texto(r#"{"error":true,"reason":"Parameter 'start_date' is out of allowed range"}"#).unwrap().contains("start_date"));
+        assert!(
+            erro_do_texto(r#"{"error":true,"reason":"Parameter 'start_date' is out of allowed range"}"#).unwrap().contains("start_date")
+        );
         assert_eq!(erro_do_texto(t), None);
     }
 

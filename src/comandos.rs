@@ -11,8 +11,8 @@ use crate::chm;
 use crate::clms;
 use crate::datas::{self, Data};
 use crate::dialogos;
-use crate::era5;
 use crate::dist;
+use crate::era5;
 use crate::estilo;
 use crate::extensoes;
 use crate::gedi;
@@ -3577,8 +3577,10 @@ fn buscar_previsao(urls: &[String], pontos: usize) -> Result<Result<Vec<Value>, 
         Ok(r) => r,
         Err(p) => return Ok(Err(p)),
     };
-    let respostas: Vec<Value> =
-        respostas.into_iter().map(|mut r| r.get_mut("json").map(Value::take).ok_or("o Open-Meteo não respondeu em JSON".to_string())).collect::<Result<_, _>>()?;
+    let respostas: Vec<Value> = respostas
+        .into_iter()
+        .map(|mut r| r.get_mut("json").map(Value::take).ok_or("o Open-Meteo não respondeu em JSON".to_string()))
+        .collect::<Result<_, _>>()?;
     if let Some(e) = respostas.iter().find_map(tempo::erro) {
         return Err(e);
     }
@@ -3929,7 +3931,10 @@ fn era5_na_area(req: &Request, v: era5::Variavel) -> Result<Value, String> {
         (era5::Variavel::Umidade, _) => "a umidade média dos primeiros 7 cm do solo".to_string(),
     };
     let aberta = if passo > era5::PASSO {
-        format!(" (a grade de pontos abriu de 0,25° para {} para caber no limite do Open-Meteo, que pesa os pontos pelos dias)", texto_do_passo(passo))
+        format!(
+            " (a grade de pontos abriu de 0,25° para {} para caber no limite do Open-Meteo, que pesa os pontos pelos dias)",
+            texto_do_passo(passo)
+        )
     } else {
         String::new()
     };
