@@ -4946,6 +4946,8 @@ fn chm_na_area(req: &Request) -> Result<Value, String> {
 /// projeção da grade. Na folha do RustGIS (`layout.publication`), a legenda deixa de fora a área e
 /// a grade, e a barra de cores ganha o título com a unidade.
 fn layout_do_mapa(req: &Request) -> Result<Value, String> {
+    // A folha em pé, deitada ou a que der o mapa maior: conferida antes de mexer no mapa.
+    let perfil = layout::perfil_com_orientacao(req.str("perfil").unwrap_or("a4"), req.str("orientacao"))?;
     let (c, na_area) = retangulo()?;
     if !na_area {
         return Err("escolha a área primeiro (painel Área de trabalho, ou Área: seleção): o layout enquadra a área".into());
@@ -5060,7 +5062,7 @@ fn layout_do_mapa(req: &Request) -> Result<Value, String> {
     let _ = host::run("layout.remove", json!({"name": nome}));
     let texto = |k: &str, padrao: &str| req.params.get(k).and_then(Value::as_str).unwrap_or(padrao).to_string();
     let mut p = json!({
-        "name": nome, "profile": texto("perfil", "a4"), "style": texto("estilo", "classic"), "extent": c,
+        "name": nome, "profile": perfil, "style": texto("estilo", "classic"), "extent": c,
         "title": titulo, "subtitle": subtitulo, "sources": fontes, "reference": referencia,
         "author": "Elaborado com RustGIS e BrasilData · {date}",
         "headings": ["Fonte dos dados", "Referência cartográfica", "Nota"],

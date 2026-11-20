@@ -39,6 +39,10 @@ pub const PERFIS: [(&str, &str); 8] = [
     ("Tese: meia página (160 × 110 mm)", "thesis-half"),
 ];
 
+/// As escolhas da orientação da folha e a `orientacao` de cada uma.
+pub const ORIENTACOES: [(&str, &str); 3] =
+    [("Automática: a que der o mapa maior", "automatica"), ("Retrato (em pé)", "retrato"), ("Paisagem (deitada)", "paisagem")];
+
 /// As escolhas do estilo da folha e o `estilo` de cada uma.
 pub const ESTILOS: [(&str, &str); 6] = [
     ("Clássico", "classic"),
@@ -84,6 +88,7 @@ type Escolhas = &'static [(&'static str, &'static str)];
 const TROCAS: &[(&str, &str, Escolhas)] = &[
     ("grade", "crs", &SISTEMAS),
     ("layout", "perfil", &PERFIS),
+    ("layout", "orientacao", &ORIENTACOES),
     ("layout", "estilo", &ESTILOS),
     ("dist-situacao", "paleta", &PALETAS),
     ("gem15", "modelo", &MODELOS_GEM15),
@@ -202,6 +207,7 @@ mod tests {
         assert_eq!(norm("sol-radiacao", json!({"mes": "março"})), json!({"mes": 3}));
         assert_eq!(norm("layout", json!({"perfil": "Folha A3", "estilo": "Pôster"})), json!({"perfil": "a3", "estilo": "poster"}));
         assert_eq!(norm("layout", json!({"perfil": "a2"})), json!({"perfil": "a2"}));
+        assert_eq!(norm("layout", json!({"orientacao": "Paisagem (deitada)"})), json!({"orientacao": "paisagem"}));
         assert_eq!(norm("dist-situacao", json!({"paleta": "A oficial da OPERA", "data": ""})), json!({"paleta": "oficial"}));
         assert_eq!(norm("grade", json!({"celula": 30, "crs": SISTEMAS[1].0})), json!({"celula": 30, "crs": "albers"}));
         assert_eq!(norm("grade", json!({"crs": SISTEMAS[0].0, "epsg": "31983"})), json!({"crs": "31983"}));
@@ -240,6 +246,6 @@ mod tests {
                 }
             }
         }
-        assert!(vistas >= 12 + 13 + 3 + 8 + 6 + 2 + 3, "{vistas} escolhas");
+        assert!(vistas >= 12 + 13 + 3 + 8 + 3 + 6 + 2 + 3, "{vistas} escolhas");
     }
 }

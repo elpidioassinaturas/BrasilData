@@ -37,7 +37,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.40"
+VERSAO = "0.1.41"
 AUTOR = "Elpídio Filho"
 # Como o texto Sobre chama o autor (o manifesto e o README levam o nome completo).
 AUTOR_SOBRE = "Professor Elpídio"
@@ -75,6 +75,7 @@ PERFIS = [
     "Tese: página inteira (160 × 225 mm)",
     "Tese: meia página (160 × 110 mm)",
 ]
+ORIENTACOES = ["Automática: a que der o mapa maior", "Retrato (em pé)", "Paisagem (deitada)"]
 ESTILOS = ["Clássico", "Faixa", "Painel", "Editorial", "Modular", "Pôster"]
 PALETAS = ["A do BrasilData: etapa e confiança", "A oficial da OPERA"]
 # As escolhas do tema Tempo e clima (iguais às de src/tempo.rs).
@@ -328,11 +329,12 @@ FIM = [
         {
             "id": "layout",
             "label": "Layout",
-            "help": "Uma folha pronta para exportar, com o dado principal do BrasilData no mapa (a camada visível mais acima): o nome da área no título, o que é o dado no subtítulo, a barra de cores com a unidade ou a legenda das classes, as fontes, a projeção da grade do projeto, a grade em metros e a localização. O mapa passa para a projeção da grade, a área fica só com o contorno e a grade sai da vista. O formato (folha ou figura) e o estilo da folha vêm da janela do comando. Um novo clique refaz a folha.",
+            "help": "Uma folha pronta para exportar, com o dado principal do BrasilData no mapa (a camada visível mais acima): o nome da área no título, o que é o dado no subtítulo, a barra de cores com a unidade ou a legenda das classes, as fontes, a projeção da grade do projeto, a grade em metros e a localização. O mapa passa para a projeção da grade, a área fica só com o contorno e a grade sai da vista. O formato (folha ou figura), a orientação e o estilo da folha vêm da janela do comando. Um novo clique refaz a folha.",
             "icon": "new_layout",
-            "params": "{\"perfil\"?: a4 (padrão), a3, a2, a4-portrait, a4-landscape... ou figure-1col, figure-2col, thesis-full, \"estilo\"?: classic (padrão), banner, panel, editorial, modular ou poster}",
+            "params": "{\"perfil\"?: a4 (padrão), a3, a2, a4-portrait, a4-landscape... ou figure-1col, figure-2col, thesis-full, \"orientacao\"?: automatica (padrão), retrato ou paisagem (só nas folhas), \"estilo\"?: classic (padrão), banner, panel, editorial, modular ou poster}",
             "form": [
-                {"name": "perfil", "label": "Formato", "kind": "choice", "required": True, "choices": PERFIS, "default": PERFIS[0], "help": "Uma folha (A4, A3, A2, em pé ou deitada, a que der o mapa maior) com título, fontes e localização; ou uma figura para artigo ou tese, só o mapa, com o título e a fonte para a legenda da figura."},
+                {"name": "perfil", "label": "Formato", "kind": "choice", "required": True, "choices": PERFIS, "default": PERFIS[0], "help": "Uma folha (A4, A3, A2) com título, fontes e localização; ou uma figura para artigo ou tese, só o mapa, com o título e a fonte para a legenda da figura."},
+                {"name": "orientacao", "label": "Orientação da folha", "kind": "choice", "required": True, "choices": ORIENTACOES, "default": ORIENTACOES[0], "help": "A folha em pé (retrato) ou deitada (paisagem); na automática, a que der o mapa maior. As figuras de artigo e de tese têm o tamanho fixo e não usam."},
                 {"name": "estilo", "label": "Estilo da folha", "kind": "choice", "required": True, "choices": ESTILOS, "default": ESTILOS[0], "help": "A arrumação da folha: o título sobre o mapa (clássico), numa faixa colorida, num painel ao lado, em letras grandes (editorial), em cartões (modular) ou numa página colorida (pôster). As figuras não usam."},
             ],
         },

@@ -1,7 +1,7 @@
 {
   "id": "brasildata",
   "name": "BrasilData",
-  "version": "0.1.40",
+  "version": "0.1.41",
   "description": "Dados públicos do Brasil para a área do usuário (IBGE, MMA, ICMBio, INPE, CEMADEN, ANA, ANEEL, ANP, SFB/CAR, INCRA, FUNAI, IBAMA, ANM, DNIT, Ministério da Saúde, Copernicus, NASA/ASF, FAO, WRI, Open-Meteo, CHIRPS, Google DeepMind): só o que cruza a área, recortado por ela, com a fonte e a licença de cada camada.",
   "author": "Elpídio Filho",
   "homepage": "https://github.com/elpidioassinaturas/BrasilData",
@@ -1907,9 +1907,9 @@
     {
       "id": "layout",
       "label": "Layout",
-      "help": "Uma folha pronta para exportar, com o dado principal do BrasilData no mapa (a camada visível mais acima): o nome da área no título, o que é o dado no subtítulo, a barra de cores com a unidade ou a legenda das classes, as fontes, a projeção da grade do projeto, a grade em metros e a localização. O mapa passa para a projeção da grade, a área fica só com o contorno e a grade sai da vista. O formato (folha ou figura) e o estilo da folha vêm da janela do comando. Um novo clique refaz a folha.",
+      "help": "Uma folha pronta para exportar, com o dado principal do BrasilData no mapa (a camada visível mais acima): o nome da área no título, o que é o dado no subtítulo, a barra de cores com a unidade ou a legenda das classes, as fontes, a projeção da grade do projeto, a grade em metros e a localização. O mapa passa para a projeção da grade, a área fica só com o contorno e a grade sai da vista. O formato (folha ou figura), a orientação e o estilo da folha vêm da janela do comando. Um novo clique refaz a folha.",
       "icon": "new_layout",
-      "params": "{\"perfil\"?: a4 (padrão), a3, a2, a4-portrait, a4-landscape... ou figure-1col, figure-2col, thesis-full, \"estilo\"?: classic (padrão), banner, panel, editorial, modular ou poster}",
+      "params": "{\"perfil\"?: a4 (padrão), a3, a2, a4-portrait, a4-landscape... ou figure-1col, figure-2col, thesis-full, \"orientacao\"?: automatica (padrão), retrato ou paisagem (só nas folhas), \"estilo\"?: classic (padrão), banner, panel, editorial, modular ou poster}",
       "form": [
         {
           "name": "perfil",
@@ -1927,7 +1927,20 @@
             "Tese: meia página (160 × 110 mm)"
           ],
           "default": "Folha A4",
-          "help": "Uma folha (A4, A3, A2, em pé ou deitada, a que der o mapa maior) com título, fontes e localização; ou uma figura para artigo ou tese, só o mapa, com o título e a fonte para a legenda da figura."
+          "help": "Uma folha (A4, A3, A2) com título, fontes e localização; ou uma figura para artigo ou tese, só o mapa, com o título e a fonte para a legenda da figura."
+        },
+        {
+          "name": "orientacao",
+          "label": "Orientação da folha",
+          "kind": "choice",
+          "required": true,
+          "choices": [
+            "Automática: a que der o mapa maior",
+            "Retrato (em pé)",
+            "Paisagem (deitada)"
+          ],
+          "default": "Automática: a que der o mapa maior",
+          "help": "A folha em pé (retrato) ou deitada (paisagem); na automática, a que der o mapa maior. As figuras de artigo e de tese têm o tamanho fixo e não usam."
         },
         {
           "name": "estilo",
@@ -1964,7 +1977,7 @@
     {
       "id": "sobre",
       "label": "Sobre",
-      "help": "BrasilData 0.1.40, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nAs fontes dos dados e como contribuir estão nas abas do fim do painel Área de trabalho: basta clicar nelas. Para lê-las aqui, marque a caixa e clique em Executar. A janela fica aberta até o X do canto de cima.",
+      "help": "BrasilData 0.1.41, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nAs fontes dos dados e como contribuir estão nas abas do fim do painel Área de trabalho: basta clicar nelas. Para lê-las aqui, marque a caixa e clique em Executar. A janela fica aberta até o X do canto de cima.",
       "icon": "about",
       "params": "{\"completo\"?: true para as fontes e como contribuir | \"parte\"?: \"tudo\" (padrão) | \"autoria\" | \"fontes\" | \"contribuir\"}",
       "form": [
@@ -2132,7 +2145,7 @@
         "kind": "text",
         "id": "sobre",
         "label": "Sobre o BrasilData: Autoria",
-        "text": "BrasilData 0.1.40, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData"
+        "text": "BrasilData 0.1.41, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData"
       }
     ]
   },

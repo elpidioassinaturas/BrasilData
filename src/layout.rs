@@ -393,9 +393,39 @@ pub fn titulo(texto_da_area: &str) -> String {
     }
 }
 
+/// O `profile` do `layout.publication`: o `perfil` com a `orientacao` (automatica, retrato ou
+/// paisagem). Só uma folha (a4, a3, a2...) tem orientação; uma figura tem o tamanho fixo, e um
+/// perfil que já diz a sua (a4-portrait) fica como veio.
+pub fn perfil_com_orientacao(perfil: &str, orientacao: Option<&str>) -> Result<String, String> {
+    let lado = match orientacao.map(str::trim).unwrap_or("automatica") {
+        "" | "automatica" | "automática" => None,
+        "retrato" | "portrait" => Some("portrait"),
+        "paisagem" | "landscape" => Some("landscape"),
+        o => return Err(format!("orientação '{o}': use automatica, retrato ou paisagem")),
+    };
+    let folha = !perfil.contains('-') && !perfil.starts_with("figure") && !perfil.starts_with("thesis");
+    Ok(match lado {
+        Some(l) if folha => format!("{perfil}-{l}"),
+        _ => perfil.to_string(),
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_orientacao_da_folha() {
+        assert_eq!(perfil_com_orientacao("a4", None).unwrap(), "a4");
+        assert_eq!(perfil_com_orientacao("a4", Some("automatica")).unwrap(), "a4");
+        assert_eq!(perfil_com_orientacao("a3", Some("retrato")).unwrap(), "a3-portrait");
+        assert_eq!(perfil_com_orientacao("a2", Some("paisagem")).unwrap(), "a2-landscape");
+        // A figura tem o tamanho fixo, e um perfil com a orientação fica com a sua.
+        assert_eq!(perfil_com_orientacao("figure-2col", Some("paisagem")).unwrap(), "figure-2col");
+        assert_eq!(perfil_com_orientacao("thesis-full", Some("retrato")).unwrap(), "thesis-full");
+        assert_eq!(perfil_com_orientacao("a4-portrait", Some("paisagem")).unwrap(), "a4-portrait");
+        assert!(perfil_com_orientacao("a4", Some("deitada")).is_err());
+    }
 
     #[test]
     fn as_receitas_das_camadas_do_gedi_e_do_dist() {
