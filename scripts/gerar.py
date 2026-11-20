@@ -37,7 +37,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.44"
+VERSAO = "0.1.45"
 AUTOR = "Elpídio Filho"
 # Como o texto Sobre chama o autor (o manifesto e o README levam o nome completo).
 AUTOR_SOBRE = "Professor Elpídio"
@@ -598,6 +598,17 @@ EM_MENUS = [
             "help": "A altura das árvores em metros, a cerca de 1 m, da Meta e do World Resources Institute (Canopy Height Maps v2, licença CC BY 4.0): estimada por um modelo de IA (DINOv3) sobre imagens de satélite de alta resolução, de datas diferentes conforme o lugar. Só a área, lida de cada tile que ela toca, posta na grade do projeto e recortada pelo contorno; numa grade mais grossa, lida da pirâmide do arquivo, que tira a média. Para ver as copas, use uma grade de 1 a 5 m (Grade do projeto) numa área pequena. O 0 é sem árvore, e também sem dado. Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área).",
             "icon": "proportional",
             "params": "{\"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+        },
+    ),
+    (
+        "Infraestrutura",
+        "Edificações",
+        {
+            "id": "gba-edificacoes",
+            "label": "Edificações e alturas (GlobalBuildingAtlas)",
+            "help": "O polígono de cada edificação com a altura estimada, do GlobalBuildingAtlas (Universidade Técnica de Munique; licença CC BY-NC 4.0, sem uso comercial): polígonos do Google, da Microsoft e do OpenStreetMap, e alturas de um modelo de IA sobre imagens PlanetScope de 2019. O RustGIS lê o arquivo do bloco de 5° no lugar, da cópia em GeoParquet do Source Cooperative, e busca só o que a vista mostra: a camada não é recortada pela área. Cores por classe de altura (campo height). A altura é menos precisa na América do Sul. Precisa de um RustGIS que leia GeoParquet no lugar (0.7.0).",
+            "icon": "unique",
+            "params": "{}",
         },
     ),
     (
@@ -1384,7 +1395,7 @@ TOPICOS = {
     "Tempo e clima": ["Previsão", "Chuva observada", "Desastres", "Clima", "Clima passado (ERA5)", "Satélites do JAXA"],
     "Água": ["Hidrografia", "Bacias", "Recursos hídricos"],
     "Vegetação e meio ambiente": ["Vegetação", "Cubo de dados do INPE", "Uso e cobertura", "Desmatamento", "Queimadas", "Áreas protegidas", "Fiscalização"],
-    "Infraestrutura": ["Energia", "Petróleo e gás", "Transportes"],
+    "Infraestrutura": ["Energia", "Petróleo e gás", "Transportes", "Edificações"],
 }
 GRUPOS = list(TOPICOS)
 # Comandos que também aparecem num segundo subtópico: (tópico, subtópico, id). A Agricultura

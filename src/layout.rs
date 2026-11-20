@@ -42,6 +42,7 @@ const NOTA_ERA5: &str = "Reanálise ERA5 do ECMWF (Copernicus), em nós de uma g
 const NOTA_BDC: &str = "Compostos de 16 dias do cubo de dados do INPE (Brazil Data Cube), com o pixel mais limpo de cada período; nuvens e sombras persistentes ainda podem aparecer.";
 const NOTA_CTREES: &str = "Biomassa estimada por um modelo de IA calibrado com lidar aéreo e parcelas de campo, a partir do Landsat, do radar ALOS PALSAR-2 e das alturas do GEDI; a série da CTrees ainda está em pré-publicação, sem revisão por pares.";
 const NOTA_FORTY: &str = "Códigos da legenda: 1 floresta primária, 2 em regeneração natural, 3 plantada, 4 plantio florestal comercial, 5 culturas arbóreas e agrofloresta, 6 outros usos. Classes de um modelo de IA sobre imagens de 2020, alinhadas à FAO e ao EUDR.";
+const NOTA_GBA: &str = "Polígonos do Google, da Microsoft e do OpenStreetMap; altura estimada por um modelo de IA, menos precisa na América do Sul. Licença CC BY-NC 4.0: sem uso comercial.";
 const NOTA_CHM_AMAZONIA: &str =
     "Altura estimada por um modelo de IA (U-Net) sobre imagens Planet NICFI, calibrado com lidar aéreo da Amazônia; média de 2020 a 2024.";
 const NOTA_CHM: &str = "Altura estimada por um modelo de IA (DINOv3) sobre imagens de satélite de alta resolução de datas diferentes; 0 é sem árvore (ou sem dado).";
@@ -214,6 +215,14 @@ pub fn receita(nome: &str) -> Option<Receita> {
             barra: Some((indice.to_string(), 10)),
             legenda: None,
             nota: Some(NOTA_BDC),
+        });
+    }
+    if crate::gba::eh_do_gba(nome) {
+        return Some(Receita {
+            subtitulo: "Edificações e alturas (GlobalBuildingAtlas, imagens PlanetScope de 2019)".into(),
+            barra: None,
+            legenda: Some("Altura da edificação"),
+            nota: Some(NOTA_GBA),
         });
     }
     if nome == crate::chm_amazonia::CAMADA {

@@ -38,6 +38,7 @@ pub mod jaxa;
 // RustGIS ficariam sem resolver no linker do Windows.
 #[cfg(target_arch = "wasm32")]
 mod comandos;
+pub mod gba;
 pub mod gedi;
 pub mod gem15;
 pub mod layout;

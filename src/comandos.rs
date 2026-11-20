@@ -18,6 +18,7 @@ use crate::era5;
 use crate::estilo;
 use crate::extensoes;
 use crate::forty;
+use crate::gba;
 use crate::gedi;
 use crate::gem15;
 use crate::grade::{self, Escolha, GRADE, Grade};
@@ -207,6 +208,7 @@ fn executar_comando(req: Request) -> Result<Value, String> {
         "gem15" => gem15_na_area(&req),
         "chm-altura" => chm_na_area(&req),
         "chm-amazonia" => chm_amazonia_na_area(&req),
+        "gba-edificacoes" => gba_na_area(),
         "forty-tipologia" => forty_na_area(&req),
         "ctrees-biomassa" => ctrees_na_area(&req),
         "bdc-indice" => bdc_indice(&req),
@@ -1487,6 +1489,8 @@ fn citacoes() -> Result<(Vec<Value>, String), String> {
             lista.push(json!({"layer": n, "source": chm::CITACAO, "license": chm::LICENCA}));
         } else if n == chm_amazonia::CAMADA {
             lista.push(json!({"layer": n, "source": chm_amazonia::CITACAO, "license": chm_amazonia::LICENCA}));
+        } else if gba::eh_do_gba(&n) {
+            lista.push(json!({"layer": n, "source": gba::CITACAO, "license": gba::LICENCA}));
         } else if n == forty::CAMADA {
             lista.push(json!({"layer": n, "source": forty::CITACAO, "license": forty::LICENCA}));
         } else if let Some((v, ano)) = ctrees::da_camada(&n) {
@@ -4810,6 +4814,81 @@ fn turno_do_jaxa(req: &Request) -> Result<jaxa::Turno, String> {
         Some(t) => jaxa::Turno::ler(t).ok_or(format!("turno '{t}': use dia ou noite")),
         None => Ok(jaxa::Turno::Dia),
     }
+}
+
+/// As edificações do GlobalBuildingAtlas na área ([`gba`]): o arquivo de cada bloco de 5° que a
+/// área toca, lido no lugar pelo RustGIS (só o que a vista mostra), com as classes de altura.
+fn gba_na_area() -> Result<Value, String> {
+    let (c, na_area) = retangulo()?;
+    if !na_area {
+        return Err("escolha a área primeiro (painel Área de trabalho, ou Área: seleção)".into());
+    }
+    let todos = gba::blocos(c);
+    if todos.len() > gba::MAX_BLOCOS {
+        return Err(format!(
+            "a área toca {} blocos de 5° do GlobalBuildingAtlas; o limite de um clique é {}: escolha uma área menor",
+            todos.len(),
+            gba::MAX_BLOCOS
+        ));
+    }
+    let r = match buscar(&[gba::LISTAGEM.to_string()]).map_err(|e| format!("o Source Cooperative (data.source.coop) não respondeu: {e}"))?
+    {
+        Ok(r) => r,
+        Err(p) => return Ok(p),
+    };
+    let lista = r.first().and_then(|r| r["text"].as_str()).unwrap_or("");
+    let blocos: Vec<&String> = todos.iter().filter(|b| gba::existe(b, lista)).collect();
+    if blocos.is_empty() {
+        return Err("o GlobalBuildingAtlas não tem edificações na área".into());
+    }
+    let varios = blocos.len() > 1;
+    let _ = host::run("style.remove", json!({"name": gba::ESTILO}));
+    host::run("style.add", json!({"text": gba::estilo()}))?;
+    let ha = nomes()?;
+    let (mut abertas, mut lendo, mut edificacoes) = (Vec::new(), 0, 0u64);
+    for b in &blocos {
+        let nome = gba::camada(b, varios);
+        if !ha.contains(&nome) {
+            let r = host::run("layer.addUrl", json!({"url": gba::url(b), "name": nome})).map_err(|e| {
+                if falha_passageira(&e) || e.contains("timeout") {
+                    format!("o Source Cooperative não respondeu agora: tente de novo daqui a pouco ({e})")
+                } else {
+                    e
+                }
+            })?;
+            if r.get("pending").and_then(Value::as_bool) == Some(true) {
+                lendo += 1;
+                continue;
+            }
+            edificacoes += r["features"].as_u64().unwrap_or(0);
+        }
+        // Uma camada que acaba de chegar (de um símbolo só) ganha as classes de altura, e o estilo
+        // que o plugin guardou dela antes do comando (o símbolo só, quando o comando roda de novo
+        // porque o arquivo chegou) sai, para não voltar no fim. Uma que o usuário estilizou fica.
+        let simples = camada_no_projeto(&nome)?.is_none_or(|l| l["renderer"].as_str() == Some("Single Symbol"));
+        if simples {
+            host::run("style.apply", json!({"layer": nome, "name": gba::ESTILO}))?;
+            let _ = host::run("style.remove", json!({"name": estilo::guardado(&nome)}));
+        }
+        abertas.push(nome);
+    }
+    if lendo > 0 {
+        avisar(&format!(
+            "Edificações (GlobalBuildingAtlas): abrindo {lendo} arquivo(s) do Source Cooperative; a camada vem quando chegarem"
+        ));
+        return Ok(json!({"pending": lendo, "tiles": blocos.len()}));
+    }
+    let quantas = if edificacoes > 0 {
+        format!(" ({} milhões de edificações no bloco)", formatar_decimal((edificacoes as f64 / 1e5).round() / 10.0))
+    } else {
+        String::new()
+    };
+    let texto = format!(
+        "{}: polígonos e alturas do GlobalBuildingAtlas{quantas}, lidos no lugar, só o que a vista mostra: a camada não é recortada pela área. Cores por classe de altura (campo height, em m); altura estimada de imagens PlanetScope de 2019, menos precisa na América do Sul. Licença CC BY-NC 4.0: sem uso comercial",
+        abertas.first().map(String::as_str).unwrap_or(gba::PREFIXO_CAMADA).trim_start_matches(PREFIXO)
+    );
+    avisar(&texto);
+    Ok(json!({"layers": abertas, "tiles": blocos.len(), "features": edificacoes, "report": texto}))
 }
 
 /// Os tiles da altura da Amazônia que existem entre os `ts`, pela listagem do bucket (fora da

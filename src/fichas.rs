@@ -77,6 +77,8 @@ pub fn comando_da_camada(nome: &str, fonte: &str) -> Option<&'static str> {
         "chm-altura"
     } else if nome == crate::chm_amazonia::CAMADA {
         "chm-amazonia"
+    } else if crate::gba::eh_do_gba(nome) {
+        "gba-edificacoes"
     } else if nome == crate::forty::CAMADA {
         "forty-tipologia"
     } else if crate::ctrees::da_camada(nome).is_some() {
@@ -135,6 +137,7 @@ mod tests {
             ("BrasilData: Elevação (Copernicus GLO-30)", "elevacao"),
             (chm::CAMADA, "chm-altura"),
             (crate::chm_amazonia::CAMADA, "chm-amazonia"),
+            ("BrasilData: Edificações e alturas (GlobalBuildingAtlas)", "gba-edificacoes"),
             (crate::forty::CAMADA, "forty-tipologia"),
             ("BrasilData: Biomassa acima do solo 2025 (CTrees, 100 m)", "ctrees-biomassa"),
             ("BrasilData: Incerteza da biomassa 2010 (CTrees, 100 m)", "ctrees-biomassa"),
