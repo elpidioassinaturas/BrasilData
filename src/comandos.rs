@@ -19,6 +19,7 @@ use crate::estilo;
 use crate::extensoes;
 use crate::forty;
 use crate::gba;
+use crate::gdo;
 use crate::gedi;
 use crate::gem15;
 use crate::grade::{self, Escolha, GRADE, Grade};
@@ -209,6 +210,7 @@ fn executar_comando(req: Request) -> Result<Value, String> {
         "chm-altura" => chm_na_area(&req),
         "chm-amazonia" => chm_amazonia_na_area(&req),
         "gba-edificacoes" => gba_na_area(),
+        "gdo-seca" => gdo_seca(&req),
         "forty-tipologia" => forty_na_area(&req),
         "ctrees-biomassa" => ctrees_na_area(&req),
         "bdc-indice" => bdc_indice(&req),
@@ -1491,6 +1493,8 @@ fn citacoes() -> Result<(Vec<Value>, String), String> {
             lista.push(json!({"layer": n, "source": chm_amazonia::CITACAO, "license": chm_amazonia::LICENCA}));
         } else if gba::eh_do_gba(&n) {
             lista.push(json!({"layer": n, "source": gba::CITACAO, "license": gba::LICENCA}));
+        } else if gdo::eh_do_gdo(&n) {
+            lista.push(json!({"layer": n, "source": gdo::CITACAO, "license": gdo::LICENCA}));
         } else if n == forty::CAMADA {
             lista.push(json!({"layer": n, "source": forty::CITACAO, "license": forty::LICENCA}));
         } else if let Some((v, ano)) = ctrees::da_camada(&n) {
@@ -4871,6 +4875,40 @@ fn turno_do_jaxa(req: &Request) -> Result<jaxa::Turno, String> {
         Some(t) => jaxa::Turno::ler(t).ok_or(format!("turno '{t}': use dia ou noite")),
         None => Ok(jaxa::Turno::Dia),
     }
+}
+
+/// Um mapa de seca do Global Drought Observatory ([`gdo`]): a anomalia da umidade do solo, a da
+/// vegetação ou o SPI do CHIRPS, numa data ou na mais recente, como mapa para ver (o WMS do GDO),
+/// com a legenda do serviço.
+fn gdo_seca(req: &Request) -> Result<Value, String> {
+    let i = match req.str("indicador") {
+        Some(t) => gdo::Indicador::ler(t).ok_or(format!("indicador '{t}': use umidade, vegetacao, spi1, spi3, spi6 ou spi12"))?,
+        None => gdo::Indicador::Umidade,
+    };
+    let data = req
+        .str("data")
+        .filter(|t| !t.trim().is_empty())
+        .map(|t| bdc::ler_data(t).ok_or(format!("a data '{t}' não é dd/mm/aaaa")))
+        .transpose()?
+        .map(|d| i.passo(d));
+    let nome = i.camada(data);
+    if mosaicos_no_mapa()?.contains(&nome) {
+        host::run("map.removeTiles", json!({"name": nome}))?;
+    }
+    host::run(
+        "map.addTiles",
+        json!({"url": i.url(data), "kind": "raster", "name": nome, "overlay": true, "opacity": 0.85,
+            "attribution": "Copernicus GDO (CEMS, JRC), CC BY 4.0", "legend": i.legenda()}),
+    )?;
+    let quando = match data {
+        Some(_) => "na data pedida (o começo do decêndio ou do mês que a contém)",
+        None => "na data mais recente do serviço",
+    };
+    avisar(&format!(
+        "{}: mapa para ver do Global Drought Observatory (Copernicus), {quando}, com a legenda do serviço sob a camada; não é recortado pela área, e os valores do índice não vêm nele (o GDO só os publica em arquivos do mundo inteiro por ano)",
+        nome.trim_start_matches(PREFIXO)
+    ));
+    Ok(json!({"tiles": nome, "indicator": format!("{i:?}")}))
 }
 
 /// As edificações do GlobalBuildingAtlas na área ([`gba`]): o arquivo de cada bloco de 5° que a

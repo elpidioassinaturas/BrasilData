@@ -39,6 +39,7 @@ pub mod jaxa;
 #[cfg(target_arch = "wasm32")]
 mod comandos;
 pub mod gba;
+pub mod gdo;
 pub mod gedi;
 pub mod gem15;
 pub mod layout;

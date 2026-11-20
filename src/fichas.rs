@@ -79,6 +79,8 @@ pub fn comando_da_camada(nome: &str, fonte: &str) -> Option<&'static str> {
         "chm-amazonia"
     } else if crate::gba::eh_do_gba(nome) {
         "gba-edificacoes"
+    } else if crate::gdo::eh_do_gdo(nome) {
+        "gdo-seca"
     } else if nome == crate::forty::CAMADA {
         "forty-tipologia"
     } else if crate::ctrees::da_camada(nome).is_some() {
@@ -138,6 +140,7 @@ mod tests {
             (chm::CAMADA, "chm-altura"),
             (crate::chm_amazonia::CAMADA, "chm-amazonia"),
             ("BrasilData: Edificações e alturas (GlobalBuildingAtlas)", "gba-edificacoes"),
+            ("BrasilData: Seca: Anomalia da umidade do solo (GDO, 01/10/2026)", "gdo-seca"),
             (crate::forty::CAMADA, "forty-tipologia"),
             ("BrasilData: Biomassa acima do solo 2025 (CTrees, 100 m)", "ctrees-biomassa"),
             ("BrasilData: Incerteza da biomassa 2010 (CTrees, 100 m)", "ctrees-biomassa"),

@@ -1,7 +1,7 @@
 {
   "id": "brasildata",
   "name": "BrasilData",
-  "version": "0.1.46",
+  "version": "0.1.47",
   "description": "Dados públicos do Brasil para a área do usuário (IBGE, MMA, ICMBio, INPE, CEMADEN, ANA, ANEEL, ANP, SFB/CAR, INCRA, FUNAI, IBAMA, ANM, DNIT, Ministério da Saúde, Copernicus, NASA/ASF, FAO, WRI, Open-Meteo, CHIRPS, Google DeepMind): só o que cruza a área, recortado por ela, com a fonte e a licença de cada camada.",
   "author": "Elpídio Filho",
   "homepage": "https://github.com/elpidioassinaturas/BrasilData",
@@ -993,6 +993,37 @@
       "help": "A altura das árvores em metros, a cerca de 1 m, da Meta e do World Resources Institute (Canopy Height Maps v2, licença CC BY 4.0): estimada por um modelo de IA (DINOv3) sobre imagens de satélite de alta resolução, de datas diferentes conforme o lugar. Só a área, lida de cada tile que ela toca, posta na grade do projeto e recortada pelo contorno; numa grade mais grossa, lida da pirâmide do arquivo, que tira a média. Para ver as copas, use uma grade de 1 a 5 m (Grade do projeto) numa área pequena. O 0 é sem árvore, e também sem dado. Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área). Período: imagens de 2018 a 2024, de datas diferentes conforme o lugar. Resolução ou escala: cerca de 1 m (tiles de zoom 17). Unidades: metros. Licença: CC BY 4.0. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/chm-altura.md",
       "icon": "proportional",
       "params": "{\"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}"
+    },
+    {
+      "id": "gdo-seca",
+      "label": "Seca: umidade do solo, vegetação e SPI (Copernicus GDO)",
+      "help": "Um mapa de seca do Global Drought Observatory do Copernicus (CEMS, Comissão Europeia; CC BY 4.0): a anomalia da umidade do solo (modelo LISFLOOD), a anomalia da vegetação (fAPAR do VIIRS) ou o SPI de 1, 3, 6 ou 12 meses do CHIRPS, de 10 em 10 dias (o SPI de 6 e 12 meses, por mês), numa data ou na mais recente. É o mapa do serviço do GDO, com a legenda dele: para ver, não para medir, e não é recortado pela área. O Low-Flow Index (vazão baixa nos rios) do GDO só cobre a Europa. Período: de 10 em 10 dias (o SPI de 6 e 12 meses, por mês): umidade do solo desde 1995, SPI desde 1991, vegetação desde 2012, até a data mais recente. Resolução ou escala: 3′ (cerca de 5 km) na umidade do solo, 0,05° no SPI do CHIRPS, cerca de 1 km no fAPAR; o mapa é a imagem do serviço. Unidades: sem unidade: anomalias e SPI em desvios-padrão, nas classes de cor do GDO. Licença: CC BY 4.0. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/gdo-seca.md",
+      "icon": "dra",
+      "params": "{\"indicador\"?: \"umidade\" (padrão) | \"vegetacao\" | \"spi1\" | \"spi3\" | \"spi6\" | \"spi12\", \"data\"?: dd/mm/aaaa ou aaaa-mm-dd (padrão: a mais recente)}",
+      "form": [
+        {
+          "name": "indicador",
+          "label": "Indicador",
+          "kind": "choice",
+          "required": true,
+          "choices": [
+            "Anomalia da umidade do solo",
+            "Anomalia da vegetação (fAPAR)",
+            "SPI de 1 mês (CHIRPS)",
+            "SPI de 3 meses (CHIRPS)",
+            "SPI de 6 meses (CHIRPS)",
+            "SPI de 12 meses (CHIRPS)"
+          ],
+          "default": "Anomalia da umidade do solo",
+          "help": "A umidade do solo e a vegetação mostram o efeito da seca; o SPI, a falta de chuva no período (1 mês: a seca que começa; 12 meses: a longa)."
+        },
+        {
+          "name": "data",
+          "label": "Data (dd/mm/aaaa)",
+          "kind": "text",
+          "help": "Vazio: a mais recente. Vale o decêndio (dias 1, 11 e 21) ou o mês que contém a data."
+        }
+      ]
     },
     {
       "id": "gba-edificacoes",
@@ -2027,7 +2058,7 @@
     {
       "id": "sobre",
       "label": "Sobre",
-      "help": "BrasilData 0.1.46, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nAs fontes dos dados e como contribuir estão nas abas do fim do painel Área de trabalho: basta clicar nelas. Para lê-las aqui, marque a caixa e clique em Executar. A janela fica aberta até o X do canto de cima.",
+      "help": "BrasilData 0.1.47, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nAs fontes dos dados e como contribuir estão nas abas do fim do painel Área de trabalho: basta clicar nelas. Para lê-las aqui, marque a caixa e clique em Executar. A janela fica aberta até o X do canto de cima.",
       "icon": "about",
       "params": "{\"completo\"?: true para as fontes e como contribuir | \"parte\"?: \"tudo\" (padrão) | \"autoria\" | \"fontes\" | \"contribuir\"}",
       "form": [
@@ -2195,7 +2226,7 @@
         "kind": "text",
         "id": "sobre",
         "label": "Sobre o BrasilData: Autoria",
-        "text": "BrasilData 0.1.46, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData"
+        "text": "BrasilData 0.1.47, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData"
       }
     ]
   },
@@ -2404,6 +2435,7 @@
             "menu": "Clima",
             "icon": "brightness",
             "items": [
+              "gdo-seca",
               "sol-radiacao",
               "risco-fogo"
             ]

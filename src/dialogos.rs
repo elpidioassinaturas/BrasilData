@@ -46,6 +46,16 @@ pub const ORIENTACOES: [(&str, &str); 3] =
 /// As escolhas do que trazer da CTrees e a `camada` de cada uma.
 pub const CAMADAS_CTREES: [(&str, &str); 2] = [("Biomassa (Mg/ha)", "biomassa"), ("Incerteza: erro-padrão (Mg/ha)", "incerteza")];
 
+/// As escolhas do indicador do GDO e o `indicador` de cada uma.
+pub const INDICADORES_GDO: [(&str, &str); 6] = [
+    ("Anomalia da umidade do solo", "umidade"),
+    ("Anomalia da vegetação (fAPAR)", "vegetacao"),
+    ("SPI de 1 mês (CHIRPS)", "spi1"),
+    ("SPI de 3 meses (CHIRPS)", "spi3"),
+    ("SPI de 6 meses (CHIRPS)", "spi6"),
+    ("SPI de 12 meses (CHIRPS)", "spi12"),
+];
+
 /// As escolhas do estilo da folha e o `estilo` de cada uma.
 pub const ESTILOS: [(&str, &str); 6] = [
     ("Clássico", "classic"),
@@ -94,6 +104,7 @@ const TROCAS: &[(&str, &str, Escolhas)] = &[
     ("layout", "orientacao", &ORIENTACOES),
     ("layout", "estilo", &ESTILOS),
     ("ctrees-biomassa", "camada", &CAMADAS_CTREES),
+    ("gdo-seca", "indicador", &INDICADORES_GDO),
     ("dist-situacao", "paleta", &PALETAS),
     ("gem15", "modelo", &MODELOS_GEM15),
     ("bdc-indice", "satelite", &SATELITES_BDC),
@@ -250,6 +261,6 @@ mod tests {
                 }
             }
         }
-        assert!(vistas >= 12 + 13 + 3 + 8 + 3 + 6 + 2 + 3 + 2, "{vistas} escolhas");
+        assert!(vistas >= 12 + 13 + 3 + 8 + 3 + 6 + 2 + 3 + 2 + 6, "{vistas} escolhas");
     }
 }

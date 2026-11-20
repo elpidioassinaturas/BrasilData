@@ -37,7 +37,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.46"
+VERSAO = "0.1.47"
 AUTOR = "Elpídio Filho"
 # Como o texto Sobre chama o autor (o manifesto e o README levam o nome completo).
 AUTOR_SOBRE = "Professor Elpídio"
@@ -76,6 +76,7 @@ PERFIS = [
     "Tese: meia página (160 × 110 mm)",
 ]
 CAMADAS_CTREES = ["Biomassa (Mg/ha)", "Incerteza: erro-padrão (Mg/ha)"]
+INDICADORES_GDO = ["Anomalia da umidade do solo", "Anomalia da vegetação (fAPAR)", "SPI de 1 mês (CHIRPS)", "SPI de 3 meses (CHIRPS)", "SPI de 6 meses (CHIRPS)", "SPI de 12 meses (CHIRPS)"]
 ORIENTACOES = ["Automática: a que der o mapa maior", "Retrato (em pé)", "Paisagem (deitada)"]
 ESTILOS = ["Clássico", "Faixa", "Painel", "Editorial", "Modular", "Pôster"]
 PALETAS = ["A do BrasilData: etapa e confiança", "A oficial da OPERA"]
@@ -598,6 +599,21 @@ EM_MENUS = [
             "help": "A altura das árvores em metros, a cerca de 1 m, da Meta e do World Resources Institute (Canopy Height Maps v2, licença CC BY 4.0): estimada por um modelo de IA (DINOv3) sobre imagens de satélite de alta resolução, de datas diferentes conforme o lugar. Só a área, lida de cada tile que ela toca, posta na grade do projeto e recortada pelo contorno; numa grade mais grossa, lida da pirâmide do arquivo, que tira a média. Para ver as copas, use uma grade de 1 a 5 m (Grade do projeto) numa área pequena. O 0 é sem árvore, e também sem dado. Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área).",
             "icon": "proportional",
             "params": "{\"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+        },
+    ),
+    (
+        "Tempo e clima",
+        "Clima",
+        {
+            "id": "gdo-seca",
+            "label": "Seca: umidade do solo, vegetação e SPI (Copernicus GDO)",
+            "help": "Um mapa de seca do Global Drought Observatory do Copernicus (CEMS, Comissão Europeia; CC BY 4.0): a anomalia da umidade do solo (modelo LISFLOOD), a anomalia da vegetação (fAPAR do VIIRS) ou o SPI de 1, 3, 6 ou 12 meses do CHIRPS, de 10 em 10 dias (o SPI de 6 e 12 meses, por mês), numa data ou na mais recente. É o mapa do serviço do GDO, com a legenda dele: para ver, não para medir, e não é recortado pela área. O Low-Flow Index (vazão baixa nos rios) do GDO só cobre a Europa.",
+            "icon": "dra",
+            "params": "{\"indicador\"?: \"umidade\" (padrão) | \"vegetacao\" | \"spi1\" | \"spi3\" | \"spi6\" | \"spi12\", \"data\"?: dd/mm/aaaa ou aaaa-mm-dd (padrão: a mais recente)}",
+            "form": [
+                {"name": "indicador", "label": "Indicador", "kind": "choice", "required": True, "choices": INDICADORES_GDO, "default": INDICADORES_GDO[0], "help": "A umidade do solo e a vegetação mostram o efeito da seca; o SPI, a falta de chuva no período (1 mês: a seca que começa; 12 meses: a longa)."},
+                {"name": "data", "label": "Data (dd/mm/aaaa)", "kind": "text", "help": "Vazio: a mais recente. Vale o decêndio (dias 1, 11 e 21) ou o mês que contém a data."},
+            ],
         },
     ),
     (

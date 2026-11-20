@@ -42,6 +42,7 @@ const NOTA_ERA5: &str = "Reanálise ERA5 do ECMWF (Copernicus), em nós de uma g
 const NOTA_BDC: &str = "Compostos de 16 dias do cubo de dados do INPE (Brazil Data Cube), com o pixel mais limpo de cada período; nuvens e sombras persistentes ainda podem aparecer.";
 const NOTA_CTREES: &str = "Biomassa estimada por um modelo de IA calibrado com lidar aéreo e parcelas de campo, a partir do Landsat, do radar ALOS PALSAR-2 e das alturas do GEDI; a série da CTrees ainda está em pré-publicação, sem revisão por pares.";
 const NOTA_FORTY: &str = "Códigos da legenda: 1 floresta primária, 2 em regeneração natural, 3 plantada, 4 plantio florestal comercial, 5 culturas arbóreas e agrofloresta, 6 outros usos. Classes de um modelo de IA sobre imagens de 2020, alinhadas à FAO e ao EUDR.";
+const NOTA_GDO: &str = "Mapa do serviço do Global Drought Observatory (Copernicus), nas cores do GDO: os tons de marrom são mais seco que o normal, os de azul, mais úmido.";
 const NOTA_GBA: &str = "Polígonos do Google, da Microsoft e do OpenStreetMap; altura estimada por um modelo de IA, menos precisa na América do Sul. Licença CC BY-NC 4.0: sem uso comercial.";
 const NOTA_CHM_AMAZONIA: &str =
     "Altura estimada por um modelo de IA (U-Net) sobre imagens Planet NICFI, calibrado com lidar aéreo da Amazônia; média de 2020 a 2024.";
@@ -215,6 +216,15 @@ pub fn receita(nome: &str) -> Option<Receita> {
             barra: Some((indice.to_string(), 10)),
             legenda: None,
             nota: Some(NOTA_BDC),
+        });
+    }
+    if crate::gdo::eh_do_gdo(nome) {
+        let o_que = n.trim_start_matches("Seca: ");
+        return Some(Receita {
+            subtitulo: o_que.replace("(GDO, ", "(Global Drought Observatory, Copernicus, "),
+            barra: None,
+            legenda: None,
+            nota: Some(NOTA_GDO),
         });
     }
     if crate::gba::eh_do_gba(nome) {
