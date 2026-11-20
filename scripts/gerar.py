@@ -37,7 +37,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.42"
+VERSAO = "0.1.43"
 AUTOR = "Elpídio Filho"
 # Como o texto Sobre chama o autor (o manifesto e o README levam o nome completo).
 AUTOR_SOBRE = "Professor Elpídio"
@@ -596,6 +596,17 @@ EM_MENUS = [
             "id": "chm-altura",
             "label": "Altura do dossel a 1 m (Meta CHMv2)",
             "help": "A altura das árvores em metros, a cerca de 1 m, da Meta e do World Resources Institute (Canopy Height Maps v2, licença CC BY 4.0): estimada por um modelo de IA (DINOv3) sobre imagens de satélite de alta resolução, de datas diferentes conforme o lugar. Só a área, lida de cada tile que ela toca, posta na grade do projeto e recortada pelo contorno; numa grade mais grossa, lida da pirâmide do arquivo, que tira a média. Para ver as copas, use uma grade de 1 a 5 m (Grade do projeto) numa área pequena. O 0 é sem árvore, e também sem dado. Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área).",
+            "icon": "proportional",
+            "params": "{\"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+        },
+    ),
+    (
+        "Vegetação e meio ambiente",
+        "Vegetação",
+        {
+            "id": "chm-amazonia",
+            "label": "Altura do dossel da Amazônia a 4,78 m (CTrees)",
+            "help": "A altura das árvores em metros, a 4,78 m, só na floresta amazônica: a média de 2020 a 2024 da CTrees, estimada por um modelo de IA (U-Net) sobre as imagens Planet do programa NICFI e calibrada com lidar aéreo da Amazônia. Só a área, lida de cada tile que ela toca (cerca de 20 × 20 km, até 16 por clique), posta na grade do projeto e recortada pelo contorno; numa grade mais grossa, lida da pirâmide do arquivo, que tira a média. Licença: CC BY 4.0 nos metadados do bucket; a página do AWS Open Data diz que segue o contrato do Planet NICFI. Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área).",
             "icon": "proportional",
             "params": "{\"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
         },

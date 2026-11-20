@@ -32,6 +32,38 @@ pub const MAX_CELULAS_PADRAO: f64 = 1.0e8;
 /// grade com mais não serve a nenhum comando.
 pub const MAX_CELULAS: f64 = 1.0e9;
 
+/// O aviso de que o dado, de células de `nativa` metros, foi posto numa grade de `celula` metros
+/// bem diferente: numa grade mais grossa (mais de 1,5 vez), cada célula resume várias do dado e o
+/// detalhe se perde; numa mais fina (menos de 2/3), cada célula do dado se repete, sem detalhe a
+/// mais. `None` quando as duas se parecem. `dado` é o nome do dado no aviso.
+pub fn aviso_de_reamostragem(dado: &str, nativa: f64, celula: f64, mais_grossa_tira: &str) -> Option<String> {
+    let n = texto_da_celula(nativa);
+    let g = texto_da_celula(celula);
+    let fina = texto_da_celula(nativa.ceil().max(1.0));
+    if celula > nativa * 1.5 {
+        Some(format!(
+            "Atenção: {dado} tem células de {n}, e a grade do projeto, de {g}: cada célula da camada {mais_grossa_tira} de umas {} células do dado, e o detalhe se perde. Para ver o dado na resolução dele, use Grade do projeto com {fina} (numa área pequena) e rode de novo",
+            ((celula / nativa).powi(2)).round()
+        ))
+    } else if celula < nativa / 1.5 {
+        Some(format!(
+            "Atenção: {dado} tem células de {n}, mais grossas que as de {g} da grade do projeto: cada célula do dado se repete na grade, sem detalhe a mais"
+        ))
+    } else {
+        None
+    }
+}
+
+/// Quantos valores uma operação de raster do RustGIS (`raster.project`, o mosaico, o recorte)
+/// aceita ("cells × outputs is … values, more than 32000000").
+pub const MAX_VALORES_OPERACAO: f64 = 32e6;
+
+/// A menor célula, em metros inteiros, com que a grade do retângulo `c` cabe numa operação de
+/// raster do RustGIS ([`MAX_VALORES_OPERACAO`]), com 5% de folga para a borda da grade.
+pub fn menor_celula_da_operacao(c: [f64; 4]) -> f64 {
+    (celulas(c, 1.0) * 1.05 / MAX_VALORES_OPERACAO).sqrt().ceil()
+}
+
 /// Quantas células, mais ou menos, uma grade de `celula` metros tem no retângulo `c` (em graus).
 pub fn celulas(c: [f64; 4], celula: f64) -> f64 {
     let lat = ((c[1] + c[3]) / 2.0).to_radians().cos();
@@ -255,6 +287,25 @@ mod tests {
     const TERESINA: [f64; 4] = [-42.9707, -5.5866, -42.599, -4.7863];
     /// O Piauí passa dos fusos 23 e 24.
     const PIAUI: [f64; 4] = [-45.994, -10.928, -40.37, -2.739];
+
+    #[test]
+    fn o_aviso_de_reamostragem() {
+        let a = aviso_de_reamostragem("a altura da CTrees", 4.78, 500.0, "é a média").unwrap();
+        assert!(a.contains("células de 4,78 m") && a.contains("de 500 m") && a.contains("10942 células"), "{a}");
+        assert!(a.contains("Grade do projeto com 5 m"), "{a}");
+        assert!(aviso_de_reamostragem("x", 10.0, 1.0, "é a média").unwrap().contains("se repete"));
+        assert_eq!(aviso_de_reamostragem("x", 10.0, 10.0, "é a média"), None);
+        assert_eq!(aviso_de_reamostragem("x", 4.78, 6.0, "é a média"), None);
+    }
+
+    #[test]
+    fn a_menor_celula_de_uma_operacao() {
+        // Teixeirópolis (RO): 5 m dá uns 35 milhões de células, 6 m cabe.
+        let c = [-62.495, -11.030, -62.123, -10.835];
+        assert!(celulas(c, 5.0) > MAX_VALORES_OPERACAO);
+        assert_eq!(menor_celula_da_operacao(c), 6.0);
+        assert!(celulas(c, 6.0) < MAX_VALORES_OPERACAO);
+    }
 
     #[test]
     fn o_automatico_e_o_utm_do_fuso_ou_o_albers() {

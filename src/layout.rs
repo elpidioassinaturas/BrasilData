@@ -42,6 +42,8 @@ const NOTA_ERA5: &str = "Reanálise ERA5 do ECMWF (Copernicus), em nós de uma g
 const NOTA_BDC: &str = "Compostos de 16 dias do cubo de dados do INPE (Brazil Data Cube), com o pixel mais limpo de cada período; nuvens e sombras persistentes ainda podem aparecer.";
 const NOTA_CTREES: &str = "Biomassa estimada por um modelo de IA calibrado com lidar aéreo e parcelas de campo, a partir do Landsat, do radar ALOS PALSAR-2 e das alturas do GEDI; a série da CTrees ainda está em pré-publicação, sem revisão por pares.";
 const NOTA_FORTY: &str = "Códigos da legenda: 1 floresta primária, 2 em regeneração natural, 3 plantada, 4 plantio florestal comercial, 5 culturas arbóreas e agrofloresta, 6 outros usos. Classes de um modelo de IA sobre imagens de 2020, alinhadas à FAO e ao EUDR.";
+const NOTA_CHM_AMAZONIA: &str =
+    "Altura estimada por um modelo de IA (U-Net) sobre imagens Planet NICFI, calibrado com lidar aéreo da Amazônia; média de 2020 a 2024.";
 const NOTA_CHM: &str = "Altura estimada por um modelo de IA (DINOv3) sobre imagens de satélite de alta resolução de datas diferentes; 0 é sem árvore (ou sem dado).";
 const NOTA_GEM15: &str = "De imagens estéreo de satélite adquiridas até 2024; alturas no geoide EGM96. Água e superfícies sem textura ficam sem dado; sob mata densa, o terreno é estimado.";
 const NOTA_PREVISAO: &str = "Previsão de uma rodada de um modelo global, em nós de uma grade de 0,25° (cerca de 28 km) interpolados para a grade: mostra a tendência regional, não a chuva de cada lugar, e muda a cada rodada.";
@@ -212,6 +214,14 @@ pub fn receita(nome: &str) -> Option<Receita> {
             barra: Some((indice.to_string(), 10)),
             legenda: None,
             nota: Some(NOTA_BDC),
+        });
+    }
+    if nome == crate::chm_amazonia::CAMADA {
+        return Some(Receita {
+            subtitulo: "Altura do dossel a 4,78 m, média de 2020 a 2024 (CTrees, Planet NICFI)".into(),
+            barra: Some(("Altura do dossel (m)".into(), 8)),
+            legenda: None,
+            nota: Some(NOTA_CHM_AMAZONIA),
         });
     }
     if nome == crate::chm::CAMADA {

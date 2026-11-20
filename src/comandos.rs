@@ -8,6 +8,7 @@ use crate::bdc;
 use crate::cemaden;
 use crate::censo;
 use crate::chm;
+use crate::chm_amazonia;
 use crate::clms;
 use crate::ctrees;
 use crate::datas::{self, Data};
@@ -205,6 +206,7 @@ fn executar_comando(req: Request) -> Result<Value, String> {
         "risco-fogo" => risco_de_fogo(&req),
         "gem15" => gem15_na_area(&req),
         "chm-altura" => chm_na_area(&req),
+        "chm-amazonia" => chm_amazonia_na_area(&req),
         "forty-tipologia" => forty_na_area(&req),
         "ctrees-biomassa" => ctrees_na_area(&req),
         "bdc-indice" => bdc_indice(&req),
@@ -461,6 +463,22 @@ fn celula_que_cabe(c: [f64; 4], celula: f64) -> f64 {
         grade::texto_da_celula(m)
     ));
     m
+}
+
+/// Recusa, antes de ler qualquer arquivo, uma grade fina demais para a área: com células de
+/// `celula` m, a grade do retângulo `c` passaria do que uma operação de raster do RustGIS aceita
+/// ([`grade::MAX_VALORES_OPERACAO`]), e o comando pararia no meio com o erro em inglês.
+fn conferir_grade_fina(c: [f64; 4], celula: f64, dado: &str) -> Result<(), String> {
+    let menor = grade::menor_celula_da_operacao(c);
+    if celula >= menor {
+        return Ok(());
+    }
+    Err(format!(
+        "{dado}: com células de {} a grade desta área teria cerca de {} milhões de células, e o RustGIS processa até 32 milhões por vez; use uma grade de {} m ou mais (Grade do projeto), ou uma área menor",
+        grade::texto_da_celula(celula),
+        (grade::celulas(c, celula) / 1e6).round(),
+        menor
+    ))
 }
 
 /// O "erro" com que [`grade_para`] para um comando depois de criar ou refazer a grade: o
@@ -1467,6 +1485,8 @@ fn citacoes() -> Result<(Vec<Value>, String), String> {
             lista.push(json!({"layer": n, "source": clms::citacao(ano), "license": clms::LICENCA}));
         } else if n == chm::CAMADA {
             lista.push(json!({"layer": n, "source": chm::CITACAO, "license": chm::LICENCA}));
+        } else if n == chm_amazonia::CAMADA {
+            lista.push(json!({"layer": n, "source": chm_amazonia::CITACAO, "license": chm_amazonia::LICENCA}));
         } else if n == forty::CAMADA {
             lista.push(json!({"layer": n, "source": forty::CITACAO, "license": forty::LICENCA}));
         } else if let Some((v, ano)) = ctrees::da_camada(&n) {
@@ -4792,6 +4812,182 @@ fn turno_do_jaxa(req: &Request) -> Result<jaxa::Turno, String> {
     }
 }
 
+/// Os tiles da altura da Amazônia que existem entre os `ts`, pela listagem do bucket (fora da
+/// floresta amazônica não há arquivo), ou o pedido pendente.
+fn tiles_da_amazonia(ts: &[chm_amazonia::Tile]) -> Result<Result<Vec<chm_amazonia::Tile>, Value>, String> {
+    let urls: Vec<String> = ts.iter().map(chm_amazonia::Tile::listagem).collect();
+    let respostas = match buscar(&urls)
+        .map_err(|e| format!("o bucket da CTrees (ctrees-amazon-canopy-height.s3.us-west-2.amazonaws.com) não respondeu: {e}"))?
+    {
+        Ok(r) => r,
+        Err(p) => return Ok(Err(p)),
+    };
+    Ok(Ok(ts.iter().zip(&respostas).filter(|(t, r)| t.existe(r["text"].as_str().unwrap_or(""))).map(|(t, _)| t.clone()).collect()))
+}
+
+/// A altura do dossel da Amazônia da CTrees a 4,78 m na área ([`chm_amazonia`]): a janela da área
+/// em cada tile que ela toca, posta na grade do projeto; os tiles se juntam, o mosaico é recortado
+/// pela área e passa a metros.
+fn chm_amazonia_na_area(req: &Request) -> Result<Value, String> {
+    let celula = req.f64("celula");
+    if let Some(m) = celula {
+        grade::conferir_celula(m)?;
+    }
+    let (c, na_area) = retangulo()?;
+    if !na_area {
+        return Err("escolha a área primeiro (painel Área de trabalho, ou Área: seleção)".into());
+    }
+    let sem_janela =
+        "a altura do dossel da Amazônia precisa de um RustGIS que leia só a janela da área de um arquivo remoto (depois da 0.5.0)";
+    if !le_janela_remota()? {
+        return Err(sem_janela.into());
+    }
+    let todos = chm_amazonia::tiles(c);
+    if todos.len() > chm_amazonia::MAX_TILES {
+        return Err(format!(
+            "a área toca {} tiles da altura da Amazônia (cerca de 20 × 20 km cada); o limite de um clique é {}: escolha uma área menor, como um município pequeno",
+            todos.len(),
+            chm_amazonia::MAX_TILES
+        ));
+    }
+    let ts = match tiles_da_amazonia(&todos)? {
+        Ok(r) => r,
+        Err(p) => return Ok(p),
+    };
+    if ts.is_empty() {
+        return Err("a altura do dossel da CTrees cobre só a floresta amazônica: não há dados na área".into());
+    }
+    let g = grade_para(c, celula)?;
+    conferir_grade_fina(c, g.celula, "a altura do dossel da Amazônia")?;
+    let lat = (c[1] + c[3]) / 2.0;
+    let k = chm_amazonia::nivel(g.celula, lat);
+    let lado = chm_amazonia::lado_do_nivel(k);
+    let janelas: Vec<(&chm_amazonia::Tile, [f64; 4])> =
+        ts.iter().filter_map(|t| chm_amazonia::janela(t, c, lado).map(|j| (t, j))).collect();
+    let js: Vec<[f64; 4]> = janelas.iter().map(|(_, j)| *j).collect();
+    match chm_amazonia::nivel_que_cabe(&js, k) {
+        Some(n) if n == k => {}
+        cabe => {
+            let dica = cabe
+                .map(|n| {
+                    format!(
+                        ": use uma grade de células de {} m ou mais (Grade do projeto), ou uma área menor",
+                        chm_amazonia::lado_no_chao(n, lat).ceil()
+                    )
+                })
+                .unwrap_or_else(|| ": escolha uma área menor".into());
+            return Err(format!(
+                "a área é grande demais para ler a altura da Amazônia com células de {} m numa janela só por tile{dica}",
+                formatar_decimal(chm_amazonia::lado_no_chao(k, lat))
+            ));
+        }
+    }
+    // As janelas de um clique anterior servem se cobrem a área (no desktop, o comando roda de novo
+    // quando cada uma chega).
+    let ha = nomes()?;
+    let mut lidas: Vec<String> = Vec::new();
+    let mut lendo = 0;
+    for (t, j) in &janelas {
+        let nome = t.nome_da_janela(k);
+        if ha.contains(&nome)
+            && let Some(e) = extensao(&nome)?
+            && retangulo_cabe(chm_amazonia::a_cobrir(t, c), e)
+        {
+            lidas.push(nome);
+            continue;
+        }
+        tirar_janela(&nome)?;
+        let mut p = json!({"url": t.url(), "name": nome, "bbox": j, "zoom": false});
+        if k > 0 {
+            p["cellSize"] = json!(lado);
+        }
+        let r = host::run("layer.addUrl", p).map_err(|e| {
+            if falha_passageira(&e) || e.contains("timeout") {
+                format!("o bucket da CTrees não respondeu agora: tente de novo daqui a pouco ({e})")
+            } else {
+                e
+            }
+        })?;
+        if r.get("pending").and_then(Value::as_bool) == Some(true) {
+            lendo += 1;
+            continue;
+        }
+        if r.get("inPlace").and_then(Value::as_bool) == Some(true) || r.get("window").is_none() {
+            tirar_janela(&nome)?;
+            return Err(sem_janela.into());
+        }
+        lidas.push(nome);
+    }
+    if lendo > 0 {
+        avisar(&format!("Altura do dossel da Amazônia (CTrees): lendo a área em {lendo} arquivo(s); a camada vem quando chegarem"));
+        return Ok(json!({"pending": lendo, "tiles": ts.len()}));
+    }
+    let saida = chm_amazonia::CAMADA;
+    let lido = chm_amazonia::lado_no_chao(k, lat);
+    let resampling = chm_amazonia::reamostragem(g.celula, lido);
+    let na_grade: Vec<String> = (0..lidas.len()).map(|i| format!("{PREFIXO}CTrees Amazônia na grade {i}")).collect();
+    let junto = format!("{PREFIXO}CTrees Amazônia junto");
+    let recortado = format!("{PREFIXO}CTrees Amazônia recortado");
+    let mut temporarias: Vec<&str> = lidas.iter().chain(&na_grade).map(String::as_str).collect();
+    temporarias.push(junto.as_str());
+    temporarias.push(recortado.as_str());
+    remover(&[saida])?;
+    let feito = (|| -> Result<(), String> {
+        for (j, n) in lidas.iter().zip(&na_grade) {
+            host::run(
+                "raster.project",
+                json!({"layer": j, "crs": g.epsg, "cellSize": g.celula, "extent": GRADE, "resampling": resampling, "name": n}),
+            )?;
+            // O 255 (sem dado) e o que fica fora da janela somem, para não cobrir o tile vizinho
+            // no mosaico (o valor gravado vai de 0 a 254: a altura × 2,5).
+            host::run("raster.mask", json!({"layer": n, "min": 0.0, "max": 254.5}))?;
+        }
+        let mosaico = if na_grade.len() == 1 {
+            na_grade[0].clone()
+        } else {
+            mosaicar(&na_grade, &junto)?;
+            junto.clone()
+        };
+        recortar(&mosaico, AREA, &recortado)?;
+        host::run(
+            "raster.function",
+            json!({"layer": recortado, "function": "bandMath", "expression": format!("b1 / {}", chm_amazonia::FATOR), "name": saida}),
+        )?;
+        // As cores da altura do GEDI e do CHMv2, para que as três se comparem.
+        let (rampa, cores) = gedi::Variavel::Altura.rampa();
+        let _ = host::run("ramp.add", json!({"text": cores, "format": "gdal", "name": rampa}));
+        if host::run("raster.symbology", json!({"layer": saida, "type": "stretch", "ramp": rampa})).is_err() {
+            host::run("raster.symbology", json!({"layer": saida, "type": "stretch", "ramp": "YlGn"}))?;
+        }
+        let (a, b) = gedi::Variavel::Altura.escala();
+        let _ = host::run("raster.stretch", json!({"layer": saida, "type": "custom", "min": a, "max": b}));
+        Ok(())
+    })();
+    remover(&temporarias)?;
+    feito?;
+    let media = host::run("raster.info", json!({"layer": saida}))
+        .ok()
+        .and_then(|i| i["bands"][0]["mean"].as_f64())
+        .map(|m| format!("; média na área: {} m", formatar_decimal(m)))
+        .unwrap_or_default();
+    let piramide = if k > 0 { format!(", lida da pirâmide de {} m do arquivo", formatar_decimal(lido)) } else { String::new() };
+    let texto = format!(
+        "{saida}: em metros, média de 2020 a 2024, de {} tile(s) da CTrees, na grade do projeto, {} ({resampling}){piramide}{media}",
+        ts.len(),
+        g.texto()
+    );
+    avisar(&texto);
+    if let Some(a) =
+        grade::aviso_de_reamostragem("a altura da Amazônia (CTrees)", chm_amazonia::lado_no_chao(0, lat), g.celula, "é a média")
+    {
+        avisar(&a);
+    }
+    Ok(json!({
+        "layer": saida, "tiles": ts.len(), "level": k, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula,
+        "report": texto.trim_start_matches(PREFIXO),
+    }))
+}
+
 /// A altura do dossel da Meta e do WRI a cerca de 1 m na área ([`chm`]): a janela da área em cada
 /// tile que ela toca, posta na grade do projeto; os tiles se juntam e o mosaico é recortado pela
 /// área.
@@ -4824,6 +5020,7 @@ fn chm_na_area(req: &Request) -> Result<Value, String> {
         return Err("o CHMv2 não tem dados na área".into());
     }
     let g = grade_para(c, celula)?;
+    conferir_grade_fina(c, g.celula, "a altura do dossel do CHMv2")?;
     let lat = (c[1] + c[3]) / 2.0;
     // O nível mais grosso que não é mais grosso que a grade, se as janelas cabem no limite do
     // RustGIS; senão, pede uma grade mais grossa.
@@ -4943,6 +5140,9 @@ fn chm_na_area(req: &Request) -> Result<Value, String> {
         g.texto()
     );
     avisar(&texto);
+    if let Some(a) = grade::aviso_de_reamostragem("a altura do CHMv2", chm::lado_no_chao(0, lat), g.celula, "é a média") {
+        avisar(&a);
+    }
     Ok(json!({
         "layer": saida, "tiles": ts.len(), "level": k, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula,
         "report": texto.trim_start_matches(PREFIXO),
@@ -4978,6 +5178,7 @@ fn forty_na_area(req: &Request) -> Result<Value, String> {
         ));
     }
     let g = grade_para(c, celula)?;
+    conferir_grade_fina(c, g.celula, "a tipologia florestal do ForTy")?;
     // O nível mais grosso que não é mais grosso que a grade, se as janelas cabem no limite do
     // RustGIS; senão, pede uma grade mais grossa.
     let k = forty::nivel(g.celula);
@@ -5073,6 +5274,9 @@ fn forty_na_area(req: &Request) -> Result<Value, String> {
         forty::CHAVE
     );
     avisar(&texto);
+    if let Some(a) = grade::aviso_de_reamostragem("o ForTy", forty::LADO, g.celula, "fica com a classe mais frequente") {
+        avisar(&a);
+    }
     Ok(json!({
         "layer": saida, "tiles": bs.len(), "level": k, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula,
         "report": texto.trim_start_matches(PREFIXO),
@@ -5169,6 +5373,9 @@ fn ctrees_na_area(req: &Request) -> Result<Value, String> {
     let o_que = if v == ctrees::Variavel::Biomassa { "biomassa acima do solo" } else { "incerteza (erro-padrão) da biomassa" };
     let texto = format!("{saida}: {o_que} em Mg/ha de {ano} (CTrees), na grade do projeto, {} ({resampling}){piramide}{media}", g.texto());
     avisar(&texto);
+    if let Some(a) = grade::aviso_de_reamostragem("a biomassa da CTrees", ctrees::metros_do_nivel(0, lat), g.celula, "é a média") {
+        avisar(&a);
+    }
     Ok(json!({
         "layer": saida, "year": ano, "level": k, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula,
         "report": texto.trim_start_matches(PREFIXO),

@@ -18,6 +18,7 @@ mod catalogo;
 pub mod cemaden;
 pub mod censo;
 pub mod chm;
+pub mod chm_amazonia;
 pub mod clms;
 pub mod ctrees;
 pub mod datas;
