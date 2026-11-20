@@ -4,7 +4,9 @@
 
 A altura das árvores a 4,78 m na floresta amazônica, média de 2020 a 2024, estimada pela CTrees com um modelo de IA (U-Net) sobre as imagens Planet NICFI, calibrado com lidar aéreo da Amazônia.
 
-*O mapa exemplo, de Teixeirópolis (RO), ainda não foi gerado: rode `scripts/mapas_exemplo.py chm-amazonia`.*
+![Mapa exemplo: Altura do dossel da Amazônia a 4,78 m (CTrees) em Teixeirópolis (RO)](chm-amazonia.png)
+
+*Mapa exemplo: Teixeirópolis (RO), feito com o plugin.*
 
 | | |
 |---|---|
