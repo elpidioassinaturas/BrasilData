@@ -112,6 +112,10 @@ fn devolver_estilos() {
         let _ = host::run("style.apply", json!({"layer": n, "name": estilo::guardado(&n)}));
         let _ = host::run("style.remove", json!({"name": estilo::guardado(&n)}));
     }
+    // A grade de um projeto feito antes da 0.1.40 pode ter ganhado de volta o preenchimento.
+    if nomes().is_ok_and(|n| n.iter().any(|n| n == GRADE)) {
+        let _ = aparencia_da_grade();
+    }
 }
 
 /// Os comandos que não recortam nada pela área: a área, o painel, a grade, os textos e o mapa do
@@ -354,9 +358,18 @@ fn por_grade(g: Grade) -> Result<Grade, String> {
     grade::conferir_celula(g.celula)?;
     remover(&[GRADE])?;
     host::add_layer(GRADE, g.camada())?;
-    host::run("layer.noFill", json!({"layer": GRADE}))?;
-    host::run("layer.outline", json!({"layer": GRADE, "color": "#6a3d9a", "width": 1.5}))?;
+    aparencia_da_grade()?;
     Ok(g)
+}
+
+/// A grade só como contorno roxo. O preenchimento sai pela cor transparente, não pelo
+/// `layer.noFill`: o estilo guardado e devolvido a cada comando ([`devolver_estilos`]) perde o
+/// "sem preenchimento" no RustGIS 0.7.0, e a grade voltava com uma cor que cobria o mapa fora da
+/// área (um dado do JAXA parecia não recortado).
+fn aparencia_da_grade() -> Result<(), String> {
+    host::run("layer.color", json!({"layer": GRADE, "color": "#00000000"}))?;
+    host::run("layer.outline", json!({"layer": GRADE, "color": "#6a3d9a", "width": 1.5}))?;
+    Ok(())
 }
 
 /// O botão Grade do projeto: a grade dos rasters do BrasilData na área, com a célula e o sistema
