@@ -43,6 +43,7 @@ pub mod gdo;
 pub mod gedi;
 pub mod gem15;
 pub mod layout;
+pub mod localidades;
 pub mod malhas;
 pub mod mapbiomas;
 pub mod municipios;

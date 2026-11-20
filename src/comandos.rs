@@ -27,6 +27,7 @@ use crate::indicadores::{self, Fonte};
 use crate::irrigacao;
 use crate::jaxa;
 use crate::layout;
+use crate::localidades;
 use crate::malhas;
 use crate::mapbiomas;
 use crate::municipios::{self, Territorio};
@@ -188,6 +189,9 @@ fn executar_comando(req: Request) -> Result<Value, String> {
         let r = tema(t)?;
         if t.id == aqueduct::TEMA && !estilo::esperando(&r) {
             aqueduct_em_portugues(t)?;
+        }
+        if t.id == localidades::TEMA && !estilo::esperando(&r) {
+            localidades_por_escala(t)?;
         }
         return Ok(r);
     }
@@ -4155,7 +4159,7 @@ fn chuva_do_mes(req: &Request) -> Result<Value, String> {
 }
 
 /// A área equipada para irrigação do GMIA v5 na área ([`irrigacao`]): a janela da área no COG da
-/// FAO, posta na grade do projeto e recortada pela área.
+/// FAO, recortada pela área; posta na grade do projeto só quando a grade é tão grossa quanto o dado.
 fn irrigacao_na_area(celula: Option<f64>) -> Result<Value, String> {
     if let Some(m) = celula {
         grade::conferir_celula(m)?;
@@ -4185,15 +4189,24 @@ fn irrigacao_na_area(celula: Option<f64>) -> Result<Value, String> {
         }
     }
     let g = grade_para(c, celula)?;
+    // Numa grade mais fina que a célula de 5′ do GMIA, a camada fica na resolução do dado (fora da
+    // grade do projeto), só recortada pela área, como os dados do JAXA: pôr 9 km numa grade de
+    // 500 m repetiria cada célula centenas de vezes (uns 23 milhões de células no Brasil inteiro),
+    // e o comando, que roda na linha da janela do RustGIS (RustGIS#1562), a travaria esse tempo.
+    let nativa = g.celula < irrigacao::LADO_M / 1.5;
     let saida = irrigacao::CAMADA;
     let temporarias = [irrigacao::JANELA, irrigacao::NA_GRADE];
     remover(&[saida])?;
     let feito = (|| -> Result<(), String> {
-        host::run(
-            "raster.project",
-            json!({"layer": irrigacao::JANELA, "crs": g.epsg, "cellSize": g.celula, "extent": GRADE, "resampling": irrigacao::reamostragem(g.celula), "name": irrigacao::NA_GRADE}),
-        )?;
-        recortar(irrigacao::NA_GRADE, AREA, saida)?;
+        if nativa {
+            recortar(irrigacao::JANELA, AREA, saida)?;
+        } else {
+            host::run(
+                "raster.project",
+                json!({"layer": irrigacao::JANELA, "crs": g.epsg, "cellSize": g.celula, "extent": GRADE, "resampling": irrigacao::reamostragem(g.celula), "name": irrigacao::NA_GRADE}),
+            )?;
+            recortar(irrigacao::NA_GRADE, AREA, saida)?;
+        }
         // O -9 do arquivo e o que não for porcentagem viram sem dado.
         host::run("raster.mask", json!({"layer": saida, "min": 0.0, "max": 100.0}))?;
         let (rampa, cores) = irrigacao::RAMPA;
@@ -4213,11 +4226,40 @@ fn irrigacao_na_area(celula: Option<f64>) -> Result<Value, String> {
         .and_then(|i| i["bands"][0]["mean"].as_f64())
         .map(|m| format!("; média na área: {}%", formatar_decimal(m)))
         .unwrap_or_default();
+    let onde = if nativa {
+        format!("na resolução do dado (5′, em graus), fora da grade do projeto, que é mais fina ({})", g.texto())
+    } else {
+        format!("na grade do projeto, {}", g.texto())
+    };
     avisar(&format!(
-        "{saida}: % de cada célula de 5′ (cerca de 9 km) equipada para irrigação, por volta de 2005, na grade do projeto, {}; cores de 0 a 40% ou mais, com mais tons até 10%{media}",
-        g.texto()
+        "{saida}: % de cada célula de 5′ (cerca de 9 km) equipada para irrigação, por volta de 2005, {onde}; cores de 0 a 40% ou mais, com mais tons até 10%{media}"
     ));
-    Ok(json!({"layer": saida, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula}))
+    if nativa {
+        Ok(json!({"layer": saida, "crs": "EPSG:4326", "cellSize": irrigacao::LADO, "native": true}))
+    } else {
+        Ok(json!({"layer": saida, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula}))
+    }
+}
+
+/// Depois do tema das localidades ([`localidades`]): numa camada que acaba de chegar (de um símbolo
+/// só), a cor de cada tipo, cada um a partir de uma escala da vista. O estilo que o plugin guardou
+/// dela antes do comando (o símbolo só, quando o comando roda de novo porque a camada chegou) sai,
+/// para não voltar no fim; uma camada que o usuário estilizou fica como está.
+fn localidades_por_escala(t: &Tema) -> Result<(), String> {
+    let nome = t.camada_no_mapa();
+    let Some(l) = camada_no_projeto(&nome)? else { return Ok(()) };
+    if l["renderer"].as_str() != Some("Single Symbol") {
+        return Ok(());
+    }
+    let _ = host::run("style.remove", json!({"name": localidades::ESTILO}));
+    host::run("style.add", json!({"text": localidades::estilo()}))?;
+    host::run("style.apply", json!({"layer": nome, "name": localidades::ESTILO}))?;
+    let _ = host::run("style.remove", json!({"name": estilo::guardado(&nome)}));
+    avisar(&format!(
+        "{}: as cidades aparecem em qualquer escala; as vilas e os núcleos urbanos, de 1:2.000.000 para perto; os aglomerados rurais, de 1:500.000 para perto",
+        nome.trim_start_matches(PREFIXO)
+    ));
+    Ok(())
 }
 
 /// Depois do tema do Aqueduct ([`aqueduct`]): a categoria em português no campo

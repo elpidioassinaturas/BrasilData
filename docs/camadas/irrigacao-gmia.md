@@ -13,7 +13,7 @@ A porcentagem de cada célula equipada para irrigação, do Global Map of Irriga
 | **Onde na aba** | Água › Recursos hídricos |
 | **Fonte** | FAO e Universidade de Bonn |
 | **Período** | por volta de 2005 |
-| **Resolução ou escala** | 5′ (cerca de 9 km) |
+| **Resolução ou escala** | 5′ (cerca de 9 km), na resolução do dado; posto na grade do projeto só quando as células dela têm uns 6 km ou mais. |
 | **Unidades** | % da área da célula |
 | **Legenda** | Escala contínua de 0 ao máximo na área. |
 | **Cuidados de uso** | Área equipada, não necessariamente irrigada; dado antigo e grosso: para municípios, o Censo Agropecuário 2017. |

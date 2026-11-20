@@ -2,7 +2,7 @@
 
 <!-- Gerado por scripts/gerar.py a partir do fontes.csv e do fichas.csv; não edite à mão. -->
 
-A ficha de cada uma das 153 camadas que os botões da aba BrasilData trazem: o que é, a fonte, o período, a resolução, as unidades, a legenda, a licença, a citação, os cuidados de uso, se funciona no app web, e um mapa exemplo feito com o plugin (o botão Layout). Os mapas exemplo são de Viçosa (MG), ou da Zona da Mata mineira para os produtos de baixa resolução; os temas que não existem lá vêm de outro município, dito em cada ficha. Os mapas saem do `scripts/mapas_exemplo.py`.
+A ficha de cada uma das 154 camadas que os botões da aba BrasilData trazem: o que é, a fonte, o período, a resolução, as unidades, a legenda, a licença, a citação, os cuidados de uso, se funciona no app web, e um mapa exemplo feito com o plugin (o botão Layout). Os mapas exemplo são de Viçosa (MG), ou da Zona da Mata mineira para os produtos de baixa resolução; os temas que não existem lá vêm de outro município, dito em cada ficha. Os mapas saem do `scripts/mapas_exemplo.py`.
 
 ## Território
 
@@ -19,6 +19,7 @@ A ficha de cada uma das 153 camadas que os botões da aba BrasilData trazem: o q
 | [Distritos (IBGE, Censo 2022)](distritos.md) | Território › Limites | Os distritos dos municípios, unidades administrativas internas (a sede e os distritos rurais). |
 | [Subdistritos (IBGE, Censo 2022)](subdistritos.md) | Território › Limites | Os subdistritos, divisões de alguns distritos que só existem em parte dos municípios (sobretudo capitais). |
 | [Bairros (IBGE, Censo 2022)](bairros.md) | Território › Limites | Os bairros com limites oficiais reconhecidos pelas prefeituras e usados pelo IBGE no Censo de 2022. |
+| [Localidades (IBGE, BC250 2025)](localidades.md) | Território › Limites | O ponto de cada localidade da Base Cartográfica Contínua do IBGE: cidades (as sedes municipais), vilas (as sedes de distrito), núcleos urbanos e aglomerados rurais, com o nome e o tipo. |
 | [Terras indígenas (FUNAI, via Infra S.A.)](terras-indigenas.md) | Território › Terras indígenas | As terras indígenas em todas as fases do processo de demarcação (em estudo, declarada, homologada, regularizada). |
 | [Imóveis rurais (CAR)](car-imoveis.md) | Território › Cadastro fundiário | Os imóveis rurais declarados no Cadastro Ambiental Rural. |
 | [Parcelas certificadas (SIGEF)](sigef-parcelas.md) | Território › Cadastro fundiário | As parcelas de imóveis rurais certificadas pelo INCRA no SIGEF. |

@@ -1,7 +1,7 @@
 {
   "id": "brasildata",
   "name": "BrasilData",
-  "version": "0.1.48",
+  "version": "0.1.50",
   "description": "Dados públicos do Brasil para a área do usuário (IBGE, MMA, ICMBio, INPE, CEMADEN, ANA, ANEEL, ANP, SFB/CAR, INCRA, FUNAI, IBAMA, ANM, DNIT, Ministério da Saúde, Copernicus, NASA/ASF, FAO, WRI, Open-Meteo, CHIRPS, Google DeepMind): só o que cruza a área, recortado por ela, com a fonte e a licença de cada camada.",
   "author": "Elpídio Filho",
   "homepage": "https://github.com/elpidioassinaturas/BrasilData",
@@ -204,6 +204,13 @@
       "label": "Bairros (IBGE, 2022)",
       "help": "Bairros (IBGE, Censo 2022): os bairros com limites oficiais reconhecidos pelas prefeituras e usados pelo IBGE no Censo de 2022. Fonte: IBGE, Censo Demográfico 2022, malha de setores e agregados. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista. Cuidados: Limites para mapas e estatística, não para demarcação legal. Vem o polígono inteiro de cada unidade que cruza a área, sem recorte. Só os municípios que têm lei de bairros entram; os outros não têm esta camada. Período: malha de setores do Censo Demográfico 2022. Resolução ou escala: escala cadastral dos setores censitários. Unidades: sem unidade. Licença: uso livre com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/bairros.md",
       "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
+      "id": "localidades",
+      "label": "Localidades (IBGE)",
+      "help": "Localidades (IBGE, BC250 2025): o ponto de cada localidade da Base Cartográfica Contínua do IBGE: cidades (as sedes municipais), vilas (as sedes de distrito), núcleos urbanos e aglomerados rurais, com o nome e o tipo. Fonte: IBGE, Base Cartográfica Contínua do Brasil 1:250.000 (BC250), versão 2025, Posicionamento Geográfico de Localidade. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: O ponto marca a localidade, não a área urbana dela (para o contorno, o tema Área urbana por município). Na escala 1:250.000, povoados e lugarejos pequenos podem faltar. Período: BC250, versão 2025. Resolução ou escala: escala 1:250.000 (um ponto por localidade). Unidades: sem unidade (pontos). Licença: uso livre com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/localidades.md",
+      "icon": "point_layer",
       "params": "{}"
     },
     {
@@ -1839,7 +1846,7 @@
     {
       "id": "irrigacao-gmia",
       "label": "Área equipada para irrigação (GMIA v5, FAO)",
-      "help": "A porcentagem de cada célula de 5′ (cerca de 9 km) equipada para irrigação, por volta de 2005, do Global Map of Irrigation Areas versão 5 (FAO e Universidade de Bonn). Só a área, lida do arquivo mundial da FAO, posta na grade do projeto (cada célula da grade mostra a de 5′ onde cai) e recortada pelo contorno; a escala de cores vai de 0 ao máximo na área. Para a área irrigada por município, há o Censo Agropecuário 2017 (Agricultura). Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área). Período: por volta de 2005. Resolução ou escala: 5′ (cerca de 9 km). Unidades: % da área da célula. Licença: CC BY 4.0 (FAO). Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/irrigacao-gmia.md",
+      "help": "A porcentagem de cada célula de 5′ (cerca de 9 km) equipada para irrigação, por volta de 2005, do Global Map of Irrigation Areas versão 5 (FAO e Universidade de Bonn). Só a área, lida do arquivo mundial da FAO e recortada pelo contorno, na resolução do dado (fora da grade do projeto); numa grade de células de uns 6 km ou mais, posta nela; a escala de cores vai de 0 ao máximo na área. Para a área irrigada por município, há o Censo Agropecuário 2017 (Agricultura). Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área). Período: por volta de 2005. Resolução ou escala: 5′ (cerca de 9 km), na resolução do dado; posto na grade do projeto só quando as células dela têm uns 6 km ou mais. Unidades: % da área da célula. Licença: CC BY 4.0 (FAO). Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/irrigacao-gmia.md",
       "icon": "graduated",
       "params": "{\"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}"
     },
@@ -2058,7 +2065,7 @@
     {
       "id": "sobre",
       "label": "Sobre",
-      "help": "BrasilData 0.1.48, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nAs fontes dos dados e como contribuir estão nas abas do fim do painel Área de trabalho: basta clicar nelas. Para lê-las aqui, marque a caixa e clique em Executar. A janela fica aberta até o X do canto de cima.",
+      "help": "BrasilData 0.1.50, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nAs fontes dos dados e como contribuir estão nas abas do fim do painel Área de trabalho: basta clicar nelas. Para lê-las aqui, marque a caixa e clique em Executar. A janela fica aberta até o X do canto de cima.",
       "icon": "about",
       "params": "{\"completo\"?: true para as fontes e como contribuir | \"parte\"?: \"tudo\" (padrão) | \"autoria\" | \"fontes\" | \"contribuir\"}",
       "form": [
@@ -2226,7 +2233,7 @@
         "kind": "text",
         "id": "sobre",
         "label": "Sobre o BrasilData: Autoria",
-        "text": "BrasilData 0.1.48, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData"
+        "text": "BrasilData 0.1.50, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData"
       }
     ]
   },
@@ -2272,7 +2279,8 @@
               "municipios",
               "distritos",
               "subdistritos",
-              "bairros"
+              "bairros",
+              "localidades"
             ]
           },
           {

@@ -191,6 +191,23 @@ pub const TEMAS: &[Tema] = &[
         ordem: "",
     },
     Tema {
+        id: "localidades",
+        grupo: "Território",
+        nome: "Localidades (IBGE, BC250 2025)",
+        servico: "https://geoservicos.ibge.gov.br/geoserver/wfs",
+        tipo: "wfs",
+        camada: "CCAR:BC250_2025_lml_posic_geo_localidade_p",
+        geometria: "ponto",
+        recorta: true,
+        fonte: "IBGE, Base Cartográfica Contínua do Brasil 1:250.000 (BC250), versão 2025, Posicionamento Geográfico de Localidade",
+        licenca: "uso livre com citação da fonte",
+        filtro: "",
+        campos: "",
+        geom: "",
+        pagina: 0,
+        ordem: "",
+    },
+    Tema {
         id: "geologia",
         grupo: "Meio físico",
         nome: "Geologia (BDiA 1:250.000)",
@@ -1803,6 +1820,18 @@ pub const FICHAS: &[Ficha] = &[
         web: "sim",
         pagina: "https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/bairros.md",
         texto: "Bairros (IBGE, Censo 2022)\nOs bairros com limites oficiais reconhecidos pelas prefeituras e usados pelo IBGE no Censo de 2022.\nFonte: IBGE.\nPeríodo: malha de setores do Censo Demográfico 2022.\nResolução ou escala: escala cadastral dos setores censitários.\nUnidades: sem unidade.\nLegenda: Um polígono por bairro, com o código e o nome.\nCuidados: Limites para mapas e estatística, não para demarcação legal. Vem o polígono inteiro de cada unidade que cruza a área, sem recorte. Só os municípios que têm lei de bairros entram; os outros não têm esta camada.\nLicença: uso livre com citação da fonte.\nCitação: IBGE, Censo Demográfico 2022, malha de setores e agregados.\nApp web: sim.\nFicha e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/bairros.md",
+    },
+    Ficha {
+        id: "localidades",
+        o_que_e: "O ponto de cada localidade da Base Cartográfica Contínua do IBGE: cidades (as sedes municipais), vilas (as sedes de distrito), núcleos urbanos e aglomerados rurais, com o nome e o tipo.",
+        periodo: "BC250, versão 2025",
+        resolucao: "escala 1:250.000 (um ponto por localidade)",
+        unidades: "sem unidade (pontos)",
+        legenda: "Uma cor por tipo de localidade (campo tipolocalidade), cada tipo a partir de uma escala da vista: as cidades sempre; as vilas e os núcleos urbanos de 1:2.000.000 para perto; os aglomerados rurais de 1:500.000 para perto.",
+        cuidados: "O ponto marca a localidade, não a área urbana dela (para o contorno, o tema Área urbana por município). Na escala 1:250.000, povoados e lugarejos pequenos podem faltar.",
+        web: "sim",
+        pagina: "https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/localidades.md",
+        texto: "Localidades (IBGE, BC250 2025)\nO ponto de cada localidade da Base Cartográfica Contínua do IBGE: cidades (as sedes municipais), vilas (as sedes de distrito), núcleos urbanos e aglomerados rurais, com o nome e o tipo.\nFonte: IBGE.\nPeríodo: BC250, versão 2025.\nResolução ou escala: escala 1:250.000 (um ponto por localidade).\nUnidades: sem unidade (pontos).\nLegenda: Uma cor por tipo de localidade (campo tipolocalidade), cada tipo a partir de uma escala da vista: as cidades sempre; as vilas e os núcleos urbanos de 1:2.000.000 para perto; os aglomerados rurais de 1:500.000 para perto.\nCuidados: O ponto marca a localidade, não a área urbana dela (para o contorno, o tema Área urbana por município). Na escala 1:250.000, povoados e lugarejos pequenos podem faltar.\nLicença: uso livre com citação da fonte.\nCitação: IBGE, Base Cartográfica Contínua do Brasil 1:250.000 (BC250), versão 2025, Posicionamento Geográfico de Localidade.\nApp web: sim.\nFicha e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/localidades.md",
     },
     Ficha {
         id: "geologia",
@@ -3428,13 +3457,13 @@ pub const FICHAS: &[Ficha] = &[
         id: "irrigacao-gmia",
         o_que_e: "A porcentagem de cada célula equipada para irrigação, do Global Map of Irrigation Areas versão 5 (FAO e Universidade de Bonn).",
         periodo: "por volta de 2005",
-        resolucao: "5′ (cerca de 9 km)",
+        resolucao: "5′ (cerca de 9 km), na resolução do dado; posto na grade do projeto só quando as células dela têm uns 6 km ou mais",
         unidades: "% da área da célula",
         legenda: "Escala contínua de 0 ao máximo na área.",
         cuidados: "Área equipada, não necessariamente irrigada; dado antigo e grosso: para municípios, o Censo Agropecuário 2017.",
         web: "a confirmar",
         pagina: "https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/irrigacao-gmia.md",
-        texto: "Área equipada para irrigação (GMIA v5, FAO)\nA porcentagem de cada célula equipada para irrigação, do Global Map of Irrigation Areas versão 5 (FAO e Universidade de Bonn).\nFonte: FAO e Universidade de Bonn.\nPeríodo: por volta de 2005.\nResolução ou escala: 5′ (cerca de 9 km).\nUnidades: % da área da célula.\nLegenda: Escala contínua de 0 ao máximo na área.\nCuidados: Área equipada, não necessariamente irrigada; dado antigo e grosso: para municípios, o Censo Agropecuário 2017.\nLicença: CC BY 4.0 (FAO).\nCitação: Siebert et al. (2013), Global Map of Irrigation Areas version 5, Universidade de Bonn e FAO.\nApp web: a confirmar.\nFicha e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/irrigacao-gmia.md",
+        texto: "Área equipada para irrigação (GMIA v5, FAO)\nA porcentagem de cada célula equipada para irrigação, do Global Map of Irrigation Areas versão 5 (FAO e Universidade de Bonn).\nFonte: FAO e Universidade de Bonn.\nPeríodo: por volta de 2005.\nResolução ou escala: 5′ (cerca de 9 km), na resolução do dado; posto na grade do projeto só quando as células dela têm uns 6 km ou mais.\nUnidades: % da área da célula.\nLegenda: Escala contínua de 0 ao máximo na área.\nCuidados: Área equipada, não necessariamente irrigada; dado antigo e grosso: para municípios, o Censo Agropecuário 2017.\nLicença: CC BY 4.0 (FAO).\nCitação: Siebert et al. (2013), Global Map of Irrigation Areas version 5, Universidade de Bonn e FAO.\nApp web: a confirmar.\nFicha e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/irrigacao-gmia.md",
     },
     Ficha {
         id: "elevacao",
@@ -3512,7 +3541,7 @@ pub const FICHAS: &[Ficha] = &[
 
 /// O texto da seção Sobre (o do painel Área de trabalho): autoria, versão, licença, repositório,
 /// fontes e como contribuir.
-pub const SOBRE: &str = "BrasilData 0.1.48, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nFontes dos dados: IBGE, IDE-Sisema, INPE, ANA, ANP, ANEEL, INCRA, ANM, Kuzma, MMA, ICMBio, FUNAI, Serviço Florestal Brasileiro, IBAMA, DNIT e MapBiomas, pelos serviços de cada órgão; Copernicus DEM GLO-30 (DLR e Airbus, pelo espelho da OpenTopography); Banco Central (Pix e crédito rural); TSE; Novo CAGED (IPEA Data); Ministério da Saúde (CNES, pelo geobr do Ipea); Open-Meteo (previsão do ECMWF, da NOAA e do DWD) e CHIRPS v3 (Climate Hazards Center, UCSB).\n\nComo contribuir: sentiu falta de algum dado? Abra uma issue em https://github.com/elpidioassinaturas/BrasilData/issues com o nome do dado, o órgão que o publica, o endereço do serviço (WFS, ArcGIS REST, API ou arquivo) e para que você o usaria. Para trazer a fonte você mesmo, acrescente uma linha ao fontes.csv, rode python scripts/gerar.py e abra um pull request. Correções, avisos de serviço fora do ar e relatos de uso também são bem-vindos.";
+pub const SOBRE: &str = "BrasilData 0.1.50, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nFontes dos dados: IBGE, IDE-Sisema, INPE, ANA, ANP, ANEEL, INCRA, ANM, Kuzma, MMA, ICMBio, FUNAI, Serviço Florestal Brasileiro, IBAMA, DNIT e MapBiomas, pelos serviços de cada órgão; Copernicus DEM GLO-30 (DLR e Airbus, pelo espelho da OpenTopography); Banco Central (Pix e crédito rural); TSE; Novo CAGED (IPEA Data); Ministério da Saúde (CNES, pelo geobr do Ipea); Open-Meteo (previsão do ECMWF, da NOAA e do DWD) e CHIRPS v3 (Climate Hazards Center, UCSB).\n\nComo contribuir: sentiu falta de algum dado? Abra uma issue em https://github.com/elpidioassinaturas/BrasilData/issues com o nome do dado, o órgão que o publica, o endereço do serviço (WFS, ArcGIS REST, API ou arquivo) e para que você o usaria. Para trazer a fonte você mesmo, acrescente uma linha ao fontes.csv, rode python scripts/gerar.py e abra um pull request. Correções, avisos de serviço fora do ar e relatos de uso também são bem-vindos.";
 
 /// O aviso do botão Sobre: o resumo do [`SOBRE`].
-pub const SOBRE_AVISO: &str = "BrasilData 0.1.48, do Professor Elpídio (LABGEO/UFV), sob a licença MIT: https://github.com/elpidioassinaturas/BrasilData. A autoria, as fontes dos dados e como contribuir estão nas abas Sobre, no fim do painel Área de trabalho.";
+pub const SOBRE_AVISO: &str = "BrasilData 0.1.50, do Professor Elpídio (LABGEO/UFV), sob a licença MIT: https://github.com/elpidioassinaturas/BrasilData. A autoria, as fontes dos dados e como contribuir estão nas abas Sobre, no fim do painel Área de trabalho.";
