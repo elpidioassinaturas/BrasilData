@@ -4905,7 +4905,7 @@ fn gdo_seca(req: &Request) -> Result<Value, String> {
         None => "na data mais recente do serviço",
     };
     avisar(&format!(
-        "{}: mapa para ver do Global Drought Observatory (Copernicus), {quando}, com a legenda do serviço sob a camada; não é recortado pela área, e os valores do índice não vêm nele (o GDO só os publica em arquivos do mundo inteiro por ano)",
+        "{}: mapa para ver do Global Drought Observatory (Copernicus), {quando}, com a legenda do serviço sob a camada; não é recortado pela área (o RustGIS 0.7.0 não recorta um mapa de tiles: RustGIS#2530), e os valores do índice não vêm nele (o GDO só os publica em arquivos do mundo inteiro por ano)",
         nome.trim_start_matches(PREFIXO)
     ));
     Ok(json!({"tiles": nome, "indicator": format!("{i:?}")}))

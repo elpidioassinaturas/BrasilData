@@ -11,6 +11,8 @@
 //! - **Como:** `map.addTiles` com o GetMap em Web Mercator montado aqui. Pelo `service.add`, o
 //!   RustGIS lê nas capacidades do serviço a caixa da camada-mãe, que é a da Europa, e só pediria
 //!   imagens dentro dela.
+//! - **Recorte:** a camada não é recortada pela área: o RustGIS 0.7.0 não mascara um mapa de
+//!   tiles (`layer.mask` só vale para camadas), e o WMS não entrega GeoTIFF. Pedido em RustGIS#2530.
 //! - **O Low-Flow Index:** o do GDO só cobre a Europa (WMS, WCS e downloads).
 
 use crate::datas::Data;

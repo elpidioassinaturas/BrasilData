@@ -37,7 +37,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.47"
+VERSAO = "0.1.48"
 AUTOR = "Elpídio Filho"
 # Como o texto Sobre chama o autor (o manifesto e o README levam o nome completo).
 AUTOR_SOBRE = "Professor Elpídio"
@@ -1416,8 +1416,9 @@ TOPICOS = {
 GRUPOS = list(TOPICOS)
 # Comandos que também aparecem num segundo subtópico: (tópico, subtópico, id). A Agricultura
 # tem o Censo Agropecuário próprio (censo-agro); os censos por município ficam na População. A
-# irrigação do GMIA fica na Água e também na Agricultura, ao lado do Censo Agropecuário.
-TAMBEM = [("Sociedade e economia", "Agricultura", "mapbiomas-irrigacao"), ("Sociedade e economia", "Agricultura", "irrigacao-gmia"), ("Tempo e clima", "Clima", "risco-fogo")]
+# irrigação do GMIA fica na Água e também na Agricultura, ao lado do Censo Agropecuário. Os mapas de
+# seca do GDO ficam no Clima e também nos Solos (a umidade do solo).
+TAMBEM = [("Sociedade e economia", "Agricultura", "mapbiomas-irrigacao"), ("Sociedade e economia", "Agricultura", "irrigacao-gmia"), ("Tempo e clima", "Clima", "risco-fogo"), ("Meio físico", "Solos", "gdo-seca")]
 
 # O ícone de um subtópico, quando um dos ícones do RustGIS diz mais que a geometria da primeira
 # camada (o plugin só pode usar os ícones do RustGIS, pelo nome).
