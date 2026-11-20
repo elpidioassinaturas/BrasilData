@@ -2839,9 +2839,10 @@ fn censo_setores() -> Result<Value, String> {
         let recortada = r.get("layer").cloned().ok_or("o clip não disse a camada que fez")?;
         host::run("layer.rename", json!({"layer": recortada, "name": nome}))?;
         remover(&[&bruto])?;
+        let juntadas = juntar_partes_dos_setores(&nome)?;
         nomear_campos_dos_setores(&nome)?;
         let n = feicoes_da_camada(&nome)?.unwrap_or(0);
-        feitas.push(json!({"layer": nome, "features": n}));
+        feitas.push(json!({"layer": nome, "features": n, "joined": juntadas}));
     }
     if !baixando.is_empty() {
         avisar(&format!(
@@ -2850,13 +2851,69 @@ fn censo_setores() -> Result<Value, String> {
         ));
     }
     if !feitas.is_empty() {
+        let juntadas: u64 = feitas.iter().filter_map(|f| f["joined"].as_u64()).sum();
+        let partes = if juntadas == 0 {
+            String::new()
+        } else {
+            format!(
+                " {juntadas} {} do IBGE com partes do mesmo setor (ilhas, pedaços separados) {} juntada{} num setor só: \
+                 a população de cada setor conta uma vez.",
+                if juntadas == 1 { "linha" } else { "linhas" },
+                if juntadas == 1 { "foi" } else { "foram" },
+                if juntadas == 1 { "" } else { "s" },
+            )
+        };
         avisar(&format!(
-            "Setores censitários de 2022 recortados pela área ({}). {}",
+            "Setores censitários de 2022 recortados pela área ({}).{partes} {}",
             feitas.iter().map(|f| format!("{}: {}", f["layer"].as_str().unwrap_or(""), f["features"])).collect::<Vec<_>>().join("; "),
             censo::CAMPOS_DOS_SETORES
         ));
     }
     Ok(json!({"layers": feitas, "downloading": baixando}))
+}
+
+/// Junta numa feição só as linhas de um mesmo setor. A malha com atributos do IBGE grava cada parte
+/// de um setor (uma ilha, um pedaço separado) numa linha própria, com a população e os domicílios
+/// do setor inteiro repetidos: somar a coluna `pessoas` contaria o setor uma vez por parte (na
+/// Grande Vitória, 3.583 pessoas a mais). O `dissolve` por `CD_SETOR` faz um multipolígono por
+/// setor com os valores da primeira linha (as linhas de um setor têm os mesmos valores), e cada
+/// campo volta ao nome e ao tipo de antes (o RustGIS não renomeia campos: campo novo, valor, e o
+/// `FIRST_` sai). A densidade continua certa: ela usa `AREA_KM2`, que já é a área do setor inteiro.
+/// Diz quantas linhas a menos a camada ficou; sem setor repetido, ela fica como está.
+fn juntar_partes_dos_setores(camada: &str) -> Result<u64, String> {
+    let antes = feicoes_da_camada(camada)?.unwrap_or(0);
+    let campos = host::run("layer.fields", json!({"layer": camada}))?;
+    let lista: Vec<(String, String)> = campos
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|f| Some((f["name"].as_str()?.to_string(), f["type"].as_str().unwrap_or("Text").to_lowercase())))
+        .collect();
+    let Some(chave) = lista.iter().map(|(n, _)| n).find(|n| n.eq_ignore_ascii_case("cd_setor")).cloned() else {
+        return Ok(0);
+    };
+    let outros: Vec<&(String, String)> = lista.iter().filter(|(n, _)| *n != chave).collect();
+    let estatisticas: Vec<Value> = outros.iter().map(|(n, _)| json!({"field": n, "statistic": "FIRST"})).collect();
+    let r = host::run("gp.run", json!({"tool": "dissolve", "params": {"input": camada, "field": chave, "statistics": estatisticas}}))?;
+    let juntada = r.get("layer").cloned().ok_or("o dissolve não disse a camada que fez")?;
+    let provisoria = format!("{camada} (juntando partes)");
+    host::run("layer.rename", json!({"layer": juntada, "name": provisoria}))?;
+    let depois = feicoes_da_camada(&provisoria)?.unwrap_or(antes);
+    if depois >= antes {
+        remover(&[&provisoria])?;
+        return Ok(0);
+    }
+    remover(&[camada])?;
+    host::run("layer.rename", json!({"layer": provisoria, "name": camada}))?;
+    for (nome, tipo) in outros {
+        let primeiro = format!("FIRST_{nome}");
+        host::run("edit.addField", json!({"layer": camada, "name": nome, "type": tipo}))?;
+        host::run("edit.calculateField", json!({"layer": camada, "field": nome, "expression": primeiro}))?;
+        host::run("edit.deleteField", json!({"layer": camada, "field": primeiro}))?;
+    }
+    // O dissolve conta as linhas de cada grupo num campo "count"; o setor não precisa dele.
+    let _ = host::run("edit.deleteField", json!({"layer": camada, "field": "count"}));
+    Ok(antes - depois)
 }
 
 /// Troca os códigos `v0001` a `v0007` dos setores pelos nomes de [`censo::CAMPOS_SETORES`]: o
