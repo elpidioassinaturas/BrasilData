@@ -75,6 +75,10 @@ pub fn comando_da_camada(nome: &str, fonte: &str) -> Option<&'static str> {
         }
     } else if nome == chm::CAMADA {
         "chm-altura"
+    } else if nome == crate::forty::CAMADA {
+        "forty-tipologia"
+    } else if crate::ctrees::da_camada(nome).is_some() {
+        "ctrees-biomassa"
     } else if crate::bdc::satelite_da_camada(nome).is_some() {
         "bdc-indice"
     } else if let Some(v) = crate::jaxa::variavel_da_camada(nome) {
@@ -128,6 +132,9 @@ mod tests {
             ("BrasilData: Uso e cobertura 2024 (MapBiomas, recortado)", "mapbiomas-cobertura"),
             ("BrasilData: Elevação (Copernicus GLO-30)", "elevacao"),
             (chm::CAMADA, "chm-altura"),
+            (crate::forty::CAMADA, "forty-tipologia"),
+            ("BrasilData: Biomassa acima do solo 2025 (CTrees, 100 m)", "ctrees-biomassa"),
+            ("BrasilData: Incerteza da biomassa 2010 (CTrees, 100 m)", "ctrees-biomassa"),
             (irrigacao::CAMADA, "irrigacao-gmia"),
         ];
         for (nome, id) in casos {

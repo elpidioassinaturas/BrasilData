@@ -40,6 +40,8 @@ const NOTA_JAXA: &str =
     "Dados mensais do JAXA Earth na resolução original, em células de 2,8 a 22 km: mostram o padrão regional, não o detalhe de cada lugar.";
 const NOTA_ERA5: &str = "Reanálise ERA5 do ECMWF (Copernicus), em nós de uma grade de 0,25° (cerca de 28 km) ou mais aberta, interpolados para a grade: mostra o clima regional, não o de cada encosta ou vale.";
 const NOTA_BDC: &str = "Compostos de 16 dias do cubo de dados do INPE (Brazil Data Cube), com o pixel mais limpo de cada período; nuvens e sombras persistentes ainda podem aparecer.";
+const NOTA_CTREES: &str = "Biomassa estimada por um modelo de IA calibrado com lidar aéreo e parcelas de campo, a partir do Landsat, do radar ALOS PALSAR-2 e das alturas do GEDI; a série da CTrees ainda está em pré-publicação, sem revisão por pares.";
+const NOTA_FORTY: &str = "Códigos da legenda: 1 floresta primária, 2 em regeneração natural, 3 plantada, 4 plantio florestal comercial, 5 culturas arbóreas e agrofloresta, 6 outros usos. Classes de um modelo de IA sobre imagens de 2020, alinhadas à FAO e ao EUDR.";
 const NOTA_CHM: &str = "Altura estimada por um modelo de IA (DINOv3) sobre imagens de satélite de alta resolução de datas diferentes; 0 é sem árvore (ou sem dado).";
 const NOTA_GEM15: &str = "De imagens estéreo de satélite adquiridas até 2024; alturas no geoide EGM96. Água e superfícies sem textura ficam sem dado; sob mata densa, o terreno é estimado.";
 const NOTA_PREVISAO: &str = "Previsão de uma rodada de um modelo global, em nós de uma grade de 0,25° (cerca de 28 km) interpolados para a grade: mostra a tendência regional, não a chuva de cada lugar, e muda a cada rodada.";
@@ -218,6 +220,21 @@ pub fn receita(nome: &str) -> Option<Receita> {
             barra: Some(("Altura do dossel (m)".into(), 8)),
             legenda: None,
             nota: Some(NOTA_CHM),
+        });
+    }
+    if let Some((v, ano)) = crate::ctrees::da_camada(nome) {
+        let (subtitulo, barra) = match v {
+            crate::ctrees::Variavel::Biomassa => (format!("Biomassa acima do solo em {ano} a 100 m (CTrees)"), "Biomassa (Mg/ha)"),
+            crate::ctrees::Variavel::Incerteza => (format!("Incerteza da biomassa acima do solo em {ano} (CTrees)"), "Erro-padrão (Mg/ha)"),
+        };
+        return Some(Receita { subtitulo, barra: Some((barra.into(), 5)), legenda: None, nota: Some(NOTA_CTREES) });
+    }
+    if nome == crate::forty::CAMADA {
+        return Some(Receita {
+            subtitulo: "Tipologia florestal em 2020 a 10 m (ForTy: Google DeepMind, WRI e IIASA)".into(),
+            barra: None,
+            legenda: Some("Tipo de floresta (código)"),
+            nota: Some(NOTA_FORTY),
         });
     }
     if let Some(m) = crate::gem15::Modelo::TODOS.into_iter().find(|m| m.camada() == nome) {

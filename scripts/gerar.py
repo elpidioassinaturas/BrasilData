@@ -37,7 +37,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.41"
+VERSAO = "0.1.42"
 AUTOR = "Elpídio Filho"
 # Como o texto Sobre chama o autor (o manifesto e o README levam o nome completo).
 AUTOR_SOBRE = "Professor Elpídio"
@@ -75,6 +75,7 @@ PERFIS = [
     "Tese: página inteira (160 × 225 mm)",
     "Tese: meia página (160 × 110 mm)",
 ]
+CAMADAS_CTREES = ["Biomassa (Mg/ha)", "Incerteza: erro-padrão (Mg/ha)"]
 ORIENTACOES = ["Automática: a que der o mapa maior", "Retrato (em pé)", "Paisagem (deitada)"]
 ESTILOS = ["Clássico", "Faixa", "Painel", "Editorial", "Modular", "Pôster"]
 PALETAS = ["A do BrasilData: etapa e confiança", "A oficial da OPERA"]
@@ -597,6 +598,32 @@ EM_MENUS = [
             "help": "A altura das árvores em metros, a cerca de 1 m, da Meta e do World Resources Institute (Canopy Height Maps v2, licença CC BY 4.0): estimada por um modelo de IA (DINOv3) sobre imagens de satélite de alta resolução, de datas diferentes conforme o lugar. Só a área, lida de cada tile que ela toca, posta na grade do projeto e recortada pelo contorno; numa grade mais grossa, lida da pirâmide do arquivo, que tira a média. Para ver as copas, use uma grade de 1 a 5 m (Grade do projeto) numa área pequena. O 0 é sem árvore, e também sem dado. Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área).",
             "icon": "proportional",
             "params": "{\"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+        },
+    ),
+    (
+        "Vegetação e meio ambiente",
+        "Vegetação",
+        {
+            "id": "forty-tipologia",
+            "label": "Tipologia florestal 2020 a 10 m (ForTy)",
+            "help": "O tipo de floresta em 2020, a 10 m, do Forest Typology (ForTy) da Nature Trace (Google DeepMind e Google Research, com o WRI e o IIASA; licença CC BY 4.0): floresta primária, em regeneração natural, plantada, plantio florestal comercial, culturas arbóreas e agrofloresta, e outros usos. As classes seguem a FAO e o regulamento europeu contra o desmatamento (EUDR), cuja data de corte é 31/12/2020. Só a área, lida de cada bloco que ela toca (cerca de 33 × 45 km), posta na grade do projeto com a classe mais frequente e recortada pelo contorno; numa grade mais grossa, lida da pirâmide do arquivo. Até 16 blocos por clique: um município ou uma microrregião. Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área); só no app desktop e no rustgis-cli.",
+            "icon": "unique",
+            "params": "{\"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+        },
+    ),
+    (
+        "Vegetação e meio ambiente",
+        "Vegetação",
+        {
+            "id": "ctrees-biomassa",
+            "label": "Biomassa acima do solo por ano (CTrees, 100 m)",
+            "help": "A biomassa acima do solo em Mg/ha (toneladas por hectare), a 100 m, num ano de 2000 a 2025, da CTrees (licença CC BY 4.0): estimada por um modelo de IA calibrado com biomassa de lidar aéreo e de parcelas de campo, a partir de séries do Landsat, do radar ALOS PALSAR-2 e das alturas do GEDI e do ICESat-2; ou a incerteza do mapa (o erro-padrão, em Mg/ha). Só a área, lida do arquivo global do ano no bucket público da AWS, posta na grade do projeto e recortada pelo contorno; numa área grande, lida da pirâmide do arquivo, com células maiores. Compare dois anos para ver a perda ou o ganho de biomassa. Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área).",
+            "icon": "proportional",
+            "params": "{\"ano\"?: de 2000 a 2025 (padrão 2025), \"camada\"?: \"biomassa\" (padrão) | \"incerteza\", \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+            "form": [
+                {"name": "ano", "label": "Ano", "kind": "number", "required": True, "default": 2025, "help": "O ano do mapa, de 2000 a 2025."},
+                {"name": "camada", "label": "O que trazer", "kind": "choice", "required": True, "choices": CAMADAS_CTREES, "default": CAMADAS_CTREES[0], "help": "A biomassa estimada, ou a incerteza dela (o erro-padrão): onde a incerteza é alta, a diferença entre dois anos pode ser só ruído."},
+            ],
         },
     ),
     (

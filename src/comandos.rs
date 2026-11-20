@@ -9,12 +9,14 @@ use crate::cemaden;
 use crate::censo;
 use crate::chm;
 use crate::clms;
+use crate::ctrees;
 use crate::datas::{self, Data};
 use crate::dialogos;
 use crate::dist;
 use crate::era5;
 use crate::estilo;
 use crate::extensoes;
+use crate::forty;
 use crate::gedi;
 use crate::gem15;
 use crate::grade::{self, Escolha, GRADE, Grade};
@@ -203,6 +205,8 @@ fn executar_comando(req: Request) -> Result<Value, String> {
         "risco-fogo" => risco_de_fogo(&req),
         "gem15" => gem15_na_area(&req),
         "chm-altura" => chm_na_area(&req),
+        "forty-tipologia" => forty_na_area(&req),
+        "ctrees-biomassa" => ctrees_na_area(&req),
         "bdc-indice" => bdc_indice(&req),
         "jaxa-chuva" => jaxa_na_area(&req, jaxa::Variavel::Chuva),
         "jaxa-umidade" => jaxa_na_area(&req, jaxa::Variavel::Umidade),
@@ -1463,6 +1467,10 @@ fn citacoes() -> Result<(Vec<Value>, String), String> {
             lista.push(json!({"layer": n, "source": clms::citacao(ano), "license": clms::LICENCA}));
         } else if n == chm::CAMADA {
             lista.push(json!({"layer": n, "source": chm::CITACAO, "license": chm::LICENCA}));
+        } else if n == forty::CAMADA {
+            lista.push(json!({"layer": n, "source": forty::CITACAO, "license": forty::LICENCA}));
+        } else if let Some((v, ano)) = ctrees::da_camada(&n) {
+            lista.push(json!({"layer": n, "source": ctrees::citacao(v, ano), "license": ctrees::LICENCA}));
         } else if let Some(sat) = bdc::satelite_da_camada(&n) {
             lista.push(json!({"layer": n, "source": sat.citacao(), "license": sat.licenca()}));
         } else if let Some(v) = jaxa::variavel_da_camada(&n) {
@@ -4937,6 +4945,232 @@ fn chm_na_area(req: &Request) -> Result<Value, String> {
     avisar(&texto);
     Ok(json!({
         "layer": saida, "tiles": ts.len(), "level": k, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula,
+        "report": texto.trim_start_matches(PREFIXO),
+    }))
+}
+
+/// A tipologia florestal de 2020 do ForTy a 10 m na área ([`forty`]): a janela da área em cada
+/// bloco que ela toca, posta na grade do projeto com a classe mais frequente; os blocos se juntam e
+/// o mosaico é recortado pela área.
+fn forty_na_area(req: &Request) -> Result<Value, String> {
+    let celula = req.f64("celula");
+    if let Some(m) = celula {
+        grade::conferir_celula(m)?;
+    }
+    let (c, na_area) = retangulo()?;
+    if !na_area {
+        return Err("escolha a área primeiro (painel Área de trabalho, ou Área: seleção)".into());
+    }
+    let sem_janela =
+        "a tipologia florestal do ForTy precisa de um RustGIS que leia só a janela da área de um arquivo remoto (depois da 0.5.0)";
+    if !le_janela_remota()? {
+        return Err(sem_janela.into());
+    }
+    let bs = forty::blocos(c);
+    if bs.is_empty() {
+        return Err("o ForTy não tem dados na área (ele cobre a terra do Brasil; no mar não há blocos)".into());
+    }
+    if bs.len() > forty::MAX_BLOCOS {
+        return Err(format!(
+            "a área toca {} blocos do ForTy (cerca de 33 × 45 km cada); o limite de um clique é {}: escolha uma área menor, como um município ou uma microrregião",
+            bs.len(),
+            forty::MAX_BLOCOS
+        ));
+    }
+    let g = grade_para(c, celula)?;
+    // O nível mais grosso que não é mais grosso que a grade, se as janelas cabem no limite do
+    // RustGIS; senão, pede uma grade mais grossa.
+    let k = forty::nivel(g.celula);
+    let lado = forty::lado_do_nivel(k);
+    let janelas: Vec<(&forty::Bloco, [f64; 4])> = bs.iter().map(|b| (b, forty::janela(b, lado))).collect();
+    let js: Vec<[f64; 4]> = janelas.iter().map(|(_, j)| *j).collect();
+    match forty::nivel_que_cabe(&js, k) {
+        Some(n) if n == k => {}
+        cabe => {
+            let dica = cabe
+                .map(|n| {
+                    format!(": use uma grade de células de {} m ou mais (Grade do projeto), ou uma área menor", forty::lado_do_nivel(n))
+                })
+                .unwrap_or_else(|| ": escolha uma área menor".into());
+            return Err(format!("a área é grande demais para ler o ForTy com células de {lado} m numa janela só por bloco{dica}"));
+        }
+    }
+    // As janelas de um clique anterior servem se cobrem a parte da área (no desktop, o comando
+    // roda de novo quando cada uma chega).
+    let ha = nomes()?;
+    let mut lidas: Vec<String> = Vec::new();
+    let mut lendo = 0;
+    for (b, j) in &janelas {
+        let nome = b.nome_da_janela(k);
+        if ha.contains(&nome)
+            && let Some(e) = extensao(&nome)?
+            && b.a_cobrir().is_none_or(|a| retangulo_cabe(a, e))
+        {
+            lidas.push(nome);
+            continue;
+        }
+        tirar_janela(&nome)?;
+        let mut p = json!({"url": b.url(), "name": nome, "bbox": j, "zoom": false});
+        if k > 0 {
+            p["cellSize"] = json!(lado);
+        }
+        let r = host::run("layer.addUrl", p).map_err(|e| {
+            if falha_passageira(&e) || e.contains("timeout") {
+                format!("o bucket do ForTy (storage.googleapis.com) não respondeu agora: tente de novo daqui a pouco ({e})")
+            } else {
+                e
+            }
+        })?;
+        if r.get("pending").and_then(Value::as_bool) == Some(true) {
+            lendo += 1;
+            continue;
+        }
+        if r.get("inPlace").and_then(Value::as_bool) == Some(true) || r.get("window").is_none() {
+            tirar_janela(&nome)?;
+            return Err(sem_janela.into());
+        }
+        lidas.push(nome);
+    }
+    if lendo > 0 {
+        avisar(&format!("Tipologia florestal (ForTy): lendo a área em {lendo} bloco(s); a camada vem quando chegarem"));
+        return Ok(json!({"pending": lendo, "tiles": bs.len()}));
+    }
+    let saida = forty::CAMADA;
+    let resampling = forty::reamostragem(g.celula, lado);
+    let na_grade: Vec<String> = (0..lidas.len()).map(|i| format!("{PREFIXO}ForTy na grade {i}")).collect();
+    let junto = format!("{PREFIXO}ForTy junto");
+    let mut temporarias: Vec<&str> = lidas.iter().chain(&na_grade).map(String::as_str).collect();
+    temporarias.push(junto.as_str());
+    remover(&[saida])?;
+    let feito = (|| -> Result<(), String> {
+        for (j, n) in lidas.iter().zip(&na_grade) {
+            host::run(
+                "raster.project",
+                json!({"layer": j, "crs": g.epsg, "cellSize": g.celula, "extent": GRADE, "resampling": resampling, "name": n}),
+            )?;
+            // Só as classes de 1 a 6: o 255 (sem dado) e o que fica fora da janela somem, para não
+            // cobrir o bloco vizinho no mosaico.
+            host::run("raster.mask", json!({"layer": n, "min": 0.5, "max": 6.5}))?;
+        }
+        let mosaico = if na_grade.len() == 1 {
+            na_grade[0].clone()
+        } else {
+            mosaicar(&na_grade, &junto)?;
+            junto.clone()
+        };
+        recortar(&mosaico, AREA, saida)?;
+        host::run("style.importQgis", json!({"layer": saida, "text": forty::qml()}))?;
+        Ok(())
+    })();
+    remover(&temporarias)?;
+    feito?;
+    let piramide = if k > 0 { format!(", lida da pirâmide de {lado} m do arquivo") } else { String::new() };
+    let texto = format!(
+        "{saida}: classes do ForTy 2020 (Nature Trace: Google DeepMind, WRI e IIASA), de {} bloco(s), na grade do projeto, {} ({}){piramide}. Códigos: {}",
+        bs.len(),
+        g.texto(),
+        if resampling == "mode" { "a classe mais frequente" } else { "a célula mais próxima" },
+        forty::CHAVE
+    );
+    avisar(&texto);
+    Ok(json!({
+        "layer": saida, "tiles": bs.len(), "level": k, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula,
+        "report": texto.trim_start_matches(PREFIXO),
+    }))
+}
+
+/// A biomassa acima do solo da CTrees a 100 m num ano de 2000 a 2025, ou a incerteza dela
+/// ([`ctrees`]): a janela da área no COG global do ano, em Mg/ha, posta na grade do projeto e
+/// recortada pela área.
+fn ctrees_na_area(req: &Request) -> Result<Value, String> {
+    let ano = req.f64("ano").map(ctrees::conferir_ano).transpose()?.unwrap_or(ctrees::ULTIMO_ANO);
+    let v = match req.str("camada") {
+        Some(t) => ctrees::Variavel::ler(t).ok_or(format!("camada '{t}': use biomassa ou incerteza"))?,
+        None => ctrees::Variavel::Biomassa,
+    };
+    let celula = req.f64("celula");
+    if let Some(m) = celula {
+        grade::conferir_celula(m)?;
+    }
+    let (c, na_area) = retangulo()?;
+    if !na_area {
+        return Err("escolha a área primeiro (painel Área de trabalho, ou Área: seleção)".into());
+    }
+    let sem_janela = "a biomassa da CTrees precisa de um RustGIS que leia só a janela da área de um arquivo remoto (depois da 0.5.0): o arquivo é o mundo inteiro, com 405.000 × 202.500 células";
+    if !le_janela_remota()? {
+        return Err(sem_janela.into());
+    }
+    let g = grade_para(c, celula)?;
+    let lat = (c[1] + c[3]) / 2.0;
+    let k = match ctrees::nivel_que_cabe(c, ctrees::nivel(g.celula, lat)) {
+        Some(k) => k,
+        None => return Err("a área é grande demais para a biomassa da CTrees: escolha uma área menor".into()),
+    };
+    let janela = ctrees::janela(c, k);
+    let bruto = v.janela(ano, k);
+    // A janela de um clique anterior serve se cobre a área (no desktop, o comando roda de novo
+    // quando ela chega).
+    let serve = nomes()?.contains(&bruto) && extensao(&bruto)?.is_some_and(|e| retangulo_cabe(c, e));
+    if !serve {
+        tirar_janela(&bruto)?;
+        let mut p = json!({"url": v.url(ano), "name": bruto, "bbox": janela, "zoom": false});
+        if k > 0 {
+            p["cellSize"] = json!(ctrees::graus_do_nivel(k));
+        }
+        let r = host::run("layer.addUrl", p).map_err(|e| {
+            if falha_passageira(&e) || e.contains("timeout") {
+                format!("o bucket da CTrees (AWS) não respondeu agora: tente de novo daqui a pouco ({e})")
+            } else {
+                e
+            }
+        })?;
+        if r.get("pending").and_then(Value::as_bool) == Some(true) {
+            avisar(&format!("Biomassa da CTrees ({ano}): lendo a área no arquivo global; a camada vem quando chegar"));
+            return Ok(json!({"pending": 1}));
+        }
+        if r.get("inPlace").and_then(Value::as_bool) == Some(true) || r.get("window").is_none() {
+            tirar_janela(&bruto)?;
+            return Err(sem_janela.into());
+        }
+    }
+    let saida = v.camada(ano);
+    let em_mg = format!("{PREFIXO}CTrees em Mg/ha");
+    let na_grade = format!("{PREFIXO}CTrees na grade");
+    let lido = ctrees::metros_do_nivel(k, lat);
+    let resampling = ctrees::reamostragem(g.celula, lido);
+    remover(&[&saida])?;
+    let feito = (|| -> Result<(), String> {
+        // O arquivo guarda décimos de Mg/ha.
+        host::run("raster.function", json!({"layer": bruto, "function": "bandMath", "expression": "b1 / 10", "name": em_mg}))?;
+        host::run(
+            "raster.project",
+            json!({"layer": em_mg, "crs": g.epsg, "cellSize": g.celula, "extent": GRADE, "resampling": resampling, "name": na_grade}),
+        )?;
+        recortar(&na_grade, AREA, &saida)?;
+        // O −9999 do arquivo (mar, sem dado) vira sem dado.
+        host::run("raster.mask", json!({"layer": saida, "min": 0.0, "max": 3000.0}))?;
+        let (rampa, cores) = v.rampa();
+        let _ = host::run("ramp.add", json!({"text": cores, "format": "gdal", "name": rampa}));
+        if host::run("raster.symbology", json!({"layer": saida, "type": "stretch", "ramp": rampa})).is_err() {
+            host::run("raster.symbology", json!({"layer": saida, "type": "stretch", "ramp": "YlGn"}))?;
+        }
+        let (a, b) = v.escala();
+        let _ = host::run("raster.stretch", json!({"layer": saida, "type": "custom", "min": a, "max": b}));
+        Ok(())
+    })();
+    remover(&[&bruto, &em_mg, &na_grade])?;
+    feito?;
+    let media = host::run("raster.info", json!({"layer": saida}))
+        .ok()
+        .and_then(|i| i["bands"][0]["mean"].as_f64())
+        .map(|m| format!("; média na área: {} Mg/ha", formatar_decimal(m)))
+        .unwrap_or_default();
+    let piramide = if k > 0 { format!(", lida da pirâmide de cerca de {} m do arquivo", lido.round()) } else { String::new() };
+    let o_que = if v == ctrees::Variavel::Biomassa { "biomassa acima do solo" } else { "incerteza (erro-padrão) da biomassa" };
+    let texto = format!("{saida}: {o_que} em Mg/ha de {ano} (CTrees), na grade do projeto, {} ({resampling}){piramide}{media}", g.texto());
+    avisar(&texto);
+    Ok(json!({
+        "layer": saida, "year": ano, "level": k, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula,
         "report": texto.trim_start_matches(PREFIXO),
     }))
 }

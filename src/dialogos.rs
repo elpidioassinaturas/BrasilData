@@ -43,6 +43,9 @@ pub const PERFIS: [(&str, &str); 8] = [
 pub const ORIENTACOES: [(&str, &str); 3] =
     [("Automática: a que der o mapa maior", "automatica"), ("Retrato (em pé)", "retrato"), ("Paisagem (deitada)", "paisagem")];
 
+/// As escolhas do que trazer da CTrees e a `camada` de cada uma.
+pub const CAMADAS_CTREES: [(&str, &str); 2] = [("Biomassa (Mg/ha)", "biomassa"), ("Incerteza: erro-padrão (Mg/ha)", "incerteza")];
+
 /// As escolhas do estilo da folha e o `estilo` de cada uma.
 pub const ESTILOS: [(&str, &str); 6] = [
     ("Clássico", "classic"),
@@ -90,6 +93,7 @@ const TROCAS: &[(&str, &str, Escolhas)] = &[
     ("layout", "perfil", &PERFIS),
     ("layout", "orientacao", &ORIENTACOES),
     ("layout", "estilo", &ESTILOS),
+    ("ctrees-biomassa", "camada", &CAMADAS_CTREES),
     ("dist-situacao", "paleta", &PALETAS),
     ("gem15", "modelo", &MODELOS_GEM15),
     ("bdc-indice", "satelite", &SATELITES_BDC),
@@ -246,6 +250,6 @@ mod tests {
                 }
             }
         }
-        assert!(vistas >= 12 + 13 + 3 + 8 + 3 + 6 + 2 + 3, "{vistas} escolhas");
+        assert!(vistas >= 12 + 13 + 3 + 8 + 3 + 6 + 2 + 3 + 2, "{vistas} escolhas");
     }
 }
