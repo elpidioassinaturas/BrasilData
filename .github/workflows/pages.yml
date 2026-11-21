@@ -1,0 +1,49 @@
+name: Pages
+
+# The project page (https://elpidioassinaturas.github.io/BrasilData/), built by scripts/site.py
+# from README.md, plugin.json, fontes.csv, fichas.csv and docs/camadas. Python only, no packages.
+
+on:
+  # The github-pages environment only takes the default branch, so a release (a tag) does not
+  # trigger it: the version bump reaches main first.
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build the page
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: plugin.json, README and fichas match fontes.csv
+        run: python scripts/gerar.py --check
+      - name: Build the page
+        run: python scripts/site.py --saida _site
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    name: Publish
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

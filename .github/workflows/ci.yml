@@ -37,6 +37,8 @@ jobs:
         run: cargo fmt --check
       - name: plugin.json and catalogo.rs match fontes.csv
         run: python scripts/gerar.py --check
+      - name: The project page builds
+        run: python scripts/site.py --saida "$RUNNER_TEMP/site"
       - name: Clippy
         run: cargo clippy --target wasm32-unknown-unknown -- -D warnings
       - name: Unit tests
