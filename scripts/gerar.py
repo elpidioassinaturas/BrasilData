@@ -37,7 +37,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.51"
+VERSAO = "0.1.52"
 AUTOR = "Elpídio Filho"
 # Como o texto Sobre chama o autor (o manifesto e o README levam o nome completo).
 AUTOR_SOBRE = "Professor Elpídio"
@@ -98,6 +98,7 @@ PROPRIEDADES_OLM = ["Carbono orgânico (g/kg)", "Densidade de carbono (kg/m³)",
 PROFUNDIDADES_OLM = ["0 a 30 cm", "30 a 60 cm", "60 a 100 cm"]
 PERIODOS_OLM = ["2020 a 2022", "2015 a 2020 (só carbono e pH)", "2010 a 2015 (só carbono e pH)", "2005 a 2010 (só carbono e pH)", "2000 a 2005 (só carbono e pH)"]
 VARIAVEIS_GEDTM = [
+    "Elevação do terreno (m)",
     "Declividade (graus)",
     "Índice topográfico de umidade (TWI)",
     "Diferença da elevação média em volta (m)",
@@ -1243,14 +1244,25 @@ EM_MENUS = [
         "Meio físico",
         "Relevo",
         {
-            "id": "gedtm-relevo",
-            "label": "Derivadas do relevo (GEDTM30)",
-            "help": "As variáveis do relevo do GEDTM30 da OpenGeoHub (o terreno global a 30 m feito por aprendizado de máquina com os pontos de laser do ICESat-2 e do GEDI; licença CC BY 4.0), as covariáveis de relevo do mapeamento de solos: a declividade, o índice topográfico de umidade, a diferença da elevação média em volta, a rugosidade, as curvaturas (mínima, máxima, de perfil, tangencial e anelar), o índice de forma, as aberturas positiva e negativa, o sombreamento, os geomorfons (dez formas do relevo, de pico a depressão) e o fator LS da equação de perda de solo. Algumas também calculadas sobre o terreno de 480 e 960 m (os geomorfons em todas as escalas, de 30 a 960 m): a escala maior mostra a encosta inteira, não os detalhes de 30 m. As aberturas, o índice de forma e a curvatura anelar só vêm nas escalas maiores, e a elevação do GEDTM30 ainda não: o RustGIS não lê por partes esses arquivos da OpenGeoHub. Só a área, lida do arquivo global da variável, posta na grade do projeto e recortada pelo contorno; numa área grande, lida da pirâmide do arquivo. Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área).",
+            "id": "anadem",
+            "label": "Terreno da América do Sul a 30 m (ANADEM)",
+            "help": "O ANADEM, o modelo digital do terreno da América do Sul a 30 m da ANA e do IPH/UFRGS: o Copernicus GLO-30 sem o viés da vegetação, removido por aprendizado de máquina calibrado para o continente (índices do Landsat 8 e do Sentinel-2, alturas do GEDI e do ICESat-2). Altitudes em metros, no SIRGAS 2000. Só a área, lida do arquivo da América do Sul no S3 público da OpenTopography, posta na grade do projeto e recortada pelo contorno; numa área grande, lida da pirâmide do arquivo. Bom para a hidrologia e o relevo sob a mata, onde o Copernicus mede o dossel. Livre e aberto, com a citação. Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área).",
             "icon": "relief",
-            "params": "{\"variavel\"?: \"declividade\" (padrão) | \"twi\" | \"dfme\" | \"rugosidade\" | \"curvatura-minima\" | \"curvatura-maxima\" | \"curvatura-perfil\" | \"curvatura-tangencial\" | \"curvatura-anelar\" | \"indice-forma\" | \"abertura-positiva\" | \"abertura-negativa\" | \"sombreamento\" | \"geomorfons\" | \"fator-ls\", \"escala\"?: 30 (padrão), 60, 120, 240, 480 ou 960 m (a que a variável não tem dá a mais próxima que ela tem, com aviso), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+            "params": "{\"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+        },
+    ),
+    (
+        "Meio físico",
+        "Relevo",
+        {
+            "id": "gedtm-relevo",
+            "label": "Relevo e derivadas (GEDTM30)",
+            "help": "As variáveis do relevo do GEDTM30 da OpenGeoHub (o terreno global a 30 m feito por aprendizado de máquina com os pontos de laser do ICESat-2 e do GEDI; licença CC BY 4.0), as covariáveis de relevo do mapeamento de solos: a elevação do terreno nu (da cópia da OpenTopography), a declividade, o índice topográfico de umidade, a diferença da elevação média em volta, a rugosidade, as curvaturas (mínima, máxima, de perfil, tangencial e anelar), o índice de forma, as aberturas positiva e negativa, o sombreamento, os geomorfons (dez formas do relevo, de pico a depressão) e o fator LS da equação de perda de solo. Algumas também calculadas sobre o terreno de 480 e 960 m (os geomorfons em todas as escalas, de 30 a 960 m): a escala maior mostra a encosta inteira, não os detalhes de 30 m. As aberturas, o índice de forma e a curvatura anelar só vêm nas escalas maiores: o RustGIS não lê por partes os outros arquivos da OpenGeoHub. Só a área, lida do arquivo global da variável, posta na grade do projeto e recortada pelo contorno; numa área grande, lida da pirâmide do arquivo. Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área).",
+            "icon": "relief",
+            "params": "{\"variavel\"?: \"elevacao\" (padrão) | \"declividade\" | \"twi\" | \"dfme\" | \"rugosidade\" | \"curvatura-minima\" | \"curvatura-maxima\" | \"curvatura-perfil\" | \"curvatura-tangencial\" | \"curvatura-anelar\" | \"indice-forma\" | \"abertura-positiva\" | \"abertura-negativa\" | \"sombreamento\" | \"geomorfons\" | \"fator-ls\", \"escala\"?: 30 (padrão), 60, 120, 240, 480 ou 960 m (a que a variável não tem dá a mais próxima que ela tem, com aviso), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
             "form": [
-                {"name": "variavel", "label": "Variável", "kind": "choice", "required": True, "choices": VARIAVEIS_GEDTM, "default": VARIAVEIS_GEDTM[0], "help": "A variável derivada do terreno. Para mapear solos, as mais usadas são a declividade, o índice topográfico de umidade, a diferença da elevação média, as curvaturas e os geomorfons."},
-                {"name": "escala", "label": "Escala do cálculo", "kind": "choice", "required": True, "choices": ESCALAS_GEDTM, "default": ESCALAS_GEDTM[0], "help": "A célula do terreno de que a variável foi calculada. Hoje o RustGIS lê: 30 m na declividade, nas curvaturas de perfil e tangencial, no sombreamento e no fator LS; 30, 480 e 960 m no TWI, na diferença da elevação média, na rugosidade e nas curvaturas mínima e máxima; 240, 480 e 960 m na curvatura anelar; 480 e 960 m nas aberturas e no índice de forma; todas nos geomorfons. Outra escala dá a mais próxima, com aviso."},
+                {"name": "variavel", "label": "Variável", "kind": "choice", "required": True, "choices": VARIAVEIS_GEDTM, "default": VARIAVEIS_GEDTM[0], "help": "A elevação do terreno nu ou uma variável derivada dela. Para mapear solos, as mais usadas são a declividade, o índice topográfico de umidade, a diferença da elevação média, as curvaturas e os geomorfons."},
+                {"name": "escala", "label": "Escala do cálculo", "kind": "choice", "required": True, "choices": ESCALAS_GEDTM, "default": ESCALAS_GEDTM[0], "help": "A célula do terreno de que a variável foi calculada. Hoje o RustGIS lê: 30 m na elevação, na declividade, nas curvaturas de perfil e tangencial, no sombreamento e no fator LS; 30, 480 e 960 m no TWI, na diferença da elevação média, na rugosidade e nas curvaturas mínima e máxima; 240, 480 e 960 m na curvatura anelar; 480 e 960 m nas aberturas e no índice de forma; todas nos geomorfons. Outra escala dá a mais próxima, com aviso."},
             ],
         },
     ),

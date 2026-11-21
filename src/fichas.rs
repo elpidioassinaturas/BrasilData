@@ -89,6 +89,8 @@ pub fn comando_da_camada(nome: &str, fonte: &str) -> Option<&'static str> {
         "olm-solo"
     } else if crate::gedtm::da_camada(nome).is_some() {
         "gedtm-relevo"
+    } else if nome == crate::anadem::CAMADA {
+        "anadem"
     } else if crate::bdc::satelite_da_camada(nome).is_some() {
         "bdc-indice"
     } else if let Some(v) = crate::jaxa::variavel_da_camada(nome) {
@@ -152,6 +154,8 @@ mod tests {
             ("BrasilData: Argila 60–100 cm, 2020–2022 (OpenLandMap)", "olm-solo"),
             ("BrasilData: Declividade 30 m, graus (GEDTM30)", "gedtm-relevo"),
             ("BrasilData: Geomorfons 240 m (GEDTM30)", "gedtm-relevo"),
+            ("BrasilData: Elevação do terreno 30 m, m (GEDTM30)", "gedtm-relevo"),
+            (crate::anadem::CAMADA, "anadem"),
             (irrigacao::CAMADA, "irrigacao-gmia"),
         ];
         for (nome, id) in casos {

@@ -12,6 +12,7 @@
 //! fuso da área, com células de 30 m.
 
 pub mod amostragem;
+pub mod anadem;
 pub mod aqueduct;
 pub mod bdc;
 mod catalogo;

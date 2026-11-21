@@ -3,6 +3,7 @@
 use rustgis_plugin::{Request, Value, geojson, host, json};
 
 use crate::amostragem::{self, Candidato, Sorteio};
+use crate::anadem;
 use crate::aqueduct;
 use crate::bdc;
 use crate::cemaden;
@@ -222,6 +223,7 @@ fn executar_comando(req: Request) -> Result<Value, String> {
         "ctrees-biomassa" => ctrees_na_area(&req),
         "olm-solo" => olm_solo_na_area(&req),
         "gedtm-relevo" => gedtm_na_area(&req),
+        "anadem" => anadem_na_area(&req),
         "bdc-indice" => bdc_indice(&req),
         "jaxa-chuva" => jaxa_na_area(&req, jaxa::Variavel::Chuva),
         "jaxa-umidade" => jaxa_na_area(&req, jaxa::Variavel::Umidade),
@@ -1510,6 +1512,8 @@ fn citacoes() -> Result<(Vec<Value>, String), String> {
             lista.push(json!({"layer": n, "source": ctrees::citacao(v, ano), "license": ctrees::LICENCA}));
         } else if let Some((p, prof, per)) = olm::da_camada(&n) {
             lista.push(json!({"layer": n, "source": olm::citacao(p, prof, per), "license": olm::LICENCA}));
+        } else if n == anadem::CAMADA {
+            lista.push(json!({"layer": n, "source": anadem::CITACAO, "license": anadem::LICENCA}));
         } else if let Some((v, e)) = gedtm::da_camada(&n) {
             lista.push(json!({"layer": n, "source": gedtm::citacao(v, e), "license": gedtm::LICENCA}));
         } else if let Some(sat) = bdc::satelite_da_camada(&n) {
@@ -5798,7 +5802,8 @@ fn gedtm_na_area(req: &Request) -> Result<Value, String> {
     let janela = |k: i32| gedtm::janela_nome(v, escala, k);
     let arquivo = v.arquivo(escala);
     let host = arquivo.url.split('/').nth(2).unwrap_or("opengeohub.org");
-    let servidor = format!("o servidor da OpenGeoHub ({host})");
+    let quem = if host.contains("opentopography") { "OpenTopography" } else { "OpenGeoHub" };
+    let servidor = format!("o servidor da {quem} ({host})");
     let l = LeituraGlobal {
         arquivo: arquivo.clone(),
         janela: &janela,
@@ -5846,6 +5851,55 @@ fn gedtm_na_area(req: &Request) -> Result<Value, String> {
             Some(a) => format!("{}\n\n{a}", texto.trim_start_matches(PREFIXO)),
             None => texto.trim_start_matches(PREFIXO).to_string(),
         },
+    }))
+}
+
+/// O terreno da América do Sul a 30 m do ANADEM ([`anadem`]): a janela da área no COG do S3 da
+/// OpenTopography, posta na grade do projeto e recortada pela área.
+fn anadem_na_area(req: &Request) -> Result<Value, String> {
+    let celula = req.f64("celula");
+    if let Some(m) = celula {
+        grade::conferir_celula(m)?;
+    }
+    let (c, na_area) = retangulo()?;
+    if !na_area {
+        return Err("escolha a área primeiro (painel Área de trabalho, ou Área: seleção)".into());
+    }
+    // O ANADEM cobre a América do Sul: de 82,5° O a 34,7° O e de 56,5° S a 14,1° N.
+    if c[2] < -82.52 || c[0] > -34.72 || c[3] < -56.52 || c[1] > 14.08 {
+        return Err("o ANADEM cobre só a América do Sul: a área está fora dele".into());
+    }
+    let g = grade_para(c, celula)?;
+    let l = LeituraGlobal {
+        arquivo: anadem::arquivo(),
+        janela: &anadem::janela_nome,
+        saida: anadem::CAMADA.to_string(),
+        divisor: 1.0,
+        faixa: anadem::FAIXA,
+        classes: false,
+        dado: "o terreno do ANADEM",
+        servidor: "o servidor da OpenTopography (opentopography.s3.sdsc.edu)",
+    };
+    let (k, lido, resampling) = match ler_cog_global(&l, c, &g)? {
+        Ok(r) => r,
+        Err(pendente) => return Ok(pendente),
+    };
+    host::run("raster.symbology", json!({"layer": l.saida, "type": "stretch", "ramp": "Terrain"}))?;
+    let media = media_na_area(&l.saida, "m");
+    let piramide = if k > 0 { format!(", lida da pirâmide de cerca de {} m do arquivo", lido.round()) } else { String::new() };
+    let texto = format!(
+        "{}: altitude do terreno nu em m (ANADEM, ANA e IPH/UFRGS, pela OpenTopography), na grade do projeto, {} ({resampling}){piramide}{media}",
+        l.saida,
+        g.texto()
+    );
+    avisar(&texto);
+    let lat = (c[1] + c[3]) / 2.0;
+    if let Some(a) = grade::aviso_de_reamostragem("o terreno do ANADEM", l.arquivo.metros_do_nivel(0, lat), g.celula, "é a média") {
+        avisar(&a);
+    }
+    Ok(json!({
+        "layer": l.saida, "level": k, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula,
+        "report": texto.trim_start_matches(PREFIXO),
     }))
 }
 

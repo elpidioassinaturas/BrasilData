@@ -45,6 +45,7 @@ const NOTA_FORTY: &str = "Códigos da legenda: 1 floresta primária, 2 em regene
 const NOTA_OLM: &str = "Propriedade do solo prevista a 30 m por aprendizado de máquina sobre amostras de solo do mundo inteiro (OpenLandMap-soildb): mostra padrões, não substitui a análise de laboratório; o Brasil tem menos amostras que a Europa e os Estados Unidos.";
 const NOTA_GEDTM: &str = "Derivada do GEDTM30, um modelo do terreno a 30 m feito por aprendizado de máquina com os pontos de laser do ICESat-2 e do GEDI: sob a mata o terreno é estimado, não medido.";
 const NOTA_GEOMORFONS: &str = "Códigos da legenda: 1 plano, 2 pico, 3 crista, 4 ombro, 5 esporão, 6 encosta, 7 concavidade, 8 sopé, 9 vale, 10 depressão. Formas do relevo do GEDTM30 (OpenGeoHub), um terreno feito por aprendizado de máquina com o laser do ICESat-2 e do GEDI.";
+const NOTA_ANADEM: &str = "Terreno nu: o Copernicus GLO-30 sem o viés da vegetação, removido por aprendizado de máquina calibrado para a América do Sul (ANA e IPH/UFRGS). Altitudes em metros.";
 const NOTA_GDO: &str = "Mapa do serviço do Global Drought Observatory (Copernicus), nas cores do GDO: os tons de marrom são mais seco que o normal, os de azul, mais úmido.";
 const NOTA_GBA: &str = "Polígonos do Google, da Microsoft e do OpenStreetMap; altura estimada por um modelo de IA, menos precisa na América do Sul. Licença CC BY-NC 4.0: sem uso comercial.";
 const NOTA_CHM_AMAZONIA: &str =
@@ -268,6 +269,14 @@ pub fn receita(nome: &str) -> Option<Receita> {
             barra: Some((format!("{}{un}", p.nome()), 5)),
             legenda: None,
             nota: Some(NOTA_OLM),
+        });
+    }
+    if nome == crate::anadem::CAMADA {
+        return Some(Receita {
+            subtitulo: "Terreno nu a 30 m (ANADEM, ANA e IPH/UFRGS)".into(),
+            barra: Some(("Altitude (m)".into(), 5)),
+            legenda: None,
+            nota: Some(NOTA_ANADEM),
         });
     }
     if let Some((v, e)) = crate::gedtm::da_camada(nome) {

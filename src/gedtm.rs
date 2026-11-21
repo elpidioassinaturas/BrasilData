@@ -9,9 +9,10 @@
 //!   divide), com pirâmides de dois em dois.
 //! - **Que arquivos:** só os que o RustGIS lê por partes. Em boa parte dos arquivos da OpenGeoHub
 //!   o cabeçalho da imagem inteira fica no fim do arquivo (a centenas de GB), e o RustGIS só o
-//!   procura nos primeiros 2 GB; esses ficam de fora até ele ler o cabeçalho onde estiver. Por
-//!   isso a elevação e a incerteza do GEDTM30 não estão aqui (o BrasilData tem a do Copernicus e a
-//!   do GEM-15), as variáveis de 30 m são as da v1.0 (sobre o EDTM, de dezembro de 2024) e, das
+//!   procura nos primeiros 2 GB (opengeos/RustGIS#2569); esses ficam de fora até ele ler o
+//!   cabeçalho onde estiver. A elevação vem da cópia da OpenTopography (`opentopography.s3.sdsc.edu`,
+//!   com o cabeçalho no começo e um servidor bem mais rápido); a incerteza dela não tem cópia
+//!   legível. As variáveis de 30 m são as da v1.0 (sobre o EDTM, de dezembro de 2024) e, das
 //!   escalas maiores, ficam as de 480 e 960 m (todas nos geomorfons; 240 m na curvatura anelar).
 //! - **A escala:** a variável calculada sobre o terreno de 480 ou 960 m não é a média da de 30 m:
 //!   a declividade ou a umidade de uma encosta inteira aparecem na escala maior, os detalhes de
@@ -25,6 +26,7 @@ use crate::cog_global::Arquivo;
 
 const S3: &str = "https://s3.opengeohub.org/global/dtm";
 const CEPH: &str = "https://ceph.opengeohub.org/arco/dtm";
+const OPENTOPOGRAPHY: &str = "https://opentopography.s3.sdsc.edu/raster";
 
 /// Um segundo de arco, a célula dos arquivos da v1.2.
 const SEGUNDO: f64 = 1.0 / 3600.0;
@@ -38,6 +40,7 @@ pub const ESCALAS: [u32; 6] = [30, 60, 120, 240, 480, 960];
 /// A variável do relevo.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Variavel {
+    Elevacao,
     Declividade,
     Twi,
     Dfme,
@@ -69,7 +72,8 @@ const P12: &str = "20060101_20151231";
 const P10: &str = "20000101_20221231";
 
 impl Variavel {
-    pub const TODAS: [Variavel; 15] = [
+    pub const TODAS: [Variavel; 16] = [
+        Variavel::Elevacao,
         Variavel::Declividade,
         Variavel::Twi,
         Variavel::Dfme,
@@ -90,6 +94,7 @@ impl Variavel {
     /// O valor do parâmetro `variavel`.
     pub fn valor(self) -> &'static str {
         match self {
+            Variavel::Elevacao => "elevacao",
             Variavel::Declividade => "declividade",
             Variavel::Twi => "twi",
             Variavel::Dfme => "dfme",
@@ -108,11 +113,11 @@ impl Variavel {
         }
     }
 
-    /// A variável do parâmetro `variavel` (sem ele, a declividade).
+    /// A variável do parâmetro `variavel` (sem ele, a elevação).
     pub fn ler(t: Option<&str>) -> Result<Variavel, String> {
         let t = t.map(str::trim).unwrap_or("");
         if t.is_empty() {
-            return Ok(Variavel::Declividade);
+            return Ok(Variavel::Elevacao);
         }
         Variavel::TODAS.into_iter().find(|v| v.valor() == t).ok_or_else(|| {
             let todas: Vec<&str> = Variavel::TODAS.iter().map(|v| v.valor()).collect();
@@ -124,6 +129,9 @@ impl Variavel {
     fn de_30m(self) -> Option<(&'static str, &'static str, f64)> {
         let v3 = |c: &'static str| Some((S3, c, EDTM));
         match self {
+            Variavel::Elevacao => {
+                Some((OPENTOPOGRAPHY, "GEDTM30/GEDTM30_be/gedtm_rf_m_30m_s_20060101_20151231_go_epsg.4326.3855_v1.2.tif", SEGUNDO))
+            }
             Variavel::Declividade => v3("v3/slope.in.degree_edtm_m_30m_s_20000101_20221231_go_epsg.4326_v20241230.tif"),
             Variavel::Twi => v3("v3/twi_edtm_m_30m_s_20000101_20221231_go_epsg.4326_v20241230.tif"),
             Variavel::Dfme => v3("v3/dfme_edtm_m_30m_s_20000101_20221231_go_epsg.4326_v20241230.tif"),
@@ -157,7 +165,12 @@ impl Variavel {
             Variavel::AberturaPositiva => Some(v10("posopen", &[480, 960])),
             Variavel::AberturaNegativa => Some(v10("negopen", &[480, 960])),
             Variavel::Geomorfons => Some(v10("geomrphn", &ESCALAS)),
-            Variavel::Declividade | Variavel::CurvPerfil | Variavel::CurvTangencial | Variavel::Sombreamento | Variavel::FatorLs => None,
+            Variavel::Elevacao
+            | Variavel::Declividade
+            | Variavel::CurvPerfil
+            | Variavel::CurvTangencial
+            | Variavel::Sombreamento
+            | Variavel::FatorLs => None,
         }
     }
 
@@ -182,7 +195,7 @@ impl Variavel {
     /// Por quanto o arquivo multiplica o valor.
     pub fn divisor(self) -> f64 {
         match self {
-            Variavel::Sombreamento | Variavel::Geomorfons => 1.0,
+            Variavel::Elevacao | Variavel::Sombreamento | Variavel::Geomorfons => 1.0,
             Variavel::Declividade
             | Variavel::Dfme
             | Variavel::Rugosidade
@@ -202,6 +215,7 @@ impl Variavel {
     /// O nome, como entra no nome da camada.
     pub fn nome(self) -> &'static str {
         match self {
+            Variavel::Elevacao => "Elevação do terreno",
             Variavel::Declividade => "Declividade",
             Variavel::Twi => "Índice topográfico de umidade",
             Variavel::Dfme => "Diferença da elevação média",
@@ -223,7 +237,7 @@ impl Variavel {
     /// A unidade (vazia num índice sem unidade).
     pub fn unidade(self) -> &'static str {
         match self {
-            Variavel::Dfme => "m",
+            Variavel::Elevacao | Variavel::Dfme => "m",
             Variavel::Declividade | Variavel::Rugosidade | Variavel::AberturaPositiva | Variavel::AberturaNegativa => "graus",
             Variavel::CurvMinima | Variavel::CurvMaxima | Variavel::CurvPerfil | Variavel::CurvTangencial => "1/m",
             Variavel::CurvAnelar => "1/m²",
@@ -235,6 +249,7 @@ impl Variavel {
     /// Os valores possíveis depois da divisão, para tirar o que não for terreno.
     pub fn faixa(self) -> (f64, f64) {
         match self {
+            Variavel::Elevacao => (-500.0, 9000.0),
             Variavel::Declividade => (0.0, 90.0),
             Variavel::Dfme => (-1000.0, 1000.0),
             Variavel::Rugosidade => (0.0, 90.0),
@@ -253,6 +268,7 @@ impl Variavel {
     /// máximo da área.
     pub fn rampa(self) -> (&'static str, bool) {
         match self {
+            Variavel::Elevacao => ("Terrain", false),
             Variavel::Declividade | Variavel::FatorLs => ("YlOrBr", false),
             Variavel::Rugosidade => ("OrRd", false),
             Variavel::Dfme
@@ -369,8 +385,13 @@ pub fn chave_geomorfons() -> String {
 
 /// A citação, como a licença pede.
 pub fn citacao(v: Variavel, escala: u32) -> String {
+    let de_onde = if v == Variavel::Elevacao {
+        "lido da cópia distribuída pela OpenTopography (doi:10.5069/G9BV7DT1)"
+    } else {
+        "lido dos servidores da OpenGeoHub"
+    };
     format!(
-        "Ho, Y.-F., Grohmann, C. H., Lindsay, J., Reuter, H. I., Parente, L., Witjes, M. e Hengl, T., Global Ensemble Digital Terrain modeling and parametrization at 30 m resolution (GEDTM30), PeerJ 13, e19673 (2025), doi:10.7717/peerj.19673; dados: Ho, Y.-F. e Hengl, T., Global Ensemble Digital Terrain Model 30m (GEDTM30), Zenodo, doi:10.5281/zenodo.14900181 (OpenGeoHub). {} na escala de {escala} m; lido dos servidores da OpenGeoHub, posto na grade do projeto e recortado pela área",
+        "Ho, Y.-F., Grohmann, C. H., Lindsay, J., Reuter, H. I., Parente, L., Witjes, M. e Hengl, T., Global Ensemble Digital Terrain modeling and parametrization at 30 m resolution (GEDTM30), PeerJ 13, e19673 (2025), doi:10.7717/peerj.19673; dados: Ho, Y.-F. e Hengl, T., Global Ensemble Digital Terrain Model 30m (GEDTM30), Zenodo, doi:10.5281/zenodo.14900181 (OpenGeoHub). {} na escala de {escala} m; {de_onde}, posto na grade do projeto e recortado pela área",
         v.nome()
     )
 }
@@ -398,6 +419,14 @@ mod tests {
         assert_eq!((g.graus, g.piramides), (EDTM, 10));
         assert_eq!(Variavel::AberturaPositiva.arquivo(960).piramides, 5);
         assert!(Variavel::Sombreamento.arquivo(30).url.starts_with(CEPH));
+        let e = Variavel::Elevacao.arquivo(30);
+        assert_eq!(
+            e.url,
+            "https://opentopography.s3.sdsc.edu/raster/GEDTM30/GEDTM30_be/gedtm_rf_m_30m_s_20060101_20151231_go_epsg.4326.3855_v1.2.tif"
+        );
+        assert_eq!((e.graus, e.piramides), (SEGUNDO, 10));
+        assert!(citacao(Variavel::Elevacao, 30).contains("OpenTopography"));
+        assert!(!citacao(Variavel::Twi, 30).contains("OpenTopography"));
     }
 
     #[test]
@@ -426,9 +455,11 @@ mod tests {
 
     #[test]
     fn os_parametros_e_os_nomes() {
-        assert_eq!(Variavel::ler(None), Ok(Variavel::Declividade));
+        assert_eq!(Variavel::ler(None), Ok(Variavel::Elevacao));
         assert_eq!(Variavel::ler(Some("twi")), Ok(Variavel::Twi));
-        assert!(Variavel::ler(Some("elevacao")).is_err());
+        assert_eq!(Variavel::ler(Some("elevacao")), Ok(Variavel::Elevacao));
+        assert!(Variavel::ler(Some("incerteza")).is_err());
+        assert_eq!(camada(Variavel::Elevacao, 30), "BrasilData: Elevação do terreno 30 m, m (GEDTM30)");
         assert_eq!(ler_escala(None), Ok(30));
         assert_eq!(ler_escala(Some(240.0)), Ok(240));
         assert!(ler_escala(Some(90.0)).is_err());

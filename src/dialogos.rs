@@ -118,7 +118,8 @@ pub const PERIODOS_OLM: [(&str, &str); 5] = [
 ];
 
 /// As escolhas da variável do relevo do GEDTM30 e a `variavel` de cada uma.
-pub const VARIAVEIS_GEDTM: [(&str, &str); 15] = [
+pub const VARIAVEIS_GEDTM: [(&str, &str); 16] = [
+    ("Elevação do terreno (m)", "elevacao"),
     ("Declividade (graus)", "declividade"),
     ("Índice topográfico de umidade (TWI)", "twi"),
     ("Diferença da elevação média em volta (m)", "dfme"),

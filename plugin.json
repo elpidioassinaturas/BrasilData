@@ -1,7 +1,7 @@
 {
   "id": "brasildata",
   "name": "BrasilData",
-  "version": "0.1.51",
+  "version": "0.1.52",
   "description": "Dados públicos do Brasil para a área do usuário (IBGE, MMA, ICMBio, INPE, CEMADEN, ANA, ANEEL, ANP, SFB/CAR, INCRA, FUNAI, IBAMA, ANM, DNIT, Ministério da Saúde, Copernicus, NASA/ASF, FAO, WRI, Open-Meteo, CHIRPS, Google DeepMind): só o que cruza a área, recortado por ela, com a fonte e a licença de cada camada.",
   "author": "Elpídio Filho",
   "homepage": "https://github.com/elpidioassinaturas/BrasilData",
@@ -1880,11 +1880,18 @@
       ]
     },
     {
-      "id": "gedtm-relevo",
-      "label": "Derivadas do relevo (GEDTM30)",
-      "help": "As variáveis do relevo do GEDTM30 da OpenGeoHub (o terreno global a 30 m feito por aprendizado de máquina com os pontos de laser do ICESat-2 e do GEDI; licença CC BY 4.0), as covariáveis de relevo do mapeamento de solos: a declividade, o índice topográfico de umidade, a diferença da elevação média em volta, a rugosidade, as curvaturas (mínima, máxima, de perfil, tangencial e anelar), o índice de forma, as aberturas positiva e negativa, o sombreamento, os geomorfons (dez formas do relevo, de pico a depressão) e o fator LS da equação de perda de solo. Algumas também calculadas sobre o terreno de 480 e 960 m (os geomorfons em todas as escalas, de 30 a 960 m): a escala maior mostra a encosta inteira, não os detalhes de 30 m. As aberturas, o índice de forma e a curvatura anelar só vêm nas escalas maiores, e a elevação do GEDTM30 ainda não: o RustGIS não lê por partes esses arquivos da OpenGeoHub. Só a área, lida do arquivo global da variável, posta na grade do projeto e recortada pelo contorno; numa área grande, lida da pirâmide do arquivo. Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área). Período: terreno de 2000 a 2022 (v1.0, de dezembro de 2024; o sombreamento e as escalas de 480 e 960 m do TWI, da diferença da elevação média, da rugosidade e das curvaturas mínima e máxima, da v1.2, de março de 2026). Resolução ou escala: 0,00025° (cerca de 30 m); nas escalas maiores, 240, 480 ou 960 m; numa área grande, a pirâmide do arquivo. Unidades: graus (declividade, rugosidade e aberturas), m (diferença da elevação média), 1/m (curvaturas), classe (geomorfons) ou índice sem unidade. Licença: CC BY 4.0. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/gedtm-relevo.md",
+      "id": "anadem",
+      "label": "Terreno da América do Sul a 30 m (ANADEM)",
+      "help": "O ANADEM, o modelo digital do terreno da América do Sul a 30 m da ANA e do IPH/UFRGS: o Copernicus GLO-30 sem o viés da vegetação, removido por aprendizado de máquina calibrado para o continente (índices do Landsat 8 e do Sentinel-2, alturas do GEDI e do ICESat-2). Altitudes em metros, no SIRGAS 2000. Só a área, lida do arquivo da América do Sul no S3 público da OpenTopography, posta na grade do projeto e recortada pelo contorno; numa área grande, lida da pirâmide do arquivo. Bom para a hidrologia e o relevo sob a mata, onde o Copernicus mede o dossel. Livre e aberto, com a citação. Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área). Período: terreno do Copernicus GLO-30 (2011 a 2015), corrigido em 2024. Resolução ou escala: 0,000269° (cerca de 30 m); numa área grande, a pirâmide do arquivo (60 m, 120 m...). Unidades: metros (altitude), no SIRGAS 2000. Licença: livre e aberto, com a citação. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/anadem.md",
       "icon": "relief",
-      "params": "{\"variavel\"?: \"declividade\" (padrão) | \"twi\" | \"dfme\" | \"rugosidade\" | \"curvatura-minima\" | \"curvatura-maxima\" | \"curvatura-perfil\" | \"curvatura-tangencial\" | \"curvatura-anelar\" | \"indice-forma\" | \"abertura-positiva\" | \"abertura-negativa\" | \"sombreamento\" | \"geomorfons\" | \"fator-ls\", \"escala\"?: 30 (padrão), 60, 120, 240, 480 ou 960 m (a que a variável não tem dá a mais próxima que ela tem, com aviso), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+      "params": "{\"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}"
+    },
+    {
+      "id": "gedtm-relevo",
+      "label": "Relevo e derivadas (GEDTM30)",
+      "help": "As variáveis do relevo do GEDTM30 da OpenGeoHub (o terreno global a 30 m feito por aprendizado de máquina com os pontos de laser do ICESat-2 e do GEDI; licença CC BY 4.0), as covariáveis de relevo do mapeamento de solos: a elevação do terreno nu (da cópia da OpenTopography), a declividade, o índice topográfico de umidade, a diferença da elevação média em volta, a rugosidade, as curvaturas (mínima, máxima, de perfil, tangencial e anelar), o índice de forma, as aberturas positiva e negativa, o sombreamento, os geomorfons (dez formas do relevo, de pico a depressão) e o fator LS da equação de perda de solo. Algumas também calculadas sobre o terreno de 480 e 960 m (os geomorfons em todas as escalas, de 30 a 960 m): a escala maior mostra a encosta inteira, não os detalhes de 30 m. As aberturas, o índice de forma e a curvatura anelar só vêm nas escalas maiores: o RustGIS não lê por partes os outros arquivos da OpenGeoHub. Só a área, lida do arquivo global da variável, posta na grade do projeto e recortada pelo contorno; numa área grande, lida da pirâmide do arquivo. Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área). Período: terreno de 2000 a 2022 (v1.0, de dezembro de 2024; o sombreamento e as escalas de 480 e 960 m do TWI, da diferença da elevação média, da rugosidade e das curvaturas mínima e máxima, da v1.2, de março de 2026). Resolução ou escala: 0,00025° (cerca de 30 m); nas escalas maiores, 240, 480 ou 960 m; numa área grande, a pirâmide do arquivo. Unidades: m (elevação e diferença da elevação média), graus (declividade, rugosidade e aberturas), 1/m (curvaturas), classe (geomorfons) ou índice sem unidade. Licença: CC BY 4.0. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/gedtm-relevo.md",
+      "icon": "relief",
+      "params": "{\"variavel\"?: \"elevacao\" (padrão) | \"declividade\" | \"twi\" | \"dfme\" | \"rugosidade\" | \"curvatura-minima\" | \"curvatura-maxima\" | \"curvatura-perfil\" | \"curvatura-tangencial\" | \"curvatura-anelar\" | \"indice-forma\" | \"abertura-positiva\" | \"abertura-negativa\" | \"sombreamento\" | \"geomorfons\" | \"fator-ls\", \"escala\"?: 30 (padrão), 60, 120, 240, 480 ou 960 m (a que a variável não tem dá a mais próxima que ela tem, com aviso), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
       "form": [
         {
           "name": "variavel",
@@ -1892,6 +1899,7 @@
           "kind": "choice",
           "required": true,
           "choices": [
+            "Elevação do terreno (m)",
             "Declividade (graus)",
             "Índice topográfico de umidade (TWI)",
             "Diferença da elevação média em volta (m)",
@@ -1908,8 +1916,8 @@
             "Geomorfons (formas do relevo)",
             "Fator LS (erosão)"
           ],
-          "default": "Declividade (graus)",
-          "help": "A variável derivada do terreno. Para mapear solos, as mais usadas são a declividade, o índice topográfico de umidade, a diferença da elevação média, as curvaturas e os geomorfons."
+          "default": "Elevação do terreno (m)",
+          "help": "A elevação do terreno nu ou uma variável derivada dela. Para mapear solos, as mais usadas são a declividade, o índice topográfico de umidade, a diferença da elevação média, as curvaturas e os geomorfons."
         },
         {
           "name": "escala",
@@ -1925,7 +1933,7 @@
             "960 m"
           ],
           "default": "30 m",
-          "help": "A célula do terreno de que a variável foi calculada. Hoje o RustGIS lê: 30 m na declividade, nas curvaturas de perfil e tangencial, no sombreamento e no fator LS; 30, 480 e 960 m no TWI, na diferença da elevação média, na rugosidade e nas curvaturas mínima e máxima; 240, 480 e 960 m na curvatura anelar; 480 e 960 m nas aberturas e no índice de forma; todas nos geomorfons. Outra escala dá a mais próxima, com aviso."
+          "help": "A célula do terreno de que a variável foi calculada. Hoje o RustGIS lê: 30 m na elevação, na declividade, nas curvaturas de perfil e tangencial, no sombreamento e no fator LS; 30, 480 e 960 m no TWI, na diferença da elevação média, na rugosidade e nas curvaturas mínima e máxima; 240, 480 e 960 m na curvatura anelar; 480 e 960 m nas aberturas e no índice de forma; todas nos geomorfons. Outra escala dá a mais próxima, com aviso."
         }
       ]
     },
@@ -2169,7 +2177,7 @@
     {
       "id": "sobre",
       "label": "Sobre",
-      "help": "BrasilData 0.1.51, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nAs fontes dos dados e como contribuir estão nas abas do fim do painel Área de trabalho: basta clicar nelas. Para lê-las aqui, marque a caixa e clique em Executar. A janela fica aberta até o X do canto de cima.",
+      "help": "BrasilData 0.1.52, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nAs fontes dos dados e como contribuir estão nas abas do fim do painel Área de trabalho: basta clicar nelas. Para lê-las aqui, marque a caixa e clique em Executar. A janela fica aberta até o X do canto de cima.",
       "icon": "about",
       "params": "{\"completo\"?: true para as fontes e como contribuir | \"parte\"?: \"tudo\" (padrão) | \"autoria\" | \"fontes\" | \"contribuir\"}",
       "form": [
@@ -2337,7 +2345,7 @@
         "kind": "text",
         "id": "sobre",
         "label": "Sobre o BrasilData: Autoria",
-        "text": "BrasilData 0.1.51, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData"
+        "text": "BrasilData 0.1.52, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData"
       }
     ]
   },
@@ -2498,6 +2506,7 @@
               "geomorfologia",
               "elevacao",
               "gem15",
+              "anadem",
               "gedtm-relevo"
             ]
           },
