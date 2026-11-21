@@ -55,14 +55,16 @@
     } catch (e) { /* sem history: só não guarda os filtros no endereço */ }
   }
 
-  function abrirDoEndereco() {
+  // Abre e mostra a ficha do endereço (#c-<id>). Ao carregar, a rolagem é imediata: a suave do CSS
+  // parava no meio quando os filtros do endereço escondiam camadas antes dela.
+  function abrirDoEndereco(suave) {
     var id = decodeURIComponent(location.hash.slice(1));
     if (!id) return;
     var alvo = document.getElementById(id);
     if (alvo && alvo.tagName === "DETAILS") {
       if (alvo.hidden) { limpar(); }
       alvo.open = true;
-      alvo.scrollIntoView();
+      alvo.scrollIntoView({ behavior: suave === true ? "smooth" : "instant", block: "start" });
     }
   }
 
@@ -83,12 +85,14 @@
   var espera;
   busca.addEventListener("input", function () { clearTimeout(espera); espera = setTimeout(filtrar, 120); });
   [fTopico, fOrgao, fWeb, fMapa].forEach(function (el) { el.addEventListener("change", filtrar); });
-  window.addEventListener("hashchange", abrirDoEndereco);
+  window.addEventListener("hashchange", function () { abrirDoEndereco(true); });
   // Um link "c-<id>" de uma camada repetida abre a ficha principal.
   document.addEventListener("click", function (ev) {
     var a = ev.target.closest && ev.target.closest('a[href^="#c-"]');
-    if (a && a.getAttribute("href") === location.hash) abrirDoEndereco();
+    if (a && a.getAttribute("href") === location.hash) abrirDoEndereco(true);
   });
   filtrar();
   abrirDoEndereco();
+  // A rolagem do próprio navegador até o #id vem depois e pode cair noutro lugar: de novo no fim.
+  window.addEventListener("load", function () { abrirDoEndereco(); });
 })();
