@@ -10,6 +10,9 @@ JAXA, ECMWF ERA5, MapBiomas, OpenGeoHub, OpenTopography, Google, Meta, CTrees) i
 clipped to it, with each layer's source and licence. It runs on the desktop and in the web app. The
 interface is in Portuguese.*
 
+**Página do plugin:** [elpidioassinaturas.github.io/BrasilData](https://elpidioassinaturas.github.io/BrasilData/),
+com o catálogo das camadas (busca, filtros, fichas e mapas exemplo) e como instalar.
+
 > **Sentiu falta de algum dado?** O BrasilData cresce com as sugestões de quem usa. Para pedir uma
 > fonte nova, [abra uma issue](https://github.com/elpidioassinaturas/BrasilData/issues/new) com o
 > nome do dado, o órgão que o publica, o endereço do serviço (WFS, ArcGIS REST, API ou arquivo)
@@ -615,6 +618,10 @@ O `package.py` e o `smoke.py` vêm do
 
 - **Fontes:** uma camada nova é uma linha em `fontes.csv`, seguida de `python scripts/gerar.py`.
   O CI roda `gerar.py --check` e falha se o `plugin.json` ou o `catalogo.rs` não estiverem em dia.
+- **Página:** `python scripts/site.py` gera a página em `_site/` a partir do README (o topo e as
+  seções Instalar, Autoria e Licença), do `plugin.json`, do `fontes.csv`, do `fichas.csv` e de
+  `docs/camadas`; o estilo e a busca ficam em `site/`. O workflow *Pages* a publica a cada push na
+  `main`, e o CI confere que ela é gerada.
 - **Tabelas embutidas:** `municipios.csv`, `malhas.bin`, `tse.csv` e `caged.csv` são refeitas pelos
   `scripts/baixar_*.py` (`baixar_malhas.py` depois de `baixar_municipios.py`).
 - **Versão do RustGIS no CI:** a variável `RUSTGIS_VERSION` do repositório escolhe a versão em
