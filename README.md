@@ -5,8 +5,10 @@ para a área do usuário: só o que cruza a área, recortado por ela, com a font
 camada. Funciona no aplicativo desktop e no app web (WebAssembly), sem instalar mais nada.
 
 *A RustGIS plugin that brings Brazilian public data (IBGE, ANA, INPE, ICMBio, INCRA, ANEEL, ANP,
-ANM, IBAMA, DNIT and others) into the user's area, clipped to it, with each layer's source and
-licence. It runs on the desktop and in the web app. The interface is in Portuguese.*
+ANM, IBAMA, DNIT and others) and global datasets read only over the user's area (Copernicus, NASA,
+JAXA, ECMWF ERA5, MapBiomas, OpenGeoHub, OpenTopography, Google, Meta, CTrees) into that area,
+clipped to it, with each layer's source and licence. It runs on the desktop and in the web app. The
+interface is in Portuguese.*
 
 > **Sentiu falta de algum dado?** O BrasilData cresce com as sugestões de quem usa. Para pedir uma
 > fonte nova, [abra uma issue](https://github.com/elpidioassinaturas/BrasilData/issues/new) com o
@@ -36,25 +38,33 @@ comando e mostra embaixo o que ele fez. São eles:
 |---|---|
 | Área: município (pela Busca de comandos) | o nome ou o código do IBGE e a UF |
 | Grade do projeto | a célula em metros e o sistema (automático, Albers do IBGE, Policônica ou outro código EPSG) |
-| Layout | o formato (folha A4, A3 ou A2, figura de 1, 1,5 ou 2 colunas, página ou meia página de tese) e o estilo da folha |
+| Layout | o formato (folha A4, A3 ou A2, figura de 1, 1,5 ou 2 colunas, página ou meia página de tese), a orientação (automática, retrato ou paisagem) e o estilo da folha |
 | Amostragem (aleatória, estratificada, sistemática) | o número de pontos ou o espaçamento, o sorteio, os estratos e o arquivo de pontos (mais abaixo) |
 | Uso e cobertura e Sistemas de irrigação (MapBiomas) | o ano, e no uso e cobertura, se vem só a área |
-| Radar VV, VH e VH/VV | a data da passagem (vazio: a mais recente) |
+| Cobertura da terra 100 m (Copernicus) | o ano, de 2015 a 2019 |
+| Índice de vegetação (cubo do INPE) | o satélite (Sentinel-2, Landsat, CBERS-4 WFI ou MODIS), o índice (NDVI ou EVI), o período e o resumo das datas (média, máxima, mínima ou desvio-padrão) |
+| Biomassa acima do solo por ano (CTrees) | o ano e se vem a biomassa ou o erro-padrão dela |
+| Radar VV, VH e VH/VV (Sentinel-1); HH, HV, HV/HH e composição (NISAR) | a data da passagem (vazio: a mais recente) |
 | Perturbação da vegetação (DIST-S1) | a data dos produtos (vazio: os mais recentes) e, na situação, as cores |
 | Focos de calor: período | o primeiro e o último dia, no mês corrente |
 | Risco de fogo | o mês |
 | Radiação solar | a média do ano ou um mês |
+| Seca (Copernicus GDO) | o indicador (anomalia da umidade do solo, anomalia da vegetação ou SPI de 1, 3, 6 ou 12 meses) e a data |
+| Chuva, temperatura e umidade do solo do ERA5 | o período e, na chuva, o total ou a média por ano; na temperatura, a máxima, a mínima ou a média do dia |
+| Satélites do JAXA (chuva, umidade do solo, temperatura da superfície, evapotranspiração, SPI) | o período, o resumo dos meses e, na temperatura, a passagem de dia ou de noite |
 | Chuva prevista | o modelo (ECMWF IFS, AIFS, GFS, ICON ou o melhor do Open-Meteo) e os dias |
 | Chuva do ensemble | o ensemble (ECMWF ENS, AIFS-ENS ou GEFS), o que mostrar (a chance de passar de um limiar, a média ou os cenários seco e chuvoso), o limiar e os dias |
 | Temperatura prevista | a máxima, a mínima ou a média do dia, o modelo e os dias |
 | Chuva do mês (CHIRPS) | o mês (vazio: o mais recente) |
 | Chuva agora (PARDIG) | a data e a hora, no horário de Brasília (vazio: o quadro mais recente) |
 | Elevação a 15 m (GEM-15) | o modelo: terreno nu (DTM), superfície (DSM) ou altura acima do terreno |
+| Relevo e derivadas (GEDTM30) | a variável (elevação, declividade, TWI, curvaturas, aberturas, geomorfons e outras) e a escala do cálculo, de 30 a 960 m |
+| Propriedades do solo a 30 m (OpenLandMap) | a propriedade (carbono, densidade de carbono, pH, densidade do solo, argila, areia ou silte), a profundidade e o período |
 
-As janelas vêm num RustGIS com as janelas de comando de plugin (opengeos/RustGIS#1547, depois da
-0.6.0). Num RustGIS sem elas, os botões rodam com o que está no painel **Área de trabalho** (a
-célula e o sistema da grade, o ano do MapBiomas, o mês do risco de fogo) ou com o padrão, e um
-script passa os mesmos parâmetros: `plugin:brasildata/layout={"perfil": "a3", "estilo": "panel"}`.
+As janelas vêm no RustGIS 0.7.0 ou mais novo, que tem as janelas de comando de plugin
+(opengeos/RustGIS#1547). Num RustGIS sem elas, os botões rodam com o que está no painel **Área de
+trabalho** (a célula e o sistema da grade, o ano do MapBiomas, o mês do risco de fogo) ou com o
+padrão, e um script passa os mesmos parâmetros: `plugin:brasildata/layout={"perfil": "a3", "estilo": "panel"}`.
 
 A área de trabalho pode ser:
 
@@ -81,9 +91,18 @@ A área de trabalho pode ser:
 - **a seleção**: os polígonos selecionados da camada ativa, com **Área: seleção**;
 - **a vista**: sem área, os temas pedem o que está na vista do mapa.
 
-A **Grade do projeto** é o sistema de coordenadas e o tamanho das células em que os rasters chegam
-(a Elevação, a Elevação a 15 m do GEM-15, a Altura do dossel do CHMv2, o Radar, a Perturbação da vegetação, o GEDI, a Radiação solar, a Área equipada para
-irrigação e o Risco de fogo). O mapa passa a ser desenhado no sistema dela quando você escolhe a área ou faz a grade:
+A **Grade do projeto** é o sistema de coordenadas e o tamanho das células em que os rasters chegam:
+- **relevo:** a Elevação, a Elevação a 15 m do GEM-15, o ANADEM e o GEDTM30 com as derivadas;
+- **solo:** as propriedades do OpenLandMap;
+- **vegetação:** a altura do dossel (CHMv2, CTrees e GEDI), a biomassa (CTrees e GEDI), a tipologia
+  florestal (ForTy), o índice de vegetação do cubo do INPE e a cobertura da terra do Copernicus;
+- **radar:** o Sentinel-1, o NISAR e a Perturbação da vegetação;
+- **clima:** o ERA5, os satélites do JAXA, o CHIRPS, a Radiação solar e o Risco de fogo;
+- **água:** a Área equipada para irrigação.
+
+Os arquivos globais (OpenLandMap, GEDTM30, ANADEM, CTrees, ForTy, Copernicus) são lidos só na
+janela da área, e numa área grande da pirâmide do arquivo, com células maiores. Quando a célula da
+grade é menor que a do dado, o aviso diz que o valor foi reamostrado. O mapa passa a ser desenhado no sistema dela quando você escolhe a área ou faz a grade:
 uma projeção de mapa-múndi, como o Eckert IV, deixaria a área deformada (a Bahia, 27% mais
 estreita). No painel, escolha a célula (de 10 m a 1 km) e o sistema e clique em **Grade do
 projeto**:
@@ -245,13 +264,13 @@ estilo.
 
 | Tópico | Subtópicos |
 |---|---|
-| Território | Limites (IBGE: Brasil, Grandes Regiões, estados, regiões intermediárias e imediatas, meso e microrregiões, municípios, distritos, subdistritos e bairros), Recortes especiais (IBGE: Amazônia Legal, Semiárido, MATOPIBA, SUDENE, municípios costeiros, regiões metropolitanas, aglomerações, concentrações e arranjos urbanos, hierarquia urbana), Cadastro fundiário (SFB, INCRA), Terras indígenas (FUNAI) |
-| Sociedade e economia | População (IBGE: setores censitários, censos, áreas de ponderação, área urbana e rural, favelas e comunidades urbanas), Economia (Banco Central, Novo CAGED), Agricultura (Banco Central, IBGE), Eleições (TSE), Saúde (estabelecimentos do CNES, DATASUS) e Todos os indicadores |
-| Meio físico | Geologia e recursos minerais (IBGE, ANM, MapBiomas), Relevo (IBGE, Copernicus; GEM-15 do Google a 15 m), Solos (IBGE) |
-| Tempo e clima | Previsão (pelo Open-Meteo: a chuva prevista do ECMWF IFS, do AIFS, do GFS e do ICON, a chance e a faixa provável de chuva dos ensembles ECMWF ENS, AIFS-ENS e GEFS, e a temperatura prevista), Chuva observada (o total do mês do CHIRPS v3; a taxa de chuva de agora do PARDIG, Google DeepMind; a chuva medida nas estações do CEMADEN), Desastres (alertas vigentes do CEMADEN), Clima (radiação solar do NASA POWER; climatologia do Risco de Fogo do INPE) |
-| Água | Hidrografia (IBGE, ANA), Bacias (IBGE, ANA), Recursos hídricos (ANA; estresse hídrico do Aqueduct 4.0, WRI; sistemas de irrigação do MapBiomas; área equipada para irrigação do GMIA v5, FAO) |
-| Vegetação e meio ambiente | Vegetação (IBGE; altura do dossel do GEDI, NASA, e do CHMv2 a 1 m, Meta e WRI), Uso e cobertura (MapBiomas; radar Sentinel-1 do ASF/NASA), Desmatamento (INPE: PRODES e DETER; alertas de perturbação OPERA DIST-S1 do ASF/NASA), Queimadas (INPE: focos de calor das últimas 48 horas, dos últimos 7 dias e do mês corrente, e a climatologia mensal do Risco de Fogo; um período com datas, por script: `plugin:brasildata/inpe-focos-periodo={"de": "01/11/2026", "ate": "06/11/2026"}`), Áreas protegidas (MMA, ICMBio), Fiscalização (IBAMA) |
-| Infraestrutura | Energia (ANEEL), Petróleo e gás (ANP), Transportes (DNIT) |
+| Território | Limites (IBGE: Brasil, Grandes Regiões, estados, regiões intermediárias e imediatas, meso e microrregiões, municípios, distritos, subdistritos, bairros e localidades), Recortes especiais (IBGE: Amazônia Legal, Semiárido, MATOPIBA, SUDENE, municípios costeiros, regiões metropolitanas, aglomerações, concentrações e arranjos urbanos, hierarquia urbana; zonas do ZEE-MG), Cadastro fundiário (SFB, INCRA), Terras indígenas (FUNAI) |
+| Sociedade e economia | População (IBGE: setores censitários, censos, áreas de ponderação, área urbana e rural, favelas e comunidades urbanas), Economia (Pix do Banco Central, Novo CAGED), Agricultura (crédito rural do Banco Central, Censo Agropecuário e agroecologia do IBGE; sistemas de irrigação do MapBiomas; área equipada para irrigação do GMIA v5, FAO), Eleições (TSE), Saúde (estabelecimentos do CNES, DATASUS) e Todos os indicadores |
+| Meio físico | Geologia e recursos minerais (IBGE, ANM, Feam, MapBiomas), Relevo (geomorfologia do IBGE; elevação do Copernicus GLO-30; GEM-15 do Google a 15 m; terreno da América do Sul do ANADEM, ANA e IPH/UFRGS; GEDTM30 da OpenGeoHub, com a elevação e 15 derivadas, como declividade, TWI, curvaturas, aberturas e geomorfons), Solos (IBGE; solos, aptidão, infiltração, água disponível e erosão de MG, Sisema e ZEE-MG; propriedades do solo a 30 m do OpenLandMap-soildb; seca do Copernicus GDO) |
+| Tempo e clima | Previsão (pelo Open-Meteo: a chuva prevista do ECMWF IFS, do AIFS, do GFS e do ICON, a chance e a faixa provável de chuva dos ensembles ECMWF ENS, AIFS-ENS e GEFS, e a temperatura prevista), Chuva observada (o total do mês do CHIRPS v3; a taxa de chuva de agora do PARDIG, Google DeepMind; a chuva medida nas estações do CEMADEN), Desastres (alertas vigentes do CEMADEN), Clima (seca do Copernicus GDO; radiação solar do NASA POWER; climatologia do Risco de Fogo do INPE), Clima passado (chuva, temperatura e umidade do solo da reanálise ERA5, desde 1940), Satélites do JAXA (chuva do GSMaP, umidade do solo do AMSR2, temperatura da superfície e evapotranspiração do GCOM-C, SPI) |
+| Água | Hidrografia (IBGE, ANA), Bacias (IBGE, ANA, IGAM), Recursos hídricos (ANA; estresse hídrico do Aqueduct 4.0, WRI; outorgas e usos insignificantes de MG, IGAM; sistemas de irrigação do MapBiomas; área equipada para irrigação do GMIA v5, FAO) |
+| Vegetação e meio ambiente | Vegetação (IBGE; altura do dossel do GEDI, NASA, do CHMv2 a 1 m, Meta e WRI, e da Amazônia a 4,78 m, CTrees; biomassa do GEDI e da CTrees por ano; tipologia florestal 2020 a 10 m do ForTy), Cubo de dados do INPE (NDVI e EVI do Sentinel-2, Landsat, CBERS-4 e MODIS), Uso e cobertura (MapBiomas; cobertura da terra 100 m do Copernicus; radar Sentinel-1 e NISAR do ASF/NASA), Desmatamento (INPE: PRODES e DETER; supressões autorizadas em MG, IEF; alertas de perturbação OPERA DIST-S1 do ASF/NASA), Queimadas (INPE: focos de calor das últimas 48 horas, dos últimos 7 dias, do mês corrente e de um período, e a climatologia mensal do Risco de Fogo), Áreas protegidas (MMA, ICMBio, IEF), Fiscalização (IBAMA; licenças ambientais de MG, Semad) |
+| Infraestrutura | Energia (ANEEL), Petróleo e gás (ANP), Transportes (DNIT), Edificações (polígonos e alturas do GlobalBuildingAtlas) |
 
 As camadas vetoriais estão listadas em [`fontes.csv`](fontes.csv) e na tabela [Fontes](#fontes),
 abaixo: serviço, camada, fonte, licença e se a camada abre no app web. O comando **Fontes**
@@ -260,7 +279,7 @@ do mapa e fica salva com o projeto. Os indicadores são agregados por município
 nomes de pessoas.
 
 Algumas camadas só abrem num dos aplicativos, e a ajuda de cada botão diz quando é o caso:
-- 19 das 82 só abrem no app desktop, porque o servidor não manda os cabeçalhos CORS que o navegador exige;
+- 19 das 99 camadas vetoriais só abrem no app desktop, porque o servidor não manda os cabeçalhos CORS que o navegador exige; dos rasters, o cubo do INPE, os satélites do JAXA e o ForTy também só abrem no desktop, e a ficha de cada um diz se abre no app web;
 - os imóveis do CAR só abrem no app web, porque o servidor só aceita cifras TLS antigas, que o app desktop não aceita.
 
 ## Fontes
@@ -519,7 +538,49 @@ Fora da tabela, com a citação no comando **Fontes**:
   [geobr](https://github.com/ipea/geobr) do Ipea (GeoParquet do Brasil, 98 MB, lido aos pedaços).
   Ficam os ativos, sem os de pessoa física e de empresário individual, cujo nome é o de uma
   pessoa, e sem CPF, CNPJ ou nome de diretor. Só no app desktop: o GitHub não manda CORS. O
-  zip do próprio Ministério (OpenDataSUS) vem em Latin-1, que o RustGIS 0.5.0 não lê.
+  zip do próprio Ministério (OpenDataSUS) vem em Latin-1, que o RustGIS 0.5.0 não lê;
+- **Terreno da América do Sul (ANADEM):** ANA (2025), ANADEM: A Digital Terrain Model for South
+  America, distribuído pela OpenTopography (doi:10.5069/G9736P4G); Laipelt, L. et al., Remote
+  Sensing 16(13), 2321 (2024). É o Copernicus GLO-30 sem o viés da vegetação, a 30 m, lido do S3
+  público da OpenTopography, sem chave. Livre e aberto, com a citação;
+- **Relevo e derivadas (GEDTM30):** Ho, Y.-F. et al., PeerJ 13, e19673 (2025),
+  doi:10.7717/peerj.19673; dados: Ho, Y.-F. e Hengl, T., doi:10.5281/zenodo.14900181 (CC BY 4.0).
+  A elevação vem da cópia da OpenTopography (doi:10.5069/G9BV7DT1), e as derivadas, dos servidores
+  da OpenGeoHub. Algumas variáveis só vêm nas escalas de 240, 480 ou 960 m, porque o RustGIS ainda
+  não lê esses arquivos por partes (opengeos/RustGIS#2569); a janela diz qual escala veio;
+- **Propriedades do solo (OpenLandMap-soildb):** Hengl, T. et al., Earth System Science Data 18,
+  989–1036 (2026); dados: Consoli, D. et al., doi:10.5281/zenodo.15470431 (CC BY 4.0).
+  - **Propriedades e profundidades:** carbono orgânico, densidade de carbono, pH, densidade do solo,
+    argila, areia e silte, a 30 m, de 0 a 30, de 30 a 60 e de 60 a 100 cm.
+  - **Períodos:** carbono e pH de 5 em 5 anos desde 2000.
+  - **Servidor:** o da OpenGeoHub é lento, e uma área grande pode passar do tempo limite de 30 s
+    do RustGIS (opengeos/RustGIS#2570);
+- **Cobertura da terra 100 m:** Buchhorn, M. et al., Copernicus Global Land Service: Land Cover
+  100m, coleção 3, de 2015 a 2019, pelo Zenodo (CC BY 4.0);
+- **Índice de vegetação (cubo do INPE):** Brazil Data Cube, cubos de 16 dias do Sentinel-2, do
+  Landsat, do CBERS-4 WFI e do MODIS; Ferreira et al. 2020, Remote Sensing 12(24), 4033. Só no
+  app desktop;
+- **Seca (Copernicus GDO):** Copernicus Emergency Management Service, Global Drought Observatory,
+  do Centro Comum de Investigação da Comissão Europeia (CC BY 4.0). O mapa é a imagem do serviço
+  WMS, sem recorte pela área (opengeos/RustGIS#2530);
+- **Clima passado (ERA5) e satélites do JAXA:** a reanálise vem pela API histórica do Open-Meteo
+  (acima). O GSMaP, o AMSR2 e o GCOM-C vêm pelo JAXA Earth API, com o crédito "JAXA" e o nome do
+  conjunto. Só no app desktop;
+- **Vegetação por IA:**
+  - **Altura do dossel da Amazônia a 4,78 m:** Wagner, F. H. et al. (2025) e CTrees;
+  - **Biomassa acima do solo a 100 m, de 2000 a 2025:** Yang, Y., Saatchi, S. et al., CTrees,
+    doi:10.82924/7VMB-ZV66 (CC BY 4.0);
+  - **Tipologia florestal 2020 a 10 m:** Neumann, M. et al., Scientific Data (2026),
+    doi:10.1038/s41597-026-08299-5 (CC BY 4.0). Só no app desktop;
+- **Edificações:** Zhu, X. X. et al. (2025), GlobalBuildingAtlas, Earth System Science Data 17,
+  6647, pelo Source Cooperative. CC BY-NC 4.0, sem uso comercial; os polígonos do OpenStreetMap
+  seguem a ODbL;
+- **Radar NISAR:** NISAR Geocoded Polarimetric Covariance Product, versão 1, da NASA/JPL e da ISRO,
+  pelo ASF DAAC (doi:10.5067/NIL2GCOV-V1). Banda L a 20 m, nas polarizações HH e HV, com a razão e
+  a composição colorida. Pede o login Earthdata, como o Sentinel-1.
+
+A ficha de cada camada raster, com o período, a resolução, a legenda, os cuidados e um mapa
+exemplo, está em [docs/camadas](docs/camadas/README.md).
 
 ## Instalar
 
@@ -535,6 +596,9 @@ Fora da tabela, com a citação no comando **Fontes**:
 
 Precisa do RustGIS 0.5.0 ou mais novo: o `bbox` dos serviços de feições (opengeos/RustGIS#924),
 os eixos do WFS corrigidos (opengeos/RustGIS#1071) e o `raster.project` da elevação entraram nela.
+Os rasters lidos só na janela da área (o GEDI, o OpenLandMap, o GEDTM30, o ANADEM, a CTrees, o
+Copernicus e outros) precisam de um RustGIS depois da 0.5.0, e as janelas dos comandos, da 0.7.0 ou
+mais novo.
 
 ## Desenvolver
 
