@@ -31,7 +31,7 @@ PASTA = ROOT / gerar.PAGINAS
 LOGS = ROOT / "saida" / "mapas_exemplo"
 # Os parâmetros do comando no mapa exemplo, quando o padrão não serve: o MapBiomas recortado só
 # vai de 2019 a 2024; a radiação solar e a temperatura, em Minas Gerais, numa grade de 1 km.
-PARAMS = {"mapbiomas-cobertura": {"ano": 2024}, "sol-radiacao": {"celula": 1000}, "temperatura-prevista": {"celula": 1000}}
+PARAMS = {"mapbiomas-cobertura": {"ano": 2024}, "bdc-sem-nuvens": {"inicio": "01/06/2025", "fim": "31/08/2025"}, "sol-radiacao": {"celula": 1000}, "temperatura-prevista": {"celula": 1000}}
 # Os comandos que pedem o login Earthdata (pelo começo do id).
 EARTHDATA = ("gedi-", "radar-", "nisar-", "dist-")
 # A rampa das classes, quando a tab20 (categorias sem ordem) não combina com o tema: os solos em

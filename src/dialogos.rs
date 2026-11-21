@@ -84,6 +84,18 @@ pub const SATELITES_BDC: [(&str, &str); 4] = [
     ("MODIS (250 m, desde 2000)", "modis"),
 ];
 
+/// As escolhas do satélite da imagem sem nuvens e o `satelite` de cada uma (sem o MODIS, que não
+/// tem as bandas de cor no cubo).
+pub const SATELITES_SEM_NUVENS: [(&str, &str); 3] = [
+    ("Sentinel-2 (10 m, desde 2017)", "sentinel-2"),
+    ("Landsat (30 m, desde 1990)", "landsat"),
+    ("CBERS-4 WFI (64 m, desde 2016)", "cbers-4"),
+];
+
+/// As escolhas da composição da imagem sem nuvens e a `composicao` de cada uma.
+pub const COMPOSICOES: [(&str, &str); 2] =
+    [("Cor verdadeira (vermelho, verde e azul)", "natural"), ("Falsa-cor (infravermelho, vermelho e verde)", "falsa-cor")];
+
 /// As escolhas do índice do cubo do INPE e o `indice` de cada uma.
 pub const INDICES_BDC: [(&str, &str); 2] = [("NDVI", "ndvi"), ("EVI", "evi")];
 
@@ -162,6 +174,8 @@ const TROCAS: &[(&str, &str, Escolhas)] = &[
     ("bdc-indice", "satelite", &SATELITES_BDC),
     ("bdc-indice", "indice", &INDICES_BDC),
     ("bdc-indice", "estatistica", &ESTATISTICAS_BDC),
+    ("bdc-sem-nuvens", "satelite", &SATELITES_SEM_NUVENS),
+    ("bdc-sem-nuvens", "composicao", &COMPOSICOES),
     ("jaxa-chuva", "estatistica", &ESTATISTICAS_BDC),
     ("jaxa-umidade", "estatistica", &ESTATISTICAS_BDC),
     ("jaxa-temperatura", "estatistica", &ESTATISTICAS_BDC),
@@ -299,6 +313,10 @@ mod tests {
         assert_eq!(norm("grade", json!({"crs": SISTEMAS[0].0, "epsg": " "})), json!({"crs": "automatico"}));
         assert_eq!(norm("area-municipio", json!({"nome": "3171303", "uf": ""})), json!({"codigo": "3171303"}));
         assert_eq!(norm("area-municipio", json!({"nome": "Viçosa", "uf": "MG"})), json!({"nome": "Viçosa", "uf": "MG"}));
+        assert_eq!(
+            norm("bdc-sem-nuvens", json!({"satelite": SATELITES_SEM_NUVENS[2].0, "composicao": COMPOSICOES[1].0, "inicio": ""})),
+            json!({"satelite": "cbers-4", "composicao": "falsa-cor"})
+        );
         assert_eq!(norm("inpe-focos-periodo", json!({"de": "5", "ate": "10/11/2026"})), json!({"de": 5, "ate": "10/11/2026"}));
         // A escolha de outro comando fica como veio.
         assert_eq!(norm("gem15", json!({"modelo": MODELOS_GEM15[2].0})), json!({"modelo": "altura"}));
