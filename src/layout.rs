@@ -42,6 +42,9 @@ const NOTA_ERA5: &str = "Reanálise ERA5 do ECMWF (Copernicus), em nós de uma g
 const NOTA_BDC: &str = "Compostos de 16 dias do cubo de dados do INPE (Brazil Data Cube), com o pixel mais limpo de cada período; nuvens e sombras persistentes ainda podem aparecer.";
 const NOTA_CTREES: &str = "Biomassa estimada por um modelo de IA calibrado com lidar aéreo e parcelas de campo, a partir do Landsat, do radar ALOS PALSAR-2 e das alturas do GEDI; a série da CTrees ainda está em pré-publicação, sem revisão por pares.";
 const NOTA_FORTY: &str = "Códigos da legenda: 1 floresta primária, 2 em regeneração natural, 3 plantada, 4 plantio florestal comercial, 5 culturas arbóreas e agrofloresta, 6 outros usos. Classes de um modelo de IA sobre imagens de 2020, alinhadas à FAO e ao EUDR.";
+const NOTA_OLM: &str = "Propriedade do solo prevista a 30 m por aprendizado de máquina sobre amostras de solo do mundo inteiro (OpenLandMap-soildb): mostra padrões, não substitui a análise de laboratório; o Brasil tem menos amostras que a Europa e os Estados Unidos.";
+const NOTA_GEDTM: &str = "Derivada do GEDTM30, um modelo do terreno a 30 m feito por aprendizado de máquina com os pontos de laser do ICESat-2 e do GEDI: sob a mata o terreno é estimado, não medido.";
+const NOTA_GEOMORFONS: &str = "Códigos da legenda: 1 plano, 2 pico, 3 crista, 4 ombro, 5 esporão, 6 encosta, 7 concavidade, 8 sopé, 9 vale, 10 depressão. Formas do relevo do GEDTM30 (OpenGeoHub), um terreno feito por aprendizado de máquina com o laser do ICESat-2 e do GEDI.";
 const NOTA_GDO: &str = "Mapa do serviço do Global Drought Observatory (Copernicus), nas cores do GDO: os tons de marrom são mais seco que o normal, os de azul, mais úmido.";
 const NOTA_GBA: &str = "Polígonos do Google, da Microsoft e do OpenStreetMap; altura estimada por um modelo de IA, menos precisa na América do Sul. Licença CC BY-NC 4.0: sem uso comercial.";
 const NOTA_CHM_AMAZONIA: &str =
@@ -258,6 +261,32 @@ pub fn receita(nome: &str) -> Option<Receita> {
         };
         return Some(Receita { subtitulo, barra: Some((barra.into(), 5)), legenda: None, nota: Some(NOTA_CTREES) });
     }
+    if let Some((p, prof, per)) = crate::olm::da_camada(nome) {
+        let un = if p == crate::olm::Propriedade::Ph { String::new() } else { format!(" ({})", p.unidade()) };
+        return Some(Receita {
+            subtitulo: format!("{} de {} a {} cm, {}–{}, a 30 m (OpenLandMap-soildb)", p.nome(), prof.0, prof.1, per.0, per.1),
+            barra: Some((format!("{}{un}", p.nome()), 5)),
+            legenda: None,
+            nota: Some(NOTA_OLM),
+        });
+    }
+    if let Some((v, e)) = crate::gedtm::da_camada(nome) {
+        if v.classes() {
+            return Some(Receita {
+                subtitulo: format!("Geomorfons na escala de {e} m (GEDTM30, OpenGeoHub)"),
+                barra: None,
+                legenda: Some("Forma do relevo (código)"),
+                nota: Some(NOTA_GEOMORFONS),
+            });
+        }
+        let un = if v.unidade().is_empty() { String::new() } else { format!(" ({})", v.unidade()) };
+        return Some(Receita {
+            subtitulo: format!("{} na escala de {e} m (GEDTM30, OpenGeoHub)", v.nome()),
+            barra: Some((format!("{}{un}", v.nome()), 5)),
+            legenda: None,
+            nota: Some(NOTA_GEDTM),
+        });
+    }
     if nome == crate::forty::CAMADA {
         return Some(Receita {
             subtitulo: "Tipologia florestal em 2020 a 10 m (ForTy: Google DeepMind, WRI e IIASA)".into(),
@@ -459,6 +488,17 @@ pub fn perfil_com_orientacao(perfil: &str, orientacao: Option<&str>) -> Result<S
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_nota_dos_geomorfons_traz_a_chave() {
+        assert!(NOTA_GEOMORFONS.contains(&crate::gedtm::chave_geomorfons()));
+        let r = receita("BrasilData: Geomorfons 480 m (GEDTM30)").unwrap();
+        assert!(r.barra.is_none() && r.nota == Some(NOTA_GEOMORFONS));
+        let d = receita("BrasilData: Declividade 30 m, graus (GEDTM30)").unwrap();
+        assert_eq!(d.barra, Some(("Declividade (graus)".to_string(), 5)));
+        let s = receita("BrasilData: pH do solo em água 0–30 cm, 2020–2022 (OpenLandMap)").unwrap();
+        assert_eq!(s.barra, Some(("pH do solo em água".to_string(), 5)));
+    }
 
     #[test]
     fn a_orientacao_da_folha() {

@@ -85,6 +85,10 @@ pub fn comando_da_camada(nome: &str, fonte: &str) -> Option<&'static str> {
         "forty-tipologia"
     } else if crate::ctrees::da_camada(nome).is_some() {
         "ctrees-biomassa"
+    } else if crate::olm::da_camada(nome).is_some() {
+        "olm-solo"
+    } else if crate::gedtm::da_camada(nome).is_some() {
+        "gedtm-relevo"
     } else if crate::bdc::satelite_da_camada(nome).is_some() {
         "bdc-indice"
     } else if let Some(v) = crate::jaxa::variavel_da_camada(nome) {
@@ -144,6 +148,10 @@ mod tests {
             (crate::forty::CAMADA, "forty-tipologia"),
             ("BrasilData: Biomassa acima do solo 2025 (CTrees, 100 m)", "ctrees-biomassa"),
             ("BrasilData: Incerteza da biomassa 2010 (CTrees, 100 m)", "ctrees-biomassa"),
+            ("BrasilData: pH do solo em água 0–30 cm, 2010–2015 (OpenLandMap)", "olm-solo"),
+            ("BrasilData: Argila 60–100 cm, 2020–2022 (OpenLandMap)", "olm-solo"),
+            ("BrasilData: Declividade 30 m, graus (GEDTM30)", "gedtm-relevo"),
+            ("BrasilData: Geomorfons 240 m (GEDTM30)", "gedtm-relevo"),
             (irrigacao::CAMADA, "irrigacao-gmia"),
         ];
         for (nome, id) in casos {

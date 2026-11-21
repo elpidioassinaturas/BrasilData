@@ -37,7 +37,9 @@ pub const MAX_CELULAS: f64 = 1.0e9;
 /// detalhe se perde; numa mais fina (menos de 2/3), cada célula do dado se repete, sem detalhe a
 /// mais. `None` quando as duas se parecem. `dado` é o nome do dado no aviso.
 pub fn aviso_de_reamostragem(dado: &str, nativa: f64, celula: f64, mais_grossa_tira: &str) -> Option<String> {
-    let n = texto_da_celula(nativa);
+    // A célula do dado em metros no chão vem de graus (26,0253… m): até 10 m, com dois decimais;
+    // acima, inteira.
+    let n = texto_da_celula(if nativa < 10.0 { (nativa * 100.0).round() / 100.0 } else { nativa.round() });
     let g = texto_da_celula(celula);
     let fina = texto_da_celula(nativa.ceil().max(1.0));
     if celula > nativa * 1.5 {
@@ -296,6 +298,8 @@ mod tests {
         assert!(aviso_de_reamostragem("x", 10.0, 1.0, "é a média").unwrap().contains("se repete"));
         assert_eq!(aviso_de_reamostragem("x", 10.0, 10.0, "é a média"), None);
         assert_eq!(aviso_de_reamostragem("x", 4.78, 6.0, "é a média"), None);
+        let olm = aviso_de_reamostragem("o pH", 26.025_353_977_274_932, 500.0, "é a média").unwrap();
+        assert!(olm.contains("células de 26 m, e a grade do projeto, de 500 m"), "{olm}");
     }
 
     #[test]

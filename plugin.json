@@ -1,7 +1,7 @@
 {
   "id": "brasildata",
   "name": "BrasilData",
-  "version": "0.1.50",
+  "version": "0.1.51",
   "description": "Dados públicos do Brasil para a área do usuário (IBGE, MMA, ICMBio, INPE, CEMADEN, ANA, ANEEL, ANP, SFB/CAR, INCRA, FUNAI, IBAMA, ANM, DNIT, Ministério da Saúde, Copernicus, NASA/ASF, FAO, WRI, Open-Meteo, CHIRPS, Google DeepMind): só o que cruza a área, recortado por ela, com a fonte e a licença de cada camada.",
   "author": "Elpídio Filho",
   "homepage": "https://github.com/elpidioassinaturas/BrasilData",
@@ -1880,6 +1880,110 @@
       ]
     },
     {
+      "id": "gedtm-relevo",
+      "label": "Derivadas do relevo (GEDTM30)",
+      "help": "As variáveis do relevo do GEDTM30 da OpenGeoHub (o terreno global a 30 m feito por aprendizado de máquina com os pontos de laser do ICESat-2 e do GEDI; licença CC BY 4.0), as covariáveis de relevo do mapeamento de solos: a declividade, o índice topográfico de umidade, a diferença da elevação média em volta, a rugosidade, as curvaturas (mínima, máxima, de perfil, tangencial e anelar), o índice de forma, as aberturas positiva e negativa, o sombreamento, os geomorfons (dez formas do relevo, de pico a depressão) e o fator LS da equação de perda de solo. Algumas também calculadas sobre o terreno de 480 e 960 m (os geomorfons em todas as escalas, de 30 a 960 m): a escala maior mostra a encosta inteira, não os detalhes de 30 m. As aberturas, o índice de forma e a curvatura anelar só vêm nas escalas maiores, e a elevação do GEDTM30 ainda não: o RustGIS não lê por partes esses arquivos da OpenGeoHub. Só a área, lida do arquivo global da variável, posta na grade do projeto e recortada pelo contorno; numa área grande, lida da pirâmide do arquivo. Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área). Período: terreno de 2000 a 2022 (v1.0, de dezembro de 2024; o sombreamento e as escalas de 480 e 960 m do TWI, da diferença da elevação média, da rugosidade e das curvaturas mínima e máxima, da v1.2, de março de 2026). Resolução ou escala: 0,00025° (cerca de 30 m); nas escalas maiores, 240, 480 ou 960 m; numa área grande, a pirâmide do arquivo. Unidades: graus (declividade, rugosidade e aberturas), m (diferença da elevação média), 1/m (curvaturas), classe (geomorfons) ou índice sem unidade. Licença: CC BY 4.0. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/gedtm-relevo.md",
+      "icon": "relief",
+      "params": "{\"variavel\"?: \"declividade\" (padrão) | \"twi\" | \"dfme\" | \"rugosidade\" | \"curvatura-minima\" | \"curvatura-maxima\" | \"curvatura-perfil\" | \"curvatura-tangencial\" | \"curvatura-anelar\" | \"indice-forma\" | \"abertura-positiva\" | \"abertura-negativa\" | \"sombreamento\" | \"geomorfons\" | \"fator-ls\", \"escala\"?: 30 (padrão), 60, 120, 240, 480 ou 960 m (a que a variável não tem dá a mais próxima que ela tem, com aviso), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+      "form": [
+        {
+          "name": "variavel",
+          "label": "Variável",
+          "kind": "choice",
+          "required": true,
+          "choices": [
+            "Declividade (graus)",
+            "Índice topográfico de umidade (TWI)",
+            "Diferença da elevação média em volta (m)",
+            "Rugosidade do terreno (graus)",
+            "Curvatura mínima",
+            "Curvatura máxima",
+            "Curvatura de perfil",
+            "Curvatura tangencial",
+            "Curvatura anelar (240 m ou mais)",
+            "Índice de forma (480 m ou mais)",
+            "Abertura positiva (graus, 480 m ou mais)",
+            "Abertura negativa (graus, 480 m ou mais)",
+            "Sombreamento",
+            "Geomorfons (formas do relevo)",
+            "Fator LS (erosão)"
+          ],
+          "default": "Declividade (graus)",
+          "help": "A variável derivada do terreno. Para mapear solos, as mais usadas são a declividade, o índice topográfico de umidade, a diferença da elevação média, as curvaturas e os geomorfons."
+        },
+        {
+          "name": "escala",
+          "label": "Escala do cálculo",
+          "kind": "choice",
+          "required": true,
+          "choices": [
+            "30 m",
+            "60 m",
+            "120 m",
+            "240 m",
+            "480 m",
+            "960 m"
+          ],
+          "default": "30 m",
+          "help": "A célula do terreno de que a variável foi calculada. Hoje o RustGIS lê: 30 m na declividade, nas curvaturas de perfil e tangencial, no sombreamento e no fator LS; 30, 480 e 960 m no TWI, na diferença da elevação média, na rugosidade e nas curvaturas mínima e máxima; 240, 480 e 960 m na curvatura anelar; 480 e 960 m nas aberturas e no índice de forma; todas nos geomorfons. Outra escala dá a mais próxima, com aviso."
+        }
+      ]
+    },
+    {
+      "id": "olm-solo",
+      "label": "Propriedades do solo a 30 m (OpenLandMap)",
+      "help": "Uma propriedade do solo prevista a 30 m pelo OpenLandMap-soildb (OpenGeoHub; Hengl e outros, Earth System Science Data, 2026; licença CC BY 4.0), por aprendizado de máquina espaço-temporal sobre cerca de 400 mil amostras de solo e covariáveis de relevo, clima e vegetação: o carbono orgânico (g/kg), a densidade de carbono (kg/m³), o pH em água, a densidade do solo (g/cm³) e a argila, a areia e o silte (%), de 0 a 30, de 30 a 60 ou de 60 a 100 cm. O carbono e o pH vêm de 5 em 5 anos, de 2000–2005 a 2020–2022; os outros, de 2020–2022. Só a área, lida do arquivo global, posta na grade do projeto e recortada pelo contorno; numa área grande, lida da pirâmide do arquivo. Previsões de um modelo, não análises de laboratório. Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área). Período: carbono e pH de 5 em 5 anos, de 2000–2005 a 2020–2022; densidade do solo e textura, 2020–2022. Resolução ou escala: 0,00025° (cerca de 30 m); numa área grande, a pirâmide do arquivo (60 m, 120 m...). Unidades: g/kg (carbono), kg/m³ (densidade de carbono), pH, g/cm³ (densidade do solo) e % (argila, areia e silte). Licença: CC BY 4.0. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/olm-solo.md",
+      "icon": "stretch",
+      "params": "{\"propriedade\"?: \"carbono\" (padrão) | \"densidade-carbono\" | \"ph\" | \"densidade\" | \"argila\" | \"areia\" | \"silte\", \"profundidade\"?: \"0-30\" (padrão) | \"30-60\" | \"60-100\", \"periodo\"?: \"2020-2022\" (padrão) | \"2015-2020\" | \"2010-2015\" | \"2005-2010\" | \"2000-2005\" (os anteriores a 2020 só no carbono e no pH), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+      "form": [
+        {
+          "name": "propriedade",
+          "label": "Propriedade",
+          "kind": "choice",
+          "required": true,
+          "choices": [
+            "Carbono orgânico (g/kg)",
+            "Densidade de carbono (kg/m³)",
+            "pH em água",
+            "Densidade do solo (g/cm³)",
+            "Argila (%)",
+            "Areia (%)",
+            "Silte (%)"
+          ],
+          "default": "Carbono orgânico (g/kg)",
+          "help": "A propriedade do solo, na unidade dela."
+        },
+        {
+          "name": "profundidade",
+          "label": "Profundidade",
+          "kind": "choice",
+          "required": true,
+          "choices": [
+            "0 a 30 cm",
+            "30 a 60 cm",
+            "60 a 100 cm"
+          ],
+          "default": "0 a 30 cm",
+          "help": "A camada do solo, em cm a partir da superfície."
+        },
+        {
+          "name": "periodo",
+          "label": "Período",
+          "kind": "choice",
+          "required": true,
+          "choices": [
+            "2020 a 2022",
+            "2015 a 2020 (só carbono e pH)",
+            "2010 a 2015 (só carbono e pH)",
+            "2005 a 2010 (só carbono e pH)",
+            "2000 a 2005 (só carbono e pH)"
+          ],
+          "default": "2020 a 2022",
+          "help": "O carbono e o pH vêm de 5 em 5 anos: compare dois períodos para ver a perda ou o ganho de carbono. A densidade do solo e a textura só têm 2020–2022."
+        }
+      ]
+    },
+    {
       "id": "amostra-aleatoria",
       "label": "Aleatória simples",
       "help": "Amostragem aleatória simples: pontos para ir a campo, sorteados dentro da área de trabalho, todos com a mesma chance, na camada BrasilData: amostragem aleatória (rótulo, método, sorteio, longitude e latitude SIRGAS 2000). O número de pontos, o sorteio e o arquivo de pontos vêm da janela do comando; num RustGIS sem janelas de plugin, do painel Área de trabalho.",
@@ -2065,7 +2169,7 @@
     {
       "id": "sobre",
       "label": "Sobre",
-      "help": "BrasilData 0.1.50, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nAs fontes dos dados e como contribuir estão nas abas do fim do painel Área de trabalho: basta clicar nelas. Para lê-las aqui, marque a caixa e clique em Executar. A janela fica aberta até o X do canto de cima.",
+      "help": "BrasilData 0.1.51, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nAs fontes dos dados e como contribuir estão nas abas do fim do painel Área de trabalho: basta clicar nelas. Para lê-las aqui, marque a caixa e clique em Executar. A janela fica aberta até o X do canto de cima.",
       "icon": "about",
       "params": "{\"completo\"?: true para as fontes e como contribuir | \"parte\"?: \"tudo\" (padrão) | \"autoria\" | \"fontes\" | \"contribuir\"}",
       "form": [
@@ -2233,7 +2337,7 @@
         "kind": "text",
         "id": "sobre",
         "label": "Sobre o BrasilData: Autoria",
-        "text": "BrasilData 0.1.50, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData"
+        "text": "BrasilData 0.1.51, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData"
       }
     ]
   },
@@ -2393,7 +2497,8 @@
             "items": [
               "geomorfologia",
               "elevacao",
-              "gem15"
+              "gem15",
+              "gedtm-relevo"
             ]
           },
           {
@@ -2407,6 +2512,7 @@
               "mg-agua-disponivel",
               "mg-zee-erosao",
               "mg-zee-risco-erosao",
+              "olm-solo",
               "gdo-seca"
             ]
           }

@@ -37,7 +37,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.50"
+VERSAO = "0.1.51"
 AUTOR = "Elpídio Filho"
 # Como o texto Sobre chama o autor (o manifesto e o README levam o nome completo).
 AUTOR_SOBRE = "Professor Elpídio"
@@ -93,6 +93,28 @@ CAMPOS_ERA5 = [
 ]
 PARAMS_ERA5 = "\"inicio\"?, \"fim\"?: dd/mm/aaaa ou aaaa-mm-dd, desde 01/01/1940, até 30 anos (padrão: o ano passado inteiro), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)"
 FIM_ERA5 = " Da reanálise ERA5 do ECMWF (Copernicus Climate Change Service), a 0,25° (cerca de 28 km), desde 1940, pela API histórica do Open-Meteo (sem login): os valores diários vêm nos nós da grade que cercam a área e viram um raster, interpolado (bilinear) para a grade do projeto e recortado pela área. O mapa mostra o clima regional, não o de cada encosta. Num período longo ou numa área grande, a grade de pontos fica mais aberta, até 1°: a API gratuita do Open-Meteo pesa cada ponto pelos dias pedidos (30 anos cabem num município; Minas Gerais inteira, uns 500 dias). Acima disso, o comando diz o período que cabe. O ERA5 sai com uns 5 dias de atraso. Sem período, o ano passado inteiro. A reanálise é um modelo ajustado às observações, não a medida de uma estação. Precisa de um RustGIS com o Polígonos para raster (raster.rasterize, desde a 0.6.0)."
+# As escolhas do OpenLandMap-soildb e do GEDTM30 (as mesmas de src/dialogos.rs).
+PROPRIEDADES_OLM = ["Carbono orgânico (g/kg)", "Densidade de carbono (kg/m³)", "pH em água", "Densidade do solo (g/cm³)", "Argila (%)", "Areia (%)", "Silte (%)"]
+PROFUNDIDADES_OLM = ["0 a 30 cm", "30 a 60 cm", "60 a 100 cm"]
+PERIODOS_OLM = ["2020 a 2022", "2015 a 2020 (só carbono e pH)", "2010 a 2015 (só carbono e pH)", "2005 a 2010 (só carbono e pH)", "2000 a 2005 (só carbono e pH)"]
+VARIAVEIS_GEDTM = [
+    "Declividade (graus)",
+    "Índice topográfico de umidade (TWI)",
+    "Diferença da elevação média em volta (m)",
+    "Rugosidade do terreno (graus)",
+    "Curvatura mínima",
+    "Curvatura máxima",
+    "Curvatura de perfil",
+    "Curvatura tangencial",
+    "Curvatura anelar (240 m ou mais)",
+    "Índice de forma (480 m ou mais)",
+    "Abertura positiva (graus, 480 m ou mais)",
+    "Abertura negativa (graus, 480 m ou mais)",
+    "Sombreamento",
+    "Geomorfons (formas do relevo)",
+    "Fator LS (erosão)",
+]
+ESCALAS_GEDTM = ["30 m", "60 m", "120 m", "240 m", "480 m", "960 m"]
 MODELOS_GEM15 = ["Terreno nu (DTM)", "Superfície, com vegetação e construções (DSM)", "Altura acima do terreno (DSM menos DTM)"]
 # As escolhas do cubo de dados do INPE (as mesmas de src/dialogos.rs).
 SATELITES_BDC = ["Sentinel-2 (10 m, desde 2017)", "Landsat (30 m, desde 1990)", "CBERS-4 WFI (64 m, desde 2016)", "MODIS (250 m, desde 2000)"]
@@ -1214,6 +1236,37 @@ EM_MENUS = [
             "params": "{\"modelo\"?: \"dtm\" (padrão) | \"dsm\" | \"altura\", \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
             "form": [
                 {"name": "modelo", "label": "Modelo", "kind": "choice", "required": True, "choices": MODELOS_GEM15, "default": MODELOS_GEM15[0], "help": "O terreno nu serve ao relevo, às curvas de nível e à hidrologia; a superfície inclui o dossel e os prédios; a altura acima do terreno é a diferença das duas (o dossel e as construções, até uns 50 m)."},
+            ],
+        },
+    ),
+    (
+        "Meio físico",
+        "Relevo",
+        {
+            "id": "gedtm-relevo",
+            "label": "Derivadas do relevo (GEDTM30)",
+            "help": "As variáveis do relevo do GEDTM30 da OpenGeoHub (o terreno global a 30 m feito por aprendizado de máquina com os pontos de laser do ICESat-2 e do GEDI; licença CC BY 4.0), as covariáveis de relevo do mapeamento de solos: a declividade, o índice topográfico de umidade, a diferença da elevação média em volta, a rugosidade, as curvaturas (mínima, máxima, de perfil, tangencial e anelar), o índice de forma, as aberturas positiva e negativa, o sombreamento, os geomorfons (dez formas do relevo, de pico a depressão) e o fator LS da equação de perda de solo. Algumas também calculadas sobre o terreno de 480 e 960 m (os geomorfons em todas as escalas, de 30 a 960 m): a escala maior mostra a encosta inteira, não os detalhes de 30 m. As aberturas, o índice de forma e a curvatura anelar só vêm nas escalas maiores, e a elevação do GEDTM30 ainda não: o RustGIS não lê por partes esses arquivos da OpenGeoHub. Só a área, lida do arquivo global da variável, posta na grade do projeto e recortada pelo contorno; numa área grande, lida da pirâmide do arquivo. Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área).",
+            "icon": "relief",
+            "params": "{\"variavel\"?: \"declividade\" (padrão) | \"twi\" | \"dfme\" | \"rugosidade\" | \"curvatura-minima\" | \"curvatura-maxima\" | \"curvatura-perfil\" | \"curvatura-tangencial\" | \"curvatura-anelar\" | \"indice-forma\" | \"abertura-positiva\" | \"abertura-negativa\" | \"sombreamento\" | \"geomorfons\" | \"fator-ls\", \"escala\"?: 30 (padrão), 60, 120, 240, 480 ou 960 m (a que a variável não tem dá a mais próxima que ela tem, com aviso), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+            "form": [
+                {"name": "variavel", "label": "Variável", "kind": "choice", "required": True, "choices": VARIAVEIS_GEDTM, "default": VARIAVEIS_GEDTM[0], "help": "A variável derivada do terreno. Para mapear solos, as mais usadas são a declividade, o índice topográfico de umidade, a diferença da elevação média, as curvaturas e os geomorfons."},
+                {"name": "escala", "label": "Escala do cálculo", "kind": "choice", "required": True, "choices": ESCALAS_GEDTM, "default": ESCALAS_GEDTM[0], "help": "A célula do terreno de que a variável foi calculada. Hoje o RustGIS lê: 30 m na declividade, nas curvaturas de perfil e tangencial, no sombreamento e no fator LS; 30, 480 e 960 m no TWI, na diferença da elevação média, na rugosidade e nas curvaturas mínima e máxima; 240, 480 e 960 m na curvatura anelar; 480 e 960 m nas aberturas e no índice de forma; todas nos geomorfons. Outra escala dá a mais próxima, com aviso."},
+            ],
+        },
+    ),
+    (
+        "Meio físico",
+        "Solos",
+        {
+            "id": "olm-solo",
+            "label": "Propriedades do solo a 30 m (OpenLandMap)",
+            "help": "Uma propriedade do solo prevista a 30 m pelo OpenLandMap-soildb (OpenGeoHub; Hengl e outros, Earth System Science Data, 2026; licença CC BY 4.0), por aprendizado de máquina espaço-temporal sobre cerca de 400 mil amostras de solo e covariáveis de relevo, clima e vegetação: o carbono orgânico (g/kg), a densidade de carbono (kg/m³), o pH em água, a densidade do solo (g/cm³) e a argila, a areia e o silte (%), de 0 a 30, de 30 a 60 ou de 60 a 100 cm. O carbono e o pH vêm de 5 em 5 anos, de 2000–2005 a 2020–2022; os outros, de 2020–2022. Só a área, lida do arquivo global, posta na grade do projeto e recortada pelo contorno; numa área grande, lida da pirâmide do arquivo. Previsões de um modelo, não análises de laboratório. Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área).",
+            "icon": "stretch",
+            "params": "{\"propriedade\"?: \"carbono\" (padrão) | \"densidade-carbono\" | \"ph\" | \"densidade\" | \"argila\" | \"areia\" | \"silte\", \"profundidade\"?: \"0-30\" (padrão) | \"30-60\" | \"60-100\", \"periodo\"?: \"2020-2022\" (padrão) | \"2015-2020\" | \"2010-2015\" | \"2005-2010\" | \"2000-2005\" (os anteriores a 2020 só no carbono e no pH), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+            "form": [
+                {"name": "propriedade", "label": "Propriedade", "kind": "choice", "required": True, "choices": PROPRIEDADES_OLM, "default": PROPRIEDADES_OLM[0], "help": "A propriedade do solo, na unidade dela."},
+                {"name": "profundidade", "label": "Profundidade", "kind": "choice", "required": True, "choices": PROFUNDIDADES_OLM, "default": PROFUNDIDADES_OLM[0], "help": "A camada do solo, em cm a partir da superfície."},
+                {"name": "periodo", "label": "Período", "kind": "choice", "required": True, "choices": PERIODOS_OLM, "default": PERIODOS_OLM[0], "help": "O carbono e o pH vêm de 5 em 5 anos: compare dois períodos para ver a perda ou o ganho de carbono. A densidade do solo e a textura só têm 2020–2022."},
             ],
         },
     ),

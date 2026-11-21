@@ -2,7 +2,7 @@
 
 <!-- Gerado por scripts/gerar.py a partir do fontes.csv e do fichas.csv; não edite à mão. -->
 
-A ficha de cada uma das 154 camadas que os botões da aba BrasilData trazem: o que é, a fonte, o período, a resolução, as unidades, a legenda, a licença, a citação, os cuidados de uso, se funciona no app web, e um mapa exemplo feito com o plugin (o botão Layout). Os mapas exemplo são de Viçosa (MG), ou da Zona da Mata mineira para os produtos de baixa resolução; os temas que não existem lá vêm de outro município, dito em cada ficha. Os mapas saem do `scripts/mapas_exemplo.py`.
+A ficha de cada uma das 156 camadas que os botões da aba BrasilData trazem: o que é, a fonte, o período, a resolução, as unidades, a legenda, a licença, a citação, os cuidados de uso, se funciona no app web, e um mapa exemplo feito com o plugin (o botão Layout). Os mapas exemplo são de Viçosa (MG), ou da Zona da Mata mineira para os produtos de baixa resolução; os temas que não existem lá vêm de outro município, dito em cada ficha. Os mapas saem do `scripts/mapas_exemplo.py`.
 
 ## Território
 
@@ -78,6 +78,8 @@ A ficha de cada uma das 154 camadas que os botões da aba BrasilData trazem: o q
 | [Área minerada por ano (MapBiomas, 1985–2024)](mapbiomas-mineracao.md) | Meio físico › Geologia e recursos minerais | A área minerada mapeada pelo MapBiomas em imagens Landsat, com o ano em que a mineração apareceu. |
 | [Elevação (Copernicus GLO-30)](elevacao.md) | Meio físico › Relevo | O modelo digital de superfície Copernicus GLO-30: a altitude do terreno com a vegetação e as construções. |
 | [Elevação a 15 m (Google GEM-15)](gem15.md) | Meio físico › Relevo | Os modelos de elevação do Google a 15 m (GEM-15, experimental): o terreno nu (DTM), a superfície (DSM) ou a altura acima do terreno. |
+| [Propriedades do solo a 30 m (OpenLandMap)](olm-solo.md) | Meio físico › Solos | Uma propriedade do solo a 30 m do OpenLandMap-soildb (OpenGeoHub): carbono orgânico, densidade de carbono, pH em água, densidade do solo, argila, areia ou silte, de 0 a 30, de 30 a 60 ou de 60 a 100 cm, prevista por aprendizado de máquina espaço-temporal sobre cerca de 400 mil amostras de solo do mundo inteiro. |
+| [Derivadas do relevo (GEDTM30)](gedtm-relevo.md) | Meio físico › Relevo | As variáveis do relevo do GEDTM30 (OpenGeoHub), o terreno global a 30 m feito por aprendizado de máquina com os pontos de laser do ICESat-2 e do GEDI: declividade, índice topográfico de umidade, diferença da elevação média, rugosidade, curvaturas, índice de forma, aberturas, sombreamento, geomorfons e fator LS, algumas também nas escalas de 480 e 960 m. |
 
 ## Tempo e clima
 

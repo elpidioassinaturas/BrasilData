@@ -94,6 +94,52 @@ pub const ESTATISTICAS_BDC: [(&str, &str); 4] =
 /// As escolhas do turno da temperatura do JAXA e o `turno` de cada uma.
 pub const TURNOS_JAXA: [(&str, &str); 2] = [("De dia (por volta das 10h30)", "dia"), ("À noite (por volta das 22h30)", "noite")];
 
+/// As escolhas da propriedade do solo do OpenLandMap e a `propriedade` de cada uma.
+pub const PROPRIEDADES_OLM: [(&str, &str); 7] = [
+    ("Carbono orgânico (g/kg)", "carbono"),
+    ("Densidade de carbono (kg/m³)", "densidade-carbono"),
+    ("pH em água", "ph"),
+    ("Densidade do solo (g/cm³)", "densidade"),
+    ("Argila (%)", "argila"),
+    ("Areia (%)", "areia"),
+    ("Silte (%)", "silte"),
+];
+
+/// As escolhas da profundidade e a `profundidade` de cada uma.
+pub const PROFUNDIDADES_OLM: [(&str, &str); 3] = [("0 a 30 cm", "0-30"), ("30 a 60 cm", "30-60"), ("60 a 100 cm", "60-100")];
+
+/// As escolhas do período e o `periodo` de cada um.
+pub const PERIODOS_OLM: [(&str, &str); 5] = [
+    ("2020 a 2022", "2020-2022"),
+    ("2015 a 2020 (só carbono e pH)", "2015-2020"),
+    ("2010 a 2015 (só carbono e pH)", "2010-2015"),
+    ("2005 a 2010 (só carbono e pH)", "2005-2010"),
+    ("2000 a 2005 (só carbono e pH)", "2000-2005"),
+];
+
+/// As escolhas da variável do relevo do GEDTM30 e a `variavel` de cada uma.
+pub const VARIAVEIS_GEDTM: [(&str, &str); 15] = [
+    ("Declividade (graus)", "declividade"),
+    ("Índice topográfico de umidade (TWI)", "twi"),
+    ("Diferença da elevação média em volta (m)", "dfme"),
+    ("Rugosidade do terreno (graus)", "rugosidade"),
+    ("Curvatura mínima", "curvatura-minima"),
+    ("Curvatura máxima", "curvatura-maxima"),
+    ("Curvatura de perfil", "curvatura-perfil"),
+    ("Curvatura tangencial", "curvatura-tangencial"),
+    ("Curvatura anelar (240 m ou mais)", "curvatura-anelar"),
+    ("Índice de forma (480 m ou mais)", "indice-forma"),
+    ("Abertura positiva (graus, 480 m ou mais)", "abertura-positiva"),
+    ("Abertura negativa (graus, 480 m ou mais)", "abertura-negativa"),
+    ("Sombreamento", "sombreamento"),
+    ("Geomorfons (formas do relevo)", "geomorfons"),
+    ("Fator LS (erosão)", "fator-ls"),
+];
+
+/// As escolhas da escala do GEDTM30 e a `escala` de cada uma (em metros).
+pub const ESCALAS_GEDTM: [(&str, &str); 6] =
+    [("30 m", "30"), ("60 m", "60"), ("120 m", "120"), ("240 m", "240"), ("480 m", "480"), ("960 m", "960")];
+
 /// As escolhas de um parâmetro e o valor de cada uma.
 type Escolhas = &'static [(&'static str, &'static str)];
 
@@ -107,6 +153,11 @@ const TROCAS: &[(&str, &str, Escolhas)] = &[
     ("gdo-seca", "indicador", &INDICADORES_GDO),
     ("dist-situacao", "paleta", &PALETAS),
     ("gem15", "modelo", &MODELOS_GEM15),
+    ("olm-solo", "propriedade", &PROPRIEDADES_OLM),
+    ("olm-solo", "profundidade", &PROFUNDIDADES_OLM),
+    ("olm-solo", "periodo", &PERIODOS_OLM),
+    ("gedtm-relevo", "variavel", &VARIAVEIS_GEDTM),
+    ("gedtm-relevo", "escala", &ESCALAS_GEDTM),
     ("bdc-indice", "satelite", &SATELITES_BDC),
     ("bdc-indice", "indice", &INDICES_BDC),
     ("bdc-indice", "estatistica", &ESTATISTICAS_BDC),
@@ -154,6 +205,13 @@ pub fn normalizar(id: &str, params: &mut Value) {
                 } else if let Some(n) = mes_pelo_nome(&m) {
                     p.insert("mes".into(), json!(n));
                 }
+            }
+        }
+        // A escala do GEDTM30, em metros, como número.
+        "gedtm-relevo" => {
+            let e = p.get("escala").and_then(Value::as_str).and_then(|t| t.trim().parse::<f64>().ok());
+            if let Some(e) = e {
+                p.insert("escala".into(), json!(e));
             }
         }
         // Outro sistema, pelo código EPSG, vale no lugar da escolha.
@@ -218,6 +276,17 @@ mod tests {
     fn troca_as_escolhas_pelos_valores() {
         assert_eq!(norm("risco-fogo", json!({"mes": "setembro"})), json!({"mes": 9}));
         assert_eq!(norm("risco-fogo", json!({"mes": 3})), json!({"mes": 3}));
+        assert_eq!(
+            norm("gedtm-relevo", json!({"variavel": "Índice topográfico de umidade (TWI)", "escala": "240 m"})),
+            json!({"variavel": "twi", "escala": 240.0})
+        );
+        assert_eq!(
+            norm(
+                "olm-solo",
+                json!({"propriedade": "pH em água", "profundidade": "30 a 60 cm", "periodo": "2010 a 2015 (só carbono e pH)"})
+            ),
+            json!({"propriedade": "ph", "profundidade": "30-60", "periodo": "2010-2015"})
+        );
         assert_eq!(norm("sol-radiacao", json!({"mes": MEDIA_DO_ANO})), json!({}));
         assert_eq!(norm("sol-radiacao", json!({"mes": "março"})), json!({"mes": 3}));
         assert_eq!(norm("layout", json!({"perfil": "Folha A3", "estilo": "Pôster"})), json!({"perfil": "a3", "estilo": "poster"}));

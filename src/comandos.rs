@@ -10,6 +10,7 @@ use crate::censo;
 use crate::chm;
 use crate::chm_amazonia;
 use crate::clms;
+use crate::cog_global;
 use crate::ctrees;
 use crate::datas::{self, Data};
 use crate::dialogos;
@@ -21,6 +22,7 @@ use crate::forty;
 use crate::gba;
 use crate::gdo;
 use crate::gedi;
+use crate::gedtm;
 use crate::gem15;
 use crate::grade::{self, Escolha, GRADE, Grade};
 use crate::indicadores::{self, Fonte};
@@ -32,6 +34,7 @@ use crate::malhas;
 use crate::mapbiomas;
 use crate::municipios::{self, Territorio};
 use crate::nisar;
+use crate::olm;
 use crate::radar;
 use crate::risco_fogo;
 use crate::saude;
@@ -217,6 +220,8 @@ fn executar_comando(req: Request) -> Result<Value, String> {
         "gdo-seca" => gdo_seca(&req),
         "forty-tipologia" => forty_na_area(&req),
         "ctrees-biomassa" => ctrees_na_area(&req),
+        "olm-solo" => olm_solo_na_area(&req),
+        "gedtm-relevo" => gedtm_na_area(&req),
         "bdc-indice" => bdc_indice(&req),
         "jaxa-chuva" => jaxa_na_area(&req, jaxa::Variavel::Chuva),
         "jaxa-umidade" => jaxa_na_area(&req, jaxa::Variavel::Umidade),
@@ -1503,6 +1508,10 @@ fn citacoes() -> Result<(Vec<Value>, String), String> {
             lista.push(json!({"layer": n, "source": forty::CITACAO, "license": forty::LICENCA}));
         } else if let Some((v, ano)) = ctrees::da_camada(&n) {
             lista.push(json!({"layer": n, "source": ctrees::citacao(v, ano), "license": ctrees::LICENCA}));
+        } else if let Some((p, prof, per)) = olm::da_camada(&n) {
+            lista.push(json!({"layer": n, "source": olm::citacao(p, prof, per), "license": olm::LICENCA}));
+        } else if let Some((v, e)) = gedtm::da_camada(&n) {
+            lista.push(json!({"layer": n, "source": gedtm::citacao(v, e), "license": gedtm::LICENCA}));
         } else if let Some(sat) = bdc::satelite_da_camada(&n) {
             lista.push(json!({"layer": n, "source": sat.citacao(), "license": sat.licenca()}));
         } else if let Some(v) = jaxa::variavel_da_camada(&n) {
@@ -3801,12 +3810,13 @@ fn pintar(saida: &str, p: &Pintura) {
     let _ = host::run("raster.stretch", json!({"layer": saida, "type": "custom", "min": p.escala.0, "max": p.escala.1}));
 }
 
-/// A média do raster `nome` na área, para o aviso.
+/// A média do raster `nome` na área, para o aviso (sem a unidade, se ela é vazia).
 fn media_na_area(nome: &str, unidade: &str) -> String {
+    let u = if unidade.is_empty() { String::new() } else { format!(" {unidade}") };
     host::run("raster.info", json!({"layer": nome}))
         .ok()
         .and_then(|i| i["bands"][0]["mean"].as_f64())
-        .map(|m| format!("; média na área: {} {unidade}", formatar_decimal(m)))
+        .map(|m| format!("; média na área: {}{u}", formatar_decimal(m)))
         .unwrap_or_default()
 }
 
@@ -5595,6 +5605,247 @@ fn ctrees_na_area(req: &Request) -> Result<Value, String> {
     Ok(json!({
         "layer": saida, "year": ano, "level": k, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula,
         "report": texto.trim_start_matches(PREFIXO),
+    }))
+}
+
+/// O que se lê de um COG global ([`cog_global`]) e o que se faz com o valor.
+struct LeituraGlobal<'a> {
+    arquivo: cog_global::Arquivo,
+    /// O nome da camada de passagem com a janela lida no nível `k`.
+    janela: &'a dyn Fn(i32) -> String,
+    saida: String,
+    /// Por quanto o arquivo multiplica o valor (1: o valor como está).
+    divisor: f64,
+    /// Os valores que ficam, depois da divisão.
+    faixa: (f64, f64),
+    /// Se é uma classe (a classe mais frequente numa grade mais grossa, a mais próxima senão).
+    classes: bool,
+    /// O dado, nas mensagens ("o pH do solo do OpenLandMap").
+    dado: &'a str,
+    /// O servidor, nas mensagens.
+    servidor: &'a str,
+}
+
+/// A janela da área `c` de um COG global, posta na grade `g`, dividida, recortada pela área e
+/// limpa dos valores fora da faixa, na camada `l.saida`. Devolve o nível de pirâmide lido, a
+/// célula dele em metros e a reamostragem; ou o `pending` de uma leitura que ainda vem (no
+/// desktop, o comando roda de novo quando ela chega).
+fn ler_cog_global(l: &LeituraGlobal, c: [f64; 4], g: &Grade) -> Result<Result<(i32, f64, &'static str), Value>, String> {
+    let sem_janela = format!(
+        "{} precisa de um RustGIS que leia só a janela da área de um arquivo remoto (depois da 0.5.0): o arquivo é o mundo inteiro",
+        l.dado
+    );
+    if !le_janela_remota()? {
+        return Err(sem_janela);
+    }
+    let lat = (c[1] + c[3]) / 2.0;
+    let a = &l.arquivo;
+    let k = match a.nivel_que_cabe(c, a.nivel(g.celula, lat)) {
+        Some(k) => k,
+        None => return Err(format!("a área é grande demais para {}: escolha uma área menor", l.dado)),
+    };
+    let janela = a.janela(c, k);
+    let bruto = (l.janela)(k);
+    // A janela de um clique anterior serve se cobre a área.
+    let serve = nomes()?.contains(&bruto) && extensao(&bruto)?.is_some_and(|e| retangulo_cabe(c, e));
+    if !serve {
+        tirar_janela(&bruto)?;
+        let mut p = json!({"url": a.url, "name": bruto, "bbox": janela, "zoom": false});
+        if k > 0 {
+            p["cellSize"] = json!(a.graus_do_nivel(k));
+        }
+        let r = host::run("layer.addUrl", p).map_err(|e| {
+            if falha_passageira(&e) || e.contains("timeout") {
+                format!("{} não respondeu agora: tente de novo daqui a pouco ({e})", l.servidor)
+            } else {
+                e
+            }
+        })?;
+        if r.get("pending").and_then(Value::as_bool) == Some(true) {
+            avisar(&format!("{}: lendo a área no arquivo global; a camada vem quando chegar", maiuscula(l.dado)));
+            return Ok(Err(json!({"pending": 1})));
+        }
+        if r.get("inPlace").and_then(Value::as_bool) == Some(true) || r.get("window").is_none() {
+            tirar_janela(&bruto)?;
+            return Err(sem_janela);
+        }
+    }
+    let lido = a.metros_do_nivel(k, lat);
+    let resampling = if l.classes { forty::reamostragem(g.celula, lido) } else { cog_global::reamostragem(g.celula, lido) };
+    let na_unidade = format!("{PREFIXO}OpenGeoHub na unidade");
+    let na_grade = format!("{PREFIXO}OpenGeoHub na grade");
+    remover(&[&l.saida])?;
+    let feito = (|| -> Result<(), String> {
+        let fonte = if l.divisor == 1.0 {
+            bruto.clone()
+        } else {
+            host::run(
+                "raster.function",
+                json!({"layer": bruto, "function": "bandMath", "expression": format!("b1 / {}", l.divisor), "name": na_unidade}),
+            )?;
+            na_unidade.clone()
+        };
+        host::run(
+            "raster.project",
+            json!({"layer": fonte, "crs": g.epsg, "cellSize": g.celula, "extent": GRADE, "resampling": resampling, "name": na_grade}),
+        )?;
+        recortar(&na_grade, AREA, &l.saida)?;
+        host::run("raster.mask", json!({"layer": l.saida, "min": l.faixa.0, "max": l.faixa.1}))?;
+        Ok(())
+    })();
+    remover(&[&bruto, &na_unidade, &na_grade])?;
+    feito?;
+    Ok(Ok((k, lido, resampling)))
+}
+
+/// `t` com a primeira letra maiúscula.
+fn maiuscula(t: &str) -> String {
+    let mut c = t.chars();
+    c.next().map(|p| p.to_uppercase().chain(c).collect()).unwrap_or_default()
+}
+
+/// Uma propriedade do solo do OpenLandMap-soildb a 30 m ([`olm`]): a janela da área no COG global
+/// da propriedade, da profundidade e do período, na unidade, posta na grade do projeto e recortada
+/// pela área.
+fn olm_solo_na_area(req: &Request) -> Result<Value, String> {
+    let p = olm::Propriedade::ler(req.str("propriedade"))?;
+    let prof = olm::ler_profundidade(req.str("profundidade"))?;
+    let per = olm::ler_periodo(req.str("periodo"), p)?;
+    let celula = req.f64("celula");
+    if let Some(m) = celula {
+        grade::conferir_celula(m)?;
+    }
+    let (c, na_area) = retangulo()?;
+    if !na_area {
+        return Err("escolha a área primeiro (painel Área de trabalho, ou Área: seleção)".into());
+    }
+    let g = grade_para(c, celula)?;
+    let dado = format!("{} do OpenLandMap", minuscula_inicial(p.nome()));
+    let janela = |k: i32| olm::janela_nome(p, prof, per, k);
+    let l = LeituraGlobal {
+        arquivo: olm::arquivo(p, prof, per),
+        janela: &janela,
+        saida: olm::camada(p, prof, per),
+        divisor: p.divisor(),
+        faixa: p.faixa(),
+        classes: false,
+        dado: &dado,
+        servidor: "o servidor da OpenGeoHub (ceph.opengeohub.org)",
+    };
+    let (k, lido, resampling) = match ler_cog_global(&l, c, &g)? {
+        Ok(r) => r,
+        Err(pendente) => return Ok(pendente),
+    };
+    let (rampa, cores) = p.rampa();
+    let _ = host::run("ramp.add", json!({"text": cores, "format": "gdal", "name": rampa}));
+    if host::run("raster.symbology", json!({"layer": l.saida, "type": "stretch", "ramp": rampa})).is_err() {
+        host::run("raster.symbology", json!({"layer": l.saida, "type": "stretch", "ramp": "YlOrBr"}))?;
+    }
+    let (a, b) = p.escala();
+    let _ = host::run("raster.stretch", json!({"layer": l.saida, "type": "custom", "min": a, "max": b}));
+    let unidade = if p == olm::Propriedade::Ph { "" } else { p.unidade() };
+    let media = media_na_area(&l.saida, unidade);
+    let piramide = if k > 0 { format!(", lida da pirâmide de cerca de {} m do arquivo", lido.round()) } else { String::new() };
+    let em = if unidade.is_empty() { String::new() } else { format!(" em {unidade}") };
+    let texto = format!(
+        "{}: {}{em} de {}–{} cm, {}–{} (OpenLandMap-soildb), na grade do projeto, {} ({resampling}){piramide}{media}",
+        l.saida,
+        minuscula_inicial(p.nome()),
+        prof.0,
+        prof.1,
+        per.0,
+        per.1,
+        g.texto()
+    );
+    avisar(&texto);
+    let lat = (c[1] + c[3]) / 2.0;
+    if let Some(a) = grade::aviso_de_reamostragem(&dado, l.arquivo.metros_do_nivel(0, lat), g.celula, "é a média") {
+        avisar(&a);
+    }
+    Ok(json!({
+        "layer": l.saida, "property": p.valor(), "depth": format!("{}-{}", prof.0, prof.1), "period": format!("{}-{}", per.0, per.1),
+        "level": k, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula, "report": texto.trim_start_matches(PREFIXO),
+    }))
+}
+
+/// `t` com a primeira letra minúscula, menos numa sigla ("pH", "TWI").
+fn minuscula_inicial(t: &str) -> String {
+    let mut c = t.chars();
+    match (c.next(), c.next()) {
+        (Some(a), Some(b)) if !b.is_uppercase() => a.to_lowercase().chain(std::iter::once(b)).chain(c).collect(),
+        _ => t.to_string(),
+    }
+}
+
+/// Uma variável do relevo do GEDTM30 ([`gedtm`]): a janela da área no COG global da variável e
+/// da escala, na unidade, posta na grade do projeto e recortada pela área.
+fn gedtm_na_area(req: &Request) -> Result<Value, String> {
+    let v = gedtm::Variavel::ler(req.str("variavel"))?;
+    let pedida = gedtm::ler_escala(
+        req.f64("escala").or_else(|| req.str("escala").and_then(|t| t.trim().trim_end_matches('m').trim().parse().ok())),
+    )?;
+    let (escala, troca) = gedtm::escala_lida(v, pedida);
+    let celula = req.f64("celula");
+    if let Some(m) = celula {
+        grade::conferir_celula(m)?;
+    }
+    let (c, na_area) = retangulo()?;
+    if !na_area {
+        return Err("escolha a área primeiro (painel Área de trabalho, ou Área: seleção)".into());
+    }
+    let g = grade_para(c, celula)?;
+    let dado = format!("{} do GEDTM30", minuscula_inicial(v.nome()));
+    let janela = |k: i32| gedtm::janela_nome(v, escala, k);
+    let arquivo = v.arquivo(escala);
+    let host = arquivo.url.split('/').nth(2).unwrap_or("opengeohub.org");
+    let servidor = format!("o servidor da OpenGeoHub ({host})");
+    let l = LeituraGlobal {
+        arquivo: arquivo.clone(),
+        janela: &janela,
+        saida: gedtm::camada(v, escala),
+        divisor: v.divisor(),
+        faixa: v.faixa(),
+        classes: v.classes(),
+        dado: &dado,
+        servidor: &servidor,
+    };
+    let (k, lido, resampling) = match ler_cog_global(&l, c, &g)? {
+        Ok(r) => r,
+        Err(pendente) => return Ok(pendente),
+    };
+    let mut chave = String::new();
+    if v.classes() {
+        host::run("style.importQgis", json!({"layer": l.saida, "text": gedtm::qml_geomorfons()}))?;
+        chave = format!(". Códigos: {}", gedtm::chave_geomorfons());
+    } else {
+        let (rampa, invertida) = v.rampa();
+        host::run("raster.symbology", json!({"layer": l.saida, "type": "stretch", "ramp": rampa, "invert": invertida}))?;
+    }
+    let media = if v.classes() { String::new() } else { media_na_area(&l.saida, v.unidade()) };
+    let piramide = if k > 0 { format!(", lida da pirâmide de cerca de {} m do arquivo", lido.round()) } else { String::new() };
+    let unidade = if v.unidade().is_empty() || v.classes() { String::new() } else { format!(" em {}", v.unidade()) };
+    let texto = format!(
+        "{}: {}{unidade} na escala de {escala} m (GEDTM30), na grade do projeto, {} ({resampling}){piramide}{media}{chave}",
+        l.saida,
+        minuscula_inicial(v.nome()),
+        g.texto()
+    );
+    avisar(&texto);
+    if let Some(a) = &troca {
+        avisar(a);
+    }
+    let lat = (c[1] + c[3]) / 2.0;
+    let mais_grossa = if v.classes() { "fica com a classe mais frequente" } else { "é a média" };
+    if let Some(a) = grade::aviso_de_reamostragem(&dado, l.arquivo.metros_do_nivel(0, lat), g.celula, mais_grossa) {
+        avisar(&a);
+    }
+    Ok(json!({
+        "layer": l.saida, "variable": v.valor(), "scale": escala, "level": k, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula,
+        // A troca de escala vai também no resultado da janela do comando, não só nos avisos.
+        "report": match &troca {
+            Some(a) => format!("{}\n\n{a}", texto.trim_start_matches(PREFIXO)),
+            None => texto.trim_start_matches(PREFIXO).to_string(),
+        },
     }))
 }
 
