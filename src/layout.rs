@@ -39,6 +39,7 @@ const NOTA_RISCO_FOGO: &str = "Perigo meteorológico de fogo do modelo do INPE (
 const NOTA_JAXA: &str =
     "Dados mensais do JAXA Earth na resolução original, em células de 2,8 a 22 km: mostram o padrão regional, não o detalhe de cada lugar.";
 const NOTA_ERA5: &str = "Reanálise ERA5 do ECMWF (Copernicus), em nós de uma grade de 0,25° (cerca de 28 km) ou mais aberta, interpolados para a grade: mostra o clima regional, não o de cada encosta ou vale.";
+const NOTA_SEM_NUVENS: &str = "O melhor pixel das datas de 16 dias do cubo de dados do INPE (Brazil Data Cube): cada célula vem da primeira data limpa, da menos nublada na área para a mais nublada; bordas de nuvem e sombras finas ainda podem aparecer.";
 const NOTA_BDC: &str = "Compostos de 16 dias do cubo de dados do INPE (Brazil Data Cube), com o pixel mais limpo de cada período; nuvens e sombras persistentes ainda podem aparecer.";
 const NOTA_CTREES: &str = "Biomassa estimada por um modelo de IA calibrado com lidar aéreo e parcelas de campo, a partir do Landsat, do radar ALOS PALSAR-2 e das alturas do GEDI; a série da CTrees ainda está em pré-publicação, sem revisão por pares.";
 const NOTA_FORTY: &str = "Códigos da legenda: 1 floresta primária, 2 em regeneração natural, 3 plantada, 4 plantio florestal comercial, 5 culturas arbóreas e agrofloresta, 6 outros usos. Classes de um modelo de IA sobre imagens de 2020, alinhadas à FAO e ao EUDR.";
@@ -206,6 +207,19 @@ pub fn receita(nome: &str) -> Option<Receita> {
             barra: Some((format!("{}{unidade}", resumo), 8)),
             legenda: None,
             nota: Some(NOTA_JAXA),
+        });
+    }
+    if let Some(s) = crate::bdc::satelite_da_camada(nome)
+        && crate::sem_nuvens::eh_sem_nuvens(nome)
+    {
+        // "Imagem sem nuvens em cor verdadeira de … a …", ou a data de origem dela.
+        let resumo = resumo_e_periodo(n).0;
+        let origem = resumo.starts_with("Data de origem");
+        return Some(Receita {
+            subtitulo: format!("{} pelo cubo de dados do INPE ({}, 16 dias){}", resumo, s.nome(), periodo_no_nome(n)),
+            barra: None,
+            legenda: origem.then_some("Data de origem"),
+            nota: Some(NOTA_SEM_NUVENS),
         });
     }
     if let Some(s) = crate::bdc::satelite_da_camada(nome)
