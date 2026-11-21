@@ -17,6 +17,8 @@
 //!   1º turno de 2026 e de 2024, um arquivo por UF.
 //! - **Emprego formal** (Novo CAGED, pelo IPEA Data): um retrato embutido (`caged.csv`, de
 //!   `scripts/baixar_caged.py`), porque a API do IPEA só devolve a série inteira (64 MB).
+//! - **Saúde** (DATASUS: SIM, SINASC e CNES; população do IBGE): um retrato embutido
+//!   (`saude.csv`, de `scripts/baixar_saude.py`), porque os microdados estão em .dbc num FTP.
 
 use serde_json::{Map, Value, json};
 use std::collections::HashMap;
@@ -34,9 +36,11 @@ pub enum Fonte {
     Credito,
     Tse,
     Caged,
+    Saude,
 }
 
-pub const TODAS: [Fonte; 7] = [Fonte::Censo, Fonte::Agro, Fonte::Agroeco, Fonte::Pix, Fonte::Credito, Fonte::Tse, Fonte::Caged];
+pub const TODAS: [Fonte; 8] =
+    [Fonte::Censo, Fonte::Agro, Fonte::Agroeco, Fonte::Pix, Fonte::Credito, Fonte::Tse, Fonte::Caged, Fonte::Saude];
 
 impl Fonte {
     /// O nome nos parâmetros (`{"fontes": ["pix", …]}`).
@@ -49,6 +53,7 @@ impl Fonte {
             Fonte::Credito => "credito",
             Fonte::Tse => "tse",
             Fonte::Caged => "caged",
+            Fonte::Saude => "saude",
         }
     }
 
@@ -70,24 +75,31 @@ impl Fonte {
             Fonte::Credito => campo.starts_with("credito_"),
             Fonte::Tse => ["eleitores_", "comparec_", "abstencao_"].iter().any(|p| campo.starts_with(p)),
             Fonte::Caged => campo.starts_with("caged_"),
+            Fonte::Saude => campo.starts_with("saude_"),
         }
+    }
+
+    /// Se a fonte gasta muito da cota de instruções da chamada por município: as tabelas do SIDRA
+    /// (os censos) e o SICOR. As tabelas embutidas e o Pix são leves.
+    pub fn pesada(self) -> bool {
+        matches!(self, Fonte::Censo | Fonte::Agro | Fonte::Agroeco | Fonte::Credito)
     }
 
     /// A citação.
     pub fn citacao(self) -> String {
         match self {
-            Fonte::Censo => "IBGE, Censo Demográfico 2022 (tabela 4714) e Censo Agropecuário 2017 (tabela 6753), API de agregados; contornos da API de malhas".into(),
+            Fonte::Censo => "IBGE, Censo Demográfico 2022 (tabela 4714) e Censo Agropecuário 2017 (tabela 6753), API de agregados; contornos da Malha Municipal 2025 (WFS do IBGE)".into(),
             Fonte::Agro => {
                 let campos: Vec<String> = crate::censo::AGRO.iter().map(|v| format!("{}: {}", v.campo, v.descricao)).collect();
                 format!(
-                    "IBGE, Censo Agropecuário 2017, resultados definitivos (tabelas 6753, 6778, 6780, 6852, 6858, 6870, 6881, 6884, 6897 e 6907), API de agregados; contornos da API de malhas. Campos: {}",
+                    "IBGE, Censo Agropecuário 2017, resultados definitivos (tabelas 6753, 6778, 6780, 6852, 6858, 6870, 6881, 6884, 6897 e 6907), API de agregados; contornos da Malha Municipal 2025 (WFS do IBGE). Campos: {}",
                     campos.join("; ")
                 )
             }
             Fonte::Agroeco => {
                 let campos: Vec<String> = crate::censo::AGROECO.iter().map(|v| format!("{}: {}", v.campo, v.descricao)).collect();
                 format!(
-                    "IBGE, Censo Agropecuário 2017, resultados definitivos, práticas agroecológicas (tabelas 6846, 6848, 6852, 6854, 6856 e 6881), API de agregados; contornos da API de malhas. Campos: {}",
+                    "IBGE, Censo Agropecuário 2017, resultados definitivos, práticas agroecológicas (tabelas 6846, 6848, 6852, 6854, 6856 e 6881), API de agregados; contornos da Malha Municipal 2025 (WFS do IBGE). Campos: {}",
                     campos.join("; ")
                 )
             }
@@ -95,6 +107,13 @@ impl Fonte {
             Fonte::Credito => "Banco Central do Brasil, Matriz de Dados do Crédito Rural (SICOR), custeio por município e produto; valores em R$, Pronaf = programa 0001".into(),
             Fonte::Tse => "Tribunal Superior Eleitoral, divulgação oficial dos resultados, 1º turno de 2026 (eleição 6257) e de 2024 (619)".into(),
             Fonte::Caged => format!("Ministério do Trabalho e Emprego, Novo CAGED sem ajuste, pelo IPEA Data (ADMISNC, DESLIGNC); retrato até {}", caged_ate()),
+            Fonte::Saude => {
+                let (ano, mes) = saude_ano_e_mes();
+                let inicio = ano.parse::<u32>().map(|a| (a - 2).to_string()).unwrap_or_default();
+                format!(
+                    "Ministério da Saúde, DATASUS: SINASC e SIM de {ano} por local de residência (mortalidade infantil de {inicio} a {ano}) e leitos do CNES de {mes}, pelo FTP de disseminação; população: IBGE, estimativa de {ano} (tabela 6579)"
+                )
+            }
         }
     }
 
@@ -105,8 +124,16 @@ impl Fonte {
             Fonte::Pix | Fonte::Credito => "ODbL (dados abertos do Banco Central)",
             Fonte::Tse => "CC BY (dados abertos do TSE)",
             Fonte::Caged => "dados abertos; licença do IPEA Data não declarada",
+            Fonte::Saude => "dados abertos do Ministério da Saúde e do IBGE, com citação da fonte",
         }
     }
+}
+
+/// Quantas fontes pesadas ([`Fonte::pesada`]) cabem numa chamada com `n` municípios. Medido em
+/// 21/11/2026: com os 9 de Viçosa, todas (3 do SIDRA e o SICOR) cabem; com os 59 da microrregião de
+/// Viçosa, uma cabe e duas estouram a cota. Pelo menos uma por clique.
+pub fn pesadas_por_chamada(n: usize) -> usize {
+    (40 / n.max(1)).max(1)
 }
 
 /// Junta `novos` em `todos`, município a município.
@@ -246,10 +273,11 @@ pub fn campos_tse(codigos: &[String]) -> PorMunicipio {
     let cabecalho: Vec<&str> = linhas.next().unwrap_or_default().split(',').collect();
     let mut out = PorMunicipio::new();
     for l in linhas {
-        let f: Vec<&str> = l.split(',').collect();
-        let Some(cd) = f.first().filter(|cd| codigos.iter().any(|c| c == *cd)) else {
+        // O código antes de partir a linha: partir as 5.570 linhas gastava a cota da chamada.
+        let Some(cd) = l.split_once(',').map(|(cd, _)| cd).filter(|cd| codigos.iter().any(|c| c == cd)) else {
             continue;
         };
+        let f: Vec<&str> = l.split(',').collect();
         let mut c = Map::new();
         for (k, v) in cabecalho.iter().zip(&f).skip(1) {
             if v.is_empty() {
@@ -280,6 +308,9 @@ pub fn caged_ate() -> &'static str {
 pub fn campos_caged(codigos: &[String]) -> PorMunicipio {
     let mut out = PorMunicipio::new();
     for l in CAGED.lines().skip(1) {
+        if !l.split_once(',').is_some_and(|(cd, _)| codigos.iter().any(|c| c == cd)) {
+            continue;
+        }
         let f: Vec<&str> = l.split(',').collect();
         let [cd, mes, adm, desl, adm12, desl12] = f[..] else {
             continue;
@@ -299,9 +330,77 @@ pub fn campos_caged(codigos: &[String]) -> PorMunicipio {
     out
 }
 
+// ---------------------------------------------------------------------------------------------
+// Saúde
+
+const SAUDE: &str = include_str!("../saude.csv");
+
+/// O ano do SIM e do SINASC e o mês dos leitos do retrato da saúde.
+pub fn saude_ano_e_mes() -> (&'static str, &'static str) {
+    let cab: Vec<&str> = SAUDE.lines().next().unwrap_or_default().split(',').collect();
+    let linha: Vec<&str> = SAUDE.lines().nth(1).unwrap_or_default().split(',').collect();
+    let valor = |nome: &str| cab.iter().position(|c| *c == nome).and_then(|i| linha.get(i)).copied().unwrap_or("?");
+    (valor("ano"), valor("leitos_mes"))
+}
+
+/// Os campos de saúde dos municípios `codigos`, do retrato embutido: cada coluna do `saude.csv`
+/// vira `saude_<coluna>`; as contagens como inteiro, as taxas e partes como número com casas.
+pub fn campos_saude(codigos: &[String]) -> PorMunicipio {
+    let mut linhas = SAUDE.lines();
+    let cabecalho: Vec<&str> = linhas.next().unwrap_or_default().split(',').collect();
+    let mut out = PorMunicipio::new();
+    for l in linhas {
+        // O código antes de partir a linha: partir as 5.570 linhas gastava a cota da chamada.
+        let Some(cd) = l.split_once(',').map(|(cd, _)| cd).filter(|cd| codigos.iter().any(|c| c == cd)) else {
+            continue;
+        };
+        let f: Vec<&str> = l.split(',').collect();
+        let mut c = Map::new();
+        for (k, v) in cabecalho.iter().zip(&f).skip(1) {
+            if v.is_empty() {
+                continue;
+            }
+            let valor = if *k == "leitos_mes" {
+                json!(v)
+            } else if let Ok(n) = v.parse::<i64>() {
+                json!(n)
+            } else if let Ok(x) = v.parse::<f64>() {
+                json!(x)
+            } else {
+                continue;
+            };
+            c.insert(format!("saude_{k}"), valor);
+        }
+        out.insert((*cd).to_string(), c);
+    }
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn as_fontes_pesadas_por_chamada() {
+        assert_eq!(pesadas_por_chamada(9), 4);
+        assert_eq!(pesadas_por_chamada(20), 2);
+        assert_eq!(pesadas_por_chamada(59), 1);
+        assert_eq!(pesadas_por_chamada(0), 40);
+        assert!(Fonte::Agro.pesada() && !Fonte::Saude.pesada());
+    }
+
+    #[test]
+    fn a_saude_de_vicosa_vem_do_retrato() {
+        let c = &campos_saude(&cods(&["3171303"]))["3171303"];
+        assert!(c["saude_nascidos"].as_i64().unwrap() > 500, "{c:?}");
+        assert!(c["saude_obitos"].as_i64().unwrap() > 300, "{c:?}");
+        let mi = c["saude_mort_infantil"].as_f64().unwrap();
+        assert!((2.0..30.0).contains(&mi), "{mi}");
+        assert!(c["saude_leitos_sus"].as_i64().unwrap() > 0);
+        assert_eq!(c["saude_ano"].as_i64().map(|a| a.to_string()).as_deref(), Some(saude_ano_e_mes().0));
+        assert!(Fonte::Saude.eh_campo("saude_cesarea_pct") && !Fonte::Caged.eh_campo("saude_cesarea_pct"));
+        assert!(Fonte::Saude.citacao().contains("DATASUS"));
+    }
 
     fn cods(c: &[&str]) -> Vec<String> {
         c.iter().map(|s| s.to_string()).collect()

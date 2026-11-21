@@ -4,7 +4,8 @@
 //! - **Valores por município:** a API de agregados (SIDRA), `servicodados.ibge.gov.br/api/v3`:
 //!   Censo Demográfico 2022 (tabela 4714) e Censo Agropecuário 2017 (tabela 6753); e, para a
 //!   fonte do Censo Agropecuário, as tabelas dele em [`AGRO`].
-//! - **Contornos:** a API de malhas, um município por pedido (ela não aceita vários).
+//! - **Contornos:** a Malha Municipal 2025 (o WFS do IBGE) pelo retângulo da área, que o RustGIS
+//!   baixa sem passar pelo plugin.
 //! - **Setores censitários de 2022:** um GeoPackage por estado, com os agregados básicos.
 
 use serde_json::Value;
@@ -33,9 +34,118 @@ pub fn municipios(resposta: &Value) -> Vec<(String, String, String)> {
     out
 }
 
-/// O contorno de um município pela API de malhas (qualidade intermediária: leve).
-pub fn url_malha(codigo: &str) -> String {
-    format!("https://servicodados.ibge.gov.br/api/v4/malhas/municipios/{codigo}?formato=application/vnd.geo%2Bjson&qualidade=intermediaria")
+/// Os contornos dos municípios que cruzam `c`, da Malha Municipal 2025 do IBGE (o WFS da camada
+/// Municípios, o mesmo do limite oficial da área), para o RustGIS baixar: 671 KB no retângulo de
+/// Viçosa. A API de malhas generaliza mesmo na qualidade máxima (em Viçosa, 455 vértices contra
+/// 3.786 na Malha), e as divisas saíam grosseiras e fora do contorno da área.
+pub fn url_contornos(c: [f64; 4]) -> String {
+    format!(
+        "https://geoservicos.ibge.gov.br/geoserver/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=CGMAT:qg_2025_030_munic&outputFormat=application/json&bbox={:.6},{:.6},{:.6},{:.6},EPSG:4674",
+        c[0], c[1], c[2], c[3]
+    )
+}
+
+/// O campo `malha` da camada de indicadores feita de [`url_contornos`]: uma camada de antes, com os
+/// contornos da API de malhas, é refeita, e não reaproveitada.
+pub const MALHA: &str = "IBGE, Malha Municipal 2025";
+
+/// Se a camada `l` (uma do `info.project`) tem os contornos de [`url_contornos`] para o retângulo
+/// `c`: o campo `malha`, `n` municípios e uma extensão que cobre `c`.
+pub fn contornos_da_area(l: &Value, c: [f64; 4], n: usize) -> bool {
+    let tem_malha = l["fields"].as_array().into_iter().flatten().filter_map(Value::as_str).any(|f| f.split(" (").next() == Some("malha"));
+    let e: Vec<f64> = l["extent"].as_array().into_iter().flatten().filter_map(Value::as_f64).collect();
+    let cobre = matches!(e[..], [x0, y0, x1, y1] if x0 <= c[0] && y0 <= c[1] && x1 >= c[2] && y1 >= c[3]);
+    tem_malha && cobre && l["features"].as_u64() == Some(n as u64)
+}
+
+/// Os campos que o WFS da Malha traz e a camada de indicadores não leva: a área dele (`area_km2`)
+/// faria a camada parecer do Censo, que tem um campo com esse nome, e citá-lo.
+pub const CAMPOS_DO_WFS: [&str; 4] = ["cd_recorte", "quadro", "cd_uf", "area_km2"];
+
+/// Um ponto de dentro do município `codigo`, pelo contorno embutido ([`crate::malhas`]): a média dos
+/// vértices do maior anel. Num município muito côncavo ele pode cair fora, o que só tira o rótulo.
+pub fn ponto_do_municipio(codigo: &str) -> Option<[f64; 2]> {
+    let g = crate::malhas::geometria(codigo)?;
+    let poligonos: Vec<&Value> = match g["type"].as_str() {
+        Some("Polygon") => vec![&g["coordinates"]],
+        Some("MultiPolygon") => g["coordinates"].as_array()?.iter().collect(),
+        _ => return None,
+    };
+    let anel = poligonos.iter().filter_map(|p| p[0].as_array()).max_by_key(|a| a.len())?;
+    let pontos: Vec<[f64; 2]> = anel.iter().filter_map(|v| Some([v[0].as_f64()?, v[1].as_f64()?])).collect();
+    let n = pontos.len() as f64;
+    (n > 0.0).then(|| [pontos.iter().map(|p| p[0]).sum::<f64>() / n, pontos.iter().map(|p| p[1]).sum::<f64>() / n])
+}
+
+/// Se `p` está dentro da geometria GeoJSON `g` (`Polygon` ou `MultiPolygon`): o raio par-ímpar
+/// sobre todos os anéis, os buracos incluídos.
+pub fn dentro(p: [f64; 2], g: &Value) -> bool {
+    let poligonos: Vec<&Value> = match g["type"].as_str() {
+        Some("Polygon") => vec![&g["coordinates"]],
+        Some("MultiPolygon") => g["coordinates"].as_array().map(|a| a.iter().collect()).unwrap_or_default(),
+        _ => return false,
+    };
+    let mut cruzamentos = 0;
+    for anel in poligonos.iter().filter_map(|p| p.as_array()).flatten().filter_map(Value::as_array) {
+        let v: Vec<[f64; 2]> = anel.iter().filter_map(|v| Some([v[0].as_f64()?, v[1].as_f64()?])).collect();
+        for i in 0..v.len().saturating_sub(1) {
+            let ([x0, y0], [x1, y1]) = (v[i], v[i + 1]);
+            if (y0 > p[1]) != (y1 > p[1]) && p[0] < x0 + (p[1] - y0) * (x1 - x0) / (y1 - y0) {
+                cruzamentos += 1;
+            }
+        }
+    }
+    cruzamentos % 2 == 1
+}
+
+/// Se a camada `l` (uma do `info.project`) é a que [`url_contornos`] acabou de trazer para `c`: os
+/// campos só do WFS (`cd_recorte`), ainda sem o `malha`, `n` municípios e uma extensão que cobre `c`.
+/// Uma camada de antes (a API de malhas) não tem o `cd_recorte` e é refeita.
+pub fn contornos_recem_baixados(l: &Value, c: [f64; 4], n: usize) -> bool {
+    let campos: Vec<&str> =
+        l["fields"].as_array().into_iter().flatten().filter_map(Value::as_str).filter_map(|f| f.split(" (").next()).collect();
+    let e: Vec<f64> = l["extent"].as_array().into_iter().flatten().filter_map(Value::as_f64).collect();
+    let cobre = matches!(e[..], [x0, y0, x1, y1] if x0 <= c[0] && y0 <= c[1] && x1 >= c[2] && y1 >= c[3]);
+    campos.contains(&"cd_recorte") && !campos.contains(&"malha") && cobre && l["features"].as_u64() == Some(n as u64)
+}
+
+/// Os campos de `campos` como o Calculate Field os grava: o nome, o tipo e um CASE pelo código do
+/// município. Um campo só de inteiros é `long`; com algum número com casas, `double`; senão, `text`.
+pub fn campos_por_case(campos: &HashMap<String, serde_json::Map<String, Value>>) -> Vec<(String, &'static str, String)> {
+    let mut nomes: Vec<&String> = Vec::new();
+    let mut codigos: Vec<&String> = campos.keys().collect();
+    codigos.sort();
+    for cd in &codigos {
+        for k in campos[*cd].keys() {
+            if !nomes.contains(&k) {
+                nomes.push(k);
+            }
+        }
+    }
+    let mut out = Vec::new();
+    for k in nomes {
+        let valores: Vec<(&String, &Value)> = codigos.iter().filter_map(|cd| campos[*cd].get(k).map(|v| (*cd, v))).collect();
+        let tipo = if valores.iter().all(|(_, v)| v.is_i64() || v.is_u64()) {
+            "long"
+        } else if valores.iter().all(|(_, v)| v.is_number()) {
+            "double"
+        } else {
+            "text"
+        };
+        let mut e = String::from("CASE cd_mun");
+        for (cd, v) in valores {
+            let valor = match v {
+                Value::Number(n) => n.to_string(),
+                Value::String(s) => format!("'{}'", s.replace('\'', "''")),
+                Value::Bool(b) => b.to_string(),
+                _ => "NULL".into(),
+            };
+            e.push_str(&format!(" WHEN '{cd}' THEN {valor}"));
+        }
+        e.push_str(" ELSE NULL END");
+        out.push((k.clone(), tipo, e));
+    }
+    out
 }
 
 /// Uma variável de uma tabela do SIDRA que vira um campo da camada.
@@ -658,5 +768,57 @@ mod tests {
         ]});
         assert_eq!(municipios(&r).len(), 2);
         assert!(url_setores("PI").ends_with("/gpkg/UF/PI/PI_setores_CD2022.gpkg"));
+    }
+
+    #[test]
+    fn os_contornos_vem_da_malha_e_os_campos_por_case() {
+        let c = [-43.003, -20.838, -42.754, -20.655];
+        let u = url_contornos(c);
+        assert!(
+            u.contains("typeNames=CGMAT:qg_2025_030_munic") && u.contains("bbox=-43.003000,-20.838000,-42.754000,-20.655000,EPSG:4674")
+        );
+        // A camada desta área (campo malha, 9 municípios, extensão que cobre o retângulo), não a de outra.
+        let l = serde_json::json!({"fields": ["cd_mun (Text)", "malha (Text)"], "features": 9, "extent": [-43.2, -21.0, -42.6, -20.5]});
+        assert!(contornos_da_area(&l, c, 9));
+        assert!(!contornos_da_area(&l, c, 8));
+        assert!(!contornos_da_area(
+            &serde_json::json!({"fields": ["cd_mun (Text)"], "features": 9, "extent": [-43.2, -21.0, -42.6, -20.5]}),
+            c,
+            9
+        ));
+        assert!(!contornos_da_area(&l, [-44.0, -21.0, -43.5, -20.0], 9));
+        // A que o WFS acabou de trazer (campos dele, sem o malha), e não a de antes (API de malhas).
+        let wfs = serde_json::json!({"fields": ["cd_mun (Text)", "cd_recorte (Text)", "area_km2 (Double)"], "features": 9, "extent": [-43.2, -21.0, -42.6, -20.5]});
+        assert!(contornos_recem_baixados(&wfs, c, 9) && !contornos_da_area(&wfs, c, 9));
+        let antiga =
+            serde_json::json!({"fields": ["cd_mun (Text)", "nm_mun (Text)"], "features": 9, "extent": [-43.2, -21.0, -42.6, -20.5]});
+        assert!(!contornos_recem_baixados(&antiga, c, 9));
+        assert!(!contornos_recem_baixados(&l, c, 9));
+        // Os campos: inteiros, com casas e texto, cada um num CASE pelo código.
+        let mut campos: HashMap<String, serde_json::Map<String, Value>> = HashMap::new();
+        campos.insert(
+            "3171303".into(),
+            serde_json::json!({"saude_nascidos": 786, "saude_mort_infantil": 8.2, "saude_leitos_mes": "2026-10"})
+                .as_object()
+                .unwrap()
+                .clone(),
+        );
+        campos
+            .insert("3110202".into(), serde_json::json!({"saude_nascidos": 42, "saude_mort_infantil": 29.4}).as_object().unwrap().clone());
+        let por_nome: HashMap<String, (&str, String)> = campos_por_case(&campos).into_iter().map(|(k, t, e)| (k, (t, e))).collect();
+        assert_eq!(por_nome["saude_nascidos"].0, "long");
+        assert_eq!(por_nome["saude_mort_infantil"].0, "double");
+        assert_eq!(por_nome["saude_mort_infantil"].1, "CASE cd_mun WHEN '3110202' THEN 29.4 WHEN '3171303' THEN 8.2 ELSE NULL END");
+        assert_eq!(por_nome["saude_leitos_mes"], ("text", "CASE cd_mun WHEN '3171303' THEN '2026-10' ELSE NULL END".to_string()));
+    }
+
+    #[test]
+    fn o_centro_de_vicosa_esta_em_vicosa_e_o_de_teixeiras_nao() {
+        let vicosa = crate::malhas::geometria("3171303").unwrap();
+        let p = ponto_do_municipio("3171303").unwrap();
+        assert!(dentro(p, &vicosa), "{p:?}");
+        let teixeiras = ponto_do_municipio("3168507").unwrap();
+        assert!(!dentro(teixeiras, &vicosa), "{teixeiras:?}");
+        assert!(ponto_do_municipio("9999999").is_none());
     }
 }

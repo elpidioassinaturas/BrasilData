@@ -37,7 +37,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.52"
+VERSAO = "0.1.53"
 AUTOR = "Elpídio Filho"
 # Como o texto Sobre chama o autor (o manifesto e o README levam o nome completo).
 AUTOR_SOBRE = "Professor Elpídio"
@@ -477,7 +477,7 @@ EM_MENUS = [
         {
             "id": "censo-municipios",
             "label": "Censos por município (IBGE)",
-            "help": "População, área e densidade de 2022 (Censo Demográfico) e estabelecimentos agropecuários e agricultura familiar de 2017 (Censo Agropecuário), do IBGE. Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem.",
+            "help": "População, área e densidade de 2022 (Censo Demográfico) e estabelecimentos agropecuários e agricultura familiar de 2017 (Censo Agropecuário), do IBGE. Na camada Indicadores por município (os municípios que cruzam a área, até 200, mostrados só dentro dela): os campos se somam aos que ela já tem.",
             "icon": "field",
             "params": "{}",
         },
@@ -488,7 +488,7 @@ EM_MENUS = [
         {
             "id": "indicadores-pix",
             "label": "Pix (Banco Central)",
-            "help": "O Pix do último mês completo: valor pago e recebido (R$), transações pagas e pessoas físicas pagadoras. Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem.",
+            "help": "O Pix do último mês completo: valor pago e recebido (R$), transações pagas e pessoas físicas pagadoras. Na camada Indicadores por município (os municípios que cruzam a área, até 200, mostrados só dentro dela): os campos se somam aos que ela já tem.",
             "icon": "field",
             "params": "{}",
         },
@@ -499,7 +499,7 @@ EM_MENUS = [
         {
             "id": "indicadores-credito",
             "label": "Crédito rural de custeio (Banco Central)",
-            "help": "O custeio do último ano completo, do SICOR: total, Pronaf, agrícola e pecuário (R$) e área (ha). O SICOR é lento: cerca de 10 s para cada 6 municípios. Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem.",
+            "help": "O custeio do último ano completo, do SICOR: total, Pronaf, agrícola e pecuário (R$) e área (ha). O SICOR é lento: cerca de 10 s para cada 6 municípios. Na camada Indicadores por município (os municípios que cruzam a área, até 200, mostrados só dentro dela): os campos se somam aos que ela já tem.",
             "icon": "field",
             "params": "{}",
         },
@@ -510,7 +510,7 @@ EM_MENUS = [
         {
             "id": "censo-agro",
             "label": "Censo Agropecuário 2017 (IBGE)",
-            "help": "Do Censo Agropecuário de 2017 (IBGE): estabelecimentos e agricultura familiar, utilização das terras (lavouras, pastagens e matas, ha), bovinos, pessoal ocupado, tratores, irrigação, uso de agrotóxicos, energia elétrica, orientação técnica e valor da produção (mil R$). Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem; o painel Fontes diz o que é cada campo.",
+            "help": "Do Censo Agropecuário de 2017 (IBGE): estabelecimentos e agricultura familiar, utilização das terras (lavouras, pastagens e matas, ha), bovinos, pessoal ocupado, tratores, irrigação, uso de agrotóxicos, energia elétrica, orientação técnica e valor da produção (mil R$). Na camada Indicadores por município (os municípios que cruzam a área, até 200, mostrados só dentro dela): os campos se somam aos que ela já tem; o painel Fontes diz o que é cada campo.",
             "icon": "field",
             "params": "{}",
         },
@@ -521,7 +521,7 @@ EM_MENUS = [
         {
             "id": "censo-agroecologia",
             "label": "Agroecologia (Censo Agropecuário 2017)",
-            "help": "Práticas agroecológicas do Censo Agropecuário de 2017 (IBGE), em número de estabelecimentos: agricultura ou pecuária orgânica, associação a cooperativa ou entidade, práticas de conservação (plantio em nível, rotação de culturas, pousio, proteção de encostas, recuperação de mata ciliar, reflorestamento de nascentes, manejo florestal), plantio direto (e sua área), cultivo mínimo, adubação orgânica ou química, quem não usou agrotóxicos e a área de sistemas agroflorestais (ha). Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem; o painel Fontes diz o que é cada campo.",
+            "help": "Práticas agroecológicas do Censo Agropecuário de 2017 (IBGE), em número de estabelecimentos: agricultura ou pecuária orgânica, associação a cooperativa ou entidade, práticas de conservação (plantio em nível, rotação de culturas, pousio, proteção de encostas, recuperação de mata ciliar, reflorestamento de nascentes, manejo florestal), plantio direto (e sua área), cultivo mínimo, adubação orgânica ou química, quem não usou agrotóxicos e a área de sistemas agroflorestais (ha). Na camada Indicadores por município (os municípios que cruzam a área, até 200, mostrados só dentro dela): os campos se somam aos que ela já tem; o painel Fontes diz o que é cada campo.",
             "icon": "field",
             "params": "{}",
         },
@@ -532,7 +532,7 @@ EM_MENUS = [
         {
             "id": "indicadores-tse",
             "label": "Eleitorado e comparecimento (TSE)",
-            "help": "Eleitorado, comparecimento e abstenção (%) no 1º turno de 2026 e de 2024, da divulgação oficial do TSE. Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem.",
+            "help": "Eleitorado, comparecimento e abstenção (%) no 1º turno de 2026 e de 2024, da divulgação oficial do TSE. Na camada Indicadores por município (os municípios que cruzam a área, até 200, mostrados só dentro dela): os campos se somam aos que ela já tem.",
             "icon": "field",
             "params": "{}",
         },
@@ -543,7 +543,7 @@ EM_MENUS = [
         {
             "id": "indicadores-caged",
             "label": "Emprego formal (Novo CAGED)",
-            "help": "Admissões, desligamentos e saldo nos últimos 12 meses e o saldo do último mês, do Novo CAGED (IPEA Data), num retrato que vem com o plugin. Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem.",
+            "help": "Admissões, desligamentos e saldo nos últimos 12 meses e o saldo do último mês, do Novo CAGED (IPEA Data), num retrato que vem com o plugin. Na camada Indicadores por município (os municípios que cruzam a área, até 200, mostrados só dentro dela): os campos se somam aos que ela já tem.",
             "icon": "field",
             "params": "{}",
         },
@@ -554,7 +554,7 @@ EM_MENUS = [
         {
             "id": "indicadores-todos",
             "label": "Todos os indicadores",
-            "help": "Censos, Censo Agropecuário, agroecologia, Pix, crédito rural, eleições e emprego formal, de uma vez. Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem. No desktop, se o tempo de uma chamada acabar, o aviso pede um novo clique, que continua de onde parou.",
+            "help": "Censos, Censo Agropecuário, agroecologia, Pix, crédito rural, eleições, emprego formal e saúde, de uma vez. Na camada Indicadores por município (os municípios que cruzam a área, até 200, mostrados só dentro dela): os campos se somam aos que ela já tem. No desktop, se o tempo de uma chamada acabar, o aviso pede um novo clique, que continua de onde parou.",
             "icon": "stats",
             "params": "{}",
         },
@@ -567,6 +567,17 @@ EM_MENUS = [
             "label": "Estabelecimentos de saúde (CNES, DATASUS)",
             "help": "Os estabelecimentos de saúde ativos na área, do CNES do Ministério da Saúde (competência 04/2026, pelo geobr do Ipea), com nome, tipo, natureza jurídica, gestão e bairro. Os de pessoa física e de empresário individual, cujo nome é o de uma pessoa, ficam de fora. Só no desktop: o primeiro clique abre o arquivo do Brasil (98 MB, lido aos pedaços), o segundo recorta pela área.",
             "icon": "point_layer",
+            "params": "{}",
+        },
+    ),
+    (
+        "Sociedade e economia",
+        "Saúde",
+        {
+            "id": "indicadores-saude",
+            "label": "Indicadores de saúde (DATASUS)",
+            "help": "Indicadores de saúde por município, do DATASUS, num retrato que vem com o plugin: nascidos vivos e, entre eles, a parte com baixo peso, por cesárea, de mãe adolescente e com 7 ou mais consultas de pré-natal (SINASC); óbitos, a taxa de mortalidade por mil habitantes e a parte por causas externas, doenças do aparelho circulatório, neoplasias e doenças respiratórias (SIM); a mortalidade infantil por mil nascidos vivos, em 3 anos; e os leitos existentes e do SUS do CNES, por mil habitantes. Por local de residência. Na camada Indicadores por município (os municípios que cruzam a área, até 200, mostrados só dentro dela): os campos se somam aos que ela já tem; o layout faz o mapa da mortalidade infantil.",
+            "icon": "field",
             "params": "{}",
         },
     ),
@@ -1301,7 +1312,7 @@ SO_SCRIPTS = [
         "label": "Indicadores por município",
         "help": "Os indicadores das fontes escolhidas na camada Indicadores por município.",
         "icon": "field",
-        "params": "{\"fontes\"?: lista entre censo, pix, credito, tse e caged (padrão: todas)}",
+        "params": "{\"fontes\"?: lista entre censo, agro, agroeco, pix, credito, tse, caged e saude (padrão: todas)}",
     },
 ]
 

@@ -173,7 +173,7 @@ Cada tipo de camada recebe o seu tratamento:
 - **Indicadores por município e setores censitários:** saem num mapa coroplético da variável
   principal, em 5 classes (quantis com 30 feições ou mais, quebras naturais com menos). O
   subtítulo diz qual é a variável: densidade, estabelecimentos agropecuários, Pix, crédito de
-  custeio, abstenção ou saldo do CAGED.
+  custeio, abstenção, saldo do CAGED ou mortalidade infantil.
 - **Polígonos de referência maiores que a área** (municípios vizinhos, regiões, bacias): ficam com
   um véu claro, o contorno e o nome de cada feição, sem pintar a folha inteira.
 
@@ -268,7 +268,7 @@ estilo.
 | Tópico | Subtópicos |
 |---|---|
 | Território | Limites (IBGE: Brasil, Grandes Regiões, estados, regiões intermediárias e imediatas, meso e microrregiões, municípios, distritos, subdistritos, bairros e localidades), Recortes especiais (IBGE: Amazônia Legal, Semiárido, MATOPIBA, SUDENE, municípios costeiros, regiões metropolitanas, aglomerações, concentrações e arranjos urbanos, hierarquia urbana; zonas do ZEE-MG), Cadastro fundiário (SFB, INCRA), Terras indígenas (FUNAI) |
-| Sociedade e economia | População (IBGE: setores censitários, censos, áreas de ponderação, área urbana e rural, favelas e comunidades urbanas), Economia (Pix do Banco Central, Novo CAGED), Agricultura (crédito rural do Banco Central, Censo Agropecuário e agroecologia do IBGE; sistemas de irrigação do MapBiomas; área equipada para irrigação do GMIA v5, FAO), Eleições (TSE), Saúde (estabelecimentos do CNES, DATASUS) e Todos os indicadores |
+| Sociedade e economia | População (IBGE: setores censitários, censos, áreas de ponderação, área urbana e rural, favelas e comunidades urbanas), Economia (Pix do Banco Central, Novo CAGED), Agricultura (crédito rural do Banco Central, Censo Agropecuário e agroecologia do IBGE; sistemas de irrigação do MapBiomas; área equipada para irrigação do GMIA v5, FAO), Eleições (TSE), Saúde (estabelecimentos do CNES; indicadores do SIM, do SINASC e do CNES, DATASUS) e Todos os indicadores |
 | Meio físico | Geologia e recursos minerais (IBGE, ANM, Feam, MapBiomas), Relevo (geomorfologia do IBGE; elevação do Copernicus GLO-30; GEM-15 do Google a 15 m; terreno da América do Sul do ANADEM, ANA e IPH/UFRGS; GEDTM30 da OpenGeoHub, com a elevação e 15 derivadas, como declividade, TWI, curvaturas, aberturas e geomorfons), Solos (IBGE; solos, aptidão, infiltração, água disponível e erosão de MG, Sisema e ZEE-MG; propriedades do solo a 30 m do OpenLandMap-soildb; seca do Copernicus GDO) |
 | Tempo e clima | Previsão (pelo Open-Meteo: a chuva prevista do ECMWF IFS, do AIFS, do GFS e do ICON, a chance e a faixa provável de chuva dos ensembles ECMWF ENS, AIFS-ENS e GEFS, e a temperatura prevista), Chuva observada (o total do mês do CHIRPS v3; a taxa de chuva de agora do PARDIG, Google DeepMind; a chuva medida nas estações do CEMADEN), Desastres (alertas vigentes do CEMADEN), Clima (seca do Copernicus GDO; radiação solar do NASA POWER; climatologia do Risco de Fogo do INPE), Clima passado (chuva, temperatura e umidade do solo da reanálise ERA5, desde 1940), Satélites do JAXA (chuva do GSMaP, umidade do solo do AMSR2, temperatura da superfície e evapotranspiração do GCOM-C, SPI) |
 | Água | Hidrografia (IBGE, ANA), Bacias (IBGE, ANA, IGAM), Recursos hídricos (ANA; estresse hídrico do Aqueduct 4.0, WRI; outorgas e usos insignificantes de MG, IGAM; sistemas de irrigação do MapBiomas; área equipada para irrigação do GMIA v5, FAO) |
@@ -425,6 +425,18 @@ Fora da tabela, com a citação no comando **Fontes**:
   mesmo censo, traz a produção orgânica, a associação a cooperativas e entidades, as práticas de
   conservação, o plantio direto, a adubação orgânica ou química, quem não usou agrotóxicos e a área
   de sistemas agroflorestais. A tabela das fontes diz o que é cada campo;
+- **Indicadores de saúde (Saúde):** Ministério da Saúde, DATASUS, pelo FTP de disseminação, por
+  local de residência:
+  - **SINASC:** os nascidos vivos e a parte com baixo peso, por cesárea, de mãe adolescente e com 7
+    ou mais consultas de pré-natal;
+  - **SIM:** os óbitos, a taxa por mil habitantes e a parte por causas externas, circulatórias,
+    neoplasias e respiratórias, pelos capítulos da CID-10, além da mortalidade infantil por mil
+    nascidos vivos, somada em 3 anos;
+  - **CNES:** os leitos existentes e os do SUS, também por mil habitantes;
+  - **População:** a estimativa do IBGE (tabela 6579).
+
+  Os microdados vêm em .dbc num FTP, que o plugin não lê. Por isso eles vêm num retrato embutido
+  (`saude.csv`), refeito por `scripts/baixar_saude.py` quando o DATASUS fecha um ano novo;
 - **Setores censitários:** IBGE, Censo Demográfico 2022, agregados por setores. Os campos V0001 a
   V0007 do IBGE chegam com nomes legíveis: `pessoas`, `domicilios`, `dom_particulares`,
   `dom_coletivos`, `media_moradores`, `prop_imputados` (proporção de 0 a 1) e `dom_part_ocupados`.
@@ -622,8 +634,10 @@ O `package.py` e o `smoke.py` vêm do
   seções Instalar, Autoria e Licença), do `plugin.json`, do `fontes.csv`, do `fichas.csv` e de
   `docs/camadas`; o estilo e a busca ficam em `site/`. O workflow *Pages* a publica a cada push na
   `main`, e o CI confere que ela é gerada.
-- **Tabelas embutidas:** `municipios.csv`, `malhas.bin`, `tse.csv` e `caged.csv` são refeitas pelos
-  `scripts/baixar_*.py` (`baixar_malhas.py` depois de `baixar_municipios.py`).
+- **Tabelas embutidas:** `municipios.csv`, `malhas.bin`, `tse.csv`, `caged.csv` e `saude.csv` são
+  refeitas pelos `scripts/baixar_*.py` (`baixar_malhas.py` depois de `baixar_municipios.py`; o
+  `baixar_saude.py` roda com `uv run --python 3.12 --with pyreaddbc --with dbfread` e baixa cerca de
+  900 MB do FTP do DATASUS).
 - **Versão do RustGIS no CI:** a variável `RUSTGIS_VERSION` do repositório escolhe a versão em
   que o plugin roda; sem ela, é a mais recente.
 

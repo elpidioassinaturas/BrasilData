@@ -21,6 +21,7 @@ pub fn comando_da_camada(nome: &str, fonte: &str) -> Option<&'static str> {
         (indicadores::Fonte::Credito, "indicadores-credito"),
         (indicadores::Fonte::Tse, "indicadores-tse"),
         (indicadores::Fonte::Caged, "indicadores-caged"),
+        (indicadores::Fonte::Saude, "indicadores-saude"),
     ];
     if n == "Indicadores por município" {
         return por_fonte.iter().find(|(f, _)| f.citacao() == fonte).map(|(_, id)| *id);

@@ -421,7 +421,24 @@ pub const COROPLETICOS: &[(&str, &str, &str)] = &[
     ("credito_custeio", "crédito rural de custeio no ano (R$)", "Greens"),
     ("abstencao_2026", "abstenção no 1º turno de 2026 (%)", "Purples"),
     ("caged_saldo_12m", "saldo de empregos formais em 12 meses (CAGED)", "Oranges"),
+    ("saude_mort_infantil", "mortalidade infantil por mil nascidos vivos, em 3 anos (DATASUS)", "Reds"),
 ];
+
+/// As 5 cores de uma rampa de [`COROPLETICOS`] (ColorBrewer), opacas. O RustGIS pinta as classes
+/// de um polígono translúcidas, e uma camada do projeto por baixo (os países do World Atlas) tingia
+/// o mapa; com as cores opacas, a cor do mapa é a da legenda.
+pub fn cores_opacas(rampa: &str) -> Option<[&'static str; 5]> {
+    Some(match rampa {
+        "YlOrRd" => ["#FFFFB2FF", "#FECC5CFF", "#FD8D3CFF", "#F03B20FF", "#BD0026FF"],
+        "YlGn" => ["#FFFFCCFF", "#C2E699FF", "#78C679FF", "#31A354FF", "#006837FF"],
+        "Greens" => ["#EDF8E9FF", "#BAE4B3FF", "#74C476FF", "#31A354FF", "#006D2CFF"],
+        "Blues" => ["#EFF3FFFF", "#BDD7E7FF", "#6BAED6FF", "#3182BDFF", "#08519CFF"],
+        "Purples" => ["#F2F0F7FF", "#CBC9E2FF", "#9E9AC8FF", "#756BB1FF", "#54278FFF"],
+        "Oranges" => ["#FEEDDEFF", "#FDBE85FF", "#FD8D3CFF", "#E6550DFF", "#A63603FF"],
+        "Reds" => ["#FEE5D9FF", "#FCAE91FF", "#FB6A4AFF", "#DE2D26FF", "#A50F15FF"],
+        _ => return None,
+    })
+}
 
 /// O mapa coroplético da camada `l` (uma do `info.project`): um polígono com um dos campos de
 /// [`COROPLETICOS`].
@@ -431,6 +448,20 @@ pub fn coropletico(l: &serde_json::Value) -> Option<(&'static str, &'static str,
     }
     let campos: Vec<&str> = l["fields"].as_array()?.iter().filter_map(|f| f.as_str()).map(|f| f.split(" (").next().unwrap_or(f)).collect();
     COROPLETICOS.iter().find(|(c, ..)| campos.contains(c)).copied()
+}
+
+/// As camadas visíveis do `info.project` que não são do BrasilData (as do projeto do usuário): o
+/// layout as deixa fora da legenda.
+pub fn camadas_alheias(info: &serde_json::Value) -> Vec<String> {
+    info["layers"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter(|l| l["visible"].as_bool() != Some(false))
+        .filter_map(|l| l["name"].as_str())
+        .filter(|n| !n.starts_with(PREFIXO))
+        .map(str::to_string)
+        .collect()
 }
 
 /// Se a camada `l` (uma do `info.project`) é um polígono de referência maior que o retângulo `c`
@@ -629,5 +660,18 @@ mod tests {
         assert_eq!(passo_da_grade([-51.05, -22.93, -39.85, -14.23]), 200_000.0);
         assert_eq!(titulo("Viçosa (MG)\n-43.005, -20.839 a -42.754, -20.655"), "VIÇOSA (MG)");
         assert_eq!(titulo("3 polígonos\n-43, -21 a -42, -20"), "ÁREA DE TRABALHO");
+    }
+
+    #[test]
+    fn as_camadas_do_projeto_ficam_fora_da_legenda() {
+        // O projeto de exemplo do RustGIS (World Atlas) com uma camada do BrasilData por cima.
+        let info = serde_json::json!({"layers": [
+            {"name": "BrasilData: Indicadores por município", "visible": true},
+            {"name": "BrasilData: área", "visible": true},
+            {"name": "Cities", "visible": true},
+            {"name": "Rivers"},
+            {"name": "Countries", "visible": false},
+        ]});
+        assert_eq!(camadas_alheias(&info), ["Cities", "Rivers"]);
     }
 }

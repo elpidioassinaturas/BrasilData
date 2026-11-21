@@ -15,10 +15,10 @@ Práticas agroecológicas do Censo Agropecuário 2017 por município: produção
 | **Período** | 2017 |
 | **Resolução ou escala** | município |
 | **Unidades** | número de estabelecimentos; ha (plantio direto, SAFs). |
-| **Legenda** | Na camada Indicadores por município, os municípios que cruzam a área (até 50); o layout faz um mapa coroplético. A tabela Fontes diz o que é cada campo. |
+| **Legenda** | Na camada Indicadores por município, os municípios que cruzam a área (até 200, mostrados só dentro dela); o layout faz um mapa coroplético. A tabela Fontes diz o que é cada campo. |
 | **Cuidados de uso** | Um estabelecimento pode adotar várias práticas: os números não se somam. |
 | **Licença** | uso livre com citação da fonte |
-| **Citação** | IBGE, Censo Agropecuário 2017, resultados definitivos, práticas agroecológicas, API de agregados; contornos da API de malhas. |
+| **Citação** | IBGE, Censo Agropecuário 2017, resultados definitivos, práticas agroecológicas, API de agregados; contornos da Malha Municipal 2025 (WFS do IBGE). |
 | **App desktop** | sim |
 | **App web** | sim |
 

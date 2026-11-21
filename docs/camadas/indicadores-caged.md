@@ -15,7 +15,7 @@ O emprego formal do Novo CAGED por município: admissões, desligamentos e saldo
 | **Período** | os 12 meses até o último mês do retrato que vem com o plugin. |
 | **Resolução ou escala** | município |
 | **Unidades** | número de vínculos de emprego |
-| **Legenda** | Na camada Indicadores por município, os municípios que cruzam a área (até 50); o layout faz um mapa coroplético. Os dados vêm num retrato guardado no plugin. |
+| **Legenda** | Na camada Indicadores por município, os municípios que cruzam a área (até 200, mostrados só dentro dela); o layout faz um mapa coroplético. Os dados vêm num retrato guardado no plugin. |
 | **Cuidados de uso** | Só o emprego com carteira assinada; a informalidade não aparece. |
 | **Licença** | dados abertos; licença do IPEA Data não declarada. |
 | **Citação** | Ministério do Trabalho e Emprego, Novo CAGED, pelo IPEA Data. |

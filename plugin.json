@@ -1,7 +1,7 @@
 {
   "id": "brasildata",
   "name": "BrasilData",
-  "version": "0.1.52",
+  "version": "0.1.53",
   "description": "Dados públicos do Brasil para a área do usuário (IBGE, MMA, ICMBio, INPE, CEMADEN, ANA, ANEEL, ANP, SFB/CAR, INCRA, FUNAI, IBAMA, ANM, DNIT, Ministério da Saúde, Copernicus, NASA/ASF, FAO, WRI, Open-Meteo, CHIRPS, Google DeepMind): só o que cruza a área, recortado por ela, com a fonte e a licença de cada camada.",
   "author": "Elpídio Filho",
   "homepage": "https://github.com/elpidioassinaturas/BrasilData",
@@ -127,7 +127,7 @@
       "label": "Indicadores por município",
       "help": "Os indicadores das fontes escolhidas na camada Indicadores por município.",
       "icon": "field",
-      "params": "{\"fontes\"?: lista entre censo, pix, credito, tse e caged (padrão: todas)}"
+      "params": "{\"fontes\"?: lista entre censo, agro, agroeco, pix, credito, tse, caged e saude (padrão: todas)}"
     },
     {
       "id": "brasil",
@@ -832,56 +832,56 @@
     {
       "id": "censo-municipios",
       "label": "Censos por município (IBGE)",
-      "help": "População, área e densidade de 2022 (Censo Demográfico) e estabelecimentos agropecuários e agricultura familiar de 2017 (Censo Agropecuário), do IBGE. Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem. Período: 2022 (população) e 2017 (estabelecimentos). Resolução ou escala: município. Unidades: habitantes; km²; habitantes por km²; número de estabelecimentos; ha. Licença: uso livre com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/censo-municipios.md",
+      "help": "População, área e densidade de 2022 (Censo Demográfico) e estabelecimentos agropecuários e agricultura familiar de 2017 (Censo Agropecuário), do IBGE. Na camada Indicadores por município (os municípios que cruzam a área, até 200, mostrados só dentro dela): os campos se somam aos que ela já tem. Período: 2022 (população) e 2017 (estabelecimentos). Resolução ou escala: município. Unidades: habitantes; km²; habitantes por km²; número de estabelecimentos; ha. Licença: uso livre com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/censo-municipios.md",
       "icon": "field",
       "params": "{}"
     },
     {
       "id": "indicadores-pix",
       "label": "Pix (Banco Central)",
-      "help": "O Pix do último mês completo: valor pago e recebido (R$), transações pagas e pessoas físicas pagadoras. Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem. Período: o último mês completo publicado. Resolução ou escala: município. Unidades: R$; número de transações; número de pessoas. Licença: ODbL (dados abertos do Banco Central). Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/indicadores-pix.md",
+      "help": "O Pix do último mês completo: valor pago e recebido (R$), transações pagas e pessoas físicas pagadoras. Na camada Indicadores por município (os municípios que cruzam a área, até 200, mostrados só dentro dela): os campos se somam aos que ela já tem. Período: o último mês completo publicado. Resolução ou escala: município. Unidades: R$; número de transações; número de pessoas. Licença: ODbL (dados abertos do Banco Central). Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/indicadores-pix.md",
       "icon": "field",
       "params": "{}"
     },
     {
       "id": "indicadores-credito",
       "label": "Crédito rural de custeio (Banco Central)",
-      "help": "O custeio do último ano completo, do SICOR: total, Pronaf, agrícola e pecuário (R$) e área (ha). O SICOR é lento: cerca de 10 s para cada 6 municípios. Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem. Período: o último ano completo. Resolução ou escala: município. Unidades: R$; ha. Licença: ODbL (dados abertos do Banco Central). Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/indicadores-credito.md",
+      "help": "O custeio do último ano completo, do SICOR: total, Pronaf, agrícola e pecuário (R$) e área (ha). O SICOR é lento: cerca de 10 s para cada 6 municípios. Na camada Indicadores por município (os municípios que cruzam a área, até 200, mostrados só dentro dela): os campos se somam aos que ela já tem. Período: o último ano completo. Resolução ou escala: município. Unidades: R$; ha. Licença: ODbL (dados abertos do Banco Central). Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/indicadores-credito.md",
       "icon": "field",
       "params": "{}"
     },
     {
       "id": "censo-agro",
       "label": "Censo Agropecuário 2017 (IBGE)",
-      "help": "Do Censo Agropecuário de 2017 (IBGE): estabelecimentos e agricultura familiar, utilização das terras (lavouras, pastagens e matas, ha), bovinos, pessoal ocupado, tratores, irrigação, uso de agrotóxicos, energia elétrica, orientação técnica e valor da produção (mil R$). Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem; o painel Fontes diz o que é cada campo. Período: 2017 (período de referência de 01/10/2016 a 30/09/2017). Resolução ou escala: município. Unidades: número de estabelecimentos; ha; cabeças; pessoas; mil R$. Licença: uso livre com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/censo-agro.md",
+      "help": "Do Censo Agropecuário de 2017 (IBGE): estabelecimentos e agricultura familiar, utilização das terras (lavouras, pastagens e matas, ha), bovinos, pessoal ocupado, tratores, irrigação, uso de agrotóxicos, energia elétrica, orientação técnica e valor da produção (mil R$). Na camada Indicadores por município (os municípios que cruzam a área, até 200, mostrados só dentro dela): os campos se somam aos que ela já tem; o painel Fontes diz o que é cada campo. Período: 2017 (período de referência de 01/10/2016 a 30/09/2017). Resolução ou escala: município. Unidades: número de estabelecimentos; ha; cabeças; pessoas; mil R$. Licença: uso livre com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/censo-agro.md",
       "icon": "field",
       "params": "{}"
     },
     {
       "id": "censo-agroecologia",
       "label": "Agroecologia (Censo Agropecuário 2017)",
-      "help": "Práticas agroecológicas do Censo Agropecuário de 2017 (IBGE), em número de estabelecimentos: agricultura ou pecuária orgânica, associação a cooperativa ou entidade, práticas de conservação (plantio em nível, rotação de culturas, pousio, proteção de encostas, recuperação de mata ciliar, reflorestamento de nascentes, manejo florestal), plantio direto (e sua área), cultivo mínimo, adubação orgânica ou química, quem não usou agrotóxicos e a área de sistemas agroflorestais (ha). Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem; o painel Fontes diz o que é cada campo. Período: 2017. Resolução ou escala: município. Unidades: número de estabelecimentos; ha (plantio direto, SAFs). Licença: uso livre com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/censo-agroecologia.md",
+      "help": "Práticas agroecológicas do Censo Agropecuário de 2017 (IBGE), em número de estabelecimentos: agricultura ou pecuária orgânica, associação a cooperativa ou entidade, práticas de conservação (plantio em nível, rotação de culturas, pousio, proteção de encostas, recuperação de mata ciliar, reflorestamento de nascentes, manejo florestal), plantio direto (e sua área), cultivo mínimo, adubação orgânica ou química, quem não usou agrotóxicos e a área de sistemas agroflorestais (ha). Na camada Indicadores por município (os municípios que cruzam a área, até 200, mostrados só dentro dela): os campos se somam aos que ela já tem; o painel Fontes diz o que é cada campo. Período: 2017. Resolução ou escala: município. Unidades: número de estabelecimentos; ha (plantio direto, SAFs). Licença: uso livre com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/censo-agroecologia.md",
       "icon": "field",
       "params": "{}"
     },
     {
       "id": "indicadores-tse",
       "label": "Eleitorado e comparecimento (TSE)",
-      "help": "Eleitorado, comparecimento e abstenção (%) no 1º turno de 2026 e de 2024, da divulgação oficial do TSE. Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem. Período: 1º turno de 2024 (municipal) e de 2026 (geral). Resolução ou escala: município. Unidades: eleitores; % de comparecimento e de abstenção. Licença: CC BY (dados abertos do TSE). Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/indicadores-tse.md",
+      "help": "Eleitorado, comparecimento e abstenção (%) no 1º turno de 2026 e de 2024, da divulgação oficial do TSE. Na camada Indicadores por município (os municípios que cruzam a área, até 200, mostrados só dentro dela): os campos se somam aos que ela já tem. Período: 1º turno de 2024 (municipal) e de 2026 (geral). Resolução ou escala: município. Unidades: eleitores; % de comparecimento e de abstenção. Licença: CC BY (dados abertos do TSE). Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/indicadores-tse.md",
       "icon": "field",
       "params": "{}"
     },
     {
       "id": "indicadores-caged",
       "label": "Emprego formal (Novo CAGED)",
-      "help": "Admissões, desligamentos e saldo nos últimos 12 meses e o saldo do último mês, do Novo CAGED (IPEA Data), num retrato que vem com o plugin. Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem. Período: os 12 meses até o último mês do retrato que vem com o plugin. Resolução ou escala: município. Unidades: número de vínculos de emprego. Licença: dados abertos; licença do IPEA Data não declarada. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/indicadores-caged.md",
+      "help": "Admissões, desligamentos e saldo nos últimos 12 meses e o saldo do último mês, do Novo CAGED (IPEA Data), num retrato que vem com o plugin. Na camada Indicadores por município (os municípios que cruzam a área, até 200, mostrados só dentro dela): os campos se somam aos que ela já tem. Período: os 12 meses até o último mês do retrato que vem com o plugin. Resolução ou escala: município. Unidades: número de vínculos de emprego. Licença: dados abertos; licença do IPEA Data não declarada. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/indicadores-caged.md",
       "icon": "field",
       "params": "{}"
     },
     {
       "id": "indicadores-todos",
       "label": "Todos os indicadores",
-      "help": "Censos, Censo Agropecuário, agroecologia, Pix, crédito rural, eleições e emprego formal, de uma vez. Na camada Indicadores por município (os municípios que cruzam a área, até 50): os campos se somam aos que ela já tem. No desktop, se o tempo de uma chamada acabar, o aviso pede um novo clique, que continua de onde parou. Período: o de cada fonte. Resolução ou escala: município. Unidades: as de cada fonte. Licença: a de cada fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/indicadores-todos.md",
+      "help": "Censos, Censo Agropecuário, agroecologia, Pix, crédito rural, eleições, emprego formal e saúde, de uma vez. Na camada Indicadores por município (os municípios que cruzam a área, até 200, mostrados só dentro dela): os campos se somam aos que ela já tem. No desktop, se o tempo de uma chamada acabar, o aviso pede um novo clique, que continua de onde parou. Período: o de cada fonte. Resolução ou escala: município. Unidades: as de cada fonte. Licença: a de cada fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/indicadores-todos.md",
       "icon": "stats",
       "params": "{}"
     },
@@ -890,6 +890,13 @@
       "label": "Estabelecimentos de saúde (CNES, DATASUS)",
       "help": "Os estabelecimentos de saúde ativos na área, do CNES do Ministério da Saúde (competência 04/2026, pelo geobr do Ipea), com nome, tipo, natureza jurídica, gestão e bairro. Os de pessoa física e de empresário individual, cujo nome é o de uma pessoa, ficam de fora. Só no desktop: o primeiro clique abre o arquivo do Brasil (98 MB, lido aos pedaços), o segundo recorta pela área. Período: competência 04/2026. Resolução ou escala: pontos (coordenada do CNES ou do endereço). Unidades: sem unidade. Licença: dados abertos do Ministério da Saúde, com citação da fonte; geobr sob licença MIT. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/saude-estabelecimentos.md",
       "icon": "point_layer",
+      "params": "{}"
+    },
+    {
+      "id": "indicadores-saude",
+      "label": "Indicadores de saúde (DATASUS)",
+      "help": "Indicadores de saúde por município, do DATASUS, num retrato que vem com o plugin: nascidos vivos e, entre eles, a parte com baixo peso, por cesárea, de mãe adolescente e com 7 ou mais consultas de pré-natal (SINASC); óbitos, a taxa de mortalidade por mil habitantes e a parte por causas externas, doenças do aparelho circulatório, neoplasias e doenças respiratórias (SIM); a mortalidade infantil por mil nascidos vivos, em 3 anos; e os leitos existentes e do SUS do CNES, por mil habitantes. Por local de residência. Na camada Indicadores por município (os municípios que cruzam a área, até 200, mostrados só dentro dela): os campos se somam aos que ela já tem; o layout faz o mapa da mortalidade infantil. Período: o último ano fechado do SIM e do SINASC (a mortalidade infantil soma os 3 últimos anos); os leitos, o último mês do CNES. Resolução ou escala: município. Unidades: número de nascidos e de óbitos; % dos nascidos ou dos óbitos com a informação preenchida; óbitos por mil habitantes; óbitos de menores de 1 ano por mil nascidos vivos; leitos e leitos do SUS por mil habitantes. Licença: dados abertos do Ministério da Saúde e do IBGE, com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/indicadores-saude.md",
+      "icon": "field",
       "params": "{}"
     },
     {
@@ -2177,7 +2184,7 @@
     {
       "id": "sobre",
       "label": "Sobre",
-      "help": "BrasilData 0.1.52, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nAs fontes dos dados e como contribuir estão nas abas do fim do painel Área de trabalho: basta clicar nelas. Para lê-las aqui, marque a caixa e clique em Executar. A janela fica aberta até o X do canto de cima.",
+      "help": "BrasilData 0.1.53, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nAs fontes dos dados e como contribuir estão nas abas do fim do painel Área de trabalho: basta clicar nelas. Para lê-las aqui, marque a caixa e clique em Executar. A janela fica aberta até o X do canto de cima.",
       "icon": "about",
       "params": "{\"completo\"?: true para as fontes e como contribuir | \"parte\"?: \"tudo\" (padrão) | \"autoria\" | \"fontes\" | \"contribuir\"}",
       "form": [
@@ -2345,7 +2352,7 @@
         "kind": "text",
         "id": "sobre",
         "label": "Sobre o BrasilData: Autoria",
-        "text": "BrasilData 0.1.52, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData"
+        "text": "BrasilData 0.1.53, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData"
       }
     ]
   },
@@ -2477,7 +2484,8 @@
             "menu": "Saúde",
             "icon": "point_layer",
             "items": [
-              "saude-estabelecimentos"
+              "saude-estabelecimentos",
+              "indicadores-saude"
             ]
           },
           "indicadores-todos"
