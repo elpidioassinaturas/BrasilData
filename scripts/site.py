@@ -16,6 +16,7 @@ dependências; a busca roda no navegador). O workflow Pages (.github/workflows/p
 este script e publica a pasta.
 """
 
+import hashlib
 import html
 import json
 import pathlib
@@ -194,6 +195,13 @@ def classe_web(web: str) -> str:
     if w.startswith("não"):
         return "nao"
     return "depende"
+
+
+def com_versao(nome: str) -> str:
+    """O endereço de site/<nome> com o resumo do conteúdo (?v=): o GitHub Pages guarda os arquivos
+    no cache por 10 minutos, e sem isso a página nova podia rodar com o script ou o estilo antigos."""
+    resumo = hashlib.sha256((ROOT / "site" / nome).read_bytes()).hexdigest()[:10]
+    return f"{nome}?v={resumo}"
 
 
 def tamanho_png(p: pathlib.Path) -> tuple[int, int]:
@@ -396,7 +404,7 @@ def pagina(linhas, nomes, fichas, manifesto, readme, imagens) -> str:
 <title>BrasilData: dados públicos do Brasil no RustGIS</title>
 <meta name="description" content="Plugin do RustGIS que traz dados públicos do Brasil e conjuntos globais recortados pela área do usuário, com a fonte, a licença e a ficha de cada camada.">
 <meta name="color-scheme" content="light dark">
-<link rel="stylesheet" href="estilo.css">
+<link rel="stylesheet" href="{com_versao("estilo.css")}">
 </head>
 <body>
 <!-- Gerado por scripts/site.py a partir do README.md, do plugin.json, do fontes.csv, do fichas.csv e de docs/camadas; não edite à mão. -->
@@ -488,7 +496,7 @@ def pagina(linhas, nomes, fichas, manifesto, readme, imagens) -> str:
     <p class="nota">Página gerada a partir do repositório; os mapas exemplo foram feitos com o próprio plugin.</p>
   </div>
 </footer>
-<script src="busca.js"></script>
+<script src="{com_versao("busca.js")}"></script>
 </body>
 </html>
 """
