@@ -40,6 +40,7 @@ pub mod jaxa;
 // RustGIS ficariam sem resolver no linker do Windows.
 #[cfg(target_arch = "wasm32")]
 mod comandos;
+pub mod drenagem;
 pub mod gba;
 pub mod gdo;
 pub mod gedi;
@@ -172,7 +173,11 @@ pub fn ficha(id: &str) -> Option<&'static Ficha> {
 
 /// O tema de uma camada do mapa, pelo nome.
 pub fn tema_da_camada(nome: &str) -> Option<&'static Tema> {
-    TEMAS.iter().find(|t| t.camada_no_mapa() == nome)
+    // As camadas de um tema em níveis (a drenagem do país inteiro) levam o nome dele e o do nível.
+    TEMAS.iter().find(|t| {
+        let c = t.camada_no_mapa();
+        nome == c || nome.strip_prefix(c.as_str()).is_some_and(|r| r.starts_with(": "))
+    })
 }
 
 /// Se um erro do RustGIS é o de um servidor que falhou de passagem (um 502 ou 503 do gateway,

@@ -109,7 +109,7 @@ A ficha de cada uma das 159 camadas que os botões da aba BrasilData trazem: o q
 
 | Camada | Onde na aba | O que é |
 |---|---|---|
-| [Drenagem (BC250 2025)](drenagem.md) | Água › Hidrografia | Os rios e córregos da Base Cartográfica Contínua do IBGE. |
+| [Drenagem (BC250 2025)](drenagem.md) | Água › Hidrografia | Os rios e córregos da Base Cartográfica Contínua do IBGE, com a ordem de Strahler e a drenagem a montante de cada trecho, calculadas pelo BrasilData na rede do país inteiro. |
 | [Massas d'água (BC250 2025)](massas-dagua.md) | Água › Hidrografia | Lagos, lagoas, represas e trechos largos de rio da Base Cartográfica Contínua do IBGE. |
 | [Ottobacias (BHO 2017 1:50.000, ANA)](ana-ottobacias.md) | Água › Bacias | As ottobacias da Base Hidrográfica Ottocodificada: cada bacia de contribuição de um trecho de rio, com o código de Otto Pfafstetter, que diz quem drena para quem. |
 | [Trechos de drenagem (BHO 2017, ANA)](ana-bho.md) | Água › Hidrografia | Os trechos de drenagem da Base Hidrográfica Ottocodificada da ANA, com a área a montante e a ordem de Strahler. |

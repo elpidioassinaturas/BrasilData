@@ -16,6 +16,7 @@ use crate::ctrees;
 use crate::datas::{self, Data};
 use crate::dialogos;
 use crate::dist;
+use crate::drenagem;
 use crate::era5;
 use crate::estilo;
 use crate::extensoes;
@@ -961,6 +962,9 @@ fn tema(t: &Tema) -> Result<Value, String> {
     if let Some(r) = ja_no_mapa(&t.camada_no_mapa(), t.recorta)? {
         return Ok(r);
     }
+    if t.id == "drenagem" {
+        return drenagem_bc250(t).map_err(crate::explicar);
+    }
     if t.pedido_proprio() {
         return tema_proprio(t);
     }
@@ -1223,9 +1227,15 @@ fn data_legivel(t: &Tema, nome: &str) {
     }
 }
 
-/// Mais feições que isto num tema pedido pelo plugin é área grande demais (o mesmo teto do
-/// RustGIS para as páginas de um serviço).
+/// Mais feições que isto num tema pedido pelo plugin num pedido só é área grande demais (o mesmo
+/// teto do RustGIS para as páginas de um serviço).
 const MAX_FEICOES: u64 = 100_000;
+
+/// O teto de um tema baixado em páginas (`pagina` > 0): cada página é um download à parte do
+/// RustGIS, juntado no fim, e o teto de um serviço não vale. Em Minas Gerais (22/11/2026), 182 mil
+/// trechos da drenagem da BC250 pelo WFS, em 10 páginas de 20 mil, vieram em 2 min 15 s com 418 MB
+/// de memória.
+const MAX_FEICOES_EM_PAGINAS: u64 = 300_000;
 
 /// Um tema que o plugin pede ele mesmo (com filtro, campos, páginas ou uma camada por UF):
 /// conta as feições de cada camada no retângulo, baixa as páginas com `layer.addUrl` (o RustGIS
@@ -1256,6 +1266,130 @@ fn por_zoom(campo: &str, nome: &str, r: &Value) -> Result<(), String> {
         format!("{curto}: de longe aparecem só os rios principais (pela área de drenagem); aproxime o mapa para ver os menores")
     });
     Ok(())
+}
+
+/// A cor das linhas da drenagem: um azul que se distingue do mar e dos lagos do mapa-base.
+const AZUL_DRENAGEM: &str = "#1f78b4";
+
+/// A drenagem da BC250 com a ordem de Strahler e a drenagem a montante (veja [`drenagem`]): numa
+/// área de até [`drenagem::MAX_UFS`] UFs, os arquivos delas, juntados e recortados; sem área, ou
+/// numa área maior, o país inteiro pela vista.
+fn drenagem_bc250(t: &Tema) -> Result<Value, String> {
+    // Sem área, o país inteiro, em qualquer escala: o `retangulo` da vista recusa uma vista maior
+    // que o Brasil, e aqui o RustGIS lê só o que a vista mostra.
+    if !nomes()?.iter().any(|n| n == AREA) {
+        return drenagem_do_brasil(t, "");
+    }
+    let (c, _) = retangulo()?;
+    let ufs = match ufs_da_area(c)? {
+        Ok(u) => u,
+        Err(p) => return Ok(p),
+    };
+    if ufs.is_empty() || ufs.len() > drenagem::MAX_UFS {
+        let motivo = format!(
+            " (a área cruza {} UFs; o plugin baixa e recorta até {}: para recortar, escolha uma área menor)",
+            ufs.len(),
+            drenagem::MAX_UFS
+        );
+        return drenagem_do_brasil(t, &motivo);
+    }
+    let nome = t.camada_no_mapa();
+    let bruto = format!("{nome} (sem recorte)");
+    let partes: Vec<String> = if ufs.len() == 1 { vec![bruto.clone()] } else { ufs.iter().map(|uf| format!("{nome} ({uf})")).collect() };
+    // Nos apps, as UFs que já chegaram (de um clique anterior, ou da volta do RustGIS quando um
+    // download chega) ficam; só as que faltam são pedidas.
+    let ha = nomes()?;
+    let (mut baixando, mut cheio) = (0, false);
+    for (uf, parte) in ufs.iter().zip(&partes) {
+        if ha.contains(parte) {
+            continue;
+        }
+        // Inteiro ("whole"): lido pela vista, o recorte e o merge baixariam o arquivo de novo.
+        let pedido = json!({"url": drenagem::url_uf(uf), "name": parte, "zoom": false, "whole": true});
+        match host::run("layer.addUrl", pedido) {
+            Ok(r) if r.get("pending").and_then(Value::as_bool) == Some(true) => baixando += 1,
+            Ok(_) => {}
+            Err(e) if crate::fila_cheia(&e) => {
+                cheio = true;
+                break;
+            }
+            Err(e) => return Err(e),
+        }
+    }
+    if baixando > 0 || cheio {
+        avisar(&format!(
+            "{nome}: baixando a drenagem de {} (com a ordem dos rios); quando tudo aparecer no mapa, clique de novo neste botão para juntar e recortar pela área",
+            ufs.join(", ")
+        ));
+        return Ok(json!({"downloading": nome, "parts": partes.len()}));
+    }
+    let lidas = juntar(&partes, &bruto)?;
+    let r = concluir(t, lidas, true, true)?;
+    if let Some(camada) = r["layer"].as_str() {
+        estilo_da_drenagem(camada, 0.0)?;
+        avisar(&format!(
+            "{}: de longe aparecem só os rios com mais drenagem a montante (campo {}); aproxime o mapa para ver os menores. A ordem de Strahler está no campo strahler",
+            camada.trim_start_matches(PREFIXO),
+            drenagem::MONTANTE
+        ));
+    }
+    Ok(r)
+}
+
+/// A cor e os filtros por escala de uma camada da drenagem que já garante `minimo` km a montante.
+fn estilo_da_drenagem(camada: &str, minimo: f64) -> Result<(), String> {
+    host::run("layer.lineStrokes", json!({"layer": camada, "strokes": [{"color": AZUL_DRENAGEM, "width": 0.6}]}))?;
+    host::run("layer.displayFilters", json!({"layer": camada, "filters": drenagem::filtros(minimo)}))?;
+    Ok(())
+}
+
+/// O país inteiro, lido pela web só na parte da vista, em níveis num grupo (veja
+/// [`drenagem::NIVEIS`]). `motivo` explica por que não veio recortado.
+fn drenagem_do_brasil(t: &Tema, motivo: &str) -> Result<Value, String> {
+    let grupo = t.camada_no_mapa();
+    let ha = nomes()?;
+    let mut camadas = Vec::new();
+    let mut baixando = 0;
+    for &(arquivo, rotulo, longe, perto) in drenagem::NIVEIS {
+        let nome = format!("{grupo}: {rotulo}");
+        if !ha.contains(&nome) {
+            let r = host::run("layer.addUrl", json!({"url": format!("{}{arquivo}", drenagem::BASE), "name": nome, "zoom": false}))?;
+            if r.get("pending").and_then(Value::as_bool) == Some(true) {
+                baixando += 1;
+                continue;
+            }
+        }
+        let mut faixa = json!({"layer": nome});
+        if let Some(l) = longe {
+            faixa["min"] = json!(l);
+        }
+        if let Some(p) = perto {
+            faixa["max"] = json!(p);
+        }
+        host::run("layer.scaleRange", faixa)?;
+        estilo_da_drenagem(&nome, drenagem::minimo_do_nivel(arquivo))?;
+        camadas.push(nome);
+    }
+    if baixando > 0 {
+        avisar(&format!("{grupo}: abrindo os arquivos do país inteiro; a drenagem aparece no mapa quando eles chegarem"));
+        return Ok(json!({"downloading": grupo, "parts": drenagem::NIVEIS.len()}));
+    }
+    // Todos num grupo com o nome do tema.
+    let info = host::run("info.project", json!({}))?;
+    let ja_agrupadas = info["layers"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter(|l| l["name"].as_str().is_some_and(|n| camadas.iter().any(|c| c == n)))
+        .all(|l| l["group"].as_str() == Some(grupo.as_str()));
+    if !ja_agrupadas {
+        host::run("group.add", json!({"name": grupo, "layers": camadas}))?;
+    }
+    avisar(&format!(
+        "{grupo}: o país inteiro, lido pela vista{motivo}. De longe aparecem só os rios com mais drenagem a montante (campo {}); aproxime o mapa para ver os menores. A ordem de Strahler está no campo strahler",
+        drenagem::MONTANTE
+    ));
+    Ok(json!({"group": grupo, "layers": camadas, "streamed": true}))
 }
 
 /// [`tema_proprio`], sem a explicação dos erros.
@@ -1321,8 +1455,9 @@ fn tema_proprio_de(t: &Tema) -> Result<Value, String> {
         avisar(&format!("{nome}: nenhuma feição {onde} ({})", t.fonte));
         return Ok(json!({"layer": null, "features": 0}));
     }
-    if total > MAX_FEICOES {
-        return Err(format!("{nome}: {total} feições {onde}; o plugin traz até {MAX_FEICOES}: escolha uma área menor"));
+    let teto = if t.pagina > 0 { MAX_FEICOES_EM_PAGINAS } else { MAX_FEICOES };
+    if total > teto {
+        return Err(format!("{nome}: {total} feições {onde}; o plugin traz até {teto}: escolha uma área menor"));
     }
     let n = pedidos.len();
     let nomes_das_partes: Vec<String> =
@@ -1399,6 +1534,13 @@ fn area_que_cabe(t: &Tema, campo: &str, c: [f64; 4]) -> Result<Result<f64, Value
         let r = match buscar(&[crate::pedido_de_contagem(&com, com.camada, c)]) {
             Ok(Ok(r)) => r,
             Ok(Err(p)) => return Err(Parada::Pendente(p)),
+            // A contagem que passa do tempo do RustGIS é a de trechos demais (no Brasil inteiro, a
+            // de 500 km² leva de 13 a mais de 20 s no serviço da ANA, a de 10 mil, 2,5 s): a busca
+            // segue para os rios maiores.
+            Err(e) if e.contains("timeout") => {
+                host::log(&format!("contagem com {} ou mais passou do tempo: {e}", zoom::km2(n)));
+                return Ok(u64::MAX);
+            }
             Err(e) => return Err(Parada::Erro(e)),
         };
         let r = r.first().ok_or_else(|| Parada::Erro("a contagem não veio".into()))?;

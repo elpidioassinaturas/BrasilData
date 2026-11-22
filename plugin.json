@@ -1,7 +1,7 @@
 {
   "id": "brasildata",
   "name": "BrasilData",
-  "version": "0.1.54",
+  "version": "0.1.55",
   "description": "Dados públicos do Brasil para a área do usuário (IBGE, MMA, ICMBio, INPE, CEMADEN, ANA, ANEEL, ANP, SFB/CAR, INCRA, FUNAI, IBAMA, ANM, DNIT, Ministério da Saúde, Copernicus, NASA/ASF, FAO, WRI, Open-Meteo, CHIRPS, Google DeepMind): só o que cruza a área, recortado por ela, com a fonte e a licença de cada camada.",
   "author": "Elpídio Filho",
   "homepage": "https://github.com/elpidioassinaturas/BrasilData",
@@ -286,7 +286,7 @@
     {
       "id": "drenagem",
       "label": "Drenagem (IBGE)",
-      "help": "Drenagem (BC250 2025): os rios e córregos da Base Cartográfica Contínua do IBGE. Fonte: IBGE, Base Cartográfica Contínua 1:250.000 (BC250), 2025. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Na escala 1:250.000 faltam os córregos pequenos; para a rede detalhada, os trechos da BHO da ANA (1:50.000 em parte do país). Período: BC250, edição 2025. Resolução ou escala: escala 1:250.000. Unidades: largura média em metros, quando há. Licença: uso livre com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/drenagem.md",
+      "help": "Drenagem (BC250 2025): os rios e córregos da Base Cartográfica Contínua do IBGE, com a ordem de Strahler e a drenagem a montante de cada trecho, calculadas pelo BrasilData na rede do país inteiro. Fonte: IBGE, Base Cartográfica Contínua 1:250.000 (BC250), 2025; ordem de Strahler e drenagem a montante: BrasilData. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Na escala 1:250.000 faltam os córregos pequenos; para a rede detalhada, os trechos da BHO da ANA (1:50.000 em parte do país). O sentido da corrente vem da ligação entre os trechos, não de como foram digitalizados (o campo contra_corrente marca os 271 mil trechos digitalizados ao contrário). Numa área de mais de 6 UFs, ou sem área, vem o país inteiro, lido pela vista e sem recorte. Período: BC250, edição 2025. Resolução ou escala: escala 1:250.000. Unidades: drenagem a montante (montante_km) e comprimento do trecho (comp_km) em km; ordem de Strahler de 1 a 10. Licença: uso livre com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/drenagem.md",
       "icon": "line_layer",
       "params": "{}"
     },
@@ -2230,7 +2230,7 @@
     {
       "id": "sobre",
       "label": "Sobre",
-      "help": "BrasilData 0.1.54, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nAs fontes dos dados e como contribuir estão nas abas do fim do painel Área de trabalho: basta clicar nelas. Para lê-las aqui, marque a caixa e clique em Executar. A janela fica aberta até o X do canto de cima.",
+      "help": "BrasilData 0.1.55, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nAs fontes dos dados e como contribuir estão nas abas do fim do painel Área de trabalho: basta clicar nelas. Para lê-las aqui, marque a caixa e clique em Executar. A janela fica aberta até o X do canto de cima.",
       "icon": "about",
       "params": "{\"completo\"?: true para as fontes e como contribuir | \"parte\"?: \"tudo\" (padrão) | \"autoria\" | \"fontes\" | \"contribuir\"}",
       "form": [
@@ -2398,7 +2398,7 @@
         "kind": "text",
         "id": "sobre",
         "label": "Sobre o BrasilData: Autoria",
-        "text": "BrasilData 0.1.54, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData"
+        "text": "BrasilData 0.1.55, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData"
       }
     ]
   },

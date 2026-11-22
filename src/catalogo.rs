@@ -386,7 +386,7 @@ pub const TEMAS: &[Tema] = &[
         camada: "CCAR:BC250_2025_hid_trecho_drenagem_l",
         geometria: "linha",
         recorta: true,
-        fonte: "IBGE, Base Cartográfica Contínua 1:250.000 (BC250), 2025",
+        fonte: "IBGE, Base Cartográfica Contínua 1:250.000 (BC250), 2025; ordem de Strahler e drenagem a montante: BrasilData",
         licenca: "uso livre com citação da fonte",
         filtro: "",
         campos: "",
@@ -1955,15 +1955,15 @@ pub const FICHAS: &[Ficha] = &[
     },
     Ficha {
         id: "drenagem",
-        o_que_e: "Os rios e córregos da Base Cartográfica Contínua do IBGE.",
+        o_que_e: "Os rios e córregos da Base Cartográfica Contínua do IBGE, com a ordem de Strahler e a drenagem a montante de cada trecho, calculadas pelo BrasilData na rede do país inteiro.",
         periodo: "BC250, edição 2025",
         resolucao: "escala 1:250.000",
-        unidades: "largura média em metros, quando há",
-        legenda: "Linhas pelo tipo de trecho e pelo regime (permanente ou temporário), com o nome do rio.",
-        cuidados: "Na escala 1:250.000 faltam os córregos pequenos; para a rede detalhada, os trechos da BHO da ANA (1:50.000 em parte do país).",
+        unidades: "drenagem a montante (montante_km) e comprimento do trecho (comp_km) em km; ordem de Strahler de 1 a 10",
+        legenda: "Linhas com o nome do rio. De longe aparecem só os rios com mais drenagem a montante; de 1:300.000 para perto, todos os trechos.",
+        cuidados: "Na escala 1:250.000 faltam os córregos pequenos; para a rede detalhada, os trechos da BHO da ANA (1:50.000 em parte do país). O sentido da corrente vem da ligação entre os trechos, não de como foram digitalizados (o campo contra_corrente marca os 271 mil trechos digitalizados ao contrário). Numa área de mais de 6 UFs, ou sem área, vem o país inteiro, lido pela vista e sem recorte.",
         web: "sim",
         pagina: "https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/drenagem.md",
-        texto: "Drenagem (BC250 2025)\nOs rios e córregos da Base Cartográfica Contínua do IBGE.\nFonte: IBGE.\nPeríodo: BC250, edição 2025.\nResolução ou escala: escala 1:250.000.\nUnidades: largura média em metros, quando há.\nLegenda: Linhas pelo tipo de trecho e pelo regime (permanente ou temporário), com o nome do rio.\nCuidados: Na escala 1:250.000 faltam os córregos pequenos; para a rede detalhada, os trechos da BHO da ANA (1:50.000 em parte do país).\nLicença: uso livre com citação da fonte.\nCitação: IBGE, Base Cartográfica Contínua 1:250.000 (BC250), 2025.\nApp web: sim.\nFicha e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/drenagem.md",
+        texto: "Drenagem (BC250 2025)\nOs rios e córregos da Base Cartográfica Contínua do IBGE, com a ordem de Strahler e a drenagem a montante de cada trecho, calculadas pelo BrasilData na rede do país inteiro.\nFonte: IBGE.\nPeríodo: BC250, edição 2025.\nResolução ou escala: escala 1:250.000.\nUnidades: drenagem a montante (montante_km) e comprimento do trecho (comp_km) em km; ordem de Strahler de 1 a 10.\nLegenda: Linhas com o nome do rio. De longe aparecem só os rios com mais drenagem a montante; de 1:300.000 para perto, todos os trechos.\nCuidados: Na escala 1:250.000 faltam os córregos pequenos; para a rede detalhada, os trechos da BHO da ANA (1:50.000 em parte do país). O sentido da corrente vem da ligação entre os trechos, não de como foram digitalizados (o campo contra_corrente marca os 271 mil trechos digitalizados ao contrário). Numa área de mais de 6 UFs, ou sem área, vem o país inteiro, lido pela vista e sem recorte.\nLicença: uso livre com citação da fonte.\nCitação: IBGE, Base Cartográfica Contínua 1:250.000 (BC250), 2025; ordem de Strahler e drenagem a montante: BrasilData.\nApp web: sim.\nFicha e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/drenagem.md",
     },
     Ficha {
         id: "massas-dagua",
@@ -3601,7 +3601,7 @@ pub const FICHAS: &[Ficha] = &[
 
 /// O texto da seção Sobre (o do painel Área de trabalho): autoria, versão, licença, repositório,
 /// fontes e como contribuir.
-pub const SOBRE: &str = "BrasilData 0.1.54, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nFontes dos dados: IBGE, IDE-Sisema, INPE, ANA, ANP, ANEEL, INCRA, ANM, Kuzma, MMA, ICMBio, FUNAI, Serviço Florestal Brasileiro, IBAMA, DNIT e MapBiomas, pelos serviços de cada órgão; Copernicus DEM GLO-30 (DLR e Airbus, pelo espelho da OpenTopography); Banco Central (Pix e crédito rural); TSE; Novo CAGED (IPEA Data); Ministério da Saúde (CNES, pelo geobr do Ipea); Open-Meteo (previsão do ECMWF, da NOAA e do DWD) e CHIRPS v3 (Climate Hazards Center, UCSB).\n\nComo contribuir: sentiu falta de algum dado? Abra uma issue em https://github.com/elpidioassinaturas/BrasilData/issues com o nome do dado, o órgão que o publica, o endereço do serviço (WFS, ArcGIS REST, API ou arquivo) e para que você o usaria. Para trazer a fonte você mesmo, acrescente uma linha ao fontes.csv, rode python scripts/gerar.py e abra um pull request. Correções, avisos de serviço fora do ar e relatos de uso também são bem-vindos.";
+pub const SOBRE: &str = "BrasilData 0.1.55, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nFontes dos dados: IBGE, IDE-Sisema, INPE, ANA, ANP, ANEEL, INCRA, ANM, Kuzma, MMA, ICMBio, FUNAI, Serviço Florestal Brasileiro, IBAMA, DNIT e MapBiomas, pelos serviços de cada órgão; Copernicus DEM GLO-30 (DLR e Airbus, pelo espelho da OpenTopography); Banco Central (Pix e crédito rural); TSE; Novo CAGED (IPEA Data); Ministério da Saúde (CNES, pelo geobr do Ipea); Open-Meteo (previsão do ECMWF, da NOAA e do DWD) e CHIRPS v3 (Climate Hazards Center, UCSB).\n\nComo contribuir: sentiu falta de algum dado? Abra uma issue em https://github.com/elpidioassinaturas/BrasilData/issues com o nome do dado, o órgão que o publica, o endereço do serviço (WFS, ArcGIS REST, API ou arquivo) e para que você o usaria. Para trazer a fonte você mesmo, acrescente uma linha ao fontes.csv, rode python scripts/gerar.py e abra um pull request. Correções, avisos de serviço fora do ar e relatos de uso também são bem-vindos.";
 
 /// O aviso do botão Sobre: o resumo do [`SOBRE`].
-pub const SOBRE_AVISO: &str = "BrasilData 0.1.54, do Professor Elpídio (LABGEO/UFV), sob a licença MIT: https://github.com/elpidioassinaturas/BrasilData. A autoria, as fontes dos dados e como contribuir estão nas abas Sobre, no fim do painel Área de trabalho.";
+pub const SOBRE_AVISO: &str = "BrasilData 0.1.55, do Professor Elpídio (LABGEO/UFV), sob a licença MIT: https://github.com/elpidioassinaturas/BrasilData. A autoria, as fontes dos dados e como contribuir estão nas abas Sobre, no fim do painel Área de trabalho.";
