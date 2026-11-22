@@ -240,11 +240,13 @@ pub fn normalizar(id: &str, params: &mut Value) {
                 }
             }
         }
-        // A escala do GEDTM30, em metros, como número.
-        "gedtm-relevo" => {
-            let e = p.get("escala").and_then(Value::as_str).and_then(|t| t.trim().parse::<f64>().ok());
+        // A escala do GEDTM30, em metros, e as passagens da composição temporal do NISAR, como
+        // números.
+        "gedtm-relevo" | "nisar-tempo" => {
+            let campo = if id == "nisar-tempo" { "passagens" } else { "escala" };
+            let e = p.get(campo).and_then(Value::as_str).and_then(|t| t.trim().parse::<f64>().ok());
             if let Some(e) = e {
-                p.insert("escala".into(), json!(e));
+                p.insert(campo.into(), json!(e));
             }
         }
         // Outro sistema, pelo código EPSG, vale no lugar da escolha.
@@ -367,6 +369,6 @@ mod tests {
                 }
             }
         }
-        assert!(vistas >= 12 + 13 + 3 + 8 + 3 + 6 + 2 + 3 + 2 + 6, "{vistas} escolhas");
+        assert!(vistas >= 12 + 13 + 3 + 8 + 3 + 6 + 2 + 3 + 2 + 6 + 5, "{vistas} escolhas");
     }
 }

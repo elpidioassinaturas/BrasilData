@@ -66,7 +66,9 @@ fn data_no_nome(n: &str) -> Option<&str> {
 }
 
 /// A nota da composição colorida do NISAR.
-const NOTA_NISAR_COR: &str = "Vermelho: HH (−11 a −1 dB); verde: HV (−18 a −8 dB); azul: HH − HV (4 a 11 dB). Cidade em rosa e magenta (eco duplo das construções), mata em verde-claro (volume das copas), pasto e solo exposto em azul e roxo, água escura.";
+const NOTA_NISAR_TEMPO: &str = "Vermelho: mediana do HH (−11 a −1 dB); verde: mediana do HV (−18 a −8 dB); azul: desvio-padrão do HV entre as passagens (0 a 3 dB). Verde: mata e vegetação estável; azul e lilás: vegetação que mudou (lavoura, pasto); vermelho e laranja: solo exposto, superfícies ásperas e construções; escuro: água e sombras do relevo.";
+
+const NOTA_NISAR_COR: &str = "Vermelho: HH (−9,5 a 3,1 dB); verde: HV (−17,2 a −7,4 dB); azul: HH − HV (4,5 a 14,1 dB). Mata em verde forte (volume das copas), cidade em rosa e magenta (eco duplo das construções), pasto e solo exposto em azul e roxo escuros, água escura.";
 
 /// A receita da camada `nome`, se o layout a conhece.
 /// O nome antes do período e o período ("01/06/2025 a 31/08/2025"), cortados no " de " seguido de
@@ -340,6 +342,15 @@ pub fn receita(nome: &str) -> Option<Receita> {
         let qual = n.split(" (").next().unwrap_or(n).trim_end_matches(" em dB");
         let quando = n.rsplit(", ").next().map(|d| d.trim_end_matches(')')).filter(|d| d.len() == 10);
         let quando = quando.map(|d| format!(" em {d}")).unwrap_or_default();
+        if qual.starts_with("Composição temporal") {
+            let periodo = n.rsplit("(NISAR, ").next().map(|p| p.trim_end_matches(')')).unwrap_or_default();
+            return Some(Receita {
+                subtitulo: format!("Composição temporal do radar NISAR (banda L), {periodo}: medianas do HH e do HV e variação do HV"),
+                barra: None,
+                legenda: None,
+                nota: Some(NOTA_NISAR_TEMPO),
+            });
+        }
         if qual.starts_with("Composição") {
             return Some(Receita {
                 subtitulo: format!("Composição colorida do radar NISAR (banda L){quando}: HH, HV e HH − HV"),

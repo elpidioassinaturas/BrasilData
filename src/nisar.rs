@@ -52,6 +52,10 @@ pub enum Pol {
     Hv,
 }
 
+/// A rampa de cores das camadas HH e HV, do roxo escuro (eco fraco: água, solo liso) ao amarelo
+/// (eco forte), como nas imagens do NISAR da NASA.
+pub const RAMPA: &str = "Magma";
+
 /// A escala de cinza da razão HV/HH, em dB (HV − HH).
 pub const ESCALA_DA_RAZAO: (f64, f64) = (-11.0, -4.0);
 
@@ -213,6 +217,37 @@ pub fn passagem(cruzam: &[&Cena]) -> Option<(Data, u32)> {
     contagem.into_iter().filter(|(_, n)| *n as f64 >= QUASE_TANTO * melhor as f64).map(|(p, _)| p).max_by_key(|(d, _)| *d)
 }
 
+/// As passagens da composição temporal: a de [`passagem`] e as anteriores da mesma trilha (a mesma
+/// geometria de visada) que cobrem a área tão bem quanto ela, até `max`, da mais recente para a
+/// mais antiga. A trilha se repete a cada 12 dias.
+pub fn passagens(cruzam: &[&Cena], max: usize) -> Vec<(Data, u32)> {
+    let Some(primeira) = passagem(cruzam) else { return Vec::new() };
+    let mut contagem: Vec<((Data, u32), usize)> = Vec::new();
+    for c in cruzam.iter().filter(|c| c.trilha == primeira.1) {
+        match contagem.iter_mut().find(|(p, _)| *p == c.passagem()) {
+            Some((_, n)) => *n += 1,
+            None => contagem.push((c.passagem(), 1)),
+        }
+    }
+    let n_primeira = contagem.iter().find(|(p, _)| *p == primeira).map_or(1, |(_, n)| *n);
+    let mut v: Vec<(Data, u32)> =
+        contagem.into_iter().filter(|(p, n)| p.0 <= primeira.0 && *n as f64 >= QUASE_TANTO * n_primeira as f64).map(|(p, _)| p).collect();
+    v.sort_by_key(|(d, _)| std::cmp::Reverse(*d));
+    v.truncate(max);
+    v
+}
+
+/// Quantas passagens a composição temporal usa, se o comando não diz: umas 7 semanas.
+pub const PASSAGENS_DO_TEMPO: usize = 4;
+
+/// Quantos recortes a composição temporal pede ao Harmony de uma vez. Cada pedido é síncrono: com
+/// 12 de uma vez (2 passagens de 3 cenas, HH e HV), o Harmony devolveu 504 a todos depois de 9 min
+/// (22/11/2026); com 3, cada um leva cerca de 1 min.
+pub const PEDIDOS_DE_UMA_VEZ: usize = 3;
+
+/// O máximo de passagens dela (cerca de 3 meses; cada uma são 2 pedidos ao Harmony por cena).
+pub const MAX_PASSAGENS: usize = 8;
+
 /// O fuso UTM do WGS 84 do centro do retângulo `c`, que o Harmony aceita (326xx ao norte, 327xx
 /// ao sul).
 pub fn utm_do_harmony(c: [f64; 4]) -> u32 {
@@ -236,13 +271,28 @@ pub fn nome_da_composicao(d: Data) -> String {
     format!("{}Composição HH, HV, HH − HV (NISAR, {})", crate::PREFIXO, d.texto())
 }
 
-/// As escalas, em dB, do vermelho (HH), do verde (HV) e do azul (HH − HV, o contrário da razão).
-pub const ESCALAS_DA_COMPOSICAO: [(f64, f64); 3] = [(-11.0, -1.0), (-18.0, -8.0), (4.0, 11.0)];
+/// As escalas, em dB, do vermelho (HH), do verde (HV) e do azul (HH − HV, o contrário da razão), no
+/// estilo das imagens do NISAR da NASA sobre o delta do Mississippi: mais escuras e contrastadas,
+/// com a mata em verde forte. São os percentis 5 e 99,5 de Viçosa (01/11/2026) com gama 1,2 no
+/// vermelho e no azul e 0,9 no verde, passados para faixas lineares (o realce do RustGIS não tem
+/// gama), as que mais se aproximam da curva.
+pub const ESCALAS_DA_COMPOSICAO: [(f64, f64); 3] = [(-9.5, 3.1), (-17.2, -7.4), (4.5, 14.1)];
+
+/// O nome da composição temporal das passagens de `de` a `ate`.
+pub fn nome_da_temporal(de: Data, ate: Data) -> String {
+    format!("{}Composição temporal HH, HV, variação do HV (NISAR, {} a {})", crate::PREFIXO, de.texto(), ate.texto())
+}
+
+/// As escalas, em dB, do vermelho (a mediana do HH), do verde (a mediana do HV) e do azul (o
+/// desvio-padrão do HV entre as passagens, que sobe onde a vegetação muda: lavoura que cresce ou é
+/// colhida, pasto que seca).
+pub const ESCALAS_DA_TEMPORAL: [(f64, f64); 3] = [(-11.0, -1.0), (-18.0, -8.0), (0.0, 3.0)];
 
 /// Se uma camada do mapa é do NISAR (para a citação).
 pub fn eh_do_nisar(nome: &str) -> bool {
     let n = nome.strip_prefix(crate::PREFIXO).unwrap_or("");
-    (n.starts_with("Radar H") || n.starts_with("Razão HV/HH") || n.starts_with("Composição HH")) && n.contains("(NISAR, ")
+    (n.starts_with("Radar H") || n.starts_with("Razão HV/HH") || n.starts_with("Composição HH") || n.starts_with("Composição temporal HH"))
+        && n.contains("(NISAR, ")
 }
 
 /// Se o retângulo `c` cabe no NISAR.
@@ -334,6 +384,17 @@ mod tests {
         assert!(eh_do_nisar(&nome_da_razao(d(23))));
         assert_eq!(nome_da_composicao(d(23)), "BrasilData: Composição HH, HV, HH − HV (NISAR, 23/10/2026)");
         assert!(eh_do_nisar(&nome_da_composicao(d(23))));
+        let t = nome_da_temporal(d(1), d(23));
+        assert_eq!(t, "BrasilData: Composição temporal HH, HV, variação do HV (NISAR, 01/10/2026 a 23/10/2026)");
+        assert!(eh_do_nisar(&t));
+        // A temporal: a passagem mais recente que cobre bem e as anteriores da mesma trilha, até o
+        // máximo; a da outra trilha e a que cobre pouco ficam fora.
+        let k = |dia, trilha| Cena { id: String::new(), nome: String::new(), data: d(dia), trilha, frame: 1, contorno: Value::Null };
+        let ts = [k(28, 117), k(28, 117), k(25, 96), k(25, 96), k(16, 117), k(16, 117), k(4, 117), k(4, 117), k(2, 117)];
+        let rs: Vec<&Cena> = ts.iter().collect();
+        assert_eq!(passagens(&rs, 8), vec![(d(28), 117), (d(16), 117), (d(4), 117)]);
+        assert_eq!(passagens(&rs, 2), vec![(d(28), 117), (d(16), 117)]);
+        assert!(passagens(&[], 4).is_empty());
         assert!(!eh_do_nisar("BrasilData: Radar VV em dB (Sentinel-1, 26/10/2026)"));
         assert!(cabe([-43.0049, -20.839, -42.7536, -20.6547]), "Viçosa cabe");
         assert!(!cabe([-44.235, -22.259, -41.411, -19.828]), "a Zona da Mata não");

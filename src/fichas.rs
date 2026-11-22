@@ -46,6 +46,8 @@ pub fn comando_da_camada(nome: &str, fonte: &str) -> Option<&'static str> {
             "nisar-hv"
         } else if n.starts_with("Razão") {
             "nisar-razao"
+        } else if n.starts_with("Composição temporal") {
+            "nisar-tempo"
         } else {
             "nisar-cor"
         }
@@ -141,6 +143,7 @@ mod tests {
             ("BrasilData: Alertas vigentes (CEMADEN)", "cemaden-alertas"),
             ("BrasilData: Radar HV em dB (NISAR, 01/11/2026)", "nisar-hv"),
             ("BrasilData: Composição HH, HV, HH − HV (NISAR, 01/11/2026)", "nisar-cor"),
+            ("BrasilData: Composição temporal HH, HV, variação do HV (NISAR, 08/10/2026 a 13/11/2026)", "nisar-tempo"),
             ("BrasilData: Razão VH/VV em dB (Sentinel-1, 26/10/2026)", "radar-razao"),
             ("BrasilData: Perturbação, dias antes de 28/02/2026 (OPERA DIST-S1)", "dist-data"),
             ("BrasilData: Perturbação da vegetação (OPERA DIST-S1, até 28/02/2026)", "dist-situacao"),

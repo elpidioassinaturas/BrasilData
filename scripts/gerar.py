@@ -37,7 +37,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.62"
+VERSAO = "0.1.63"
 AUTOR = "Elpídio Filho"
 # Como o texto Sobre chama o autor (o manifesto e o README levam o nome completo).
 AUTOR_SOBRE = "Professor Elpídio"
@@ -458,7 +458,7 @@ def sobre(linhas: list[dict]) -> tuple[str, str]:
 LOGIN_EARTHDATA = {
     "gedi-altura", "gedi-biomassa", "gedi-cobertura",
     "radar-vv", "radar-vh", "radar-razao",
-    "nisar-hh", "nisar-hv", "nisar-razao", "nisar-cor",
+    "nisar-hh", "nisar-hv", "nisar-razao", "nisar-cor", "nisar-tempo",
     "dist-situacao", "dist-data", "dist-confianca", "dist-intensidade",
 }
 
@@ -850,9 +850,23 @@ EM_MENUS = [
         "Vegetação e meio ambiente",
         "Uso e cobertura",
         {
+            "id": "nisar-tempo",
+            "label": "Composição temporal (NISAR, banda L)",
+            "help": "A composição temporal do radar NISAR, como a da NASA: a mediana do HH no vermelho (solo exposto, superfícies ásperas, construções), a mediana do HV no verde (vegetação) e o desvio-padrão do HV entre as passagens no azul (vegetação que muda: lavoura que cresce ou é colhida, pasto que seca). A mediana de várias passagens tira o granulado que uma passagem só deixa. Usa as passagens mais recentes da mesma trilha (a mesma visada), uma a cada 12 dias, que cruzam o polígono da área; cada uma é tirada do HDF5 e recortada pelo Harmony da NASA, filtrada (Lee) e posta na grade do projeto. Só a composição fica no mapa. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Áreas de até cerca de 110 km; cerca de 40 s por cena e polarização (4 passagens de 1 cena: uns 6 min).",
+            "icon": "rgb",
+            "params": "{\"passagens\"?: de 2 a 8, quantas passagens (padrão 4), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+            "form": [
+                {"name": "passagens", "label": "Passagens", "kind": "choice", "choices": ["2", "3", "4", "6", "8"], "default": "4", "help": "Quantas passagens da mesma trilha, das mais recentes (uma a cada 12 dias): mais passagens, menos granulado e mais tempo."},
+            ],
+        },
+    ),
+    (
+        "Vegetação e meio ambiente",
+        "Uso e cobertura",
+        {
             "id": "nisar-cor",
             "label": "Composição colorida (NISAR, banda L)",
-            "help": "A composição colorida: HH no vermelho, HV no verde e HH − HV no azul. Cidade em rosa e magenta, mata em verde-claro, pasto e solo exposto em azul e roxo, água escura; as camadas HH, HV e a razão da mesma passagem também ficam no mapa. O radar de banda L do NISAR (NASA e ISRO), o GCOV corrigido do relevo, 20 m, em dB e com o filtro de Lee contra o granulado: as cenas da passagem mais recente (ou a do dia escolhido na janela do comando) que cruzam o polígono da área, tiradas do HDF5 e recortadas pelo retângulo da área pelo Harmony da NASA, juntadas, recortadas pela área e postas na grade do projeto. A banda L (24 cm) atravessa mais as copas que a banda C do Sentinel-1. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Áreas de até cerca de 110 km; cerca de 40 s por cena.",
+            "help": "A composição colorida: HH no vermelho, HV no verde e HH − HV no azul. No estilo das imagens do NISAR da NASA: mata em verde forte, cidade em rosa e magenta, pasto e solo exposto em azul e roxo escuros, água escura; as camadas HH, HV e a razão da mesma passagem também ficam no mapa. O radar de banda L do NISAR (NASA e ISRO), o GCOV corrigido do relevo, 20 m, em dB e com o filtro de Lee contra o granulado: as cenas da passagem mais recente (ou a do dia escolhido na janela do comando) que cruzam o polígono da área, tiradas do HDF5 e recortadas pelo retângulo da área pelo Harmony da NASA, juntadas, recortadas pela área e postas na grade do projeto. A banda L (24 cm) atravessa mais as copas que a banda C do Sentinel-1. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Áreas de até cerca de 110 km; cerca de 40 s por cena.",
             "icon": "rgb",
             "params": "{\"data\"?: \"dd/mm/aaaa\", a passagem desse dia (padrão: a mais recente que cobre a área), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
             "form": [

@@ -15,7 +15,7 @@ A composição colorida do NISAR: HH no vermelho, HV no verde e HH − HV no azu
 | **Período** | a passagem mais recente, ou a do dia escolhido. |
 | **Resolução ou escala** | 20 m |
 | **Unidades** | dB em cada canal |
-| **Legenda** | Cidade em rosa e magenta, mata em verde-claro, pasto e solo exposto em azul e roxo, água escura. |
+| **Legenda** | Mata em verde forte, cidade em rosa e magenta, pasto e solo exposto em azul e roxo escuros, água escura (o estilo das imagens do NISAR da NASA). |
 | **Cuidados de uso** | Missão nova (2025): ainda há poucas passagens em cada lugar. A banda L atravessa mais as copas que a banda C, mas o relevo íngreme deixa sombras. Pede o login Earthdata; áreas de até cerca de 110 km. |
 | **Licença** | dados da NASA de uso livre e aberto, com citação. |
 | **Citação** | NISAR Geocoded Polarimetric Covariance Product, version 1 (NISAR_L2_GCOV_V1), NASA/JPL e ISRO, ASF DAAC, doi:10.5067/NIL2GCOV-V1. |

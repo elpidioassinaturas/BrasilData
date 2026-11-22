@@ -248,6 +248,7 @@ fn executar_comando(req: Request) -> Result<Value, String> {
         "nisar-hv" => radar_nisar(&req, Some(nisar::Pol::Hv)),
         "nisar-razao" => radar_nisar(&req, None),
         "nisar-cor" => composicao_nisar(&req),
+        "nisar-tempo" => nisar_no_tempo(&req),
         "dist-situacao" => perturbacao(&req, dist::Camada::Situacao),
         "dist-data" => perturbacao(&req, dist::Camada::Data),
         "dist-confianca" => perturbacao(&req, dist::Camada::Confianca),
@@ -2155,7 +2156,7 @@ fn recortes_do_radar(c: [f64; 4], dia: Option<Data>) -> Result<Result<Vec<radar:
 fn radar_na_grade(recortes: &[radar::Recorte], p: radar::Pol, g: &Grade, c: [f64; 4], nome: &str) -> Result<Option<Value>, String> {
     let pedidos: Vec<(String, String)> =
         recortes.iter().map(|r| (r.url(p).to_string(), format!("{}radar {} {}", PREFIXO, p.sigla(), r.rotulo()))).collect();
-    let sar = Sar { sigla: p.sigla(), de_onde: "do ASF (cerca de 7 MB cada)", celula: 30.0, escala: p.escala() };
+    let sar = Sar { sigla: p.sigla(), de_onde: "do ASF (cerca de 7 MB cada)", celula: 30.0, escala: p.escala(), rampa: None };
     sar_na_grade(&pedidos, &sar, g, c, nome)
 }
 
@@ -2169,6 +2170,8 @@ struct Sar {
     celula: f64,
     /// A escala de cinza, em dB.
     escala: (f64, f64),
+    /// Uma rampa de cores no lugar do cinza (a do NISAR é a "Magma", como nas imagens da NASA).
+    rampa: Option<&'static str>,
 }
 
 /// Os arquivos de radar `pedidos` (endereço, nome da camada bruta), em potência linear, na grade
@@ -2208,13 +2211,19 @@ fn sar_na_grade(pedidos: &[(String, String)], sar: &Sar, g: &Grade, c: [f64; 4],
         return Ok(Some(json!({"pending": baixando, "bursts": pedidos.len()})));
     }
     let mut temporarias: Vec<String> = Vec::new();
-    // Para células bem maiores que as dos arquivos, a média; senão, bilinear.
-    let resampling = if g.celula > 1.5 * sar.celula { "average" } else { "bilinear" };
     let resultado = (|| -> Result<(), String> {
         for (((bruto, f), q), a) in brutos.iter().zip(&filtrados).zip(&na_grade).zip(&na_area) {
-            // O filtro de Lee (5 × 5) tira o granulado (speckle) do radar, na geometria do próprio
-            // recorte, antes de qualquer reamostragem, como se faz com radar.
-            ferramenta("geolibre:lee_filter", json!({"input": bruto, "filter_size_x": 5, "filter_size_y": 5}), f)?;
+            // A célula do próprio arquivo, que pode não ser a do produto: o NISAR vem em 20 m no
+            // modo de 20 MHz e em 10 m no de 40 MHz.
+            let real = celula_do_raster(bruto)?.unwrap_or(sar.celula);
+            // O filtro de Lee tira o granulado (speckle) do radar, na geometria do próprio recorte,
+            // antes de qualquer reamostragem, como se faz com radar: 5 × 5 na célula do produto, e
+            // a mesma largura no chão numa célula menor (11 × 11 em 10 m).
+            let lado = filtro_do_radar(sar.celula, real);
+            ferramenta("geolibre:lee_filter", json!({"input": bruto, "filter_size_x": lado, "filter_size_y": lado}), f)?;
+            // Para células bem maiores que as do arquivo, a média, que também tira granulado; a
+            // bilinear só pegaria uma amostra de cada 3 × 3 (de 10 m para 30 m).
+            let resampling = if g.celula > 1.5 * real { "average" } else { "bilinear" };
             // Cada recorte vai para a rede da grade (o sistema e a célula dela, origem [0, 0]) no
             // próprio retângulo: os recortes, que podem estar em fusos UTM diferentes, passam a ter
             // o mesmo sistema e as mesmas células, e o mosaico os junta.
@@ -2246,6 +2255,9 @@ fn sar_na_grade(pedidos: &[(String, String)], sar: &Sar, g: &Grade, c: [f64; 4],
         ferramenta("geolibre:log10", json!({"input": linear}), &log)?;
         temporarias.push(log.clone());
         host::run("raster.function", json!({"layer": log, "function": "bandMath", "expression": "b1 * 10", "name": nome}))?;
+        if let Some(rampa) = sar.rampa {
+            host::run("raster.symbology", json!({"layer": nome, "type": "stretch", "ramp": rampa}))?;
+        }
         let (min, max) = sar.escala;
         let _ = host::run("raster.stretch", json!({"layer": nome, "type": "custom", "min": min, "max": max}));
         Ok(())
@@ -2255,6 +2267,21 @@ fn sar_na_grade(pedidos: &[(String, String)], sar: &Sar, g: &Grade, c: [f64; 4],
         host::run("layer.remove", json!({"layer": fora})).map(|_| ()).or_else(|e| if resultado.is_err() { Ok(()) } else { Err(e) })?;
     }
     resultado.map(|()| None)
+}
+
+/// A célula de um raster do mapa, em metros (num sistema em graus, pelo grau no equador).
+fn celula_do_raster(camada: &str) -> Result<Option<f64>, String> {
+    let i = host::run("raster.info", json!({"layer": camada}))?;
+    let Some(x) = i["cellSize"][0].as_f64().map(f64::abs).filter(|x| *x > 0.0) else { return Ok(None) };
+    let graus = i["crs"].as_str().is_some_and(|c| c == "EPSG:4326" || c == "EPSG:4674");
+    Ok(Some(if graus { x * 111_320.0 } else { x }))
+}
+
+/// O lado (ímpar, de 3 a 15) do filtro de Lee para células de `real` metros: 5 na célula `produto`
+/// do radar, e a mesma largura no chão numa célula menor.
+fn filtro_do_radar(produto: f64, real: f64) -> i64 {
+    let k = ((5.0 * produto / real.max(1.0)).round() as i64).clamp(3, 15);
+    if k % 2 == 0 { k + 1 } else { k }
 }
 
 /// Pede ao RustGIS os arquivos do ASF `pedidos` (endereço, nome da camada) inteiros, como
@@ -2722,6 +2749,12 @@ const CONTORNOS_NISAR: &str = "BrasilData: contornos do NISAR";
 /// As cenas do NISAR GCOV que cruzam o polígono da área, da passagem escolhida
 /// ([`nisar::passagem`]), ou o pedido pendente (app web).
 fn cenas_do_nisar(c: [f64; 4], dia: Option<Data>) -> Result<Result<Vec<nisar::Cena>, Value>, String> {
+    Ok(passagens_do_nisar(c, dia, 1)?.map(|mut v| v.remove(0)))
+}
+
+/// As cenas do NISAR GCOV que cruzam o polígono da área, em até `n` passagens da mesma trilha
+/// ([`nisar::passagens`]), a mais recente primeiro; ou o pedido pendente (app web).
+fn passagens_do_nisar(c: [f64; 4], dia: Option<Data>, n: usize) -> Result<Result<Vec<Vec<nisar::Cena>>, Value>, String> {
     let resposta = match buscar_varios(&[nisar::url_busca(c, dia)])? {
         Ok(mut r) => r.remove(0),
         Err(p) => return Ok(Err(p)),
@@ -2741,24 +2774,31 @@ fn cenas_do_nisar(c: [f64; 4], dia: Option<Data>) -> Result<Result<Vec<nisar::Ce
     let indices: Vec<usize> =
         selecao?["features"].as_array().into_iter().flatten().filter_map(|f| f["properties"]["i"].as_u64().map(|i| i as usize)).collect();
     let cruzam: Vec<&nisar::Cena> = indices.iter().filter_map(|i| todas.get(*i)).collect();
-    let (data, trilha) = nisar::passagem(&cruzam).ok_or(format!("nenhuma cena do NISAR GCOV cruza a área{quando}"))?;
-    let escolhidas: Vec<nisar::Cena> = cruzam.into_iter().filter(|c| c.passagem() == (data, trilha)).cloned().collect();
-    if escolhidas.len() > nisar::MAX_CENAS {
-        return Err(format!(
-            "a passagem de {} tem {} cenas na área; o limite é {}: escolha uma área menor",
-            data.texto(),
-            escolhidas.len(),
-            nisar::MAX_CENAS
-        ));
+    let passagens = nisar::passagens(&cruzam, n);
+    if passagens.is_empty() {
+        return Err(format!("nenhuma cena do NISAR GCOV cruza a área{quando}"));
     }
-    host::log(&format!(
-        "nisar: {} cenas cruzam a área, {} da passagem de {} (trilha {trilha}): {}",
-        indices.len(),
-        escolhidas.len(),
-        data.texto(),
-        escolhidas.iter().map(|c| c.id.as_str()).collect::<Vec<_>>().join(", ")
-    ));
-    Ok(Ok(escolhidas))
+    let mut todas_as_escolhidas = Vec::new();
+    for (data, trilha) in passagens {
+        let escolhidas: Vec<nisar::Cena> = cruzam.iter().filter(|c| c.passagem() == (data, trilha)).map(|c| (*c).clone()).collect();
+        if escolhidas.len() > nisar::MAX_CENAS {
+            return Err(format!(
+                "a passagem de {} tem {} cenas na área; o limite é {}: escolha uma área menor",
+                data.texto(),
+                escolhidas.len(),
+                nisar::MAX_CENAS
+            ));
+        }
+        host::log(&format!(
+            "nisar: {} cenas cruzam a área, {} da passagem de {} (trilha {trilha}): {}",
+            indices.len(),
+            escolhidas.len(),
+            data.texto(),
+            escolhidas.iter().map(|c| c.id.as_str()).collect::<Vec<_>>().join(", ")
+        ));
+        todas_as_escolhidas.push(escolhidas);
+    }
+    Ok(Ok(todas_as_escolhidas))
 }
 
 /// O radar de banda L do NISAR (GCOV) na área: uma polarização, ou a razão HV/HH (que deixa as
@@ -2767,12 +2807,7 @@ fn cenas_do_nisar(c: [f64; 4], dia: Option<Data>) -> Result<Result<Vec<nisar::Ce
 /// passagem mais recente que cobre a área; por script, a de um dia.
 fn radar_nisar(req: &Request, qual: Option<nisar::Pol>) -> Result<Value, String> {
     let PedidoAsf { c, celula, dia } = area_do_asf(req, "o NISAR")?;
-    if !nisar::cabe(c) {
-        return Err(format!(
-            "a área passa de {:.0}° de lado; o NISAR, a 20 m, lê no máximo cerca de 110 km (uma microrregião). Escolha uma área menor",
-            nisar::MAX_GRAUS
-        ));
-    }
+    conferir_tamanho_do_nisar(c)?;
     let g = grade_para(c, celula)?;
     let cenas = match cenas_do_nisar(c, dia)? {
         Ok(r) => r,
@@ -2803,6 +2838,7 @@ fn radar_nisar(req: &Request, qual: Option<nisar::Pol>) -> Result<Value, String>
             de_onde: "pelo Harmony da NASA (cerca de 40 s e 6 MB cada, para um município)",
             celula: nisar::CELULA,
             escala: p.escala(),
+            rampa: Some(nisar::RAMPA),
         };
         if let Some(pendente) = sar_na_grade(&pedidos, &sar, &g, c, &nome)? {
             return Ok(pendente);
@@ -2832,9 +2868,139 @@ fn radar_nisar(req: &Request, qual: Option<nisar::Pol>) -> Result<Value, String>
     }))
 }
 
-/// A composição colorida do NISAR: HH no vermelho, HV no verde e HH − HV no azul, em dB. A
-/// cidade (o eco duplo das construções: HH forte, HV fraco) sai rosa e magenta, a mata (o volume
-/// das copas: HV forte) verde-clara, o pasto e o solo exposto (HV fraco) azuis e roxos, a água escura. Faz antes as
+/// Uma polarização de uma passagem da composição temporal: o nome da camada em dB e os pedidos ao
+/// Harmony (endereço, nome da camada bruta).
+struct CamadaDaPassagem {
+    pol: nisar::Pol,
+    nome: String,
+    pedidos: Vec<(String, String)>,
+}
+
+/// Se o retângulo `c` cabe no NISAR.
+fn conferir_tamanho_do_nisar(c: [f64; 4]) -> Result<(), String> {
+    if nisar::cabe(c) {
+        return Ok(());
+    }
+    Err(format!(
+        "a área passa de {:.0}° de lado; o NISAR, a 20 m, lê no máximo cerca de 110 km (uma microrregião). Escolha uma área menor",
+        nisar::MAX_GRAUS
+    ))
+}
+
+/// A composição temporal do NISAR, como a da NASA sobre o Vetrivier (África do Sul): a mediana do
+/// HH (vermelho), a mediana do HV (verde) e o desvio-padrão do HV (azul) em várias passagens da
+/// mesma trilha, em dB. A mediana tira o granulado que uma passagem só deixa (e, ao contrário da
+/// média, não se deixa puxar por uma passagem fora do comum); o desvio do HV sobe onde a
+/// vegetação muda entre as passagens (lavoura que cresce ou é colhida). Só a composição fica no
+/// mapa.
+fn nisar_no_tempo(req: &Request) -> Result<Value, String> {
+    let PedidoAsf { c, celula, .. } = area_do_asf(req, "o NISAR")?;
+    conferir_tamanho_do_nisar(c)?;
+    let n = req.f64("passagens").map_or(nisar::PASSAGENS_DO_TEMPO, |x| x.round().max(0.0) as usize).clamp(2, nisar::MAX_PASSAGENS);
+    let g = grade_para(c, celula)?;
+    let passagens = match passagens_do_nisar(c, None, n)? {
+        Ok(p) => p,
+        Err(p) => return Ok(p),
+    };
+    if passagens.len() < 2 {
+        return Err(format!(
+            "a trilha da passagem de {} só tem ela na área por enquanto: a composição temporal precisa de pelo menos 2 passagens",
+            passagens[0][0].data.texto()
+        ));
+    }
+    let folga = 0.01;
+    let pedido = [c[0] - folga, c[1] - folga, c[2] + folga, c[3] + folga];
+    let epsg = nisar::utm_do_harmony(c);
+    let pols = [nisar::Pol::Hh, nisar::Pol::Hv];
+    // Cada polarização de cada passagem: o nome da camada em dB e os pedidos ao Harmony.
+    let mut camadas: Vec<CamadaDaPassagem> = Vec::new();
+    for cenas in &passagens {
+        for pol in pols {
+            let pedidos =
+                cenas.iter().map(|k| (k.url(pol, pedido, epsg), format!("{}NISAR {} {}", PREFIXO, pol.sigla(), k.rotulo()))).collect();
+            camadas.push(CamadaDaPassagem { pol, nome: nisar::nome_da_camada(pol, cenas[0].data), pedidos });
+        }
+    }
+    let ha = nomes()?;
+    // Os arquivos que faltam, poucos de cada vez ([`nisar::PEDIDOS_DE_UMA_VEZ`]): na janela, o
+    // comando roda de novo quando eles chegam, e pede os próximos.
+    let todos_os_que_faltam: Vec<(&str, &str)> = camadas
+        .iter()
+        .filter(|k| !ha.contains(&k.nome))
+        .flat_map(|k| k.pedidos.iter().map(|(u, b)| (u.as_str(), b.as_str())))
+        .filter(|(_, b)| !ha.iter().any(|h| h == b))
+        .collect();
+    let faltam: Vec<(&str, &str)> = todos_os_que_faltam.iter().take(nisar::PEDIDOS_DE_UMA_VEZ).copied().collect();
+    let baixando = baixar_inteiros(&faltam, &ha)?;
+    if baixando > 0 {
+        avisar(&format!(
+            "NISAR, composição temporal: baixando {baixando} dos {} recortes que faltam, pelo Harmony da NASA ({} passagens; {} de cada vez, cerca de 1 min cada vez)",
+            todos_os_que_faltam.len(),
+            passagens.len(),
+            nisar::PEDIDOS_DE_UMA_VEZ
+        ));
+        return Ok(json!({"pending": baixando}));
+    }
+    for k in &camadas {
+        if ha.contains(&k.nome) {
+            continue;
+        }
+        let sar = Sar { sigla: k.pol.sigla(), de_onde: "pelo Harmony da NASA", celula: nisar::CELULA, escala: k.pol.escala(), rampa: None };
+        if let Some(pendente) = sar_na_grade(&k.pedidos, &sar, &g, c, &k.nome)? {
+            return Ok(pendente);
+        }
+    }
+    let datas: Vec<String> = passagens.iter().map(|cs| cs[0].data.iso()).collect();
+    let de_cada = |p: nisar::Pol| -> Vec<String> { camadas.iter().filter(|k| k.pol == p).map(|k| k.nome.clone()).collect() };
+    let (hh, hv) = (de_cada(nisar::Pol::Hh), de_cada(nisar::Pol::Hv));
+    let (ultima, primeira) = (passagens[0][0].data, passagens[passagens.len() - 1][0].data);
+    let nome = nisar::nome_da_temporal(primeira, ultima);
+    let (hh_media, hv_media, hv_desvio) = (format!("{nome} HH"), format!("{nome} HV"), format!("{nome} desvio"));
+    remover(&[&nome, &hh_media, &hv_media, &hv_desvio])?;
+    // A mediana; um RustGIS antes da 0.8.0 (sem a mediana no `cube.reduce`, opengeos/RustGIS#2596)
+    // fica com a média, e o aviso diz.
+    let mut estatistica = "mediana";
+    let feito = (|| -> Result<(), String> {
+        // O `cube.reduce` deixa de fora, em cada célula, as passagens sem dado nela.
+        for (entradas, saida) in [(&hh, &hh_media), (&hv, &hv_media)] {
+            let mediana = host::run("cube.reduce", json!({"layers": entradas, "dates": datas, "stat": "median", "name": saida}));
+            if let Err(e) = mediana {
+                host::log(&format!("nisar: sem a mediana no cube.reduce ({e}); vai a média"));
+                estatistica = "média";
+                host::run("cube.reduce", json!({"layers": entradas, "dates": datas, "stat": "mean", "name": saida}))?;
+            }
+        }
+        host::run("cube.reduce", json!({"layers": hv, "dates": datas, "stat": "std", "name": hv_desvio}))?;
+        ferramenta("geolibre:composite_bands", json!({"inputs": [hh_media, hv_media, hv_desvio]}), &nome)?;
+        host::run("raster.symbology", json!({"layer": nome, "type": "rgb"}))?;
+        let [r, g_, b] = nisar::ESCALAS_DA_TEMPORAL;
+        host::run("raster.stretch", json!({"layer": nome, "type": "custom", "min": [r.0, g_.0, b.0], "max": [r.1, g_.1, b.1]}))?;
+        Ok(())
+    })();
+    let mut fora: Vec<&str> = vec![&hh_media, &hv_media, &hv_desvio];
+    fora.extend(hh.iter().chain(&hv).map(String::as_str));
+    remover(&fora)?;
+    feito?;
+    sob_as_linhas(&nome)?;
+    let mut texto = format!(
+        "{}: {} passagens da trilha {} ({}), na grade do projeto, {}. Vermelho: {estatistica} do HH (solo exposto, superfícies ásperas, construções); verde: {estatistica} do HV (vegetação); azul: desvio-padrão do HV entre as passagens (vegetação que mudou)",
+        nome.trim_start_matches(PREFIXO),
+        passagens.len(),
+        passagens[0][0].trilha,
+        passagens.iter().map(|cs| cs[0].data.texto()).collect::<Vec<_>>().join(", "),
+        g.texto()
+    );
+    if estatistica == "média" {
+        texto.push_str(". A mediana precisa do RustGIS 0.8.0 ou mais novo; neste, foi a média");
+    }
+    avisar(&texto);
+    Ok(json!({"layer": nome, "dates": datas, "report": texto}))
+}
+
+/// A composição colorida do NISAR: HH no vermelho, HV no verde e HH − HV no azul, em dB, nas
+/// escalas do estilo da NASA ([`nisar::ESCALAS_DA_COMPOSICAO`]). A cidade (o eco duplo das
+/// construções: HH forte, HV fraco) sai rosa e magenta, a mata (o volume das copas: HV forte)
+/// verde forte, o pasto e o solo exposto (HV fraco) azuis e roxos, a água escura. Faz antes as
 /// camadas HH, HV e a razão, que ficam no mapa.
 fn composicao_nisar(req: &Request) -> Result<Value, String> {
     let r = radar_nisar(req, None)?;
@@ -2861,7 +3027,7 @@ fn composicao_nisar(req: &Request) -> Result<Value, String> {
     remover(&[&azul])?;
     feito?;
     avisar(&format!(
-        "{}: vermelho HH, verde HV, azul HH − HV. Cidade em rosa e magenta, mata em verde-claro, pasto e solo exposto em azul e roxo, água escura",
+        "{}: vermelho HH, verde HV, azul HH − HV. No estilo das imagens do NISAR da NASA: mata em verde forte, cidade em rosa e magenta, pasto e solo exposto em azul e roxo escuros, água escura",
         nome.trim_start_matches(PREFIXO)
     ));
     let mut r = r;
