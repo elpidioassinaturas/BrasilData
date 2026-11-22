@@ -1268,9 +1268,6 @@ fn por_zoom(campo: &str, nome: &str, r: &Value) -> Result<(), String> {
     Ok(())
 }
 
-/// A cor das linhas da drenagem: um azul que se distingue do mar e dos lagos do mapa-base.
-const AZUL_DRENAGEM: &str = "#1f78b4";
-
 /// A drenagem da BC250 com a ordem de Strahler e a drenagem a montante (veja [`drenagem`]): numa
 /// área de até [`drenagem::MAX_UFS`] UFs, os arquivos delas, juntados e recortados; sem área, ou
 /// numa área maior, o país inteiro pela vista.
@@ -1336,9 +1333,11 @@ fn drenagem_bc250(t: &Tema) -> Result<Value, String> {
     Ok(r)
 }
 
-/// A cor e os filtros por escala de uma camada da drenagem que já garante `minimo` km a montante.
+/// O estilo de uma camada da drenagem que já garante `minimo` km a montante: azul (a cor do
+/// símbolo, que a legenda mostra), a largura pela ordem de Strahler e os filtros por escala.
 fn estilo_da_drenagem(camada: &str, minimo: f64) -> Result<(), String> {
-    host::run("layer.lineStrokes", json!({"layer": camada, "strokes": [{"color": AZUL_DRENAGEM, "width": 0.6}]}))?;
+    host::run("layer.color", json!({"layer": camada, "color": drenagem::AZUL}))?;
+    host::run("layer.symbolBy", json!({"layer": camada, "strokeWidth": drenagem::LARGURA_PELA_ORDEM}))?;
     host::run("layer.displayFilters", json!({"layer": camada, "filters": drenagem::filtros(minimo)}))?;
     Ok(())
 }

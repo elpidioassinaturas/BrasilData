@@ -15,6 +15,14 @@ use serde_json::{Value, json};
 /// A release de dados com os arquivos.
 pub const BASE: &str = "https://github.com/elpidioassinaturas/BrasilData/releases/download/dados-drenagem-bc250-2025/";
 
+/// A largura de cada trecho (pontos) pela ordem de Strahler, de 0,2 pt na ordem 1 a 3 pt na ordem
+/// 10, numa curva que cresce devagar e depois depressa (ordem 6: 1,1 pt; ordem 8: 1,9 pt): de
+/// longe, onde só aparecem rios de ordem 6 a 10, os maiores se destacam.
+pub const LARGURA_PELA_ORDEM: &str = "scale_exp(strahler, 1, 10, 0.2, 3, 2)";
+
+/// O azul das linhas da drenagem, que se distingue do mar e dos lagos do mapa-base.
+pub const AZUL: &str = "#1f78b4";
+
 /// O campo da drenagem a montante (km).
 pub const MONTANTE: &str = "montante_km";
 
