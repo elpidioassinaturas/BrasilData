@@ -77,13 +77,16 @@ pub struct ClasseDeRotulo {
 }
 
 /// As classes de rótulo, na ordem em que o RustGIS as coloca (a primeira tem a preferência). A
-/// última é a Default, com a cláusula que sobra. As de cima pedem também um comprimento mínimo da
-/// linha do rio: nas zonas de canais trançados (Amazônia, Pantanal) todo canal tem a ordem da
-/// zona, e um furo curto de ordem 10 não deve tomar o lugar de um rio grande.
+/// última é a Default, com a cláusula que sobra. A importância é a drenagem a montante, não a
+/// ordem de Strahler: a ordem satura em 5 a 7 nos rios regionais, e na Zona da Mata o Rio Pomba
+/// (5.415 km a montante) e o Xopotó (1.645 km), ambos de ordem 6, caíam na mesma classe, onde o
+/// Xopotó ficava com o rótulo e o Pomba sem. As de cima pedem também um comprimento mínimo da
+/// linha do rio: nas zonas de canais trançados (Amazônia, Pantanal) um furo curto leva parte da
+/// drenagem do rio e não deve tomar o lugar dele.
 pub const CLASSES_DE_ROTULO: &[ClasseDeRotulo] = &[
     ClasseDeRotulo {
         nome: "Rios principais",
-        onde: "strahler >= 7 AND comp_km >= 30",
+        onde: "montante_km >= 5000 AND comp_km >= 30",
         tamanho: 10.0,
         cor: "#08306b",
         posicao: "parallel",
@@ -91,15 +94,15 @@ pub const CLASSES_DE_ROTULO: &[ClasseDeRotulo] = &[
     },
     ClasseDeRotulo {
         nome: "Rios médios",
-        onde: "strahler >= 5 AND comp_km >= 10 AND NOT (strahler >= 7 AND comp_km >= 30)",
+        onde: "montante_km >= 1000 AND comp_km >= 10 AND NOT (montante_km >= 5000 AND comp_km >= 30)",
         tamanho: 8.5,
         cor: "#1f4e79",
-        posicao: "curved",
+        posicao: "parallel",
         longe: Some(2_000_000.0),
     },
     ClasseDeRotulo {
         nome: "Córregos e ribeirões",
-        onde: "strahler < 5 OR comp_km < 10",
+        onde: "montante_km < 1000 OR comp_km < 10",
         tamanho: 7.0,
         cor: "#2c6a9e",
         posicao: "curved",
@@ -183,8 +186,11 @@ mod testes {
         for par in NIVEIS_DOS_ROTULOS.windows(2) {
             assert_eq!(par[0].3, par[1].2);
         }
-        // A preferência é dos rios maiores: as classes vão da maior ordem para a menor.
-        assert!(CLASSES_DE_ROTULO[0].onde.contains(">= 7") && CLASSES_DE_ROTULO.last().unwrap().onde.starts_with("strahler < 5"));
+        // A preferência é dos rios maiores: as classes vão da maior drenagem a montante para a menor.
+        assert!(
+            CLASSES_DE_ROTULO[0].onde.starts_with("montante_km >= 5000")
+                && CLASSES_DE_ROTULO.last().unwrap().onde.starts_with("montante_km < 1000")
+        );
     }
 
     #[test]
