@@ -79,8 +79,14 @@ pub fn geometria(codigo: &str) -> Option<Value> {
 pub fn se_cruza(geometria: &Value) -> bool {
     let pontos: Vec<(f64, f64)> =
         geometria["coordinates"][0].as_array().into_iter().flatten().filter_map(|c| Some((c[0].as_f64()?, c[1].as_f64()?))).collect();
-    let lado = |a: (f64, f64), b: (f64, f64), c: (f64, f64)| ((b.0 - a.0) * (c.1 - a.1) - (b.1 - a.1) * (c.0 - a.0)).signum();
-    let cruzam = |a, b, c, d| lado(a, b, c) * lado(a, b, d) < 0.0 && lado(c, d, a) * lado(c, d, b) < 0.0;
+    // O lado de `c` em relação à reta `a`–`b`: −1, 0 ou 1. Não o `f64::signum`, que dá ±1 no zero:
+    // com ele, o primeiro e o último segmento, que se tocam no ponto inicial, "se cruzavam" conforme
+    // o sinal do zero, e um retângulo desenhado no mapa era recusado.
+    let lado = |a: (f64, f64), b: (f64, f64), c: (f64, f64)| {
+        let v = (b.0 - a.0) * (c.1 - a.1) - (b.1 - a.1) * (c.0 - a.0);
+        i8::from(v > 0.0) - i8::from(v < 0.0)
+    };
+    let cruzam = |a, b, c, d| lado(a, b, c) * lado(a, b, d) < 0 && lado(c, d, a) * lado(c, d, b) < 0;
     let segmentos = pontos.len().saturating_sub(1);
     (0..segmentos).any(|i| (i + 2..segmentos).any(|j| cruzam(pontos[i], pontos[i + 1], pontos[j], pontos[j + 1])))
 }
@@ -180,6 +186,14 @@ mod tests {
         assert!(se_cruza(&g(json!([[0, 0], [1, 1], [1, 0], [0, 1], [0, 0]]))));
         // Um polígono côncavo não se cruza.
         assert!(!se_cruza(&g(json!([[0, 0], [2, 0], [2, 2], [1, 0.5], [0, 2], [0, 0]]))));
+        // Um retângulo desenhado no RustGIS (Zona da Mata), que o sinal do zero fazia cruzar.
+        assert!(!se_cruza(&g(json!([
+            [-42.94572345740798, -20.94253509968024],
+            [-42.78027832766482, -20.936383515693983],
+            [-42.774244999265534, -21.076693465627237],
+            [-42.93977890916313, -21.082850702795508],
+            [-42.94572345740798, -20.94253509968024]
+        ]))));
     }
 
     /// Os pontos dos anéis de uma geometria; e confere que os anéis fecham.

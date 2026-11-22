@@ -37,10 +37,11 @@ pub enum Fonte {
     Tse,
     Caged,
     Saude,
+    Seeg,
 }
 
-pub const TODAS: [Fonte; 8] =
-    [Fonte::Censo, Fonte::Agro, Fonte::Agroeco, Fonte::Pix, Fonte::Credito, Fonte::Tse, Fonte::Caged, Fonte::Saude];
+pub const TODAS: [Fonte; 9] =
+    [Fonte::Censo, Fonte::Agro, Fonte::Agroeco, Fonte::Pix, Fonte::Credito, Fonte::Tse, Fonte::Caged, Fonte::Saude, Fonte::Seeg];
 
 impl Fonte {
     /// O nome nos parâmetros (`{"fontes": ["pix", …]}`).
@@ -54,6 +55,7 @@ impl Fonte {
             Fonte::Tse => "tse",
             Fonte::Caged => "caged",
             Fonte::Saude => "saude",
+            Fonte::Seeg => "seeg",
         }
     }
 
@@ -76,6 +78,7 @@ impl Fonte {
             Fonte::Tse => ["eleitores_", "comparec_", "abstencao_"].iter().any(|p| campo.starts_with(p)),
             Fonte::Caged => campo.starts_with("caged_"),
             Fonte::Saude => campo.starts_with("saude_"),
+            Fonte::Seeg => campo.starts_with("seeg_"),
         }
     }
 
@@ -107,6 +110,10 @@ impl Fonte {
             Fonte::Credito => "Banco Central do Brasil, Matriz de Dados do Crédito Rural (SICOR), custeio por município e produto; valores em R$, Pronaf = programa 0001".into(),
             Fonte::Tse => "Tribunal Superior Eleitoral, divulgação oficial dos resultados, 1º turno de 2026 (eleição 6257) e de 2024 (619)".into(),
             Fonte::Caged => format!("Ministério do Trabalho e Emprego, Novo CAGED sem ajuste, pelo IPEA Data (ADMISNC, DESLIGNC); retrato até {}", caged_ate()),
+            Fonte::Seeg => format!(
+                "SEEG 14.0, Sistema de Estimativas de Emissões e Remoções de Gases de Efeito Estufa (Observatório do Clima), dados por município de {}, em toneladas de cada gás; CO2e líquido pelo GWP do AR5 do IPCC (CH4 × 28, N2O × 265)",
+                seeg_ano()
+            ),
             Fonte::Saude => {
                 let (ano, mes) = saude_ano_e_mes();
                 let inicio = ano.parse::<u32>().map(|a| (a - 2).to_string()).unwrap_or_default();
@@ -125,6 +132,7 @@ impl Fonte {
             Fonte::Tse => "CC BY (dados abertos do TSE)",
             Fonte::Caged => "dados abertos; licença do IPEA Data não declarada",
             Fonte::Saude => "dados abertos do Ministério da Saúde e do IBGE, com citação da fonte",
+            Fonte::Seeg => "dados abertos do SEEG (Observatório do Clima), com citação da fonte",
         }
     }
 }
@@ -376,9 +384,55 @@ pub fn campos_saude(codigos: &[String]) -> PorMunicipio {
     out
 }
 
+// ---------------------------------------------------------------------------------------------
+// Emissões (SEEG)
+
+const SEEG: &str = include_str!("../seeg.csv");
+
+/// O ano do retrato das emissões.
+pub fn seeg_ano() -> &'static str {
+    SEEG.lines().nth(1).and_then(|l| l.split(',').nth(1)).unwrap_or("?")
+}
+
+/// Os campos de emissões dos municípios `codigos`, do retrato embutido (`seeg.csv`, de
+/// `scripts/resumir_seeg.py`): cada coluna vira `seeg_<coluna>`, em toneladas do gás no ano.
+pub fn campos_seeg(codigos: &[String]) -> PorMunicipio {
+    let mut linhas = SEEG.lines();
+    let cabecalho: Vec<&str> = linhas.next().unwrap_or_default().split(',').collect();
+    let mut out = PorMunicipio::new();
+    for l in linhas {
+        // O código antes de partir a linha, como na saúde.
+        let Some(cd) = l.split_once(',').map(|(cd, _)| cd).filter(|cd| codigos.iter().any(|c| c == cd)) else {
+            continue;
+        };
+        let mut c = Map::new();
+        for (k, v) in cabecalho.iter().zip(l.split(',')).skip(1) {
+            let valor = if *k == "ano" { v.parse::<i64>().ok().map(|n| json!(n)) } else { v.parse::<f64>().ok().map(|x| json!(x)) };
+            if let Some(valor) = valor {
+                c.insert(format!("seeg_{k}"), valor);
+            }
+        }
+        out.insert((*cd).to_string(), c);
+    }
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn emissoes_do_seeg() {
+        let c = campos_seeg(&["3171303".to_string(), "1507300".to_string()]);
+        let vicosa = &c["3171303"];
+        assert!(vicosa["seeg_ch4"].as_f64().unwrap() > 0.0, "{vicosa:?}");
+        assert_eq!(vicosa["seeg_ano"].as_i64(), Some(2025));
+        // São Félix do Xingu (PA), um dos que mais emitem metano: o gado.
+        let sfx = &c["1507300"];
+        assert!(sfx["seeg_ch4_agropecuaria"].as_f64().unwrap() > 100_000.0, "{sfx:?}");
+        assert!(Fonte::Seeg.eh_campo("seeg_co2e_liquido") && !Fonte::Saude.eh_campo("seeg_ch4"));
+        assert!(Fonte::Seeg.citacao().contains("SEEG"));
+    }
 
     #[test]
     fn as_fontes_pesadas_por_chamada() {

@@ -50,6 +50,7 @@ pub mod layout;
 pub mod localidades;
 pub mod malhas;
 pub mod mapbiomas;
+pub mod metano;
 pub mod municipios;
 pub mod nisar;
 pub mod olm;

@@ -37,7 +37,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.59"
+VERSAO = "0.1.60"
 AUTOR = "Elpídio Filho"
 # Como o texto Sobre chama o autor (o manifesto e o README levam o nome completo).
 AUTOR_SOBRE = "Professor Elpídio"
@@ -984,6 +984,39 @@ EM_MENUS = [
     ),
     (
         "Tempo e clima",
+        "Atmosfera",
+        {
+            "id": "indicadores-seeg",
+            "label": "Emissões de gases por município (SEEG)",
+            "help": "As emissões de gases de efeito estufa por município, do SEEG (Observatório do Clima), num retrato de 2025 que vem com o plugin, em toneladas de cada gás no ano: o metano (CH4) total e o da agropecuária (sobretudo a fermentação no estômago do gado), dos resíduos (aterros e esgoto), da mudança de uso da terra (queimadas) e da energia; o CO2 emitido e o líquido (com as remoções pela floresta em pé e pela regeneração, que podem deixá-lo negativo); o óxido nitroso (N2O); e o CO2 equivalente líquido (AR5 do IPCC: CH4 × 28, N2O × 265). São estimativas a partir de dados de atividade (rebanhos, combustíveis, lixo, desmatamento), não medições. Na camada Indicadores por município (os municípios que cruzam a área, até 200, mostrados só dentro dela): os campos se somam aos que ela já tem; o layout faz o mapa do metano.",
+            "icon": "field",
+            "params": "{}",
+        },
+    ),
+    (
+        "Tempo e clima",
+        "Atmosfera",
+        {
+            "id": "metano-tropomi",
+            "label": "Metano no ar (Sentinel-5P)",
+            "help": "A coluna média de metano no ar (XCH4, em ppb) medida pelo satélite Sentinel-5P (instrumento TROPOMI, do Copernicus): a média do ano ou de um mês, numa grade de 0,1° (cerca de 11 km) que o BrasilData calcula das órbitas do satélite, só com os pixels de boa qualidade (qa ≥ 0,5). Mostra onde há mais metano no ar, não quanto cada lugar emite: o valor cai com a altitude (há menos ar acima) e varia com a estação; manchas altas que se repetem nos meses apontam fontes, como áreas alagadas, pecuária e aterros. Numa área, só ela, lida do arquivo do Brasil e recortada pelo contorno; sem área, o Brasil inteiro, lido pela vista. Contém dados modificados do Copernicus Sentinel (ESA). Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área).",
+            "icon": "graduated",
+            "params": "{\"periodo\"?: \"média de 2023\" (padrão) | \"março de 2023\" | \"2023-03\"}",
+            "form": [
+                {
+                    "name": "periodo",
+                    "label": "Período",
+                    "kind": "choice",
+                    "required": True,
+                    "choices": ["média de 2023"] + [f"{m} de 2023" for m in ("janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro")],
+                    "default": "média de 2023",
+                    "help": "A média do ano, ou de um mês: na estação chuvosa as áreas alagadas emitem mais, e um mês tem menos observações (as nuvens tiram dias)."
+                }
+            ]
+        },
+    ),
+    (
+        "Tempo e clima",
         "Satélites do JAXA",
         {
             "id": "jaxa-chuva",
@@ -1515,7 +1548,7 @@ TOPICOS = {
     "Território": ["Limites", "Recortes especiais", "Cadastro fundiário", "Terras indígenas"],
     "Sociedade e economia": ["População", "Economia", "Agricultura", "Eleições", "Saúde"],
     "Meio físico": ["Geologia e recursos minerais", "Relevo", "Solos"],
-    "Tempo e clima": ["Previsão", "Chuva observada", "Desastres", "Clima", "Clima passado (ERA5)", "Satélites do JAXA"],
+    "Tempo e clima": ["Previsão", "Chuva observada", "Desastres", "Clima", "Clima passado (ERA5)", "Satélites do JAXA", "Atmosfera"],
     "Água": ["Hidrografia", "Bacias", "Recursos hídricos"],
     "Vegetação e meio ambiente": ["Vegetação", "Cubo de dados do INPE", "Uso e cobertura", "Desmatamento", "Queimadas", "Áreas protegidas", "Fiscalização"],
     "Infraestrutura": ["Energia", "Petróleo e gás", "Transportes", "Edificações"],

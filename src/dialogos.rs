@@ -153,6 +153,23 @@ pub const VARIAVEIS_GEDTM: [(&str, &str); 16] = [
 pub const ESCALAS_GEDTM: [(&str, &str); 6] =
     [("30 m", "30"), ("60 m", "60"), ("120 m", "120"), ("240 m", "240"), ("480 m", "480"), ("960 m", "960")];
 
+/// As escolhas do período do metano (a janela) e o valor de cada uma ("2023" ou "2023-03").
+pub const PERIODOS_METANO: [(&str, &str); 13] = [
+    ("média de 2023", "2023"),
+    ("janeiro de 2023", "2023-01"),
+    ("fevereiro de 2023", "2023-02"),
+    ("março de 2023", "2023-03"),
+    ("abril de 2023", "2023-04"),
+    ("maio de 2023", "2023-05"),
+    ("junho de 2023", "2023-06"),
+    ("julho de 2023", "2023-07"),
+    ("agosto de 2023", "2023-08"),
+    ("setembro de 2023", "2023-09"),
+    ("outubro de 2023", "2023-10"),
+    ("novembro de 2023", "2023-11"),
+    ("dezembro de 2023", "2023-12"),
+];
+
 /// As escolhas de um parâmetro e o valor de cada uma.
 type Escolhas = &'static [(&'static str, &'static str)];
 
@@ -189,6 +206,7 @@ const TROCAS: &[(&str, &str, Escolhas)] = &[
     ("temperatura-prevista", "tipo", &ESCOLHAS_TEMPERATURAS),
     ("chuva-ensemble", "modelo", &ESCOLHAS_ENSEMBLES),
     ("chuva-ensemble", "medida", &ESCOLHAS_MEDIDAS),
+    ("metano-tropomi", "periodo", &PERIODOS_METANO),
 ];
 
 /// O número do mês de nome `nome` (janeiro é 1).

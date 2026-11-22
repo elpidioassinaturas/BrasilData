@@ -1,7 +1,7 @@
 {
   "id": "brasildata",
   "name": "BrasilData",
-  "version": "0.1.59",
+  "version": "0.1.60",
   "description": "Dados públicos do Brasil para a área do usuário (IBGE, MMA, ICMBio, INPE, CEMADEN, ANA, ANEEL, ANP, SFB/CAR, INCRA, FUNAI, IBAMA, ANM, DNIT, Ministério da Saúde, Copernicus, NASA/ASF, FAO, WRI, Open-Meteo, CHIRPS, Google DeepMind): só o que cruza a área, recortado por ela, com a fonte e a licença de cada camada.",
   "author": "Elpídio Filho",
   "homepage": "https://github.com/elpidioassinaturas/BrasilData",
@@ -1502,6 +1502,45 @@
       ]
     },
     {
+      "id": "indicadores-seeg",
+      "label": "Emissões de gases por município (SEEG)",
+      "help": "As emissões de gases de efeito estufa por município, do SEEG (Observatório do Clima), num retrato de 2025 que vem com o plugin, em toneladas de cada gás no ano: o metano (CH4) total e o da agropecuária (sobretudo a fermentação no estômago do gado), dos resíduos (aterros e esgoto), da mudança de uso da terra (queimadas) e da energia; o CO2 emitido e o líquido (com as remoções pela floresta em pé e pela regeneração, que podem deixá-lo negativo); o óxido nitroso (N2O); e o CO2 equivalente líquido (AR5 do IPCC: CH4 × 28, N2O × 265). São estimativas a partir de dados de atividade (rebanhos, combustíveis, lixo, desmatamento), não medições. Na camada Indicadores por município (os municípios que cruzam a área, até 200, mostrados só dentro dela): os campos se somam aos que ela já tem; o layout faz o mapa do metano. Período: 2025 (o ano mais recente do SEEG 14.0). Resolução ou escala: município. Unidades: toneladas do gás no ano; CO2e pelo GWP de 100 anos do AR5. Licença: dados abertos do SEEG, com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/indicadores-seeg.md",
+      "icon": "field",
+      "params": "{}"
+    },
+    {
+      "id": "metano-tropomi",
+      "label": "Metano no ar (Sentinel-5P)",
+      "help": "A coluna média de metano no ar (XCH4, em ppb) medida pelo satélite Sentinel-5P (instrumento TROPOMI, do Copernicus): a média do ano ou de um mês, numa grade de 0,1° (cerca de 11 km) que o BrasilData calcula das órbitas do satélite, só com os pixels de boa qualidade (qa ≥ 0,5). Mostra onde há mais metano no ar, não quanto cada lugar emite: o valor cai com a altitude (há menos ar acima) e varia com a estação; manchas altas que se repetem nos meses apontam fontes, como áreas alagadas, pecuária e aterros. Numa área, só ela, lida do arquivo do Brasil e recortada pelo contorno; sem área, o Brasil inteiro, lido pela vista. Contém dados modificados do Copernicus Sentinel (ESA). Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área). Período: 2023 (o ano e cada mês; 2023 é o ano mais recente com todas as órbitas no Planetary Computer). Resolução ou escala: 0,1° (cerca de 11 km); o pixel do satélite tem cerca de 7 × 5,5 km. Unidades: ppb (partes por bilhão, fração molar no ar seco). Licença: livre e aberto (licença dos dados Copernicus Sentinel), com a citação. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/metano-tropomi.md",
+      "icon": "graduated",
+      "params": "{\"periodo\"?: \"média de 2023\" (padrão) | \"março de 2023\" | \"2023-03\"}",
+      "form": [
+        {
+          "name": "periodo",
+          "label": "Período",
+          "kind": "choice",
+          "required": true,
+          "choices": [
+            "média de 2023",
+            "janeiro de 2023",
+            "fevereiro de 2023",
+            "março de 2023",
+            "abril de 2023",
+            "maio de 2023",
+            "junho de 2023",
+            "julho de 2023",
+            "agosto de 2023",
+            "setembro de 2023",
+            "outubro de 2023",
+            "novembro de 2023",
+            "dezembro de 2023"
+          ],
+          "default": "média de 2023",
+          "help": "A média do ano, ou de um mês: na estação chuvosa as áreas alagadas emitem mais, e um mês tem menos observações (as nuvens tiram dias)."
+        }
+      ]
+    },
+    {
       "id": "jaxa-chuva",
       "label": "Chuva por satélite (GSMaP, JAXA)",
       "help": "A chuva estimada por satélite do GSMaP (Global Satellite Mapping of Precipitation, a partir dos satélites GPM e de outros, ajustada com pluviômetros), em mm por dia: a média dos meses do período, desde março de 2000, a 0,1° (cerca de 11 km). Do JAXA Earth (a agência espacial do Japão), por mês, lido só na área pelo RustGIS (sem login) e recortado pelo contorno, na resolução original do dado (células de 2,8 a 22 km, em graus), fora da grade do projeto: o mapa mostra o padrão regional. Sem período, os 3 meses até o último com dados. Uso livre com o crédito \"JAXA\"; uso comercial, avisando a JAXA antes. Precisa de um RustGIS com o resumo de um cubo STAC (cube.reduce, desde a 0.6.0); só no app desktop e no rustgis-cli. Período: desde março de 2000, por mês. Resolução ou escala: 0,1° (cerca de 11 km). Unidades: mm por dia. Licença: termos do JAXA Earth: uso livre, com o crédito \"JAXA\" e o nome do conjunto; uso comercial, avisando a JAXA antes. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/jaxa-chuva.md",
@@ -2244,7 +2283,7 @@
     {
       "id": "sobre",
       "label": "Sobre",
-      "help": "BrasilData 0.1.59, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nAs fontes dos dados e como contribuir estão nas abas do fim do painel Área de trabalho: basta clicar nelas. Para lê-las aqui, marque a caixa e clique em Executar. A janela fica aberta até o X do canto de cima.",
+      "help": "BrasilData 0.1.60, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nAs fontes dos dados e como contribuir estão nas abas do fim do painel Área de trabalho: basta clicar nelas. Para lê-las aqui, marque a caixa e clique em Executar. A janela fica aberta até o X do canto de cima.",
       "icon": "about",
       "params": "{\"completo\"?: true para as fontes e como contribuir | \"parte\"?: \"tudo\" (padrão) | \"autoria\" | \"fontes\" | \"contribuir\"}",
       "form": [
@@ -2412,7 +2451,7 @@
         "kind": "text",
         "id": "sobre",
         "label": "Sobre o BrasilData: Autoria",
-        "text": "BrasilData 0.1.59, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData"
+        "text": "BrasilData 0.1.60, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData"
       }
     ]
   },
@@ -2650,6 +2689,14 @@
               "jaxa-temperatura",
               "jaxa-evapotranspiracao",
               "jaxa-seca"
+            ]
+          },
+          {
+            "menu": "Atmosfera",
+            "icon": "field",
+            "items": [
+              "indicadores-seeg",
+              "metano-tropomi"
             ]
           }
         ]

@@ -2,7 +2,7 @@
 
 <!-- Gerado por scripts/gerar.py a partir do fontes.csv e do fichas.csv; não edite à mão. -->
 
-A ficha de cada uma das 161 camadas que os botões da aba BrasilData trazem: o que é, a fonte, o período, a resolução, as unidades, a legenda, a licença, a citação, os cuidados de uso, se funciona no app web, e um mapa exemplo feito com o plugin (o botão Layout). Os mapas exemplo são de Viçosa (MG), ou da Zona da Mata mineira para os produtos de baixa resolução; os temas que não existem lá vêm de outro município, dito em cada ficha. Os mapas saem do `scripts/mapas_exemplo.py`.
+A ficha de cada uma das 163 camadas que os botões da aba BrasilData trazem: o que é, a fonte, o período, a resolução, as unidades, a legenda, a licença, a citação, os cuidados de uso, se funciona no app web, e um mapa exemplo feito com o plugin (o botão Layout). Os mapas exemplo são de Viçosa (MG), ou da Zona da Mata mineira para os produtos de baixa resolução; os temas que não existem lá vêm de outro município, dito em cada ficha. Os mapas saem do `scripts/mapas_exemplo.py`.
 
 ## Território
 
@@ -104,6 +104,8 @@ A ficha de cada uma das 161 camadas que os botões da aba BrasilData trazem: o q
 | [Chuva nas estações (CEMADEN)](cemaden-chuva.md) | Tempo e clima › Chuva observada | A chuva medida nas estações automáticas do CEMADEN: os acumulados das últimas horas em cada pluviômetro e nas estações hidrológicas, geotécnicas e agrometeorológicas. |
 | [Chuva agora (PARDIG)](pardig-agora.md) | Tempo e clima › Chuva observada | A taxa de chuva de um instante, estimada por inteligência artificial a partir de satélites geoestacionários e de micro-ondas, treinada nas medidas do radar do satélite GPM (PARDIG, do Google DeepMind e do Google Research). |
 | [Alertas vigentes (CEMADEN)](cemaden-alertas.md) | Tempo e clima › Desastres | Os alertas de risco geo-hidrológico vigentes que o CEMADEN emite para a Defesa Civil: risco hidrológico (enxurradas, inundações) e movimentos de massa (deslizamentos), por município. |
+| [Metano no ar (Sentinel-5P)](metano-tropomi.md) | Tempo e clima › Atmosfera | A coluna média de metano no ar (XCH4) medida pelo Sentinel-5P/TROPOMI, em média do ano ou do mês, numa grade de 0,1° calculada pelo BrasilData das órbitas do satélite. |
+| [Emissões de gases por município (SEEG)](indicadores-seeg.md) | Tempo e clima › Atmosfera | As emissões de gases de efeito estufa por município, do SEEG (Observatório do Clima): metano total e por setor, CO2 emitido e líquido, N2O e CO2 equivalente líquido. |
 
 ## Água
 

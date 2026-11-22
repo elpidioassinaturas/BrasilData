@@ -34,6 +34,7 @@ use crate::layout;
 use crate::localidades;
 use crate::malhas;
 use crate::mapbiomas;
+use crate::metano;
 use crate::municipios::{self, Territorio};
 use crate::nisar;
 use crate::olm;
@@ -228,6 +229,7 @@ fn executar_comando(req: Request) -> Result<Value, String> {
         "olm-solo" => olm_solo_na_area(&req),
         "gedtm-relevo" => gedtm_na_area(&req),
         "anadem" => anadem_na_area(&req),
+        "metano-tropomi" => metano_na_area(&req),
         "bdc-indice" => bdc_indice(&req),
         "bdc-sem-nuvens" => bdc_sem_nuvens(&req),
         "jaxa-chuva" => jaxa_na_area(&req, jaxa::Variavel::Chuva),
@@ -268,6 +270,7 @@ fn executar_comando(req: Request) -> Result<Value, String> {
         "indicadores-tse" => indicadores(&[Fonte::Tse]),
         "indicadores-caged" => indicadores(&[Fonte::Caged]),
         "indicadores-saude" => indicadores(&[Fonte::Saude]),
+        "indicadores-seeg" => indicadores(&[Fonte::Seeg]),
         "censo-setores" => censo_setores(),
         "saude-estabelecimentos" => estabelecimentos_de_saude(),
         "cemaden-chuva" => chuva_cemaden(),
@@ -3264,6 +3267,7 @@ fn campos_de(f: Fonte, codigos: &[String]) -> Result<Campos, String> {
         Fonte::Tse => campos_tse(codigos),
         Fonte::Caged => campos_caged(codigos),
         Fonte::Saude => campos_saude(codigos),
+        Fonte::Seeg => indicadores::campos_seeg(codigos),
     }))
 }
 
@@ -6654,6 +6658,67 @@ fn gedtm_na_area(req: &Request) -> Result<Value, String> {
             None => texto.trim_start_matches(PREFIXO).to_string(),
         },
     }))
+}
+
+/// O metano no ar ([`metano`]): a coluna média de metano do Sentinel-5P/TROPOMI do período, da
+/// grade de 0,1° do BrasilData. Numa área, só a janela dela, lida do COG e recortada pelo contorno;
+/// sem área, o Brasil inteiro, lido pela vista.
+fn metano_na_area(req: &Request) -> Result<Value, String> {
+    let (ano, mes) = metano::ler_periodo(req.str("periodo"))?;
+    let url = metano::url(ano, mes);
+    let nome = metano::camada(ano, mes);
+    let periodo = metano::periodo_texto(ano, mes);
+    let ha = nomes()?;
+    let fonte = format!("contém dados modificados do Copernicus Sentinel {ano} (ESA), processados pelo BrasilData");
+    if !ha.iter().any(|n| n == AREA) {
+        remover(&[&nome])?;
+        let r = host::run("layer.addUrl", json!({"url": url, "name": nome, "zoom": false}))?;
+        if r.get("pending").and_then(Value::as_bool) == Some(true) {
+            avisar(&format!("Metano no ar ({periodo}): abrindo o arquivo do Brasil; a camada vem quando chegar"));
+            return Ok(json!({"pending": 1}));
+        }
+        estilo_do_metano(&nome)?;
+        let texto = format!(
+            "{}: coluna média de metano (XCH4, ppb) do Sentinel-5P/TROPOMI em {periodo}, em células de 0,1° (cerca de 11 km), no Brasil inteiro; {fonte}",
+            nome.trim_start_matches(PREFIXO)
+        );
+        avisar(&texto);
+        return Ok(json!({"layer": nome, "report": texto}));
+    }
+    if !le_janela_remota()? {
+        return Err("o metano precisa de um RustGIS que leia só a janela da área de um arquivo remoto (depois da 0.5.0)".into());
+    }
+    let (c, _) = retangulo()?;
+    let bruto = format!("{nome} (janela)");
+    // A janela de um clique anterior serve se cobre a área.
+    let serve = ha.contains(&bruto) && extensao(&bruto)?.is_some_and(|e| retangulo_cabe(c, e));
+    if !serve {
+        tirar_janela(&bruto)?;
+        let r = host::run("layer.addUrl", json!({"url": url, "name": bruto, "bbox": metano::janela(c), "zoom": false}))?;
+        if r.get("pending").and_then(Value::as_bool) == Some(true) {
+            avisar(&format!("Metano no ar ({periodo}): lendo a área no arquivo do Brasil; a camada vem quando chegar"));
+            return Ok(json!({"pending": 1}));
+        }
+    }
+    remover(&[&nome])?;
+    let feito = recortar(&bruto, AREA, &nome);
+    remover(&[&bruto])?;
+    feito?;
+    estilo_do_metano(&nome)?;
+    let texto = format!(
+        "{}: coluna média de metano (XCH4, ppb) do Sentinel-5P/TROPOMI em {periodo}, em células de 0,1° (cerca de 11 km), recortada pela área; {fonte}. Mede o metano no ar, não a emissão de cada lugar: o valor cai com a altitude",
+        nome.trim_start_matches(PREFIXO)
+    );
+    avisar(&texto);
+    Ok(json!({"layer": nome, "year": ano, "month": mes, "report": texto}))
+}
+
+/// As cores do metano: do amarelo ao vermelho, na faixa fixa [`metano::FAIXA`] (a mesma em todo
+/// lugar e todo período, para comparar).
+fn estilo_do_metano(nome: &str) -> Result<(), String> {
+    host::run("raster.symbology", json!({"layer": nome, "type": "stretch", "ramp": "Ember"}))?;
+    let _ = host::run("raster.stretch", json!({"layer": nome, "type": "custom", "min": metano::FAIXA.0, "max": metano::FAIXA.1}));
+    Ok(())
 }
 
 /// O terreno da América do Sul a 30 m do ANADEM ([`anadem`]): a janela da área no COG do S3 da

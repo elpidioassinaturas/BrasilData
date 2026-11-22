@@ -436,6 +436,7 @@ pub const COROPLETICOS: &[(&str, &str, &str)] = &[
     ("abstencao_2026", "abstenção no 1º turno de 2026 (%)", "Purples"),
     ("caged_saldo_12m", "saldo de empregos formais em 12 meses (CAGED)", "Oranges"),
     ("saude_mort_infantil", "mortalidade infantil por mil nascidos vivos, em 3 anos (DATASUS)", "Reds"),
+    ("seeg_ch4", "metano emitido no ano, em toneladas (SEEG)", "Oranges"),
 ];
 
 /// As 5 cores de uma rampa de [`COROPLETICOS`] (ColorBrewer), opacas. O RustGIS pinta as classes

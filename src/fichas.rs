@@ -22,6 +22,7 @@ pub fn comando_da_camada(nome: &str, fonte: &str) -> Option<&'static str> {
         (indicadores::Fonte::Tse, "indicadores-tse"),
         (indicadores::Fonte::Caged, "indicadores-caged"),
         (indicadores::Fonte::Saude, "indicadores-saude"),
+        (indicadores::Fonte::Seeg, "indicadores-seeg"),
     ];
     if n == "Indicadores por município" {
         return por_fonte.iter().find(|(f, _)| f.citacao() == fonte).map(|(_, id)| *id);
@@ -92,6 +93,8 @@ pub fn comando_da_camada(nome: &str, fonte: &str) -> Option<&'static str> {
         "gedtm-relevo"
     } else if nome == crate::anadem::CAMADA {
         "anadem"
+    } else if crate::metano::da_camada(nome) {
+        "metano-tropomi"
     } else if crate::bdc::satelite_da_camada(nome).is_some() {
         "bdc-indice"
     } else if let Some(v) = crate::jaxa::variavel_da_camada(nome) {
@@ -157,6 +160,7 @@ mod tests {
             ("BrasilData: Geomorfons 240 m (GEDTM30)", "gedtm-relevo"),
             ("BrasilData: Elevação do terreno 30 m, m (GEDTM30)", "gedtm-relevo"),
             (crate::anadem::CAMADA, "anadem"),
+            ("BrasilData: Metano no ar, XCH4 (Sentinel-5P, março de 2023)", "metano-tropomi"),
             (irrigacao::CAMADA, "irrigacao-gmia"),
         ];
         for (nome, id) in casos {
