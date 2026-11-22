@@ -54,6 +54,7 @@ A ficha de cada uma das 158 camadas que os botões da aba BrasilData trazem: o q
 | [Crédito rural de custeio (Banco Central)](indicadores-credito.md) | Sociedade e economia › Agricultura | O crédito rural de custeio do último ano completo por município, do SICOR: total, Pronaf, agrícola, pecuário e área financiada. |
 | [Eleitorado e comparecimento (TSE)](indicadores-tse.md) | Sociedade e economia › Eleições | O eleitorado, o comparecimento e a abstenção no 1º turno de 2026 e de 2024 por município. |
 | [Emprego formal (Novo CAGED)](indicadores-caged.md) | Sociedade e economia › Economia | O emprego formal do Novo CAGED por município: admissões, desligamentos e saldo nos últimos 12 meses e o saldo do último mês. |
+| [Indicadores de saúde (DATASUS)](indicadores-saude.md) | Sociedade e economia › Saúde | Indicadores de saúde por município, do DATASUS: nascidos vivos e as condições do nascimento (SINASC), óbitos e as causas (SIM), mortalidade infantil e leitos (CNES), por local de residência. |
 | [Todos os indicadores](indicadores-todos.md) | Sociedade e economia | Todos os indicadores por município de uma vez: censos, Censo Agropecuário, agroecologia, Pix, crédito rural, eleições e emprego formal. |
 | [Estabelecimentos de saúde (CNES, DATASUS)](saude-estabelecimentos.md) | Sociedade e economia › Saúde | Os estabelecimentos de saúde ativos do CNES: hospitais, unidades básicas, clínicas, laboratórios... |
 

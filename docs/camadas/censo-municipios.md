@@ -15,10 +15,10 @@ População, área e densidade de 2022 (Censo Demográfico) e estabelecimentos a
 | **Período** | 2022 (população) e 2017 (estabelecimentos). |
 | **Resolução ou escala** | município |
 | **Unidades** | habitantes; km²; habitantes por km²; número de estabelecimentos; ha. |
-| **Legenda** | Na camada Indicadores por município, os municípios que cruzam a área (até 50); o layout faz um mapa coroplético. Campos: pop_2022, area_km2, dens_2022, estab_2017, estab_fam, area_agro_ha, area_fam_ha. |
+| **Legenda** | Na camada Indicadores por município, os municípios que cruzam a área (até 200, mostrados só dentro dela); o layout faz um mapa coroplético. Campos: pop_2022, area_km2, dens_2022, estab_2017, estab_fam, area_agro_ha, area_fam_ha. |
 | **Cuidados de uso** | Médias municipais escondem a diferença entre a cidade e o campo; para o detalhe, os setores censitários. |
 | **Licença** | uso livre com citação da fonte |
-| **Citação** | IBGE, Censo Demográfico 2022 (tabela 4714) e Censo Agropecuário 2017 (tabela 6753), API de agregados; contornos da API de malhas. |
+| **Citação** | IBGE, Censo Demográfico 2022 (tabela 4714) e Censo Agropecuário 2017 (tabela 6753), API de agregados; contornos da Malha Municipal 2025 (WFS do IBGE). |
 | **App desktop** | sim |
 | **App web** | sim |
 

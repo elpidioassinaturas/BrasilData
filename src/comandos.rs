@@ -264,6 +264,7 @@ fn executar_comando(req: Request) -> Result<Value, String> {
         "indicadores-credito" => indicadores(&[Fonte::Credito]),
         "indicadores-tse" => indicadores(&[Fonte::Tse]),
         "indicadores-caged" => indicadores(&[Fonte::Caged]),
+        "indicadores-saude" => indicadores(&[Fonte::Saude]),
         "censo-setores" => censo_setores(),
         "saude-estabelecimentos" => estabelecimentos_de_saude(),
         "cemaden-chuva" => chuva_cemaden(),
@@ -1448,9 +1449,21 @@ fn citacoes() -> Result<(Vec<Value>, String), String> {
         if let Some(t) = tema_da_camada(&n) {
             lista.push(json!({"layer": n, "source": t.fonte, "license": t.licenca, "service": t.servico, "featureType": t.camada}));
         } else if n == format!("{PREFIXO}{INDICADORES}") {
-            // Uma citação por fonte cujos campos estão na camada.
-            let fc = host::features(&n, false)?;
-            let campos: Vec<String> = fc["features"][0]["properties"].as_object().map(|p| p.keys().cloned().collect()).unwrap_or_default();
+            // Uma citação por fonte cujos campos estão na camada. Os nomes dos campos vêm do
+            // `info.project`: ler as feições trazia junto os contornos da Malha Municipal (mais de
+            // 4 MB numa microrregião), que estouravam a cota da chamada.
+            let info = host::run("info.project", json!({}))?;
+            let campos: Vec<String> = info["layers"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .find(|l| l["name"].as_str() == Some(n.as_str()))
+                .and_then(|l| l["fields"].as_array())
+                .into_iter()
+                .flatten()
+                .filter_map(Value::as_str)
+                .map(|f| f.split(" (").next().unwrap_or(f).to_string())
+                .collect();
             for f in indicadores::TODAS {
                 if campos.iter().any(|c| f.eh_campo(c)) {
                     lista.push(json!({"layer": n, "source": f.citacao(), "license": f.licenca()}));
@@ -2632,9 +2645,18 @@ fn limite_da_chamada(e: &str) -> bool {
 /// O resultado de uma fonte: os campos, ou o pedido pendente (app web).
 type Campos = Result<indicadores::PorMunicipio, Value>;
 
+/// O máximo de municípios da camada de indicadores. Os contornos vêm num pedido só (o WFS), e o
+/// limite é o dos pedidos das fontes: o crédito rural pede [`indicadores::POR_PEDIDO_SICOR`]
+/// municípios por vez, e uma chamada faz até 64 pedidos.
+const LIMITE_DE_MUNICIPIOS: usize = 200;
+
 /// Os municípios que cruzam a área, com os indicadores das `fontes`, numa camada só: a
-/// "Indicadores por município". Se ela já está no mapa com os mesmos municípios, os campos novos
-/// se somam aos que ela tem; senão, os contornos vêm da API de malhas do IBGE.
+/// "Indicadores por município". Os contornos são os da Malha Municipal 2025 do IBGE, que o próprio
+/// RustGIS baixa do WFS pelo retângulo da área: a geometria não passa pelo plugin (ler aqui os
+/// contornos da Malha estourava a cota de instruções da chamada, e os da API de malhas são
+/// generalizados). A camada fica mascarada pelo limite da área (o Masking do RustGIS), e os
+/// indicadores entram nos campos pelo Calculate Field, um CASE pelo código do município. Se a camada
+/// já está no mapa para esta área, os campos novos se somam aos que ela tem.
 fn indicadores(fontes: &[Fonte]) -> Result<Value, String> {
     let c = retangulo_da_area()?;
     let r = match buscar_varios(&[censo::url_municipios(c)])? {
@@ -2645,52 +2667,75 @@ fn indicadores(fontes: &[Fonte]) -> Result<Value, String> {
     if municipios.is_empty() {
         return Err("nenhum município do IBGE na área".into());
     }
-    // Um pedido de contorno por município, e os das fontes, numa chamada de até 64 pedidos.
-    if municipios.len() > 50 {
-        return Err(format!("{} municípios na área; o plugin traz até 50 de cada vez: escolha uma área menor", municipios.len()));
+    // Os pedidos das fontes (o SIDRA, o SICOR) vão por município, numa chamada de até 64 pedidos.
+    if municipios.len() > LIMITE_DE_MUNICIPIOS {
+        return Err(format!(
+            "{} municípios na área; o plugin traz até {LIMITE_DE_MUNICIPIOS} de cada vez: escolha uma área menor",
+            municipios.len()
+        ));
     }
     let codigos: Vec<String> = municipios.iter().map(|m| m.0.clone()).collect();
     let nome = format!("{PREFIXO}{INDICADORES}");
-    // Os contornos que vieram agora ainda não estão no mapa: vão com os campos, no fim (pô-los
-    // antes também gastava a cota de instruções do plugin à toa com todas as fontes juntas).
-    let mut contornos_novos = false;
-    let mut feicoes = match feicoes_da_camada_de(&nome, &codigos)? {
-        Some(f) => f,
-        None => {
-            let urls: Vec<String> = codigos.iter().map(|cd| censo::url_malha(cd)).collect();
-            let malhas = match buscar_varios(&urls)? {
-                Ok(r) => r,
-                Err(p) => return Ok(p),
-            };
-            let mut f = Vec::new();
-            for ((cd, nm, uf), malha) in municipios.iter().zip(&malhas) {
-                let Some(geometria) = malha["features"][0].get("geometry").cloned() else {
-                    host::log(&format!("{nm}: a API de malhas não deu o contorno"));
-                    continue;
-                };
-                f.push(geojson::feature(geometria, json!({"cd_mun": cd, "nm_mun": nm, "sigla_uf": uf})));
-            }
-            contornos_novos = true;
-            f
+    // Os contornos: os da camada que está no mapa, se ela é desta área; senão, o WFS.
+    let info = host::run("info.project", json!({}))?;
+    let atual = info["layers"].as_array().into_iter().flatten().find(|l| l["name"].as_str() == Some(nome.as_str()));
+    let pronta = atual.is_some_and(|l| censo::contornos_da_area(l, c, codigos.len()));
+    // O app desktop também baixa o WFS fora do comando e o roda de novo quando a camada chega: na
+    // nova rodada, ela está no mapa com os campos do WFS e ainda sem o `malha`.
+    let recem_baixada = !pronta && atual.is_some_and(|l| censo::contornos_recem_baixados(l, c, codigos.len()));
+    if !pronta && !recem_baixada {
+        remover(&[&nome])?;
+        let r = host::run("layer.addUrl", json!({"url": censo::url_contornos(c), "name": nome, "zoom": false}))?;
+        if r.get("pending").and_then(Value::as_bool) == Some(true) {
+            return Ok(r);
         }
+    }
+    if !pronta {
+        host::run("edit.addField", json!({"layer": nome, "name": "malha", "type": "text"}))?;
+        host::run("edit.calculateField", json!({"layer": nome, "field": "malha", "expression": format!("'{}'", censo::MALHA)}))?;
+        for campo in censo::CAMPOS_DO_WFS {
+            let _ = host::run("edit.deleteField", json!({"layer": nome, "field": campo}));
+        }
+    }
+    // Num pedido de várias fontes, as que já estão na camada desta área não são pedidas de novo: um
+    // novo clique continua de onde o anterior parou.
+    let ja_na_camada: Vec<String> = if pronta && fontes.len() > 1 {
+        atual
+            .and_then(|l| l["fields"].as_array())
+            .into_iter()
+            .flatten()
+            .filter_map(Value::as_str)
+            .map(|f| f.split(" (").next().unwrap_or(f).to_string())
+            .collect()
+    } else {
+        Vec::new()
     };
+    let mut pesadas_nesta = 0;
+    let limite_de_pesadas = indicadores::pesadas_por_chamada(codigos.len());
     let mut campos = indicadores::PorMunicipio::new();
     let (mut feitas, mut faltam, mut erros) = (Vec::new(), Vec::new(), Vec::new());
     for &f in fontes {
+        if ja_na_camada.iter().any(|c| f.eh_campo(c)) {
+            feitas.push(f.id());
+            continue;
+        }
+        // As fontes pesadas (as tabelas do SIDRA, o SICOR) gastam a cota de instruções da chamada
+        // na proporção dos municípios: com muitos, poucas por clique.
+        if f.pesada() {
+            if pesadas_nesta >= limite_de_pesadas {
+                faltam.push(f.id());
+                continue;
+            }
+            pesadas_nesta += 1;
+        }
         match campos_de(f, &codigos) {
             Ok(Ok(m)) => {
                 indicadores::juntar(&mut campos, m);
                 feitas.push(f.id());
             }
-            // App web: o RustGIS roda o comando de novo quando as respostas chegarem. Os contornos
+            // App web: o RustGIS roda o comando de novo quando as respostas chegarem; os contornos
             // ficam no mapa, e a nova rodada os reaproveita.
-            Ok(Err(pendente)) => {
-                if contornos_novos {
-                    remover(&[&nome])?;
-                    host::add_layer(&nome, geojson::collection(feicoes))?;
-                }
-                return Ok(pendente);
-            }
+            Ok(Err(pendente)) => return Ok(pendente),
             Err(e) if limite_da_chamada(&e) => faltam.push(f.id()),
             Err(e) => {
                 host::log(&format!("{}: {e}", f.id()));
@@ -2698,35 +2743,52 @@ fn indicadores(fontes: &[Fonte]) -> Result<Value, String> {
             }
         }
     }
-    // Os campos de cada fonte em todos os municípios, nulos onde ela não tem o dado.
-    let mut nomes_dos_campos: Vec<String> = Vec::new();
-    for m in campos.values() {
-        for k in m.keys() {
-            if !nomes_dos_campos.contains(k) {
-                nomes_dos_campos.push(k.clone());
-            }
+    // Cada campo, de uma vez em todos os municípios: um CASE pelo código, nulo onde a fonte não
+    // tem o dado (e nos municípios do retângulo que a lista não tem).
+    let existentes: Vec<String> = host::run("info.project", json!({}))?["layers"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .find(|l| l["name"].as_str() == Some(nome.as_str()))
+        .and_then(|l| l["fields"].as_array())
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .map(|f| f.split(" (").next().unwrap_or(f).to_string())
+        .collect();
+    for (campo, tipo, expressao) in censo::campos_por_case(&campos) {
+        if !existentes.iter().any(|e| e.eq_ignore_ascii_case(&campo)) {
+            host::run("edit.addField", json!({"layer": nome, "name": campo, "type": tipo}))?;
         }
+        host::run("edit.calculateField", json!({"layer": nome, "field": campo, "expression": expressao}))?;
     }
-    for f in &mut feicoes {
-        let cd = f["properties"]["cd_mun"].as_str().unwrap_or_default().to_string();
-        let doc = campos.get(&cd);
-        for k in &nomes_dos_campos {
-            f["properties"][k] = doc.and_then(|d| d.get(k)).cloned().unwrap_or(Value::Null);
+    // Só a área: a camada mascarada pelo limite (sem área escolhida, a vista inteira). O campo
+    // `na_area` marca os municípios cujo centro cai dentro dela: o layout só os rotula, e os nomes
+    // dos vizinhos não ficam soltos na parte mascarada.
+    if nomes()?.iter().any(|n| n == AREA) {
+        let _ = host::run("layer.mask", json!({"layer": nome, "mask": AREA}));
+        let area = host::features(AREA, false)?;
+        let geometrias: Vec<&Value> = area["features"].as_array().into_iter().flatten().map(|f| &f["geometry"]).collect();
+        let na_area: Vec<&String> = codigos
+            .iter()
+            .filter(|cd| censo::ponto_do_municipio(cd).is_some_and(|p| geometrias.iter().any(|g| censo::dentro(p, g))))
+            .collect();
+        if !existentes.iter().any(|e| e == "na_area") {
+            host::run("edit.addField", json!({"layer": nome, "name": "na_area", "type": "long"}))?;
         }
+        let lista: Vec<String> = na_area.iter().map(|cd| format!("'{cd}'")).collect();
+        let expressao =
+            if lista.is_empty() { "0".to_string() } else { format!("CASE WHEN cd_mun IN ({}) THEN 1 ELSE 0 END", lista.join(", ")) };
+        host::run("edit.calculateField", json!({"layer": nome, "field": "na_area", "expression": expressao}))?;
     }
-    let n = feicoes.len();
-    // Sem fonte nenhuma, os contornos novos ficam para um novo clique depois de um limite.
-    if !feitas.is_empty() || contornos_novos {
-        remover(&[&nome])?;
-        host::add_layer(&nome, geojson::collection(feicoes))?;
-    }
+    let n = codigos.len();
     let mut aviso = format!("{nome}: {n} municípios");
     if !feitas.is_empty() {
         aviso.push_str(&format!("; com {}", feitas.join(", ")));
     }
     if !faltam.is_empty() {
         aviso.push_str(&format!(
-            "; faltam {} (o tempo de uma chamada acabou): clique de novo, e o que já veio não é pedido outra vez",
+            "; faltam {} (não couberam nesta chamada): clique de novo, e o que já veio não é pedido outra vez",
             faltam.join(", ")
         ));
     }
@@ -2738,20 +2800,6 @@ fn indicadores(fontes: &[Fonte]) -> Result<Value, String> {
         return Err(erros.join("; "));
     }
     Ok(json!({"layer": nome, "features": n, "sources": feitas, "missing": faltam, "errors": erros}))
-}
-
-/// As feições da camada `nome`, se ela está no mapa com exatamente os municípios `codigos`.
-fn feicoes_da_camada_de(nome: &str, codigos: &[String]) -> Result<Option<Vec<Value>>, String> {
-    if feicoes_da_camada(nome)?.is_none() {
-        return Ok(None);
-    }
-    let fc = host::features(nome, false)?;
-    let feicoes = fc["features"].as_array().cloned().unwrap_or_default();
-    let mut tem: Vec<&str> = feicoes.iter().filter_map(|f| f["properties"]["cd_mun"].as_str()).collect();
-    tem.sort_unstable();
-    let mut quer: Vec<&str> = codigos.iter().map(String::as_str).collect();
-    quer.sort_unstable();
-    Ok((tem == quer).then_some(feicoes))
 }
 
 /// O mês corrente do Pix (`AAAAMM`), que serve de relógio: o wasm não sabe a data.
@@ -2815,6 +2863,7 @@ fn campos_de(f: Fonte, codigos: &[String]) -> Result<Campos, String> {
         }
         Fonte::Tse => campos_tse(codigos),
         Fonte::Caged => campos_caged(codigos),
+        Fonte::Saude => campos_saude(codigos),
     }))
 }
 
@@ -2827,7 +2876,7 @@ fn fontes_de(req: &Request) -> Result<Vec<Fonte>, String> {
         .iter()
         .map(|v| {
             let id = v.as_str().unwrap_or_default();
-            Fonte::de(id).ok_or(format!("'{id}' não é uma fonte de indicadores: censo, pix, credito, tse ou caged"))
+            Fonte::de(id).ok_or(format!("'{id}' não é uma fonte de indicadores: censo, agro, agroeco, pix, credito, tse, caged ou saude"))
         })
         .collect()
 }
@@ -6300,6 +6349,10 @@ fn layout_do_mapa(req: &Request) -> Result<Value, String> {
         {
             let _ = host::run("labels.field", json!({"layer": principal, "field": campo}));
             let _ = host::run("labels.enable", json!({"layer": principal, "on": true}));
+            // A camada de indicadores mascarada pela área: os nomes só dos municípios de dentro.
+            let tem_na_area = l["fields"].as_array().into_iter().flatten().filter_map(Value::as_str).any(|f| f.starts_with("na_area"));
+            let filtro = if tem_na_area { json!("na_area = 1") } else { Value::Null };
+            let _ = host::run("labels.class.update", json!({"layer": principal, "where": filtro}));
         }
     };
     // Indicadores e setores: um mapa coroplético da variável principal da camada, em 5 classes:
@@ -6317,6 +6370,11 @@ fn layout_do_mapa(req: &Request) -> Result<Value, String> {
     {
         subtitulo = format!("{}: {o_que_e}", r.subtitulo);
         host::run("layer.outline", json!({"layer": principal, "color": "#FFFFFF", "width": 0.4}))?;
+        // As classes opacas: uma camada do projeto por baixo (países, um mapa temático) não as tinge.
+        // (com menos de 5 classes, as que faltam são recusadas, e ficam como estão)
+        for (i, cor) in layout::cores_opacas(rampa).into_iter().flatten().enumerate() {
+            let _ = host::run("layer.classStyle", json!({"layer": principal, "index": i, "color": cor}));
+        }
         // Os nomes dos municípios; os dos setores seriam centenas iguais.
         nomes_das_feicoes(l, 60);
         let _ = host::run("style.remove", json!({"name": estilo::guardado(&principal)}));
@@ -6349,6 +6407,13 @@ fn layout_do_mapa(req: &Request) -> Result<Value, String> {
     if let Some(n) = r.nota {
         p["note"] = json!(n);
     }
+    // As camadas visíveis que não são do BrasilData (as do projeto do usuário, como as do World
+    // Atlas): ficam fora da legenda, e a folha sai sem o véu. Com elas cobrindo o mapa, a legenda
+    // não acha um canto livre, e o véu clareava tudo o que passava da área, numa faixa em volta.
+    let alheias = layout::camadas_alheias(&info);
+    if !alheias.is_empty() {
+        p["veil"] = json!(false);
+    }
     let folha = host::run("layout.publication", p)?;
     let elemento = |qual: &str| {
         folha["elements"].as_array().into_iter().flatten().find(|e| e["name"].as_str() == Some(qual)).and_then(|e| e["element"].as_u64())
@@ -6357,6 +6422,7 @@ fn layout_do_mapa(req: &Request) -> Result<Value, String> {
     // (o `exclude` recusa um nome que não está no mapa)
     let no_mapa = nomes()?;
     let mut fora: Vec<String> = [AREA, GRADE, DESENHO].into_iter().filter(|n| no_mapa.iter().any(|m| m == n)).map(String::from).collect();
+    fora.extend(alheias.iter().filter(|n| no_mapa.iter().any(|m| m == *n)).cloned());
     if r.barra.is_some() {
         fora.push(principal.clone());
     }
@@ -6405,7 +6471,15 @@ fn layout_do_mapa(req: &Request) -> Result<Value, String> {
         subtitulo,
         grade::nome_do_sistema(epsg)
     ));
-    Ok(json!({"layout": nome, "layer": principal, "crs": format!("EPSG:{epsg}")}))
+    if !alheias.is_empty() {
+        avisar(&format!(
+            "Layout: {} não {} do BrasilData e ficou fora da legenda, mas o mapa da folha também {} desenha. Para uma folha só com o dado, desligue no painel Camadas e clique de novo em Layout",
+            alheias.join(", "),
+            if alheias.len() == 1 { "é" } else { "são" },
+            if alheias.len() == 1 { "a" } else { "as" }
+        ));
+    }
+    Ok(json!({"layout": nome, "layer": principal, "crs": format!("EPSG:{epsg}"), "outside": alheias}))
 }
 
 /// Um número com uma casa decimal e vírgula.

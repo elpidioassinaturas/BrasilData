@@ -15,7 +15,7 @@ Todos os indicadores por município de uma vez: censos, Censo Agropecuário, agr
 | **Período** | o de cada fonte |
 | **Resolução ou escala** | município |
 | **Unidades** | as de cada fonte |
-| **Legenda** | Na camada Indicadores por município, os municípios que cruzam a área (até 50); o layout faz um mapa coroplético. No desktop, se o tempo acabar, um novo clique continua de onde parou. |
+| **Legenda** | Na camada Indicadores por município, os municípios que cruzam a área (até 200, mostrados só dentro dela); o layout faz um mapa coroplético. No desktop, se o tempo acabar, um novo clique continua de onde parou. |
 | **Cuidados de uso** | Os de cada fonte (veja a ficha de cada uma). |
 | **Licença** | a de cada fonte |
 | **Citação** | IBGE (SIDRA), Banco Central (Pix e SICOR), TSE e Novo CAGED (IPEA Data): a citação de cada fonte vai na tabela Fontes. |
