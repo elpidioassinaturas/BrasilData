@@ -1292,17 +1292,28 @@ fn drenagem_bc250(t: &Tema) -> Result<Value, String> {
     }
     let nome = t.camada_no_mapa();
     let bruto = format!("{nome} (sem recorte)");
-    let partes: Vec<String> = if ufs.len() == 1 { vec![bruto.clone()] } else { ufs.iter().map(|uf| format!("{nome} ({uf})")).collect() };
+    let rotulos = drenagem::camada_dos_rotulos(&nome);
+    let bruto_rot = format!("{rotulos} (sem recorte)");
+    let partes = partes_por_uf(&ufs, &nome, &bruto);
+    let partes_rot = partes_por_uf(&ufs, &rotulos, &bruto_rot);
     // Nos apps, as UFs que já chegaram (de um clique anterior, ou da volta do RustGIS quando um
     // download chega) ficam; só as que faltam são pedidas.
     let ha = nomes()?;
+    let mut pedidos: Vec<(String, &String)> = Vec::new();
+    for (i, uf) in ufs.iter().enumerate() {
+        pedidos.push((drenagem::url_uf(uf), &partes[i]));
+        // Os nomes dos rios só se a camada deles ainda não está no mapa (de um clique anterior).
+        if !ha.contains(&rotulos) {
+            pedidos.push((drenagem::url_rotulos_uf(uf), &partes_rot[i]));
+        }
+    }
     let (mut baixando, mut cheio) = (0, false);
-    for (uf, parte) in ufs.iter().zip(&partes) {
+    for (url, parte) in pedidos {
         if ha.contains(parte) {
             continue;
         }
         // Inteiro ("whole"): lido pela vista, o recorte e o merge baixariam o arquivo de novo.
-        let pedido = json!({"url": drenagem::url_uf(uf), "name": parte, "zoom": false, "whole": true});
+        let pedido = json!({"url": url, "name": parte, "zoom": false, "whole": true});
         match host::run("layer.addUrl", pedido) {
             Ok(r) if r.get("pending").and_then(Value::as_bool) == Some(true) => baixando += 1,
             Ok(_) => {}
@@ -1315,22 +1326,71 @@ fn drenagem_bc250(t: &Tema) -> Result<Value, String> {
     }
     if baixando > 0 || cheio {
         avisar(&format!(
-            "{nome}: baixando a drenagem de {} (com a ordem dos rios); quando tudo aparecer no mapa, clique de novo neste botão para juntar e recortar pela área",
+            "{nome}: baixando a drenagem de {} (com a ordem e os nomes dos rios); quando tudo aparecer no mapa, clique de novo neste botão para juntar e recortar pela área",
             ufs.join(", ")
         ));
-        return Ok(json!({"downloading": nome, "parts": partes.len()}));
+        return Ok(json!({"downloading": nome, "parts": partes.len() * 2}));
     }
     let lidas = juntar(&partes, &bruto)?;
     let r = concluir(t, lidas, true, true)?;
     if let Some(camada) = r["layer"].as_str() {
         estilo_da_drenagem(camada, 0.0)?;
+        if !ha.contains(&rotulos) {
+            juntar(&partes_rot, &bruto_rot)?;
+            let recortada = host::run("gp.run", json!({"tool": "clip", "params": {"input": bruto_rot, "clip": AREA}}))?;
+            let feita = recortada.get("layer").cloned().ok_or("o clip dos nomes dos rios não disse a camada que fez")?;
+            host::run("layer.rename", json!({"layer": feita, "name": rotulos}))?;
+            remover(&[&bruto_rot])?;
+        }
+        rotulos_da_drenagem(&rotulos)?;
         avisar(&format!(
-            "{}: de longe aparecem só os rios com mais drenagem a montante (campo {}); aproxime o mapa para ver os menores. A ordem de Strahler está no campo strahler",
+            "{}: de longe aparecem só os rios com mais drenagem a montante (campo {}), e os nomes dos rios maiores têm a preferência; aproxime o mapa para ver os menores. A ordem de Strahler está no campo strahler",
             camada.trim_start_matches(PREFIXO),
             drenagem::MONTANTE
         ));
     }
     Ok(r)
+}
+
+/// Os nomes das camadas das UFs de um tema baixado por UF: com uma UF só, a camada `bruto` (sem
+/// recorte) direto; com mais, `{nome} ({UF})`, juntadas depois.
+fn partes_por_uf(ufs: &[String], nome: &str, bruto: &str) -> Vec<String> {
+    if ufs.len() == 1 { vec![bruto.to_string()] } else { ufs.iter().map(|uf| format!("{nome} ({uf})")).collect() }
+}
+
+/// Os rótulos da drenagem na camada dos rios em linhas contínuas (`camada`): a linha invisível, o
+/// nome do rio, e uma classe por faixa de ordem de Strahler, colocadas na ordem de
+/// [`drenagem::CLASSES_DE_ROTULO`], de modo que os rios maiores ficam com os lugares e os menores
+/// entram onde sobra.
+fn rotulos_da_drenagem(camada: &str) -> Result<(), String> {
+    host::run("layer.color", json!({"layer": camada, "color": "#1f78b400"}))?;
+    host::run("labels.enable", json!({"layer": camada, "on": true}))?;
+    host::run("labels.class.clear", json!({"layer": camada}))?;
+    let (ultima, antes) = drenagem::CLASSES_DE_ROTULO.split_last().ok_or("sem classes de rótulo")?;
+    for c in antes {
+        host::run("labels.class.add", json!({"layer": camada, "name": c.nome, "where": c.onde}))?;
+    }
+    host::run("labels.class.update", json!({"layer": camada, "where": ultima.onde}))?;
+    let n = drenagem::CLASSES_DE_ROTULO.len();
+    for (i, c) in drenagem::CLASSES_DE_ROTULO.iter().enumerate() {
+        // A última é a Default (sem "class"), com a cláusula que sobra.
+        let qual = |mut v: Value| {
+            if i + 1 < n {
+                v["class"] = json!(c.nome);
+            }
+            v
+        };
+        host::run("labels.field", qual(json!({"layer": camada, "field": "nome"})))?;
+        host::run(
+            "labels.style",
+            qual(json!({"layer": camada, "size": c.tamanho, "italic": true, "color": c.cor, "halo": true, "haloColor": "#FFFFFF"})),
+        )?;
+        host::run("labels.placement", qual(json!({"layer": camada, "position": c.posicao, "otherPositions": true})))?;
+        if let Some(l) = c.longe {
+            host::run("labels.scaleRange", qual(json!({"layer": camada, "min": l})))?;
+        }
+    }
+    Ok(())
 }
 
 /// O estilo de uma camada da drenagem que já garante `minimo` km a montante: azul (a cor do
@@ -1349,7 +1409,9 @@ fn drenagem_do_brasil(t: &Tema, motivo: &str) -> Result<Value, String> {
     let ha = nomes()?;
     let mut camadas = Vec::new();
     let mut baixando = 0;
-    for &(arquivo, rotulo, longe, perto) in drenagem::NIVEIS {
+    // As linhas, de longe para perto, e por cima delas os nomes dos rios.
+    let niveis = drenagem::NIVEIS.iter().map(|n| (n, false)).chain(drenagem::NIVEIS_DOS_ROTULOS.iter().map(|n| (n, true)));
+    for (&(arquivo, rotulo, longe, perto), so_nomes) in niveis {
         let nome = format!("{grupo}: {rotulo}");
         if !ha.contains(&nome) {
             let r = host::run("layer.addUrl", json!({"url": format!("{}{arquivo}", drenagem::BASE), "name": nome, "zoom": false}))?;
@@ -1366,12 +1428,16 @@ fn drenagem_do_brasil(t: &Tema, motivo: &str) -> Result<Value, String> {
             faixa["max"] = json!(p);
         }
         host::run("layer.scaleRange", faixa)?;
-        estilo_da_drenagem(&nome, drenagem::minimo_do_nivel(arquivo))?;
+        if so_nomes {
+            rotulos_da_drenagem(&nome)?;
+        } else {
+            estilo_da_drenagem(&nome, drenagem::minimo_do_nivel(arquivo))?;
+        }
         camadas.push(nome);
     }
     if baixando > 0 {
         avisar(&format!("{grupo}: abrindo os arquivos do país inteiro; a drenagem aparece no mapa quando eles chegarem"));
-        return Ok(json!({"downloading": grupo, "parts": drenagem::NIVEIS.len()}));
+        return Ok(json!({"downloading": grupo, "parts": drenagem::NIVEIS.len() + drenagem::NIVEIS_DOS_ROTULOS.len()}));
     }
     // Todos num grupo com o nome do tema.
     let info = host::run("info.project", json!({}))?;
@@ -1385,7 +1451,7 @@ fn drenagem_do_brasil(t: &Tema, motivo: &str) -> Result<Value, String> {
         host::run("group.add", json!({"name": grupo, "layers": camadas}))?;
     }
     avisar(&format!(
-        "{grupo}: o país inteiro, lido pela vista{motivo}. De longe aparecem só os rios com mais drenagem a montante (campo {}); aproxime o mapa para ver os menores. A ordem de Strahler está no campo strahler",
+        "{grupo}: o país inteiro, lido pela vista{motivo}. De longe aparecem só os rios com mais drenagem a montante (campo {}), e os nomes dos rios maiores têm a preferência; aproxime o mapa para ver os menores. A ordem de Strahler está no campo strahler",
         drenagem::MONTANTE
     ));
     Ok(json!({"group": grupo, "layers": camadas, "streamed": true}))
@@ -6602,6 +6668,8 @@ fn layout_do_mapa(req: &Request) -> Result<Value, String> {
     let no_mapa = nomes()?;
     let mut fora: Vec<String> = [AREA, GRADE, DESENHO].into_iter().filter(|n| no_mapa.iter().any(|m| m == n)).map(String::from).collect();
     fora.extend(alheias.iter().filter(|n| no_mapa.iter().any(|m| m == *n)).cloned());
+    // Os nomes dos rios da drenagem: a linha deles é invisível, só os rótulos aparecem.
+    fora.extend(no_mapa.iter().filter(|n| drenagem::so_rotulos(n)).cloned());
     if r.barra.is_some() {
         fora.push(principal.clone());
     }

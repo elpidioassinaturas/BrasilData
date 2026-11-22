@@ -35,6 +35,78 @@ pub fn url_uf(uf: &str) -> String {
     format!("{BASE}drenagem_{}.parquet", uf.to_uppercase())
 }
 
+/// O fim do nome da camada dos rótulos: os rios em linhas contínuas, de linha invisível, só com
+/// o nome (`scripts/rios_para_rotulos.py`). A BC250 corta cada rio em cada confluência, em
+/// trechos curtos demais para um rótulo ao longo da linha.
+pub const ROTULOS: &str = "nomes dos rios";
+
+/// O nome da camada dos rótulos de um tema chamado `nome` no mapa.
+pub fn camada_dos_rotulos(nome: &str) -> String {
+    format!("{nome}: {ROTULOS}")
+}
+
+/// Se a camada `nome` é a dos rótulos (fica fora da legenda: a linha dela é invisível).
+pub fn so_rotulos(nome: &str) -> bool {
+    nome.ends_with(&format!(": {ROTULOS}"))
+}
+
+/// O arquivo dos rótulos de uma UF (as linhas recortadas por ela).
+pub fn url_rotulos_uf(uf: &str) -> String {
+    format!("{BASE}rios_nomes_{}.parquet", uf.to_uppercase())
+}
+
+/// Os rótulos do país inteiro, como [`NIVEIS`]: de longe, só os rios de ordem 6 ou mais (uma
+/// amostra do arquivo inteiro deixaria rios grandes sem nome); de perto, todos.
+pub const NIVEIS_DOS_ROTULOS: &[(&str, &str, Option<f64>, Option<f64>)] = &[
+    ("rios_nomes_ordem6.parquet", "nomes dos rios de ordem 6 ou mais", None, Some(2_500_000.0)),
+    ("rios_nomes.parquet", ROTULOS, Some(2_500_000.0), None),
+];
+
+/// Uma classe de rótulo dos nomes dos rios.
+pub struct ClasseDeRotulo {
+    pub nome: &'static str,
+    /// A cláusula das feições que ela rotula.
+    pub onde: &'static str,
+    /// Em pontos.
+    pub tamanho: f64,
+    pub cor: &'static str,
+    /// "parallel" (reto, ao longo da linha) ou "curved" (seguindo as curvas).
+    pub posicao: &'static str,
+    /// A escala além da qual ela some de longe.
+    pub longe: Option<f64>,
+}
+
+/// As classes de rótulo, na ordem em que o RustGIS as coloca (a primeira tem a preferência). A
+/// última é a Default, com a cláusula que sobra. As de cima pedem também um comprimento mínimo da
+/// linha do rio: nas zonas de canais trançados (Amazônia, Pantanal) todo canal tem a ordem da
+/// zona, e um furo curto de ordem 10 não deve tomar o lugar de um rio grande.
+pub const CLASSES_DE_ROTULO: &[ClasseDeRotulo] = &[
+    ClasseDeRotulo {
+        nome: "Rios principais",
+        onde: "strahler >= 7 AND comp_km >= 30",
+        tamanho: 10.0,
+        cor: "#08306b",
+        posicao: "parallel",
+        longe: None,
+    },
+    ClasseDeRotulo {
+        nome: "Rios médios",
+        onde: "strahler >= 5 AND comp_km >= 10 AND NOT (strahler >= 7 AND comp_km >= 30)",
+        tamanho: 8.5,
+        cor: "#1f4e79",
+        posicao: "curved",
+        longe: Some(2_000_000.0),
+    },
+    ClasseDeRotulo {
+        nome: "Córregos e ribeirões",
+        onde: "strahler < 5 OR comp_km < 10",
+        tamanho: 7.0,
+        cor: "#2c6a9e",
+        posicao: "curved",
+        longe: Some(400_000.0),
+    },
+];
+
 /// Os níveis do país inteiro, de longe para perto: (arquivo, nome da camada, escala além da qual
 /// some de longe, escala além da qual some de perto). Cada um fica abaixo das 60 mil feições que o
 /// RustGIS lê numa vista.
@@ -100,6 +172,19 @@ mod testes {
             assert_eq!(par[0].3, par[1].2);
         }
         assert!(NIVEIS[0].2.is_none() && NIVEIS.last().unwrap().3.is_none());
+    }
+
+    #[test]
+    fn rotulos() {
+        let n = camada_dos_rotulos("BrasilData: Drenagem (BC250 2025)");
+        assert_eq!(n, "BrasilData: Drenagem (BC250 2025): nomes dos rios");
+        assert!(so_rotulos(&n) && !so_rotulos("BrasilData: Drenagem (BC250 2025)"));
+        assert!(url_rotulos_uf("sp").ends_with("/rios_nomes_SP.parquet"));
+        for par in NIVEIS_DOS_ROTULOS.windows(2) {
+            assert_eq!(par[0].3, par[1].2);
+        }
+        // A preferência é dos rios maiores: as classes vão da maior ordem para a menor.
+        assert!(CLASSES_DE_ROTULO[0].onde.contains(">= 7") && CLASSES_DE_ROTULO.last().unwrap().onde.starts_with("strahler < 5"));
     }
 
     #[test]
