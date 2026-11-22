@@ -101,9 +101,12 @@ pub struct Cena {
 }
 
 impl Cena {
-    /// A trilha e o frame, e o dia, para o nome da camada dela: `T117-F167 20261101`.
+    /// A trilha e o frame, o dia e a hora do início, para o nome da camada dela:
+    /// `T117-F167 20261101 084302`. Com a hora, dois pedaços do mesmo frame no mesmo dia (uma troca
+    /// de modo do radar no meio dele) não dão camadas de mesmo nome.
     pub fn rotulo(&self) -> String {
-        format!("T{:03}-F{:03} {}{:02}{:02}", self.trilha, self.frame, self.data.ano, self.data.mes, self.data.dia)
+        let hora = self.nome.split('_').nth(11).and_then(|t| t.split_once('T')).map(|(_, h)| format!(" {h}")).unwrap_or_default();
+        format!("T{:03}-F{:03} {}{:02}{:02}{hora}", self.trilha, self.frame, self.data.ano, self.data.mes, self.data.dia)
     }
 
     /// A passagem: o dia e a trilha.
@@ -279,11 +282,26 @@ mod tests {
         assert_eq!(c[0].id, "G1-ASF");
         assert_eq!((c[0].trilha, c[0].frame), (117, 167));
         assert_eq!(c[0].data, Data { ano: 2026, mes: 11, dia: 1 });
-        assert_eq!(c[0].rotulo(), "T117-F167 20261101");
+        assert_eq!(c[0].rotulo(), "T117-F167 20261101 084302");
         assert_eq!(c[0].contorno["coordinates"][0][0], json!([-41.24235, -21.9414]), "lon, lat");
         assert_eq!(c[0].contorno["coordinates"][0].as_array().map(Vec::len), Some(5));
         let quad = cenas(&json!({"feed": {"entry": [entrada("G5-ASF", &A.replace("DHDH", "QPDH"), "2026-11-01T08:43:02Z")]}}));
         assert_eq!(quad.len(), 1, "a quádrupla também tem HH e HV");
+        // 13/11/2026, trilha 117: o frame 167 no modo 2005 e um pedaço dele no 4005 (a troca de modo
+        // no meio do frame; o 2005 fica sem dado numa faixa que só o pedaço cobre), e o 168 em dois
+        // pedaços: ficam todos, cada um com a hora no nome (antes, os dois do 167 tinham o mesmo nome,
+        // o RustGIS chamava o segundo de "(2)" e o comando perdia o primeiro).
+        const B: &str = "NISAR_L2_PR_GCOV_035_117_A_167_2005_DHDH_M_20261113T084302_20261113T084336_P05036_N_F_J_001";
+        const B4: &str = "NISAR_L2_PR_GCOV_035_117_A_167_4005_DHDH_A_20261113T084333_20261113T084336_P05036_N_P_J_001";
+        const C1: &str = "NISAR_L2_PR_GCOV_035_117_A_168_4005_DHDH_A_20261113T084339_20261113T084350_P05036_N_P_J_001";
+        const C2: &str = "NISAR_L2_PR_GCOV_035_117_A_168_4005_DHDH_A_20261113T084351_20261113T084410_P05036_N_P_J_001";
+        let t = "2026-11-13T08:43:02Z";
+        let m = cenas(&json!({"feed": {"entry": [entrada("G1", B4, t), entrada("G2", B, t), entrada("G3", C1, t), entrada("G4", C2, t)]}}));
+        let ids: Vec<&str> = m.iter().map(|c| c.id.as_str()).collect();
+        assert_eq!(ids, ["G1", "G2", "G3", "G4"]);
+        let rotulos: Vec<String> = m.iter().map(Cena::rotulo).collect();
+        assert_eq!(rotulos[0], "T117-F167 20261113 084333");
+        assert!(rotulos.iter().enumerate().all(|(i, r)| !rotulos[..i].contains(r)), "nomes diferentes: {rotulos:?}");
         let k = camada_dos_contornos(&c);
         assert_eq!(k["features"][0]["properties"]["i"], 0);
         assert_eq!(k["features"][0]["properties"]["data"], "01/11/2026");
