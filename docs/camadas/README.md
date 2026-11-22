@@ -2,7 +2,7 @@
 
 <!-- Gerado por scripts/gerar.py a partir do fontes.csv e do fichas.csv; não edite à mão. -->
 
-A ficha de cada uma das 159 camadas que os botões da aba BrasilData trazem: o que é, a fonte, o período, a resolução, as unidades, a legenda, a licença, a citação, os cuidados de uso, se funciona no app web, e um mapa exemplo feito com o plugin (o botão Layout). Os mapas exemplo são de Viçosa (MG), ou da Zona da Mata mineira para os produtos de baixa resolução; os temas que não existem lá vêm de outro município, dito em cada ficha. Os mapas saem do `scripts/mapas_exemplo.py`.
+A ficha de cada uma das 161 camadas que os botões da aba BrasilData trazem: o que é, a fonte, o período, a resolução, as unidades, a legenda, a licença, a citação, os cuidados de uso, se funciona no app web, e um mapa exemplo feito com o plugin (o botão Layout). Os mapas exemplo são de Viçosa (MG), ou da Zona da Mata mineira para os produtos de baixa resolução; os temas que não existem lá vêm de outro município, dito em cada ficha. Os mapas saem do `scripts/mapas_exemplo.py`.
 
 ## Território
 
@@ -195,5 +195,7 @@ A ficha de cada uma das 159 camadas que os botões da aba BrasilData trazem: o q
 | [Gasodutos de transporte (ANP)](anp-gasodutos.md) | Infraestrutura › Petróleo e gás | Os gasodutos de transporte de gás natural. |
 | [Oleodutos de transporte (ANP)](anp-oleodutos.md) | Infraestrutura › Petróleo e gás | Os oleodutos de transporte de petróleo e derivados. |
 | [Postos de combustível (ANP)](anp-postos.md) | Infraestrutura › Petróleo e gás | Os postos revendedores de combustível autorizados pela ANP. |
+| [Rodovias e estradas (BC250 2025)](rodovias.md) | Infraestrutura › Transportes | Os trechos rodoviários da Base Cartográfica Contínua do IBGE: rodovias federais, estaduais e municipais e as estradas de terra, com a jurisdição, o revestimento e a sigla (BR-120, MG-280). |
 | [Rodovias federais (SNV vigente, DNIT)](dnit-snv.md) | Infraestrutura › Transportes | As rodovias federais do Sistema Nacional de Viação. |
+| [Ruas e estradas (OpenStreetMap)](osm-vias.md) | Infraestrutura › Transportes | As ruas e estradas do OpenStreetMap, pela classe da via (o highway do OSM): autoestradas, vias principais, secundárias e terciárias, ruas, estradas de terra e trilhas. |
 | [Edificações e alturas (GlobalBuildingAtlas)](gba-edificacoes.md) | Infraestrutura › Edificações | O polígono de cada edificação com a altura estimada, do GlobalBuildingAtlas (Universidade Técnica de Munique): polígonos do Google, da Microsoft e do OpenStreetMap, alturas de um modelo de IA sobre imagens PlanetScope. |

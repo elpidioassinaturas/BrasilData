@@ -42,6 +42,7 @@ RAMPAS.update({i: "YlOrRd" for i in ("prodes-cerrado", "prodes-caatinga", "prode
 NOMES = {
     "saude-estabelecimentos": "BrasilData: Estabelecimentos de saúde (CNES 04/2026)",
     "censo-setores": "BrasilData: Setores censitários 2022 (MG)",
+    "osm-vias": "BrasilData: Ruas e estradas (OpenStreetMap, Overture)",
     **{i: "BrasilData: Indicadores por município" for i in ("censo-municipios", "censo-agro", "censo-agroecologia", "indicadores-pix", "indicadores-credito", "indicadores-tse", "indicadores-caged", "indicadores-todos")},
 }
 

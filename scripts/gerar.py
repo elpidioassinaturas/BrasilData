@@ -37,7 +37,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.58"
+VERSAO = "0.1.59"
 AUTOR = "Elpídio Filho"
 # Como o texto Sobre chama o autor (o manifesto e o README levam o nome completo).
 AUTOR_SOBRE = "Professor Elpídio"
@@ -678,6 +678,17 @@ EM_MENUS = [
             "label": "Edificações e alturas (GlobalBuildingAtlas)",
             "help": "O polígono de cada edificação com a altura estimada, do GlobalBuildingAtlas (Universidade Técnica de Munique; licença CC BY-NC 4.0, sem uso comercial): polígonos do Google, da Microsoft e do OpenStreetMap, e alturas de um modelo de IA sobre imagens PlanetScope de 2019. O RustGIS lê o arquivo do bloco de 5° no lugar, da cópia em GeoParquet do Source Cooperative, e busca só o que a vista mostra: a camada não é recortada pela área. Cores por classe de altura (campo height). A altura é menos precisa na América do Sul. Precisa de um RustGIS que leia GeoParquet no lugar (0.7.0).",
             "icon": "unique",
+            "params": "{}",
+        },
+    ),
+    (
+        "Infraestrutura",
+        "Transportes",
+        {
+            "id": "osm-vias",
+            "label": "Ruas e estradas (OpenStreetMap)",
+            "help": "As ruas e estradas do OpenStreetMap (© colaboradores do OSM, licença ODbL), do tema de transportes do Overture Maps, pela classe da via: vias expressas, principais, secundárias, terciárias e vicinais, ruas, estradas de terra e trilhas. O RustGIS lê no lugar os arquivos GeoParquet que cobrem a área e busca só o que a vista mostra: a camada não é recortada, é mascarada pelo contorno da área. Aparece só de 1:150.000 para perto (de longe, as Rodovias e estradas do IBGE). Precisa de um RustGIS que leia GeoParquet no lugar (0.7.0).",
+            "icon": "line_layer",
             "params": "{}",
         },
     ),

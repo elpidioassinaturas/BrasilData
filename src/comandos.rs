@@ -39,6 +39,7 @@ use crate::nisar;
 use crate::olm;
 use crate::radar;
 use crate::risco_fogo;
+use crate::rodovias;
 use crate::saude;
 use crate::sem_nuvens::{self, Caminho, Composicao, DataNaArea, Valor};
 use crate::sol;
@@ -220,6 +221,7 @@ fn executar_comando(req: Request) -> Result<Value, String> {
         "chm-altura" => chm_na_area(&req),
         "chm-amazonia" => chm_amazonia_na_area(&req),
         "gba-edificacoes" => gba_na_area(),
+        "osm-vias" => osm_vias(),
         "gdo-seca" => gdo_seca(&req),
         "forty-tipologia" => forty_na_area(&req),
         "ctrees-biomassa" => ctrees_na_area(&req),
@@ -965,6 +967,9 @@ fn tema(t: &Tema) -> Result<Value, String> {
     if t.id == "drenagem" {
         return drenagem_bc250(t).map_err(crate::explicar);
     }
+    if t.id == "rodovias" {
+        return rodovias_bc250(t);
+    }
     if t.pedido_proprio() {
         return tema_proprio(t);
     }
@@ -1457,6 +1462,184 @@ fn drenagem_do_brasil(t: &Tema, motivo: &str) -> Result<Value, String> {
     Ok(json!({"group": grupo, "layers": camadas, "streamed": true}))
 }
 
+/// As rodovias e estradas da BC250 ([`rodovias`]): pedidas como os outros temas (em páginas, e
+/// recortadas pela área), com o estilo por jurisdição e revestimento, os filtros por escala e as
+/// siglas das federais e estaduais pavimentadas.
+fn rodovias_bc250(t: &Tema) -> Result<Value, String> {
+    let r = tema_proprio(t)?;
+    if estilo::esperando(&r) {
+        return Ok(r);
+    }
+    if let Some(camada) = r["layer"].as_str() {
+        estilo_de_vias(camada, rodovias::ESTILO_BC250, rodovias::CLASSES_BC250, "jurisdicao", rodovias::filtros_bc250())?;
+        siglas_das_rodovias(camada)?;
+        avisar(&format!(
+            "{}: cores pela jurisdição e pelo revestimento; de longe aparecem só as federais, e de 1:1.500.000 para perto todos os trechos. As siglas das federais e estaduais pavimentadas aparecem de 1:2.000.000 para perto",
+            camada.trim_start_matches(PREFIXO)
+        ));
+    }
+    Ok(r)
+}
+
+/// O fim do nome da camada das siglas das rodovias.
+const SIGLAS: &str = ": siglas";
+
+/// Se a camada `nome` só leva rótulos (os nomes dos rios, as siglas das rodovias): a linha dela é
+/// invisível, e ela fica fora da legenda.
+fn so_rotulos(nome: &str) -> bool {
+    drenagem::so_rotulos(nome) || nome.ends_with(SIGLAS)
+}
+
+/// As siglas das federais e estaduais pavimentadas numa camada à parte (`{camada}: siglas`), de
+/// linha invisível: a BC250 corta cada rodovia em trechos curtos, e o rótulo em cada trecho (e
+/// repetido ao longo dele) enchia a rodovia de siglas. Uma cópia da camada fica só com o texto do
+/// rótulo, agrupada numa feição por sigla; os rótulos da camada das rodovias saem.
+fn siglas_das_rodovias(camada: &str) -> Result<(), String> {
+    let siglas = format!("{camada}{SIGLAS}");
+    let provisoria = format!("{camada} (siglas, montando)");
+    remover(&[&siglas, &provisoria])?;
+    let _ = host::run("labels.enable", json!({"layer": camada, "on": false}));
+    let copia = host::run("gp.run", json!({"tool": "merge", "params": {"inputs": [camada]}}))?;
+    let copia = copia.get("layer").cloned().ok_or("o merge das siglas não disse a camada que fez")?;
+    host::run("layer.rename", json!({"layer": copia, "name": provisoria}))?;
+    host::run("edit.addField", json!({"layer": provisoria, "name": "rotulo", "type": "text"}))?;
+    host::run("edit.calculateField", json!({"layer": provisoria, "field": "rotulo", "expression": rodovias::ROTULO_BC250}))?;
+    let campos = host::run("layer.fields", json!({"layer": provisoria}))?;
+    for f in campos.as_array().into_iter().flatten().filter_map(|f| f["name"].as_str()) {
+        if f != "rotulo" {
+            let _ = host::run("edit.deleteField", json!({"layer": provisoria, "field": f}));
+        }
+    }
+    // Uma feição por sigla (todos os trechos dela, uma multilinha): o rótulo vai no trecho mais
+    // longo dela na vista, e a repetição espaça os outros. O Unsplit Line só juntava trechos por
+    // nós de grau 2, e a BC250 corta as rodovias em cada cruzamento com uma estrada de terra.
+    let juntas =
+        host::run("gp.run", json!({"tool": "geolibre:singlepart_to_multipart", "params": {"input": provisoria, "field": "rotulo"}}))?;
+    // As ferramentas da GeoLibre dizem as camadas que fizeram em "layers".
+    let juntas =
+        juntas.get("layer").or_else(|| juntas["layers"].get(0)).cloned().ok_or("o agrupamento das siglas não disse a camada que fez")?;
+    host::run("layer.rename", json!({"layer": juntas, "name": siglas}))?;
+    remover(&[&provisoria])?;
+    host::run("layer.color", json!({"layer": siglas, "color": "#00000000"}))?;
+    host::run("labels.field", json!({"layer": siglas, "field": "rotulo"}))?;
+    host::run("labels.placement", json!({"layer": siglas, "position": "parallel", "repeat": rodovias::SIGLAS_A_CADA}))?;
+    host::run("labels.style", json!({"layer": siglas, "size": 6.5, "color": "#4a1010", "halo": true}))?;
+    host::run("labels.scaleRange", json!({"layer": siglas, "min": rodovias::SIGLAS_MAIS_LONGE}))?;
+    host::run("labels.enable", json!({"layer": siglas, "on": true}))?;
+    Ok(())
+}
+
+/// O estilo de uma camada de vias (BC250 ou OpenStreetMap): Valores Únicos pelas `classes` (um
+/// estilo do projeto, `nome`, que serve também a uma camada lida no lugar), o traço de cada classe
+/// com as principais por cima, e os filtros por escala. Uma camada que chega com um símbolo só (a
+/// que o RustGIS pôs quando o download chegou) perde o estilo que o plugin guardou dela antes do
+/// comando, que voltaria no fim por cima deste.
+fn estilo_de_vias(camada: &str, nome: &str, classes: &[rodovias::Classe], campo: &str, filtros: Value) -> Result<(), String> {
+    let simples = camada_no_projeto(camada)?.is_none_or(|l| l["renderer"].as_str() == Some("Single Symbol"));
+    let _ = host::run("style.remove", json!({"name": nome}));
+    host::run("style.add", json!({"text": rodovias::estilo(nome, classes, campo)}))?;
+    host::run("style.apply", json!({"layer": camada, "name": nome}))?;
+    host::run("layer.strokeLevels", json!({"layer": camada, "on": true}))?;
+    for mut traco in rodovias::tracos(classes) {
+        traco["layer"] = json!(camada);
+        host::run("layer.lineStrokes", traco)?;
+    }
+    host::run("layer.displayFilters", json!({"layer": camada, "filters": filtros}))?;
+    if simples {
+        let _ = host::run("style.remove", json!({"name": estilo::guardado(camada)}));
+    }
+    Ok(())
+}
+
+/// As ruas e estradas do OpenStreetMap ([`rodovias`]): os segmentos do tema de transportes do
+/// Overture nos arquivos que cobrem a área (ou a vista), lidos no lugar pelo RustGIS, só as vias
+/// (`subtype = 'road'`), com o estilo por classe, visíveis só de perto e mascarados pela área.
+fn osm_vias() -> Result<Value, String> {
+    let (c, na_area) = retangulo()?;
+    // Os arquivos: o catálogo do Overture, a coleção dos segmentos e os itens dos arquivos que
+    // cruzam a área (veja `rodovias::STAC_OVERTURE`). Cada busca pode ficar pendente no app web.
+    let passageira = |e: String| {
+        if crate::falha_passageira(&e) || e.contains("timeout") {
+            format!("o Overture Maps não respondeu agora: tente de novo daqui a pouco ({e})")
+        } else {
+            e
+        }
+    };
+    let catalogo = match buscar(&[rodovias::url_catalogo_overture()]).map_err(passageira)? {
+        Ok(r) => r,
+        Err(p) => return Ok(p),
+    };
+    let versao =
+        catalogo.first().and_then(|r| rodovias::versao_overture(&r["json"])).ok_or("o catálogo do Overture Maps não diz a versão")?;
+    let colecao = match buscar(&[rodovias::url_colecao_overture(&versao)]).map_err(passageira)? {
+        Ok(r) => r,
+        Err(p) => return Ok(p),
+    };
+    let itens = colecao.first().map(|r| rodovias::itens_overture(&r["json"], c)).unwrap_or_default();
+    if itens.is_empty() {
+        return Err("o Overture Maps não tem vias na área".into());
+    }
+    if itens.len() > rodovias::MAX_ARQUIVOS_OSM {
+        return Err(format!(
+            "a área toca {} arquivos do Overture Maps (até {} de uma vez): escolha uma área menor, como um município ou uma microrregião, ou use Rodovias e estradas (IBGE BC250)",
+            itens.len(),
+            rodovias::MAX_ARQUIVOS_OSM
+        ));
+    }
+    let respostas = match buscar(&itens).map_err(passageira)? {
+        Ok(r) => r,
+        Err(p) => return Ok(p),
+    };
+    let arquivos: Vec<String> = respostas.iter().filter_map(|r| rodovias::arquivo_overture(&r["json"])).collect();
+    if arquivos.len() != itens.len() {
+        return Err("um item do Overture Maps não diz o arquivo GeoParquet dele".into());
+    }
+    let camadas = rodovias::camadas_osm(arquivos.len());
+    // As de um clique anterior com outros nomes (outra área, outro número de arquivos) saem; as
+    // que já chegaram (de um clique anterior, ou da volta do RustGIS quando um download chega)
+    // ficam, e só as que faltam são pedidas.
+    let ha = nomes()?;
+    let velhas: Vec<&str> = ha.iter().filter(|n| rodovias::eh_do_osm(n) && !camadas.contains(n)).map(String::as_str).collect();
+    remover(&velhas)?;
+    let mut baixando = 0;
+    for (url, nome) in arquivos.iter().zip(&camadas) {
+        if ha.contains(nome) {
+            continue;
+        }
+        let r = host::run("layer.addUrl", json!({"url": url, "name": nome, "zoom": false}))?;
+        if estilo::esperando(&r) {
+            baixando += 1;
+        }
+    }
+    if baixando > 0 {
+        avisar("Ruas e estradas (OpenStreetMap): abrindo os arquivos do Overture Maps; a camada vem quando eles chegarem");
+        return Ok(json!({"downloading": camadas[0], "parts": camadas.len()}));
+    }
+    let presentes = nomes()?;
+    let camadas: Vec<String> = camadas.into_iter().filter(|n| presentes.contains(n)).collect();
+    if camadas.is_empty() {
+        return Err("o Overture Maps não devolveu camada nenhuma para a área".into());
+    }
+    for nome in &camadas {
+        host::run("layer.definitionQuery", json!({"layer": nome, "where": "subtype = 'road'"}))?;
+        estilo_de_vias(nome, rodovias::ESTILO_OSM, rodovias::CLASSES_OSM, "class", rodovias::filtros_osm())?;
+        host::run("layer.scaleRange", json!({"layer": nome, "min": rodovias::OSM_MAIS_LONGE}))?;
+        if na_area {
+            let _ = host::run("layer.mask", json!({"layer": nome, "mask": AREA}));
+        }
+    }
+    let ids = &camadas;
+    let versao = format!(", versão {versao}");
+    let texto = format!(
+        "{}: vias do OpenStreetMap pelo Overture Maps ({} arquivo(s){versao}), lidas no lugar, só o que a vista mostra; {}. Aparecem de 1:150.000 para perto (de longe, use Rodovias e estradas do IBGE), e de 1:50.000 para perto também as trilhas e as vias de serviço. Os nomes das vias não vêm. © colaboradores do OpenStreetMap (ODbL)",
+        camadas[0].trim_start_matches(PREFIXO),
+        ids.len(),
+        if na_area { "mascaradas pelo contorno da área, sem recorte" } else { "sem área, as da vista" }
+    );
+    avisar(&texto);
+    Ok(json!({"layers": camadas, "files": ids.len(), "report": texto}))
+}
+
 /// [`tema_proprio`], sem a explicação dos erros.
 fn tema_proprio_de(t: &Tema) -> Result<Value, String> {
     let (c, area) = retangulo()?;
@@ -1621,16 +1804,24 @@ fn area_que_cabe(t: &Tema, campo: &str, c: [f64; 4]) -> Result<Result<f64, Value
 
 /// Junta as camadas `partes` numa só, `destino`, e diz quantas feições ela tem.
 fn juntar(partes: &[String], destino: &str) -> Result<u64, String> {
-    if partes.len() == 1 {
+    // Uma parte só, lida pela vista (um GeoParquet grande, como o da drenagem de MG, de 47 MB, que
+    // o RustGIS lê por partes mesmo com "whole"): ela diz 0 feições, e o tema acabava em "nenhuma
+    // feição na área". O merge de uma camada só a carrega inteira.
+    let lida_pela_vista = partes.len() == 1 && feicoes_da_camada(&partes[0])?.unwrap_or(0) == 0;
+    if partes.len() == 1 && !lida_pela_vista {
         if partes[0] != destino {
             host::run("layer.rename", json!({"layer": partes[0], "name": destino}))?;
         }
     } else {
         let r = host::run("gp.run", json!({"tool": "merge", "params": {"inputs": partes}}))?;
         let junta = r.get("layer").cloned().ok_or("o merge não disse a camada que fez")?;
-        host::run("layer.rename", json!({"layer": junta, "name": destino}))?;
+        // Um nome provisório: a parte pode já se chamar `destino` (uma parte só), e tirá-la do mapa
+        // pelo nome levaria a junta junto.
+        let provisorio = format!("{destino} (juntando)");
+        host::run("layer.rename", json!({"layer": junta, "name": provisorio}))?;
         let p: Vec<&str> = partes.iter().map(String::as_str).collect();
         remover(&p)?;
+        host::run("layer.rename", json!({"layer": provisorio, "name": destino}))?;
     }
     Ok(feicoes_da_camada(destino)?.unwrap_or(0))
 }
@@ -1726,6 +1917,8 @@ fn citacoes() -> Result<(Vec<Value>, String), String> {
             lista.push(json!({"layer": n, "source": chm_amazonia::CITACAO, "license": chm_amazonia::LICENCA}));
         } else if gba::eh_do_gba(&n) {
             lista.push(json!({"layer": n, "source": gba::CITACAO, "license": gba::LICENCA}));
+        } else if rodovias::eh_do_osm(&n) {
+            lista.push(json!({"layer": n, "source": rodovias::CITACAO_OSM, "license": rodovias::LICENCA_OSM}));
         } else if gdo::eh_do_gdo(&n) {
             lista.push(json!({"layer": n, "source": gdo::CITACAO, "license": gdo::LICENCA}));
         } else if n == forty::CAMADA {
@@ -6669,7 +6862,7 @@ fn layout_do_mapa(req: &Request) -> Result<Value, String> {
     let mut fora: Vec<String> = [AREA, GRADE, DESENHO].into_iter().filter(|n| no_mapa.iter().any(|m| m == n)).map(String::from).collect();
     fora.extend(alheias.iter().filter(|n| no_mapa.iter().any(|m| m == *n)).cloned());
     // Os nomes dos rios da drenagem: a linha deles é invisível, só os rótulos aparecem.
-    fora.extend(no_mapa.iter().filter(|n| drenagem::so_rotulos(n)).cloned());
+    fora.extend(no_mapa.iter().filter(|n| so_rotulos(n)).cloned());
     if r.barra.is_some() {
         fora.push(principal.clone());
     }
