@@ -8,9 +8,9 @@
 //!
 //! Este módulo tem as escolhas (bandas, máscaras, contraste, ordem), as expressões da Raster
 //! Calculator do GeoLibre e os nomes das camadas; quem chama o RustGIS é o `comandos.rs`. A
-//! escolha do caminho fica em [`caminho`]: hoje uma leitura por data e banda com o `cube.reduce`
-//! e a Raster Calculator; quando o `cube.reduce` tiver `mask` e `stat: "first"`
-//! (opengeos/RustGIS#2585), uma leitura por banda.
+//! escolha do caminho fica em [`caminho`]: uma leitura por data e banda com o `cube.reduce` e a
+//! Raster Calculator, do RustGIS 0.7.0 em diante; num RustGIS sem a Raster Calculator mas com o
+//! `cube.reduce` com `mask` e `stat: "first"` (opengeos/RustGIS#2596), uma leitura por banda.
 
 use serde_json::{Value, json};
 
@@ -257,7 +257,7 @@ pub enum Valor {
 
 /// As camadas de uma expressão da Raster Calculator, na ordem em que os nomes aparecem nela, sem
 /// repetir. O RustGIS 0.7.0 liga as entradas à expressão pela posição, não pelo nome: elas têm
-/// de ir nesta ordem.
+/// de ir nesta ordem (depois dele, opengeos/RustGIS#2591, pelo nome, e esta ordem continua certa).
 pub fn entradas_da_expressao(expressao: &str) -> Vec<String> {
     let mut v: Vec<String> = Vec::new();
     for (k, pedaco) in expressao.split('"').enumerate() {
@@ -318,20 +318,39 @@ pub fn conferir_periodo(s: Satelite, inicio: Data, fim: Data) -> Result<(), Stri
 /// Como o comando monta a imagem.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Caminho {
-    /// Uma leitura do `cube.reduce` por data e banda (`start` = `end`), a nuvem e o melhor pixel
-    /// pela Raster Calculator do GeoLibre, a junção pelo Composite Bands. É o do RustGIS 0.7.0.
+    /// Uma leitura do `cube.reduce` por data e banda (`start` = `end`), a nuvem crescida e o
+    /// melhor pixel pela Raster Calculator e pelo Maximum Filter do GeoLibre, a junção pelo
+    /// Composite Bands. Funciona do RustGIS 0.7.0 em diante e dá a data de origem.
     PorData,
     /// Uma leitura do `cube.reduce` por banda, com `mask` e `stat: "first"` na ordem da parte
-    /// limpa (opengeos/RustGIS#2585). Sem a dilatação da máscara nem a data de origem.
+    /// limpa (opengeos/RustGIS#2596, depois da 0.7.0). Sem a nuvem crescida nem a data de origem.
     PeloCubeReduce,
 }
 
 /// O caminho, pelos parâmetros que o `cube.reduce` deste RustGIS diz aceitar (o `params` dele no
-/// `info.commands`): o da máscara só quando ele tem `mask`, `stat: "first"` e `order`.
-pub fn caminho(parametros_do_cube_reduce: &str) -> Caminho {
+/// `info.commands`) e por haver a Raster Calculator do GeoLibre. O [`Caminho::PorData`] vem
+/// primeiro, mesmo com o `cube.reduce` com máscara: só ele cresce a nuvem (as bordas que escapam
+/// ao SCL) e diz a data de origem de cada célula. O [`Caminho::PeloCubeReduce`] fica para um
+/// RustGIS sem a Raster Calculator; sem nenhum dos dois, `None`.
+pub fn caminho(parametros_do_cube_reduce: &str, calculadora: bool) -> Option<Caminho> {
     let tem = |p: &str| parametros_do_cube_reduce.contains(p);
-    if tem("\"mask\"") && tem("\"first\"") && tem("\"order\"") { Caminho::PeloCubeReduce } else { Caminho::PorData }
+    if calculadora {
+        Some(Caminho::PorData)
+    } else if tem("\"mask\"") && tem("\"first\"") && tem("\"order\"") {
+        Some(Caminho::PeloCubeReduce)
+    } else {
+        None
+    }
 }
+
+/// Se um erro do RustGIS diz que uma ferramenta não existe ("unknown tool"): um RustGIS sem as
+/// ferramentas do GeoLibre.
+pub fn ferramenta_ausente(erro: &str) -> bool {
+    erro.contains("unknown tool")
+}
+
+/// O aviso de um RustGIS sem as ferramentas de que a imagem precisa.
+pub const PRECISA_DO_GEOLIBRE: &str = "a imagem sem nuvens precisa das ferramentas Raster Calculator, Maximum Filter e Composite Bands do GeoLibre, que vêm com o RustGIS desde a 0.7.0; atualize o RustGIS";
 
 /// Os parâmetros do `cube.reduce` de uma banda no [`Caminho::PeloCubeReduce`]: a máscara da
 /// data de cada célula e a primeira data limpa, na ordem da parte limpa na área.
@@ -485,10 +504,18 @@ mod testes {
 
     #[test]
     fn o_caminho_segue_o_cube_reduce() {
-        let hoje = r#"{"cube"?: …, "stat": "mean"|"min"|"max", "start"?, "end"?, "name"?: text}"#;
-        assert_eq!(caminho(hoje), Caminho::PorData);
-        let depois = r#"{"mask"?: {"asset", "keep"}, "stat": "mean"|"first"|"median", "order"?: "clear"}"#;
-        assert_eq!(caminho(depois), Caminho::PeloCubeReduce);
+        let v070 = r#"{"cube"?: …, "stat": "mean"|"min"|"max", "start"?, "end"?, "name"?: text}"#;
+        // O do RustGIS da main depois da 0.7.0 (opengeos/RustGIS#2596).
+        let depois = r#"{"mask"?: {"asset": the items' quality band, and one of "keep": [classes]}, "stat": "mean"|"median"|"first" (the best pixel), "order"?: first's order of the dates: "clear"}"#;
+        // Com a Raster Calculator, sempre o caminho por data (a nuvem crescida e a data de origem).
+        assert_eq!(caminho(v070, true), Some(Caminho::PorData));
+        assert_eq!(caminho(depois, true), Some(Caminho::PorData));
+        // Sem ela, o cube.reduce com máscara, se houver.
+        assert_eq!(caminho(depois, false), Some(Caminho::PeloCubeReduce));
+        assert_eq!(caminho(v070, false), None);
+        assert!(ferramenta_ausente("geolibre:raster_calculator: unknown tool"));
+        assert!(ferramenta_ausente("unknown tool 'geolibre:maximum_filter'"));
+        assert!(!ferramenta_ausente("no raster layer 'x'"));
         let p =
             cube_reduce_com_mascara(Satelite::Sentinel2, "B04", [-43.0, -20.8, -42.7, -20.6], d(2025, 6, 1), d(2025, 8, 31), "x").unwrap();
         assert_eq!(p["mask"], json!({"asset": "SCL", "keep": [2, 4, 5, 6, 7]}));

@@ -4880,8 +4880,8 @@ fn bdc_indice(req: &Request) -> Result<Value, String> {
 
 /// A imagem sem nuvens do cubo do INPE ([`sem_nuvens`]): o melhor pixel das datas de 16 dias de
 /// um período, em cor verdadeira ou falsa-cor, recortado pelo contorno, com a data de origem de
-/// cada célula. O caminho (uma leitura por data, ou o `cube.reduce` com máscara) sai de
-/// [`sem_nuvens::caminho`].
+/// cada célula. O caminho (uma leitura por data, ou o `cube.reduce` com máscara num RustGIS sem
+/// a Raster Calculator) segue [`sem_nuvens::caminho`].
 fn bdc_sem_nuvens(req: &Request) -> Result<Value, String> {
     let (c, na_area) = retangulo()?;
     if !na_area {
@@ -4906,14 +4906,21 @@ fn bdc_sem_nuvens(req: &Request) -> Result<Value, String> {
         Err(p) => return Ok(p),
     };
     sem_nuvens::conferir_periodo(s, inicio, fim)?;
-    match sem_nuvens::caminho(&parametros) {
-        Caminho::PorData => sem_nuvens_por_data(c, s, comp, inicio, fim),
-        Caminho::PeloCubeReduce => sem_nuvens_pelo_cube_reduce(c, s, comp, inicio, fim),
+    // O caminho por data primeiro; sem a Raster Calculator ("unknown tool"), o cube.reduce com
+    // máscara, se este RustGIS o tiver (sem_nuvens::caminho).
+    let sem_ferramenta = |e: String| if sem_nuvens::ferramenta_ausente(&e) { sem_nuvens::PRECISA_DO_GEOLIBRE.to_string() } else { e };
+    match sem_nuvens_por_data(c, s, comp, inicio, fim) {
+        Err(e) if sem_nuvens::ferramenta_ausente(&e) => match sem_nuvens::caminho(&parametros, false) {
+            Some(Caminho::PeloCubeReduce) => sem_nuvens_pelo_cube_reduce(c, s, comp, inicio, fim).map_err(sem_ferramenta),
+            _ => Err(sem_nuvens::PRECISA_DO_GEOLIBRE.into()),
+        },
+        r => r,
     }
 }
 
 /// A Raster Calculator do GeoLibre com a `expressao`, numa camada nova `nome`. As entradas vão na
-/// ordem em que os nomes aparecem na expressão: o RustGIS 0.7.0 as liga pela posição.
+/// ordem em que os nomes aparecem na expressão: o RustGIS 0.7.0 as liga pela posição (os mais
+/// novos, pelo nome).
 fn calculadora(expressao: &str, nome: &str) -> Result<(), String> {
     remover(&[nome])?;
     let entradas = sem_nuvens::entradas_da_expressao(expressao);
@@ -4971,9 +4978,10 @@ fn decimal(x: f64, casas: usize) -> String {
     format!("{x:.casas$}").replace('.', ",")
 }
 
-/// A imagem sem nuvens pelo caminho do RustGIS 0.7.0 ([`Caminho::PorData`]): as máscaras de todas
-/// as datas, a nuvem dilatada de cada uma e a parte nublada na área, a ordem, a data de origem, as
-/// bandas só das datas que a imagem usa, o melhor pixel de cada banda, a junção e o recorte.
+/// A imagem sem nuvens pelo caminho do RustGIS 0.7.0 em diante ([`Caminho::PorData`]): as
+/// máscaras de todas as datas, a nuvem dilatada de cada uma e a parte nublada na área, a ordem, a
+/// data de origem, as bandas só das datas que a imagem usa, o melhor pixel de cada banda, a junção
+/// e o recorte.
 fn sem_nuvens_por_data(c: [f64; 4], s: bdc::Satelite, comp: Composicao, inicio: Data, fim: Data) -> Result<Value, String> {
     let m = sem_nuvens::mascara(s).ok_or("o satélite não tem máscara de nuvem no cubo")?;
     let bandas = sem_nuvens::bandas(s, comp).ok_or("o satélite não tem as bandas de cor no cubo")?;
@@ -5131,7 +5139,7 @@ fn simbolizar_sem_nuvens(nome: &str, s: bdc::Satelite, comp: Composicao) -> Resu
 }
 
 /// A imagem sem nuvens pelo `cube.reduce` com máscara e `stat: "first"`
-/// ([`Caminho::PeloCubeReduce`], opengeos/RustGIS#2585): uma leitura por banda, a junção e o
+/// ([`Caminho::PeloCubeReduce`], opengeos/RustGIS#2596): uma leitura por banda, a junção e o
 /// recorte. Sem a dilatação da máscara nem a camada da data de origem.
 fn sem_nuvens_pelo_cube_reduce(c: [f64; 4], s: bdc::Satelite, comp: Composicao, inicio: Data, fim: Data) -> Result<Value, String> {
     let bandas = sem_nuvens::bandas(s, comp).ok_or("o satélite não tem as bandas de cor no cubo")?;
