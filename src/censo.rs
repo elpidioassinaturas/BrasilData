@@ -50,12 +50,13 @@ pub fn url_contornos(c: [f64; 4]) -> String {
 pub const MALHA: &str = "IBGE, Malha Municipal 2025";
 
 /// Se a camada `l` (uma do `info.project`) tem os contornos de [`url_contornos`] para o retângulo
-/// `c`: o campo `malha`, `n` municípios e uma extensão que cobre `c`.
-pub fn contornos_da_area(l: &Value, c: [f64; 4], n: usize) -> bool {
+/// `c`: o campo `malha`, `n` municípios (quando se sabe quantos o retângulo tem) e uma extensão que
+/// cobre `c`.
+pub fn contornos_da_area(l: &Value, c: [f64; 4], n: Option<usize>) -> bool {
     let tem_malha = l["fields"].as_array().into_iter().flatten().filter_map(Value::as_str).any(|f| f.split(" (").next() == Some("malha"));
     let e: Vec<f64> = l["extent"].as_array().into_iter().flatten().filter_map(Value::as_f64).collect();
     let cobre = matches!(e[..], [x0, y0, x1, y1] if x0 <= c[0] && y0 <= c[1] && x1 >= c[2] && y1 >= c[3]);
-    tem_malha && cobre && l["features"].as_u64() == Some(n as u64)
+    tem_malha && cobre && n.is_none_or(|n| l["features"].as_u64() == Some(n as u64))
 }
 
 /// Os campos que o WFS da Malha traz e a camada de indicadores não leva: a área dele (`area_km2`)
@@ -101,12 +102,12 @@ pub fn dentro(p: [f64; 2], g: &Value) -> bool {
 /// Se a camada `l` (uma do `info.project`) é a que [`url_contornos`] acabou de trazer para `c`: os
 /// campos só do WFS (`cd_recorte`), ainda sem o `malha`, `n` municípios e uma extensão que cobre `c`.
 /// Uma camada de antes (a API de malhas) não tem o `cd_recorte` e é refeita.
-pub fn contornos_recem_baixados(l: &Value, c: [f64; 4], n: usize) -> bool {
+pub fn contornos_recem_baixados(l: &Value, c: [f64; 4], n: Option<usize>) -> bool {
     let campos: Vec<&str> =
         l["fields"].as_array().into_iter().flatten().filter_map(Value::as_str).filter_map(|f| f.split(" (").next()).collect();
     let e: Vec<f64> = l["extent"].as_array().into_iter().flatten().filter_map(Value::as_f64).collect();
     let cobre = matches!(e[..], [x0, y0, x1, y1] if x0 <= c[0] && y0 <= c[1] && x1 >= c[2] && y1 >= c[3]);
-    campos.contains(&"cd_recorte") && !campos.contains(&"malha") && cobre && l["features"].as_u64() == Some(n as u64)
+    campos.contains(&"cd_recorte") && !campos.contains(&"malha") && cobre && n.is_none_or(|n| l["features"].as_u64() == Some(n as u64))
 }
 
 /// Os campos de `campos` como o Calculate Field os grava: o nome, o tipo e um CASE pelo código do
@@ -779,21 +780,23 @@ mod tests {
         );
         // A camada desta área (campo malha, 9 municípios, extensão que cobre o retângulo), não a de outra.
         let l = serde_json::json!({"fields": ["cd_mun (Text)", "malha (Text)"], "features": 9, "extent": [-43.2, -21.0, -42.6, -20.5]});
-        assert!(contornos_da_area(&l, c, 9));
-        assert!(!contornos_da_area(&l, c, 8));
+        assert!(contornos_da_area(&l, c, Some(9)));
+        assert!(!contornos_da_area(&l, c, Some(8)));
         assert!(!contornos_da_area(
             &serde_json::json!({"fields": ["cd_mun (Text)"], "features": 9, "extent": [-43.2, -21.0, -42.6, -20.5]}),
             c,
-            9
+            Some(9)
         ));
-        assert!(!contornos_da_area(&l, [-44.0, -21.0, -43.5, -20.0], 9));
+        assert!(!contornos_da_area(&l, [-44.0, -21.0, -43.5, -20.0], Some(9)));
+        // Numa área do painel, a lista vem da malha e não se sabe quantos o retângulo tem.
+        assert!(contornos_da_area(&l, c, None) && !contornos_da_area(&l, [-44.0, -21.0, -43.5, -20.0], None));
         // A que o WFS acabou de trazer (campos dele, sem o malha), e não a de antes (API de malhas).
         let wfs = serde_json::json!({"fields": ["cd_mun (Text)", "cd_recorte (Text)", "area_km2 (Double)"], "features": 9, "extent": [-43.2, -21.0, -42.6, -20.5]});
-        assert!(contornos_recem_baixados(&wfs, c, 9) && !contornos_da_area(&wfs, c, 9));
+        assert!(contornos_recem_baixados(&wfs, c, Some(9)) && !contornos_da_area(&wfs, c, Some(9)));
         let antiga =
             serde_json::json!({"fields": ["cd_mun (Text)", "nm_mun (Text)"], "features": 9, "extent": [-43.2, -21.0, -42.6, -20.5]});
-        assert!(!contornos_recem_baixados(&antiga, c, 9));
-        assert!(!contornos_recem_baixados(&l, c, 9));
+        assert!(!contornos_recem_baixados(&antiga, c, Some(9)));
+        assert!(!contornos_recem_baixados(&l, c, Some(9)));
         // Os campos: inteiros, com casas e texto, cada um num CASE pelo código.
         let mut campos: HashMap<String, serde_json::Map<String, Value>> = HashMap::new();
         campos.insert(

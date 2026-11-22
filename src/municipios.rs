@@ -64,6 +64,20 @@ pub fn por_codigo(codigo: &str) -> Option<&'static Municipio> {
 /// As grandes regiões do IBGE: o primeiro dígito do código de um estado ou município, e o nome.
 pub const REGIOES: [(char, &str); 5] = [('1', "Norte"), ('2', "Nordeste"), ('3', "Sudeste"), ('4', "Sul"), ('5', "Centro-Oeste")];
 
+/// Os municípios da malha `codigo` de uma área do painel: o país (`0`), um estado (2 dígitos), uma
+/// meso (4), uma micro (5) ou um município (7). `None` para outro código, como o de um desenho.
+pub fn da_malha(codigo: &str) -> Option<Vec<&'static str>> {
+    let v: Vec<&'static str> = match codigo.len() {
+        1 if codigo == "0" => todos().iter().map(|m| m.codigo).collect(),
+        2 => todos().iter().filter(|m| m.codigo.starts_with(codigo)).map(|m| m.codigo).collect(),
+        4 => todos().iter().filter(|m| m.meso == codigo).map(|m| m.codigo).collect(),
+        5 => todos().iter().filter(|m| m.micro == codigo).map(|m| m.codigo).collect(),
+        7 => vec![por_codigo(codigo)?.codigo],
+        _ => return None,
+    };
+    (!v.is_empty()).then_some(v)
+}
+
 /// A grande região de um código do IBGE (estado, meso, micro ou município): o primeiro dígito.
 pub fn regiao_de(codigo: &str) -> Option<char> {
     codigo.chars().next().filter(|c| REGIOES.iter().any(|(r, _)| r == c))
@@ -351,6 +365,19 @@ mod tests {
         assert_eq!(regiao_do_no("uf:SP"), Some('3'));
         assert_eq!(regiao_do_no("reg:4"), Some('4'));
         assert_eq!(regiao_do_no("br"), None);
+    }
+
+    #[test]
+    fn a_malha_da_area_diz_os_seus_municipios() {
+        // A Zona da Mata (MG): 142 municípios; o retângulo dela pega 288 no WFS.
+        let zm = da_malha("3112").unwrap();
+        assert_eq!(zm.len(), 142);
+        assert!(zm.contains(&"3171303")); // Viçosa
+        assert_eq!(da_malha("31").unwrap().len(), 853);
+        assert_eq!(da_malha("3171303").unwrap(), vec!["3171303"]);
+        assert!(da_malha("31060").is_some_and(|v| v.len() > 1));
+        assert_eq!(da_malha("0").unwrap().len(), todos().len());
+        assert!(da_malha("desenho").is_none() && da_malha("9999").is_none());
     }
 
     #[test]

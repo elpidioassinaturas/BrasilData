@@ -37,7 +37,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.60"
+VERSAO = "0.1.61"
 AUTOR = "Elpídio Filho"
 # Como o texto Sobre chama o autor (o manifesto e o README levam o nome completo).
 AUTOR_SOBRE = "Professor Elpídio"
@@ -999,7 +999,7 @@ EM_MENUS = [
         {
             "id": "metano-tropomi",
             "label": "Metano no ar (Sentinel-5P)",
-            "help": "A coluna média de metano no ar (XCH4, em ppb) medida pelo satélite Sentinel-5P (instrumento TROPOMI, do Copernicus): a média do ano ou de um mês, numa grade de 0,1° (cerca de 11 km) que o BrasilData calcula das órbitas do satélite, só com os pixels de boa qualidade (qa ≥ 0,5). Mostra onde há mais metano no ar, não quanto cada lugar emite: o valor cai com a altitude (há menos ar acima) e varia com a estação; manchas altas que se repetem nos meses apontam fontes, como áreas alagadas, pecuária e aterros. Numa área, só ela, lida do arquivo do Brasil e recortada pelo contorno; sem área, o Brasil inteiro, lido pela vista. Contém dados modificados do Copernicus Sentinel (ESA). Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área).",
+            "help": "A coluna média de metano no ar (XCH4, em ppb) medida pelo satélite Sentinel-5P (instrumento TROPOMI, do Copernicus): a média do ano ou de um mês, numa grade de 0,1° (cerca de 11 km) que o BrasilData calcula das órbitas do satélite, só com os pixels de boa qualidade (qa ≥ 0,5). Mostra onde há mais metano no ar, não quanto cada lugar emite: o valor cai com a altitude (há menos ar acima) e varia com a estação; manchas altas que se repetem nos meses apontam fontes, como áreas alagadas, pecuária e aterros. Numa área, a janela dela, lida do arquivo do Brasil e mascarada pelo contorno (as células da divisa aparecem cortadas por ele); sem área, o Brasil inteiro, lido pela vista. A camada fica abaixo dos rios, das estradas e das localidades. Contém dados modificados do Copernicus Sentinel (ESA). Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área).",
             "icon": "graduated",
             "params": "{\"periodo\"?: \"média de 2023\" (padrão) | \"março de 2023\" | \"2023-03\"}",
             "form": [

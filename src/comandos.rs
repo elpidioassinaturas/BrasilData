@@ -3053,6 +3053,38 @@ type Campos = Result<indicadores::PorMunicipio, Value>;
 /// municípios por vez, e uma chamada faz até 64 pedidos.
 const LIMITE_DE_MUNICIPIOS: usize = 200;
 
+/// Os municípios de uma área do painel (estado, meso, micro ou município), pela lista embutida: a
+/// Zona da Mata tem 142, e o retângulo dela pegava 288 no WFS, que passavam do
+/// [`LIMITE_DE_MUNICIPIOS`]. `None` sem área, ou num desenho ou numa seleção, que não têm código.
+fn municipios_das_malhas() -> Result<Option<Vec<String>>, String> {
+    if !nomes()?.iter().any(|n| n == AREA) {
+        return Ok(None);
+    }
+    let area = host::features(AREA, false)?;
+    let feicoes = area["features"].as_array().cloned().unwrap_or_default();
+    if feicoes.is_empty() {
+        return Ok(None);
+    }
+    let malhas: Option<Vec<Vec<&str>>> =
+        feicoes.iter().map(|f| f["properties"]["codigo"].as_str().and_then(municipios::da_malha)).collect();
+    Ok(malhas.map(|v| v.concat().into_iter().map(str::to_string).collect()))
+}
+
+/// Os códigos dos municípios do retângulo da área (do WFS). Num desenho ou numa seleção com mais
+/// do que o [`LIMITE_DE_MUNICIPIOS`], só os que têm o ponto de dentro na área.
+fn municipios_do_retangulo(municipios: Vec<(String, String, String)>) -> Result<Vec<String>, String> {
+    let codigos: Vec<String> = municipios.into_iter().map(|m| m.0).collect();
+    if codigos.len() <= LIMITE_DE_MUNICIPIOS || !nomes()?.iter().any(|n| n == AREA) {
+        return Ok(codigos);
+    }
+    let area = host::features(AREA, false)?;
+    let geometrias: Vec<&Value> = area["features"].as_array().into_iter().flatten().map(|f| &f["geometry"]).collect();
+    Ok(codigos
+        .into_iter()
+        .filter(|cd| censo::ponto_do_municipio(cd).is_some_and(|p| geometrias.iter().any(|g| censo::dentro(p, g))))
+        .collect())
+}
+
 /// Os municípios que cruzam a área, com os indicadores das `fontes`, numa camada só: a
 /// "Indicadores por município". Os contornos são os da Malha Municipal 2025 do IBGE, que o próprio
 /// RustGIS baixa do WFS pelo retângulo da área: a geometria não passa pelo plugin (ler aqui os
@@ -3062,30 +3094,38 @@ const LIMITE_DE_MUNICIPIOS: usize = 200;
 /// já está no mapa para esta área, os campos novos se somam aos que ela tem.
 fn indicadores(fontes: &[Fonte]) -> Result<Value, String> {
     let c = retangulo_da_area()?;
-    let r = match buscar_varios(&[censo::url_municipios(c)])? {
-        Ok(r) => r,
-        Err(p) => return Ok(p),
+    // Os municípios: os da malha da área, sem rede; num desenho ou numa seleção, os do retângulo,
+    // pelo WFS (e a camada dos contornos, que vêm pelo retângulo, é reconhecida por esse número).
+    let (codigos, no_retangulo) = match municipios_das_malhas()? {
+        Some(codigos) => (codigos, None),
+        None => {
+            let r = match buscar_varios(&[censo::url_municipios(c)])? {
+                Ok(r) => r,
+                Err(p) => return Ok(p),
+            };
+            let municipios = censo::municipios(&r[0]);
+            let n = municipios.len();
+            (municipios_do_retangulo(municipios)?, Some(n))
+        }
     };
-    let municipios = censo::municipios(&r[0]);
-    if municipios.is_empty() {
+    if codigos.is_empty() {
         return Err("nenhum município do IBGE na área".into());
     }
     // Os pedidos das fontes (o SIDRA, o SICOR) vão por município, numa chamada de até 64 pedidos.
-    if municipios.len() > LIMITE_DE_MUNICIPIOS {
+    if codigos.len() > LIMITE_DE_MUNICIPIOS {
         return Err(format!(
             "{} municípios na área; o plugin traz até {LIMITE_DE_MUNICIPIOS} de cada vez: escolha uma área menor",
-            municipios.len()
+            codigos.len()
         ));
     }
-    let codigos: Vec<String> = municipios.iter().map(|m| m.0.clone()).collect();
     let nome = format!("{PREFIXO}{INDICADORES}");
     // Os contornos: os da camada que está no mapa, se ela é desta área; senão, o WFS.
     let info = host::run("info.project", json!({}))?;
     let atual = info["layers"].as_array().into_iter().flatten().find(|l| l["name"].as_str() == Some(nome.as_str()));
-    let pronta = atual.is_some_and(|l| censo::contornos_da_area(l, c, codigos.len()));
+    let pronta = atual.is_some_and(|l| censo::contornos_da_area(l, c, no_retangulo));
     // O app desktop também baixa o WFS fora do comando e o roda de novo quando a camada chega: na
     // nova rodada, ela está no mapa com os campos do WFS e ainda sem o `malha`.
-    let recem_baixada = !pronta && atual.is_some_and(|l| censo::contornos_recem_baixados(l, c, codigos.len()));
+    let recem_baixada = !pronta && atual.is_some_and(|l| censo::contornos_recem_baixados(l, c, no_retangulo));
     if !pronta && !recem_baixada {
         remover(&[&nome])?;
         let r = host::run("layer.addUrl", json!({"url": censo::url_contornos(c), "name": nome, "zoom": false}))?;
@@ -6678,6 +6718,7 @@ fn metano_na_area(req: &Request) -> Result<Value, String> {
             return Ok(json!({"pending": 1}));
         }
         estilo_do_metano(&nome)?;
+        sob_as_linhas(&nome)?;
         let texto = format!(
             "{}: coluna média de metano (XCH4, ppb) do Sentinel-5P/TROPOMI em {periodo}, em células de 0,1° (cerca de 11 km), no Brasil inteiro; {fonte}",
             nome.trim_start_matches(PREFIXO)
@@ -6700,17 +6741,36 @@ fn metano_na_area(req: &Request) -> Result<Value, String> {
             return Ok(json!({"pending": 1}));
         }
     }
+    // Mascarada pelo contorno, sem recorte: o recorte guarda só as células com o centro na área, e
+    // as de 11 km deixavam uma faixa vazia na divisa.
     remover(&[&nome])?;
-    let feito = recortar(&bruto, AREA, &nome);
-    remover(&[&bruto])?;
-    feito?;
+    host::run("layer.rename", json!({"layer": bruto, "name": nome}))?;
+    let _ = host::run("layer.mask", json!({"layer": nome, "mask": AREA}));
     estilo_do_metano(&nome)?;
+    sob_as_linhas(&nome)?;
     let texto = format!(
-        "{}: coluna média de metano (XCH4, ppb) do Sentinel-5P/TROPOMI em {periodo}, em células de 0,1° (cerca de 11 km), recortada pela área; {fonte}. Mede o metano no ar, não a emissão de cada lugar: o valor cai com a altitude",
+        "{}: coluna média de metano (XCH4, ppb) do Sentinel-5P/TROPOMI em {periodo}, em células de 0,1° (cerca de 11 km), mascarada pelo contorno da área; {fonte}. Mede o metano no ar, não a emissão de cada lugar: o valor cai com a altitude",
         nome.trim_start_matches(PREFIXO)
     );
     avisar(&texto);
     Ok(json!({"layer": nome, "year": ano, "month": mes, "report": texto}))
+}
+
+/// Põe a camada `nome` (um raster, que chega no topo) logo abaixo das camadas de linhas e de pontos
+/// que estão no topo do mapa (rios, estradas, localidades), que ele cobriria.
+fn sob_as_linhas(nome: &str) -> Result<(), String> {
+    let info = host::run("info.project", json!({}))?;
+    let acima = info["layers"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter(|l| l["name"].as_str() != Some(nome))
+        .take_while(|l| l["type"].as_str().is_some_and(|t| t.contains("line") || t.contains("Point")))
+        .count();
+    if acima > 0 {
+        host::run("layer.move", json!({"layer": nome, "to": acima}))?;
+    }
+    Ok(())
 }
 
 /// As cores do metano: do amarelo ao vermelho, na faixa fixa [`metano::FAIXA`] (a mesma em todo
