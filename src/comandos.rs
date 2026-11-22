@@ -4906,12 +4906,13 @@ fn bdc_sem_nuvens(req: &Request) -> Result<Value, String> {
         Err(p) => return Ok(p),
     };
     sem_nuvens::conferir_periodo(s, inicio, fim)?;
+    let g = grade_para(c, None)?;
     // O caminho por data primeiro; sem a Raster Calculator ("unknown tool"), o cube.reduce com
     // máscara, se este RustGIS o tiver (sem_nuvens::caminho).
     let sem_ferramenta = |e: String| if sem_nuvens::ferramenta_ausente(&e) { sem_nuvens::PRECISA_DO_GEOLIBRE.to_string() } else { e };
-    match sem_nuvens_por_data(c, s, comp, inicio, fim) {
+    match sem_nuvens_por_data(c, &g, s, comp, inicio, fim) {
         Err(e) if sem_nuvens::ferramenta_ausente(&e) => match sem_nuvens::caminho(&parametros, false) {
-            Some(Caminho::PeloCubeReduce) => sem_nuvens_pelo_cube_reduce(c, s, comp, inicio, fim).map_err(sem_ferramenta),
+            Some(Caminho::PeloCubeReduce) => sem_nuvens_pelo_cube_reduce(c, &g, s, comp, inicio, fim).map_err(sem_ferramenta),
             _ => Err(sem_nuvens::PRECISA_DO_GEOLIBRE.into()),
         },
         r => r,
@@ -4982,7 +4983,7 @@ fn decimal(x: f64, casas: usize) -> String {
 /// máscaras de todas as datas, a nuvem dilatada de cada uma e a parte nublada na área, a ordem, a
 /// data de origem, as bandas só das datas que a imagem usa, o melhor pixel de cada banda, a junção
 /// e o recorte.
-fn sem_nuvens_por_data(c: [f64; 4], s: bdc::Satelite, comp: Composicao, inicio: Data, fim: Data) -> Result<Value, String> {
+fn sem_nuvens_por_data(c: [f64; 4], g: &Grade, s: bdc::Satelite, comp: Composicao, inicio: Data, fim: Data) -> Result<Value, String> {
     let m = sem_nuvens::mascara(s).ok_or("o satélite não tem máscara de nuvem no cubo")?;
     let bandas = sem_nuvens::bandas(s, comp).ok_or("o satélite não tem as bandas de cor no cubo")?;
     let celula = sem_nuvens::celula_de_leitura(s, c);
@@ -5076,9 +5077,13 @@ fn sem_nuvens_por_data(c: [f64; 4], s: bdc::Satelite, comp: Composicao, inicio: 
         let nome = sem_nuvens::camada(s, comp, inicio, fim);
         let nome_da_data = sem_nuvens::camada_da_data(s, inicio, fim);
         remover(&[&nome, &nome_da_data])?;
-        recortar(&junto, AREA, &nome)?;
+        let (junto_na_grade, origem_na_grade) = (format!("{junto} na grade"), format!("{origem} na grade"));
+        temporarias.extend([junto_na_grade.clone(), origem_na_grade.clone()]);
+        no_sistema_da_grade(&junto, g, celula, &junto_na_grade)?;
+        recortar(&junto_na_grade, AREA, &nome)?;
         simbolizar_sem_nuvens(&nome, s, comp)?;
-        recortar(&origem, AREA, &nome_da_data)?;
+        no_sistema_da_grade(&origem, g, celula, &origem_na_grade)?;
+        recortar(&origem_na_grade, AREA, &nome_da_data)?;
         let datas_usadas: Vec<Data> = ordem.iter().map(|x| x.data).collect();
         host::run("style.importQgis", json!({"layer": nome_da_data, "text": sem_nuvens::qml_da_data(&datas_usadas)}))?;
         let _ = host::run("raster.mask", json!({"layer": nome_da_data, "values": [0]}));
@@ -5097,10 +5102,11 @@ fn sem_nuvens_por_data(c: [f64; 4], s: bdc::Satelite, comp: Composicao, inicio: 
             String::new()
         };
         avisar(&format!(
-            "{}: o melhor pixel das datas de 16 dias da coleção {} do INPE, a {} m, fora da grade do projeto. Cada célula vem da primeira data limpa, da menos nublada na área para a mais nublada, com a nuvem crescida {} célula(s) para os lados. Das {} data(s) do período, na ordem: {}{}. A imagem usou {}.{vazia} A camada {} diz de que data veio cada célula.",
+            "{}: o melhor pixel das datas de 16 dias da coleção {} do INPE, a {} m, no sistema da grade do projeto, {}. Cada célula vem da primeira data limpa, da menos nublada na área para a mais nublada, com a nuvem crescida {} célula(s) para os lados. Das {} data(s) do período, na ordem: {}{}. A imagem usou {}.{vazia} A camada {} diz de que data veio cada célula.",
             nome.trim_start_matches(PREFIXO),
             s.colecao(),
             decimal(celula, 0),
+            grade::nome_do_sistema(g.epsg),
             m.dilatacao,
             todas.len(),
             lista.join(", "),
@@ -5114,7 +5120,7 @@ fn sem_nuvens_por_data(c: [f64; 4], s: bdc::Satelite, comp: Composicao, inicio: 
         ));
         Ok(json!({
             "layer": nome, "dates": nome_da_data, "satellite": s.id(), "collection": s.colecao(), "composition": comp.id(),
-            "start": inicio.iso(), "end": fim.iso(), "cellSize": celula,
+            "start": inicio.iso(), "end": fim.iso(), "crs": format!("EPSG:{}", g.epsg), "cellSize": celula,
             "order": datas_usadas.iter().map(Data::iso).collect::<Vec<_>>(),
         }))
     })();
@@ -5125,6 +5131,20 @@ fn sem_nuvens_por_data(c: [f64; 4], s: bdc::Satelite, comp: Composicao, inicio: 
     let t: Vec<&str> = temporarias.iter().map(String::as_str).collect();
     remover(&t)?;
     feito
+}
+
+/// O raster `camada` no sistema da grade do projeto `g`, com células de `celula` metros (as do
+/// satélite) no retângulo dela, numa camada nova `nome`, pelo vizinho mais próximo (as classes da
+/// data de origem e as células vazias, 0 nas três bandas, ficam como estão). O cubo do BDC vem num
+/// Albers sem código EPSG, e o recorte do GeoLibre (o do app desktop, que traz a extensão Imagens
+/// desligada) não reprojeta um raster sem EPSG para o contorno da área.
+fn no_sistema_da_grade(camada: &str, g: &Grade, celula: f64, nome: &str) -> Result<(), String> {
+    remover(&[nome])?;
+    host::run(
+        "raster.project",
+        json!({"layer": camada, "crs": g.epsg, "cellSize": celula, "extent": GRADE, "resampling": "nearest", "name": nome}),
+    )?;
+    Ok(())
 }
 
 /// O vermelho, o verde e o azul da imagem `nome`, com o contraste fixo do satélite `s` na
@@ -5141,7 +5161,14 @@ fn simbolizar_sem_nuvens(nome: &str, s: bdc::Satelite, comp: Composicao) -> Resu
 /// A imagem sem nuvens pelo `cube.reduce` com máscara e `stat: "first"`
 /// ([`Caminho::PeloCubeReduce`], opengeos/RustGIS#2596): uma leitura por banda, a junção e o
 /// recorte. Sem a dilatação da máscara nem a camada da data de origem.
-fn sem_nuvens_pelo_cube_reduce(c: [f64; 4], s: bdc::Satelite, comp: Composicao, inicio: Data, fim: Data) -> Result<Value, String> {
+fn sem_nuvens_pelo_cube_reduce(
+    c: [f64; 4],
+    g: &Grade,
+    s: bdc::Satelite,
+    comp: Composicao,
+    inicio: Data,
+    fim: Data,
+) -> Result<Value, String> {
     let bandas = sem_nuvens::bandas(s, comp).ok_or("o satélite não tem as bandas de cor no cubo")?;
     let ha = nomes()?;
     let canais: Vec<String> = bandas.iter().map(|b| sem_nuvens::passo(s, &format!("primeira {b}"), inicio, fim)).collect();
@@ -5164,15 +5191,17 @@ fn sem_nuvens_pelo_cube_reduce(c: [f64; 4], s: bdc::Satelite, comp: Composicao, 
         return Ok(json!({"pending": lendo}));
     }
     let junto = sem_nuvens::passo(s, "junto", inicio, fim);
+    let junto_na_grade = format!("{junto} na grade");
     let nome = sem_nuvens::camada(s, comp, inicio, fim);
     let feito = (|| -> Result<(), String> {
-        remover(&[&junto, &nome])?;
+        remover(&[&junto, &junto_na_grade, &nome])?;
         ferramenta("geolibre:composite_bands", json!({"inputs": canais}), &junto)?;
-        recortar(&junto, AREA, &nome)?;
+        no_sistema_da_grade(&junto, g, sem_nuvens::celula_de_leitura(s, c), &junto_na_grade)?;
+        recortar(&junto_na_grade, AREA, &nome)?;
         simbolizar_sem_nuvens(&nome, s, comp)
     })();
     let mut fora: Vec<&str> = canais.iter().map(String::as_str).collect();
-    fora.push(&junto);
+    fora.extend([junto.as_str(), junto_na_grade.as_str()]);
     remover(&fora)?;
     feito?;
     avisar(&format!(
