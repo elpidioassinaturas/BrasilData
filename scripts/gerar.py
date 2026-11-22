@@ -682,6 +682,17 @@ EM_MENUS = [
         },
     ),
     (
+        "Infraestrutura",
+        "Transportes",
+        {
+            "id": "osm-vias",
+            "label": "Ruas e estradas (OpenStreetMap)",
+            "help": "As ruas e estradas do OpenStreetMap (© colaboradores do OSM, licença ODbL), do tema de transportes do Overture Maps, pela classe da via: vias expressas, principais, secundárias, terciárias e vicinais, ruas, estradas de terra e trilhas. O RustGIS lê no lugar os arquivos GeoParquet que cobrem a área e busca só o que a vista mostra: a camada não é recortada, é mascarada pelo contorno da área. Aparece só de 1:150.000 para perto (de longe, as Rodovias e estradas do IBGE). Precisa de um RustGIS que leia GeoParquet no lugar (0.7.0).",
+            "icon": "line_layer",
+            "params": "{}",
+        },
+    ),
+    (
         "Vegetação e meio ambiente",
         "Vegetação",
         {

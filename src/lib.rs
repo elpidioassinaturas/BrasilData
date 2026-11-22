@@ -56,6 +56,7 @@ pub mod olm;
 pub mod pardig;
 pub mod radar;
 pub mod risco_fogo;
+pub mod rodovias;
 pub mod saude;
 pub mod sem_nuvens;
 pub mod sol;

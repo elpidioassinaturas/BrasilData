@@ -39,6 +39,7 @@ use crate::nisar;
 use crate::olm;
 use crate::radar;
 use crate::risco_fogo;
+use crate::rodovias;
 use crate::saude;
 use crate::sem_nuvens::{self, Caminho, Composicao, DataNaArea, Valor};
 use crate::sol;
@@ -220,6 +221,7 @@ fn executar_comando(req: Request) -> Result<Value, String> {
         "chm-altura" => chm_na_area(&req),
         "chm-amazonia" => chm_amazonia_na_area(&req),
         "gba-edificacoes" => gba_na_area(),
+        "osm-vias" => osm_vias(),
         "gdo-seca" => gdo_seca(&req),
         "forty-tipologia" => forty_na_area(&req),
         "ctrees-biomassa" => ctrees_na_area(&req),
@@ -965,6 +967,9 @@ fn tema(t: &Tema) -> Result<Value, String> {
     if t.id == "drenagem" {
         return drenagem_bc250(t).map_err(crate::explicar);
     }
+    if t.id == "rodovias" {
+        return rodovias_bc250(t);
+    }
     if t.pedido_proprio() {
         return tema_proprio(t);
     }
@@ -1391,6 +1396,101 @@ fn drenagem_do_brasil(t: &Tema, motivo: &str) -> Result<Value, String> {
     Ok(json!({"group": grupo, "layers": camadas, "streamed": true}))
 }
 
+/// As rodovias e estradas da BC250 ([`rodovias`]): pedidas como os outros temas (em páginas, e
+/// recortadas pela área), com o estilo por jurisdição e revestimento, os filtros por escala e as
+/// siglas das federais e estaduais pavimentadas.
+fn rodovias_bc250(t: &Tema) -> Result<Value, String> {
+    let r = tema_proprio(t)?;
+    if estilo::esperando(&r) {
+        return Ok(r);
+    }
+    if let Some(camada) = r["layer"].as_str() {
+        estilo_de_vias(camada, rodovias::ESTILO_BC250, rodovias::CLASSES_BC250, "jurisdicao", rodovias::filtros_bc250())?;
+        // As siglas: só as das federais e estaduais pavimentadas, ao longo da linha, de perto.
+        host::run("labels.field", json!({"layer": camada, "field": "sigla"}))?;
+        host::run("labels.by", json!({"layer": camada, "text": rodovias::ROTULO_BC250}))?;
+        host::run("labels.placement", json!({"layer": camada, "position": "parallel", "repeat": 600}))?;
+        host::run("labels.style", json!({"layer": camada, "size": 6.5, "color": "#4a1010", "halo": true}))?;
+        host::run("labels.scaleRange", json!({"layer": camada, "min": rodovias::SIGLAS_MAIS_LONGE}))?;
+        host::run("labels.enable", json!({"layer": camada, "on": true}))?;
+        avisar(&format!(
+            "{}: cores pela jurisdição e pelo revestimento; de longe aparecem só as federais, e de 1:1.500.000 para perto todos os trechos. As siglas das federais e estaduais pavimentadas aparecem de 1:2.000.000 para perto",
+            camada.trim_start_matches(PREFIXO)
+        ));
+    }
+    Ok(r)
+}
+
+/// O estilo de uma camada de vias (BC250 ou OpenStreetMap): Valores Únicos pelas `classes` (um
+/// estilo do projeto, `nome`, que serve também a uma camada lida no lugar), o traço de cada classe
+/// com as principais por cima, e os filtros por escala. Uma camada que chega com um símbolo só (a
+/// que o RustGIS pôs quando o download chegou) perde o estilo que o plugin guardou dela antes do
+/// comando, que voltaria no fim por cima deste.
+fn estilo_de_vias(camada: &str, nome: &str, classes: &[rodovias::Classe], campo: &str, filtros: Value) -> Result<(), String> {
+    let simples = camada_no_projeto(camada)?.is_none_or(|l| l["renderer"].as_str() == Some("Single Symbol"));
+    let _ = host::run("style.remove", json!({"name": nome}));
+    host::run("style.add", json!({"text": rodovias::estilo(nome, classes, campo)}))?;
+    host::run("style.apply", json!({"layer": camada, "name": nome}))?;
+    host::run("layer.strokeLevels", json!({"layer": camada, "on": true}))?;
+    for mut traco in rodovias::tracos(classes) {
+        traco["layer"] = json!(camada);
+        host::run("layer.lineStrokes", traco)?;
+    }
+    host::run("layer.displayFilters", json!({"layer": camada, "filters": filtros}))?;
+    if simples {
+        let _ = host::run("style.remove", json!({"name": estilo::guardado(camada)}));
+    }
+    Ok(())
+}
+
+/// As ruas e estradas do OpenStreetMap ([`rodovias`]): os segmentos do tema de transportes do
+/// Overture nos arquivos que cobrem a área (ou a vista), lidos no lugar pelo RustGIS, só as vias
+/// (`subtype = 'road'`), com o estilo por classe, visíveis só de perto e mascarados pela área.
+fn osm_vias() -> Result<Value, String> {
+    let (c, na_area) = retangulo()?;
+    let r = host::run("overture.add", json!({"theme": "transportation", "type": "segment", "bbox": c})).map_err(|e| {
+        if e.contains("zoom in") {
+            format!(
+                "a área toca arquivos demais do Overture Maps (o RustGIS abre até 6 de uma vez): escolha uma área menor, como um município ou uma microrregião, ou use Rodovias e estradas (IBGE BC250) ({e})"
+            )
+        } else if crate::falha_passageira(&e) || e.contains("timeout") {
+            format!("o Overture Maps não respondeu agora: tente de novo daqui a pouco ({e})")
+        } else {
+            e
+        }
+    })?;
+    if estilo::esperando(&r) {
+        avisar("Ruas e estradas (OpenStreetMap): abrindo os arquivos do Overture Maps; a camada vem quando eles chegarem");
+        return Ok(r);
+    }
+    let ids: Vec<Value> = r["layers"].as_array().cloned().unwrap_or_default();
+    if ids.is_empty() {
+        return Err("o Overture Maps não devolveu camada nenhuma para a área".into());
+    }
+    // As camadas de um clique anterior saem; as novas ficam com os nomes delas.
+    let antigas: Vec<String> = nomes()?.into_iter().filter(|n| rodovias::eh_do_osm(n)).collect();
+    remover(&antigas.iter().map(String::as_str).collect::<Vec<_>>())?;
+    let camadas = rodovias::camadas_osm(ids.len());
+    for (id, nome) in ids.iter().zip(&camadas) {
+        host::run("layer.rename", json!({"layer": id, "name": nome}))?;
+        host::run("layer.definitionQuery", json!({"layer": nome, "where": "subtype = 'road'"}))?;
+        estilo_de_vias(nome, rodovias::ESTILO_OSM, rodovias::CLASSES_OSM, "class", rodovias::filtros_osm())?;
+        host::run("layer.scaleRange", json!({"layer": nome, "min": rodovias::OSM_MAIS_LONGE}))?;
+        if na_area {
+            let _ = host::run("layer.mask", json!({"layer": nome, "mask": AREA}));
+        }
+    }
+    let versao = r["release"].as_str().map_or(String::new(), |v| format!(", versão {v}"));
+    let texto = format!(
+        "{}: vias do OpenStreetMap pelo Overture Maps ({} arquivo(s){versao}), lidas no lugar, só o que a vista mostra; {}. Aparecem de 1:150.000 para perto (de longe, use Rodovias e estradas do IBGE), e de 1:50.000 para perto também as trilhas e as vias de serviço. Os nomes das vias não vêm. © colaboradores do OpenStreetMap (ODbL)",
+        camadas[0].trim_start_matches(PREFIXO),
+        ids.len(),
+        if na_area { "mascaradas pelo contorno da área, sem recorte" } else { "sem área, as da vista" }
+    );
+    avisar(&texto);
+    Ok(json!({"layers": camadas, "files": ids.len(), "report": texto}))
+}
+
 /// [`tema_proprio`], sem a explicação dos erros.
 fn tema_proprio_de(t: &Tema) -> Result<Value, String> {
     let (c, area) = retangulo()?;
@@ -1660,6 +1760,8 @@ fn citacoes() -> Result<(Vec<Value>, String), String> {
             lista.push(json!({"layer": n, "source": chm_amazonia::CITACAO, "license": chm_amazonia::LICENCA}));
         } else if gba::eh_do_gba(&n) {
             lista.push(json!({"layer": n, "source": gba::CITACAO, "license": gba::LICENCA}));
+        } else if rodovias::eh_do_osm(&n) {
+            lista.push(json!({"layer": n, "source": rodovias::CITACAO_OSM, "license": rodovias::LICENCA_OSM}));
         } else if gdo::eh_do_gdo(&n) {
             lista.push(json!({"layer": n, "source": gdo::CITACAO, "license": gdo::LICENCA}));
         } else if n == forty::CAMADA {
