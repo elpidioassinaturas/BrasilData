@@ -37,7 +37,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.53"
+VERSAO = "0.1.54"
 AUTOR = "Elpídio Filho"
 # Como o texto Sobre chama o autor (o manifesto e o README levam o nome completo).
 AUTOR_SOBRE = "Professor Elpídio"
@@ -121,6 +121,9 @@ MODELOS_GEM15 = ["Terreno nu (DTM)", "Superfície, com vegetação e construçõ
 SATELITES_BDC = ["Sentinel-2 (10 m, desde 2017)", "Landsat (30 m, desde 1990)", "CBERS-4 WFI (64 m, desde 2016)", "MODIS (250 m, desde 2000)"]
 INDICES_BDC = ["NDVI", "EVI"]
 ESTATISTICAS_BDC = ["Média das datas", "Máxima", "Mínima", "Desvio-padrão"]
+# As escolhas da imagem sem nuvens (as mesmas de src/dialogos.rs): sem o MODIS, que não tem as bandas de cor.
+SATELITES_SEM_NUVENS = SATELITES_BDC[:3]
+COMPOSICOES = ["Cor verdadeira (vermelho, verde e azul)", "Falsa-cor (infravermelho, vermelho e verde)"]
 # As partes do texto Sobre (as mesmas de src/dialogos.rs).
 # As abas Sobre do fim do painel: o comando de cada uma e o rótulo (os mesmos de src/lib.rs, ABAS_SOBRE).
 ABAS_SOBRE = [("sobre-autoria", "Autoria"), ("sobre-fontes", "Fontes dos dados"), ("sobre-contribuir", "Como contribuir")]
@@ -621,6 +624,23 @@ EM_MENUS = [
             "params": "{\"satelite\"?: \"sentinel-2\" (padrão) | \"landsat\" | \"cbers-4\" | \"modis\", \"indice\"?: \"NDVI\" (padrão) | \"EVI\", \"inicio\"?, \"fim\"?: dd/mm/aaaa ou aaaa-mm-dd (padrão: os 3 meses até a data mais recente), \"estatistica\"?: \"media\" (padrão) | \"maxima\" | \"minima\" | \"desvio\", \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
             "form": CAMPOS_BDC + [
                 {"name": "estatistica", "label": "Resumo das datas", "kind": "choice", "required": True, "choices": ESTATISTICAS_BDC, "default": ESTATISTICAS_BDC[0], "help": "A média mostra a vegetação típica do período; a máxima, o auge do verde; a mínima, a seca; o desvio-padrão, o quanto ela variou (a lavoura muda muito; a mata, pouco)."},
+            ],
+        },
+    ),
+    (
+        "Vegetação e meio ambiente",
+        "Cubo de dados do INPE",
+        {
+            "id": "bdc-sem-nuvens",
+            "label": "Imagem sem nuvens (cubo do INPE)",
+            "help": "Uma imagem de satélite sem nuvens da área, em cor verdadeira ou em falsa-cor (a vegetação em vermelho), dos compostos de 16 dias do Sentinel-2, do Landsat ou do CBERS-4 WFI do cubo de dados do INPE (Brazil Data Cube). Os compostos ainda têm nuvem onde a quinzena toda foi nublada: o plugin lê a máscara de nuvem de cada data na área (o SCL do Sentinel-2, as observações limpas do Landsat, o CMASK do CBERS), a cresce de 1 ou 2 células, ordena as datas da menos nublada para a mais nublada e dá a cada célula a primeira data limpa. Vêm a imagem, recortada pelo contorno, com um contraste fixo, e a data de origem de cada célula. Lida pelo RustGIS da coleção no STAC do INPE (sem login), na resolução do satélite, no sistema da grade do projeto. Sem período, os 3 meses até a data mais recente do cubo; até 1 ano. Precisa de um RustGIS com o resumo de um cubo STAC (cube.reduce, desde a 0.6.0) e das ferramentas Raster Calculator, Maximum Filter e Composite Bands do GeoLibre; só no app desktop e no rustgis-cli.",
+            "icon": "rgb",
+            "params": "{\"satelite\"?: \"sentinel-2\" (padrão) | \"landsat\" | \"cbers-4\", \"composicao\"?: \"natural\" (padrão: cor verdadeira) | \"falsa-cor\", \"inicio\"?, \"fim\"?: dd/mm/aaaa ou aaaa-mm-dd (padrão: os 3 meses até a data mais recente; de 16 dias a 1 ano)}",
+            "form": [
+                {"name": "satelite", "label": "Satélite", "kind": "choice", "required": True, "choices": SATELITES_SEM_NUVENS, "default": SATELITES_SEM_NUVENS[0], "help": "O cubo de 16 dias do INPE: o Sentinel-2 tem o detalhe (10 m) e começa em 2017; o Landsat vai até 1990, a 30 m; o CBERS-4 WFI, satélite sino-brasileiro, a 64 m, passa mais vezes."},
+                {"name": "composicao", "label": "Composição", "kind": "choice", "required": True, "choices": COMPOSICOES, "default": COMPOSICOES[0], "help": "A cor verdadeira mostra a área como o olho a veria; a falsa-cor põe o infravermelho no vermelho: a vegetação viva sai vermelha, a água escura, a cidade e o solo exposto em azul e cinza."},
+                {"name": "inicio", "label": "Início (dd/mm/aaaa)", "kind": "text", "help": "A primeira data. Vazio: 3 meses antes do fim."},
+                {"name": "fim", "label": "Fim (dd/mm/aaaa)", "kind": "text", "help": "A última data. Vazio: a mais recente do cubo. O período vai de 16 dias a 1 ano; mais datas dão mais chance de céu limpo, mas misturam estações."},
             ],
         },
     ),

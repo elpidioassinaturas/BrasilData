@@ -39,6 +39,7 @@ use crate::olm;
 use crate::radar;
 use crate::risco_fogo;
 use crate::saude;
+use crate::sem_nuvens::{self, Caminho, Composicao, DataNaArea, Valor};
 use crate::sol;
 use crate::tempo;
 use crate::versao;
@@ -225,6 +226,7 @@ fn executar_comando(req: Request) -> Result<Value, String> {
         "gedtm-relevo" => gedtm_na_area(&req),
         "anadem" => anadem_na_area(&req),
         "bdc-indice" => bdc_indice(&req),
+        "bdc-sem-nuvens" => bdc_sem_nuvens(&req),
         "jaxa-chuva" => jaxa_na_area(&req, jaxa::Variavel::Chuva),
         "jaxa-umidade" => jaxa_na_area(&req, jaxa::Variavel::Umidade),
         "jaxa-temperatura" => jaxa_na_area(&req, jaxa::Variavel::Temperatura(turno_do_jaxa(&req)?)),
@@ -4715,6 +4717,11 @@ fn cobertura_clms(req: &Request) -> Result<Value, String> {
 
 /// Se o RustGIS tem o comando `id` com o parâmetro `param` (`info.commands`).
 fn tem_parametro(id: &str, param: &str) -> Result<bool, String> {
+    Ok(parametros_do_comando(id)?.is_some_and(|p| p.contains(&format!("\"{param}\""))))
+}
+
+/// O texto dos parâmetros do comando `id` deste RustGIS (`info.commands`), se ele o tem.
+fn parametros_do_comando(id: &str) -> Result<Option<String>, String> {
     let lista = host::run("info.commands", json!({}))?;
     let comandos = lista.get("commands").unwrap_or(&lista);
     Ok(comandos
@@ -4723,7 +4730,7 @@ fn tem_parametro(id: &str, param: &str) -> Result<bool, String> {
         .flatten()
         .find(|c| c["id"].as_str() == Some(id))
         .and_then(|c| c["params"].as_str())
-        .is_some_and(|p| p.contains(&format!("\"{param}\""))))
+        .map(str::to_string))
 }
 
 /// O satélite, o índice, o início e o fim de um pedido ao cubo do INPE.
@@ -4741,11 +4748,23 @@ fn pedido_do_bdc(req: &Request) -> Result<Result<PedidoBdc, Value>, String> {
         Some(t) => bdc::Indice::ler(t).ok_or(format!("índice '{t}': use NDVI ou EVI"))?,
         None => bdc::Indice::Ndvi,
     };
+    let (inicio, fim) = match periodo_do_bdc(req, s)? {
+        Ok(p) => p,
+        Err(p) => return Ok(Err(p)),
+    };
+    bdc::conferir_periodo(s, inicio, fim)?;
+    Ok(Ok((s, i, inicio, fim)))
+}
+
+/// O início e o fim de um comando do cubo do INPE, do satélite `s`: os do script ou da janela;
+/// sem período, os últimos 3 meses da coleção (o plugin não tem relógio: a última data vem do STAC
+/// do BDC). `Err(pendente)` dentro do `Ok` quando o STAC ficou para depois (app web).
+fn periodo_do_bdc(req: &Request, s: bdc::Satelite) -> Result<Result<(Data, Data), Value>, String> {
     let data = |k: &str| -> Result<Option<Data>, String> {
         req.str(k).map(|t| bdc::ler_data(t).ok_or(format!("a data '{t}' não é dd/mm/aaaa"))).transpose()
     };
     let (inicio, fim) = (data("inicio")?, data("fim")?);
-    let (inicio, fim) = match (inicio, fim) {
+    Ok(Ok(match (inicio, fim) {
         (Some(a), Some(b)) => (a, b),
         _ => {
             let url = format!("{}collections/{}", bdc::STAC, s.colecao());
@@ -4760,9 +4779,7 @@ fn pedido_do_bdc(req: &Request) -> Result<Result<PedidoBdc, Value>, String> {
                 _ => bdc::periodo_padrao(ultimo),
             }
         }
-    };
-    bdc::conferir_periodo(s, inicio, fim)?;
-    Ok(Ok((s, i, inicio, fim)))
+    }))
 }
 
 /// O índice de vegetação do cubo do INPE num período, resumido (a média, a máxima, a mínima ou o
@@ -4859,6 +4876,342 @@ fn bdc_indice(req: &Request) -> Result<Value, String> {
         "layer": nome, "satellite": s.id(), "collection": s.colecao(), "index": i.banda(), "stat": e.stat(),
         "start": inicio.iso(), "end": fim.iso(), "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula,
     }))
+}
+
+/// A imagem sem nuvens do cubo do INPE ([`sem_nuvens`]): o melhor pixel das datas de 16 dias de
+/// um período, em cor verdadeira ou falsa-cor, recortado pelo contorno, com a data de origem de
+/// cada célula. O caminho (uma leitura por data, ou o `cube.reduce` com máscara num RustGIS sem
+/// a Raster Calculator) segue [`sem_nuvens::caminho`].
+fn bdc_sem_nuvens(req: &Request) -> Result<Value, String> {
+    let (c, na_area) = retangulo()?;
+    if !na_area {
+        return Err("escolha a área primeiro (painel Área de trabalho, ou Área: seleção)".into());
+    }
+    let parametros = parametros_do_comando("cube.reduce")?.unwrap_or_default();
+    if !parametros.contains("\"collection\"") {
+        return Err("a imagem sem nuvens precisa de um RustGIS que leia um cubo STAC na área (cube.reduce, desde a 0.6.0)".into());
+    }
+    let s = match req.str("satelite") {
+        Some(t) => bdc::Satelite::ler(t)
+            .filter(|s| sem_nuvens::SATELITES.contains(s))
+            .ok_or(format!("satélite '{t}': use sentinel-2, landsat ou cbers-4"))?,
+        None => bdc::Satelite::Sentinel2,
+    };
+    let comp = match req.str("composicao") {
+        Some(t) => Composicao::ler(t).ok_or(format!("composição '{t}': use natural ou falsa-cor"))?,
+        None => Composicao::Natural,
+    };
+    let (inicio, fim) = match periodo_do_bdc(req, s)? {
+        Ok(p) => p,
+        Err(p) => return Ok(p),
+    };
+    sem_nuvens::conferir_periodo(s, inicio, fim)?;
+    let g = grade_para(c, None)?;
+    // O caminho por data primeiro; sem a Raster Calculator ("unknown tool"), o cube.reduce com
+    // máscara, se este RustGIS o tiver (sem_nuvens::caminho).
+    let sem_ferramenta = |e: String| if sem_nuvens::ferramenta_ausente(&e) { sem_nuvens::PRECISA_DO_GEOLIBRE.to_string() } else { e };
+    match sem_nuvens_por_data(c, &g, s, comp, inicio, fim) {
+        Err(e) if sem_nuvens::ferramenta_ausente(&e) => match sem_nuvens::caminho(&parametros, false) {
+            Some(Caminho::PeloCubeReduce) => sem_nuvens_pelo_cube_reduce(c, &g, s, comp, inicio, fim).map_err(sem_ferramenta),
+            _ => Err(sem_nuvens::PRECISA_DO_GEOLIBRE.into()),
+        },
+        r => r,
+    }
+}
+
+/// A Raster Calculator do GeoLibre com a `expressao`, numa camada nova `nome`. As entradas vão na
+/// ordem em que os nomes aparecem na expressão: o RustGIS 0.7.0 as liga pela posição (os mais
+/// novos, pelo nome).
+fn calculadora(expressao: &str, nome: &str) -> Result<(), String> {
+    remover(&[nome])?;
+    let entradas = sem_nuvens::entradas_da_expressao(expressao);
+    ferramenta("geolibre:raster_calculator", json!({"expression": expressao, "inputs": entradas}), nome)
+}
+
+/// Lê do cubo do satélite `s`, com o `cube.reduce` de uma data só (`start` = `end`), cada
+/// (banda, data) de `pedidos` que ainda não está no mapa. `Err(pendente)` dentro do `Ok` quando o
+/// app ficou esperando as leituras (até [`crate::FILA_DO_APP`] de cada vez; o comando roda de novo
+/// quando elas chegam e lê as que faltam). No `Ok(Ok)`, as datas que não têm dado na área.
+fn ler_do_cubo(s: bdc::Satelite, c: [f64; 4], celula: f64, pedidos: &[(&str, Data)]) -> Result<Result<Vec<Data>, Value>, String> {
+    let ha = nomes()?;
+    let mut lendo = 0;
+    let mut sem_dado = Vec::new();
+    for (banda, d) in pedidos {
+        let nome = sem_nuvens::temporaria(s, banda, *d);
+        if ha.contains(&nome) {
+            continue;
+        }
+        if lendo >= crate::FILA_DO_APP {
+            break;
+        }
+        let r = host::run(
+            "cube.reduce",
+            json!({
+                "url": bdc::STAC, "collection": s.colecao(), "asset": banda, "bbox": c, "start": d.iso(), "end": d.iso(),
+                "cellSize": celula, "stat": "max", "name": nome,
+            }),
+        )
+        .map_err(|e| {
+            if falha_passageira(&e) || e.contains("timeout") {
+                format!("o cubo do INPE não respondeu agora: tente de novo daqui a pouco ({e})")
+            } else {
+                e
+            }
+        })?;
+        if pendente(&r) {
+            lendo += 1;
+            continue;
+        }
+        if r["dates"].as_u64() == Some(0) {
+            remover(&[&nome])?;
+            sem_dado.push(*d);
+        }
+    }
+    if lendo > 0 {
+        avisar(&format!("Imagem sem nuvens do {} (cubo do INPE): lendo {lendo} banda(s) da área; a imagem vem quando chegarem", s.nome()));
+        return Ok(Err(json!({"pending": lendo, "reads": pedidos.len()})));
+    }
+    Ok(Ok(sem_dado))
+}
+
+/// Um número em português, com `casas` decimais: "0,8".
+fn decimal(x: f64, casas: usize) -> String {
+    format!("{x:.casas$}").replace('.', ",")
+}
+
+/// A imagem sem nuvens pelo caminho do RustGIS 0.7.0 em diante ([`Caminho::PorData`]): as
+/// máscaras de todas as datas, a nuvem dilatada de cada uma e a parte nublada na área, a ordem, a
+/// data de origem, as bandas só das datas que a imagem usa, o melhor pixel de cada banda, a junção
+/// e o recorte.
+fn sem_nuvens_por_data(c: [f64; 4], g: &Grade, s: bdc::Satelite, comp: Composicao, inicio: Data, fim: Data) -> Result<Value, String> {
+    let m = sem_nuvens::mascara(s).ok_or("o satélite não tem máscara de nuvem no cubo")?;
+    let bandas = sem_nuvens::bandas(s, comp).ok_or("o satélite não tem as bandas de cor no cubo")?;
+    let celula = sem_nuvens::celula_de_leitura(s, c);
+    // As datas do período, pela busca de itens do STAC.
+    let r = match buscar_varios(&[sem_nuvens::url_dos_itens(s, c, inicio, fim)])? {
+        Ok(r) => r,
+        Err(p) => return Ok(p),
+    };
+    let todas = r.first().map(|r| sem_nuvens::datas_dos_itens(r, inicio, fim)).unwrap_or_default();
+    if todas.is_empty() {
+        return Err(format!("o cubo do {} não tem datas na área de {} a {}", s.nome(), inicio.texto(), fim.texto()));
+    }
+    // As máscaras de todas as datas: a ordem depende delas.
+    let pedidos: Vec<(&str, Data)> = todas.iter().map(|d| (m.banda, *d)).collect();
+    let sem_dado = match ler_do_cubo(s, c, celula, &pedidos)? {
+        Ok(v) => v,
+        Err(p) => return Ok(p),
+    };
+    let datas: Vec<Data> = todas.iter().copied().filter(|d| !sem_dado.contains(d)).collect();
+    let mut temporarias: Vec<String> = todas.iter().map(|d| sem_nuvens::temporaria(s, m.banda, *d)).collect();
+    let feito = (|| -> Result<Value, String> {
+        // A nuvem dilatada de cada data (1 nuvem, 0 limpo) e a parte nublada na área.
+        let ha = nomes()?;
+        let mut na_area = Vec::new();
+        for d in &datas {
+            let mascara = sem_nuvens::temporaria(s, m.banda, *d);
+            let nuvem = sem_nuvens::temporaria(s, "nuvem", *d);
+            temporarias.push(nuvem.clone());
+            if !ha.contains(&nuvem) {
+                let bruta = format!("{nuvem} sem dilatar");
+                calculadora(&m.nuvem(&mascara), &bruta)?;
+                let feita = ferramenta(
+                    "geolibre:maximum_filter",
+                    json!({"input": bruta, "filter_size_x": m.janela(), "filter_size_y": m.janela()}),
+                    &nuvem,
+                );
+                remover(&[&bruta])?;
+                feita?;
+            }
+            let parte =
+                host::run("raster.info", json!({"layer": nuvem})).ok().and_then(|i| i["bands"][0]["mean"].as_f64()).unwrap_or(f64::NAN);
+            na_area.push(DataNaArea { data: *d, nuvem: parte });
+        }
+        let ordem = sem_nuvens::ordenar(&na_area);
+        if ordem.is_empty() {
+            return Err(format!(
+                "as {} data(s) do {} de {} a {} estão cobertas de nuvem na área: escolha outro período",
+                datas.len(),
+                s.nome(),
+                inicio.texto(),
+                fim.texto()
+            ));
+        }
+        // A data de origem de cada célula: a posição, na ordem, da primeira data limpa (0: nenhuma).
+        let origem = sem_nuvens::passo(s, "origem", inicio, fim);
+        temporarias.push(origem.clone());
+        let entradas: Vec<(String, Valor)> =
+            ordem.iter().enumerate().map(|(k, x)| (sem_nuvens::temporaria(s, "nuvem", x.data), Valor::Numero(k as u32 + 1))).collect();
+        calculadora(&sem_nuvens::melhor_pixel(&entradas), &origem)?;
+        let info = host::run("raster.info", json!({"layer": origem}))?;
+        // As datas que a imagem usa: até a última que dá alguma célula.
+        let usadas = info["bands"][0]["max"].as_f64().map_or(ordem.len(), |x| (x.round() as usize).clamp(1, ordem.len()));
+        let lista: Vec<String> = ordem.iter().map(|x| format!("{} ({}% de nuvem)", x.data.texto(), decimal(100.0 * x.nuvem, 1))).collect();
+        let ordem = &ordem[..usadas];
+        // As bandas só dessas datas.
+        let pedidos: Vec<(&str, Data)> = ordem.iter().flat_map(|x| bandas.iter().map(move |b| (*b, x.data))).collect();
+        temporarias.extend(pedidos.iter().map(|(b, d)| sem_nuvens::temporaria(s, b, *d)));
+        match ler_do_cubo(s, c, celula, &pedidos)? {
+            Ok(v) if !v.is_empty() => {
+                return Err(format!("o cubo do {} não tem as bandas de {} na área", s.nome(), v[0].texto()));
+            }
+            Ok(_) => {}
+            Err(p) => return Ok(p),
+        }
+        // O melhor pixel de cada banda, e a junção em vermelho, verde e azul.
+        let mut canais = Vec::new();
+        for b in bandas {
+            let melhor = sem_nuvens::passo(s, &format!("melhor {b}"), inicio, fim);
+            let entradas: Vec<(String, Valor)> = ordem
+                .iter()
+                .map(|x| (sem_nuvens::temporaria(s, "nuvem", x.data), Valor::Camada(sem_nuvens::temporaria(s, b, x.data))))
+                .collect();
+            temporarias.push(melhor.clone());
+            calculadora(&sem_nuvens::melhor_pixel(&entradas), &melhor)?;
+            canais.push(melhor);
+        }
+        let junto = sem_nuvens::passo(s, "junto", inicio, fim);
+        temporarias.push(junto.clone());
+        remover(&[&junto])?;
+        ferramenta("geolibre:composite_bands", json!({"inputs": canais}), &junto)?;
+        let nome = sem_nuvens::camada(s, comp, inicio, fim);
+        let nome_da_data = sem_nuvens::camada_da_data(s, inicio, fim);
+        remover(&[&nome, &nome_da_data])?;
+        let (junto_na_grade, origem_na_grade) = (format!("{junto} na grade"), format!("{origem} na grade"));
+        temporarias.extend([junto_na_grade.clone(), origem_na_grade.clone()]);
+        no_sistema_da_grade(&junto, g, celula, &junto_na_grade)?;
+        recortar(&junto_na_grade, AREA, &nome)?;
+        simbolizar_sem_nuvens(&nome, s, comp)?;
+        no_sistema_da_grade(&origem, g, celula, &origem_na_grade)?;
+        recortar(&origem_na_grade, AREA, &nome_da_data)?;
+        let datas_usadas: Vec<Data> = ordem.iter().map(|x| x.data).collect();
+        host::run("style.importQgis", json!({"layer": nome_da_data, "text": sem_nuvens::qml_da_data(&datas_usadas)}))?;
+        let _ = host::run("raster.mask", json!({"layer": nome_da_data, "values": [0]}));
+        let _ = host::run("layer.visibility", json!({"layer": nome_da_data, "visible": false}));
+        // A parte da área sem nenhuma data limpa.
+        let buracos = sem_nuvens::passo(s, "buracos", inicio, fim);
+        temporarias.push(buracos.clone());
+        let vazia = calculadora(&format!("if((\"{origem}\" == 0), 1, 0)"), &buracos)
+            .ok()
+            .and_then(|_| host::run("raster.info", json!({"layer": buracos})).ok())
+            .and_then(|i| i["bands"][0]["mean"].as_f64())
+            .unwrap_or(0.0);
+        let vazia = if vazia > 0.0005 {
+            format!(" {}% do retângulo da área ficou sem data limpa (transparente).", decimal(100.0 * vazia, 1))
+        } else {
+            String::new()
+        };
+        avisar(&format!(
+            "{}: o melhor pixel das datas de 16 dias da coleção {} do INPE, a {} m, no sistema da grade do projeto, {}. Cada célula vem da primeira data limpa, da menos nublada na área para a mais nublada, com a nuvem crescida {} célula(s) para os lados. Das {} data(s) do período, na ordem: {}{}. A imagem usou {}.{vazia} A camada {} diz de que data veio cada célula.",
+            nome.trim_start_matches(PREFIXO),
+            s.colecao(),
+            decimal(celula, 0),
+            grade::nome_do_sistema(g.epsg),
+            m.dilatacao,
+            todas.len(),
+            lista.join(", "),
+            if todas.len() > lista.len() {
+                format!("; {} sem dado ou coberta(s) de nuvem", todas.len() - lista.len())
+            } else {
+                String::new()
+            },
+            if usadas == 1 { "só a primeira".to_string() } else { format!("as {usadas} primeiras") },
+            nome_da_data.trim_start_matches(PREFIXO),
+        ));
+        Ok(json!({
+            "layer": nome, "dates": nome_da_data, "satellite": s.id(), "collection": s.colecao(), "composition": comp.id(),
+            "start": inicio.iso(), "end": fim.iso(), "crs": format!("EPSG:{}", g.epsg), "cellSize": celula,
+            "order": datas_usadas.iter().map(Data::iso).collect::<Vec<_>>(),
+        }))
+    })();
+    // Uma leitura que ficou pendente guarda o que já veio (o comando roda de novo e o usa).
+    if feito.as_ref().is_ok_and(pendente) {
+        return feito;
+    }
+    let t: Vec<&str> = temporarias.iter().map(String::as_str).collect();
+    remover(&t)?;
+    feito
+}
+
+/// O raster `camada` no sistema da grade do projeto `g`, com células de `celula` metros (as do
+/// satélite) no retângulo dela, numa camada nova `nome`, pelo vizinho mais próximo (as classes da
+/// data de origem e as células vazias, 0 nas três bandas, ficam como estão). O cubo do BDC vem num
+/// Albers sem código EPSG, e o recorte do GeoLibre (o do app desktop, que traz a extensão Imagens
+/// desligada) não reprojeta um raster sem EPSG para o contorno da área.
+fn no_sistema_da_grade(camada: &str, g: &Grade, celula: f64, nome: &str) -> Result<(), String> {
+    remover(&[nome])?;
+    host::run(
+        "raster.project",
+        json!({"layer": camada, "crs": g.epsg, "cellSize": celula, "extent": GRADE, "resampling": "nearest", "name": nome}),
+    )?;
+    Ok(())
+}
+
+/// O vermelho, o verde e o azul da imagem `nome`, com o contraste fixo do satélite `s` na
+/// composição `comp`.
+fn simbolizar_sem_nuvens(nome: &str, s: bdc::Satelite, comp: Composicao) -> Result<(), String> {
+    host::run("raster.symbology", json!({"layer": nome, "type": "rgb", "red": 1, "green": 2, "blue": 3}))?;
+    let (min, max) = sem_nuvens::contraste(s, comp);
+    host::run("raster.stretch", json!({"layer": nome, "type": "custom", "min": min, "max": max}))?;
+    // Onde nenhuma data foi limpa, as três bandas são 0: transparente, não preto.
+    let _ = host::run("raster.mask", json!({"layer": nome, "values": [0]}));
+    Ok(())
+}
+
+/// A imagem sem nuvens pelo `cube.reduce` com máscara e `stat: "first"`
+/// ([`Caminho::PeloCubeReduce`], opengeos/RustGIS#2596): uma leitura por banda, a junção e o
+/// recorte. Sem a dilatação da máscara nem a camada da data de origem.
+fn sem_nuvens_pelo_cube_reduce(
+    c: [f64; 4],
+    g: &Grade,
+    s: bdc::Satelite,
+    comp: Composicao,
+    inicio: Data,
+    fim: Data,
+) -> Result<Value, String> {
+    let bandas = sem_nuvens::bandas(s, comp).ok_or("o satélite não tem as bandas de cor no cubo")?;
+    let ha = nomes()?;
+    let canais: Vec<String> = bandas.iter().map(|b| sem_nuvens::passo(s, &format!("primeira {b}"), inicio, fim)).collect();
+    let mut lendo = 0;
+    for (b, canal) in bandas.iter().zip(&canais) {
+        if ha.contains(canal) {
+            continue;
+        }
+        let p = sem_nuvens::cube_reduce_com_mascara(s, b, c, inicio, fim, canal).ok_or("o satélite não tem máscara de nuvem no cubo")?;
+        let r = host::run("cube.reduce", p)?;
+        if pendente(&r) {
+            lendo += 1;
+        } else if r["dates"].as_u64() == Some(0) {
+            remover(&[canal])?;
+            return Err(format!("o cubo do {} não tem datas na área de {} a {}", s.nome(), inicio.texto(), fim.texto()));
+        }
+    }
+    if lendo > 0 {
+        avisar(&format!("Imagem sem nuvens do {} (cubo do INPE): lendo a área; a imagem vem quando chegar", s.nome()));
+        return Ok(json!({"pending": lendo}));
+    }
+    let junto = sem_nuvens::passo(s, "junto", inicio, fim);
+    let junto_na_grade = format!("{junto} na grade");
+    let nome = sem_nuvens::camada(s, comp, inicio, fim);
+    let feito = (|| -> Result<(), String> {
+        remover(&[&junto, &junto_na_grade, &nome])?;
+        ferramenta("geolibre:composite_bands", json!({"inputs": canais}), &junto)?;
+        no_sistema_da_grade(&junto, g, sem_nuvens::celula_de_leitura(s, c), &junto_na_grade)?;
+        recortar(&junto_na_grade, AREA, &nome)?;
+        simbolizar_sem_nuvens(&nome, s, comp)
+    })();
+    let mut fora: Vec<&str> = canais.iter().map(String::as_str).collect();
+    fora.extend([junto.as_str(), junto_na_grade.as_str()]);
+    remover(&fora)?;
+    feito?;
+    avisar(&format!(
+        "{}: a primeira data limpa de cada célula, na ordem da parte limpa na área, da coleção {} do INPE (cube.reduce com máscara)",
+        nome.trim_start_matches(PREFIXO),
+        s.colecao()
+    ));
+    Ok(
+        json!({"layer": nome, "satellite": s.id(), "collection": s.colecao(), "composition": comp.id(), "start": inicio.iso(), "end": fim.iso()}),
+    )
 }
 
 /// Um dado mensal do JAXA Earth na área ([`jaxa`]), resumido num período (a média, a máxima, a
@@ -6092,11 +6445,12 @@ fn layout_do_mapa(req: &Request) -> Result<Value, String> {
         p["note"] = json!(n);
     }
     // As camadas visíveis que não são do BrasilData (as do projeto do usuário, como as do World
-    // Atlas): ficam fora da legenda, e a folha sai sem o véu. Com elas cobrindo o mapa, a legenda
-    // não acha um canto livre, e o véu clareava tudo o que passava da área, numa faixa em volta.
+    // Atlas) são desligadas no mapa antes da folha, e o aviso diz quais. Ligadas, elas cobriam o mapa
+    // inteiro: a legenda não achava um canto livre e ia, com o globo, a escala e o norte, para o meio
+    // da imagem, ou o véu clareava uma faixa em volta da área; e um polígono delas tingia as classes.
     let alheias = layout::camadas_alheias(&info);
     if !alheias.is_empty() {
-        p["veil"] = json!(false);
+        host::run("layer.visibility", json!({"layer": alheias, "visible": false}))?;
     }
     let folha = host::run("layout.publication", p)?;
     let elemento = |qual: &str| {
@@ -6157,10 +6511,10 @@ fn layout_do_mapa(req: &Request) -> Result<Value, String> {
     ));
     if !alheias.is_empty() {
         avisar(&format!(
-            "Layout: {} não {} do BrasilData e ficou fora da legenda, mas o mapa da folha também {} desenha. Para uma folha só com o dado, desligue no painel Camadas e clique de novo em Layout",
+            "Layout: desliguei no mapa {}, que não {} do BrasilData, para a folha sair só com o dado. Para {} na folha, ligue de novo no painel Camadas",
             alheias.join(", "),
             if alheias.len() == 1 { "é" } else { "são" },
-            if alheias.len() == 1 { "a" } else { "as" }
+            if alheias.len() == 1 { "tê-la" } else { "tê-las" }
         ));
     }
     Ok(json!({"layout": nome, "layer": principal, "crs": format!("EPSG:{epsg}"), "outside": alheias}))

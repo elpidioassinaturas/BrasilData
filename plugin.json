@@ -1,7 +1,7 @@
 {
   "id": "brasildata",
   "name": "BrasilData",
-  "version": "0.1.53",
+  "version": "0.1.54",
   "description": "Dados públicos do Brasil para a área do usuário (IBGE, MMA, ICMBio, INPE, CEMADEN, ANA, ANEEL, ANP, SFB/CAR, INCRA, FUNAI, IBAMA, ANM, DNIT, Ministério da Saúde, Copernicus, NASA/ASF, FAO, WRI, Open-Meteo, CHIRPS, Google DeepMind): só o que cruza a área, recortado por ela, com a fonte e a licença de cada camada.",
   "author": "Elpídio Filho",
   "homepage": "https://github.com/elpidioassinaturas/BrasilData",
@@ -998,6 +998,52 @@
           ],
           "default": "Média das datas",
           "help": "A média mostra a vegetação típica do período; a máxima, o auge do verde; a mínima, a seca; o desvio-padrão, o quanto ela variou (a lavoura muda muito; a mata, pouco)."
+        }
+      ]
+    },
+    {
+      "id": "bdc-sem-nuvens",
+      "label": "Imagem sem nuvens (cubo do INPE)",
+      "help": "Uma imagem de satélite sem nuvens da área, em cor verdadeira ou em falsa-cor (a vegetação em vermelho), dos compostos de 16 dias do Sentinel-2, do Landsat ou do CBERS-4 WFI do cubo de dados do INPE (Brazil Data Cube). Os compostos ainda têm nuvem onde a quinzena toda foi nublada: o plugin lê a máscara de nuvem de cada data na área (o SCL do Sentinel-2, as observações limpas do Landsat, o CMASK do CBERS), a cresce de 1 ou 2 células, ordena as datas da menos nublada para a mais nublada e dá a cada célula a primeira data limpa. Vêm a imagem, recortada pelo contorno, com um contraste fixo, e a data de origem de cada célula. Lida pelo RustGIS da coleção no STAC do INPE (sem login), na resolução do satélite, no sistema da grade do projeto. Sem período, os 3 meses até a data mais recente do cubo; até 1 ano. Precisa de um RustGIS com o resumo de um cubo STAC (cube.reduce, desde a 0.6.0) e das ferramentas Raster Calculator, Maximum Filter e Composite Bands do GeoLibre; só no app desktop e no rustgis-cli. Período: Sentinel-2 desde 2017, Landsat desde 1990, CBERS-4 desde 2016, até a data mais recente; períodos de 16 dias a 1 ano. Resolução ou escala: 10 m (Sentinel-2), 30 m (Landsat) ou 64 m (CBERS-4 WFI), na resolução do satélite, no sistema da grade do projeto (não nas células dela); áreas grandes, com células maiores. Unidades: reflectância de superfície, de 0 a 1, em três bandas. Licença: Sentinel-2: dados Copernicus, livres com atribuição; Landsat: domínio público (USGS); CBERS-4: CC BY 4.0 (INPE). Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/bdc-sem-nuvens.md",
+      "icon": "rgb",
+      "params": "{\"satelite\"?: \"sentinel-2\" (padrão) | \"landsat\" | \"cbers-4\", \"composicao\"?: \"natural\" (padrão: cor verdadeira) | \"falsa-cor\", \"inicio\"?, \"fim\"?: dd/mm/aaaa ou aaaa-mm-dd (padrão: os 3 meses até a data mais recente; de 16 dias a 1 ano)}",
+      "form": [
+        {
+          "name": "satelite",
+          "label": "Satélite",
+          "kind": "choice",
+          "required": true,
+          "choices": [
+            "Sentinel-2 (10 m, desde 2017)",
+            "Landsat (30 m, desde 1990)",
+            "CBERS-4 WFI (64 m, desde 2016)"
+          ],
+          "default": "Sentinel-2 (10 m, desde 2017)",
+          "help": "O cubo de 16 dias do INPE: o Sentinel-2 tem o detalhe (10 m) e começa em 2017; o Landsat vai até 1990, a 30 m; o CBERS-4 WFI, satélite sino-brasileiro, a 64 m, passa mais vezes."
+        },
+        {
+          "name": "composicao",
+          "label": "Composição",
+          "kind": "choice",
+          "required": true,
+          "choices": [
+            "Cor verdadeira (vermelho, verde e azul)",
+            "Falsa-cor (infravermelho, vermelho e verde)"
+          ],
+          "default": "Cor verdadeira (vermelho, verde e azul)",
+          "help": "A cor verdadeira mostra a área como o olho a veria; a falsa-cor põe o infravermelho no vermelho: a vegetação viva sai vermelha, a água escura, a cidade e o solo exposto em azul e cinza."
+        },
+        {
+          "name": "inicio",
+          "label": "Início (dd/mm/aaaa)",
+          "kind": "text",
+          "help": "A primeira data. Vazio: 3 meses antes do fim."
+        },
+        {
+          "name": "fim",
+          "label": "Fim (dd/mm/aaaa)",
+          "kind": "text",
+          "help": "A última data. Vazio: a mais recente do cubo. O período vai de 16 dias a 1 ano; mais datas dão mais chance de céu limpo, mas misturam estações."
         }
       ]
     },
@@ -2184,7 +2230,7 @@
     {
       "id": "sobre",
       "label": "Sobre",
-      "help": "BrasilData 0.1.53, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nAs fontes dos dados e como contribuir estão nas abas do fim do painel Área de trabalho: basta clicar nelas. Para lê-las aqui, marque a caixa e clique em Executar. A janela fica aberta até o X do canto de cima.",
+      "help": "BrasilData 0.1.54, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nAs fontes dos dados e como contribuir estão nas abas do fim do painel Área de trabalho: basta clicar nelas. Para lê-las aqui, marque a caixa e clique em Executar. A janela fica aberta até o X do canto de cima.",
       "icon": "about",
       "params": "{\"completo\"?: true para as fontes e como contribuir | \"parte\"?: \"tudo\" (padrão) | \"autoria\" | \"fontes\" | \"contribuir\"}",
       "form": [
@@ -2352,7 +2398,7 @@
         "kind": "text",
         "id": "sobre",
         "label": "Sobre o BrasilData: Autoria",
-        "text": "BrasilData 0.1.53, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData"
+        "text": "BrasilData 0.1.54, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData"
       }
     ]
   },
@@ -2658,7 +2704,8 @@
             "menu": "Cubo de dados do INPE",
             "icon": "bands",
             "items": [
-              "bdc-indice"
+              "bdc-indice",
+              "bdc-sem-nuvens"
             ]
           },
           {

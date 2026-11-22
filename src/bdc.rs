@@ -19,7 +19,7 @@ pub const STAC: &str = "https://data.inpe.br/bdc/stac/v1/";
 pub const PAGINA: &str = "https://data.inpe.br/bdc/";
 
 /// O fim das camadas do cubo: "…(Sentinel-2, cubo do INPE)".
-const FIM: &str = ", cubo do INPE)";
+pub const FIM: &str = ", cubo do INPE)";
 
 /// O período mais longo de um clique, em dias (cerca de 3 anos, umas 70 datas de 16 dias).
 pub const MAX_DIAS: i64 = 3 * 366;

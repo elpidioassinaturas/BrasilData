@@ -56,6 +56,7 @@ pub mod pardig;
 pub mod radar;
 pub mod risco_fogo;
 pub mod saude;
+pub mod sem_nuvens;
 pub mod sol;
 pub mod tempo;
 pub mod versao;
