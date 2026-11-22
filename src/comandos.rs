@@ -6445,11 +6445,12 @@ fn layout_do_mapa(req: &Request) -> Result<Value, String> {
         p["note"] = json!(n);
     }
     // As camadas visíveis que não são do BrasilData (as do projeto do usuário, como as do World
-    // Atlas): ficam fora da legenda, e a folha sai sem o véu. Com elas cobrindo o mapa, a legenda
-    // não acha um canto livre, e o véu clareava tudo o que passava da área, numa faixa em volta.
+    // Atlas) são desligadas no mapa antes da folha, e o aviso diz quais. Ligadas, elas cobriam o mapa
+    // inteiro: a legenda não achava um canto livre e ia, com o globo, a escala e o norte, para o meio
+    // da imagem, ou o véu clareava uma faixa em volta da área; e um polígono delas tingia as classes.
     let alheias = layout::camadas_alheias(&info);
     if !alheias.is_empty() {
-        p["veil"] = json!(false);
+        host::run("layer.visibility", json!({"layer": alheias, "visible": false}))?;
     }
     let folha = host::run("layout.publication", p)?;
     let elemento = |qual: &str| {
@@ -6510,10 +6511,10 @@ fn layout_do_mapa(req: &Request) -> Result<Value, String> {
     ));
     if !alheias.is_empty() {
         avisar(&format!(
-            "Layout: {} não {} do BrasilData e ficou fora da legenda, mas o mapa da folha também {} desenha. Para uma folha só com o dado, desligue no painel Camadas e clique de novo em Layout",
+            "Layout: desliguei no mapa {}, que não {} do BrasilData, para a folha sair só com o dado. Para {} na folha, ligue de novo no painel Camadas",
             alheias.join(", "),
             if alheias.len() == 1 { "é" } else { "são" },
-            if alheias.len() == 1 { "a" } else { "as" }
+            if alheias.len() == 1 { "tê-la" } else { "tê-las" }
         ));
     }
     Ok(json!({"layout": nome, "layer": principal, "crs": format!("EPSG:{epsg}"), "outside": alheias}))
