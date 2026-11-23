@@ -38,6 +38,7 @@ use crate::metano;
 use crate::municipios::{self, Territorio};
 use crate::nisar;
 use crate::olm;
+use crate::power;
 use crate::radar;
 use crate::radar_pc;
 use crate::risco_fogo;
@@ -214,6 +215,8 @@ fn executar_comando(req: Request) -> Result<Value, String> {
         "elevacao" => elevacao(req.f64("celula")),
         "sol-radiacao" => sol_na_area(&req),
         "vento-50m" => vento_na_area(&req),
+        "power-umidade" => power_na_area(&req, power::Variavel::Umidade),
+        "power-evapotranspiracao" => power_na_area(&req, power::Variavel::Evapotranspiracao),
         "chuva-prevista" => chuva_prevista(&req),
         "chuva-ensemble" => chuva_do_ensemble(&req),
         "temperatura-prevista" => temperatura_prevista(&req),
@@ -1933,6 +1936,8 @@ fn citacoes() -> Result<(Vec<Value>, String), String> {
             lista.push(json!({"layer": n, "source": sol::CITACAO, "license": sol::LICENCA}));
         } else if vento::eh_do_vento(&n) {
             lista.push(json!({"layer": n, "source": vento::CITACAO, "license": sol::LICENCA}));
+        } else if let Some((v, _, _)) = power::ler_camada(&n) {
+            lista.push(json!({"layer": n, "source": v.citacao(), "license": sol::LICENCA}));
         } else if tempo::eh_da_previsao(&n) {
             lista.push(json!({"layer": n, "source": tempo::citacao_da_camada(&n), "license": tempo::LICENCA}));
         } else if era5::eh_do_era5(&n) {
@@ -4744,6 +4749,97 @@ fn vento_na_area(req: &Request) -> Result<Value, String> {
         texto = format!("{texto}\n\n{aviso}");
     }
     Ok(json!({"layer": saida, "cells": n, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula, "report": texto}))
+}
+
+/// A umidade do solo nas raízes ou a evapotranspiração do NASA POWER na área ([`power`]): as células do
+/// MERRA-2 em volta dela viram um raster, interpolado para a grade do projeto e recortado pela área.
+fn power_na_area(req: &Request, v: power::Variavel) -> Result<Value, String> {
+    let e = power::conferir(req.str("medida"), req.f64("ano"), req.f64("mes"))?;
+    let celula = req.f64("celula");
+    if let Some(m) = celula {
+        grade::conferir_celula(m)?;
+    }
+    let (c, na_area) = retangulo()?;
+    if !na_area {
+        return Err("escolha a área primeiro (painel Área de trabalho, ou Área: seleção)".into());
+    }
+    if !tem_comando("raster.rasterize")? {
+        return Err(format!(
+            "{} precisa de um RustGIS com o Polígonos para raster (raster.rasterize, desde a 0.6.0): as células do NASA POWER viram um raster com ele",
+            v.por_extenso()
+        ));
+    }
+    let (do_ano, da_media) = power::pedidos(c, v, e);
+    let quantos = do_ano.len();
+    let respostas = match buscar_bytes(&[do_ano, da_media].concat())? {
+        Ok(r) => r,
+        Err(p) => return Ok(p),
+    };
+    let textos: Vec<&str> = respostas.iter().map(|r| std::str::from_utf8(r).unwrap_or_default()).collect();
+    if let Some(erro) = textos.iter().find_map(|t| sol::erro(t)) {
+        return Err(erro);
+    }
+    let (geojson, n) = power::celulas(&textos[..quantos], &textos[quantos..], v, e);
+    if n == 0 {
+        return Err(format!("o NASA POWER não tem {} na área, nesse período", v.por_extenso()));
+    }
+    let g = grade_para(c, celula)?;
+    let saida = e.camada(v);
+    let temporarias = [power::CELULAS, power::RASTER, power::NA_GRADE];
+    remover(&temporarias)?;
+    remover(&[&saida])?;
+    let feito = (|| -> Result<(), String> {
+        por_geojson(power::CELULAS, &geojson)?;
+        host::run(
+            "raster.rasterize",
+            json!({"layer": power::CELULAS, "field": power::CAMPO, "nodata": power::SEM_DADO, "crs": 4326, "cellSize": [vento::LADO.0, vento::LADO.1],
+                "origin": [vento::CANTO.0, vento::CANTO.1], "name": power::RASTER}),
+        )?;
+        host::run(
+            "raster.project",
+            json!({"layer": power::RASTER, "crs": g.epsg, "cellSize": g.celula, "extent": GRADE, "resampling": "bilinear", "name": power::NA_GRADE}),
+        )?;
+        recortar(power::NA_GRADE, AREA, &saida)?;
+        let (min, max) = v.aceitos(e.anomalia());
+        host::run("raster.mask", json!({"layer": saida, "min": min, "max": max}))?;
+        let (rampa, cores) = v.rampa(e.anomalia());
+        let reserva = if v == power::Variavel::Evapotranspiracao && !e.anomalia() { "YlGn" } else { "BrBG" };
+        pintar(&saida, &Pintura { rampa: (rampa, &cores), reserva, escala: v.escala(e.anomalia()), aceitos: (min, max) });
+        Ok(())
+    })();
+    remover(&temporarias)?;
+    feito?;
+    sob_as_linhas(&saida)?;
+    let media = host::run("raster.info", json!({"layer": saida})).ok().and_then(|i| i["bands"][0]["mean"].as_f64());
+    let na_media = media.map(|m| format!("; média na área: {} {}", decimal(m, v.casas()), v.unidade())).unwrap_or_default();
+    let total = match (v, media) {
+        (power::Variavel::Evapotranspiracao, Some(m)) => {
+            format!(", ou {} mm no {}", decimal(m * e.dias(), 0), if e.mes.is_some() { "mês" } else { "ano" })
+        }
+        _ => String::new(),
+    };
+    let o_que = match e.medida {
+        power::Medida::Media => format!("{}, {} de 2001 a 2025", v.por_extenso(), e.periodo()),
+        power::Medida::Valor => format!("{}, em {}", v.por_extenso(), e.periodo()),
+        power::Medida::Anomalia => format!("{}, em {}, menos a média de 2001 a 2025", v.por_extenso(), e.periodo()),
+    };
+    let mut texto = format!(
+        "{}: {o_que} (NASA POWER, da reanálise MERRA-2), de {n} células de 0,625° × 0,5° em volta da área, interpolada para a grade do projeto, {}{na_media}{total}",
+        saida.trim_start_matches(PREFIXO),
+        g.texto()
+    );
+    avisar(&texto);
+    let cabem = vento::celulas_na_area(c);
+    if cabem < vento::MIN_CELULAS {
+        let aviso = format!(
+            "{}: no retângulo da área cabem {} células do dado (cerca de 55 × 65 km cada): o mapa mostra a interpolação entre elas, não o valor de cada lugar. Use o valor como regional",
+            v.nome(e.anomalia()),
+            decimal(cabem, 1)
+        );
+        avisar(&aviso);
+        texto = format!("{texto}\n\n{aviso}");
+    }
+    Ok(json!({"layer": saida, "cells": n, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula, "mean": media, "report": texto}))
 }
 
 /// O retângulo da área e a célula pedida, para a previsão do Open-Meteo, com as conferências

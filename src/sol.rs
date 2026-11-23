@@ -96,13 +96,22 @@ pub fn pedidos(c: [f64; 4]) -> Vec<String> {
 
 /// [`pedidos`] de outro parâmetro do POWER (um por pedido), em CSV, que é um terço do JSON.
 pub fn pedidos_de(c: [f64; 4], parametro: &str) -> Vec<String> {
+    pedidos_com(c, parametro, "climatology/regional?")
+}
+
+/// Os pedidos dos 12 meses e do ano `ano` (a API mensal), nos mesmos retângulos.
+pub fn pedidos_do_ano(c: [f64; 4], parametro: &str, ano: i32) -> Vec<String> {
+    pedidos_com(c, parametro, &format!("monthly/regional?start={ano}&end={ano}&"))
+}
+
+fn pedidos_com(c: [f64; 4], parametro: &str, inicio: &str) -> Vec<String> {
     let (o, s) = (c[0].floor() as i32 - 1, c[1].floor() as i32 - 1);
     let (l, n) = (c[2].ceil() as i32 + 1, c[3].ceil() as i32 + 1);
     let mut urls = Vec::new();
     for (y0, y1) in pedacos(s, n) {
         for (x0, x1) in pedacos(o, l) {
             urls.push(format!(
-                "https://power.larc.nasa.gov/api/temporal/climatology/regional?latitude-min={y0}&latitude-max={y1}&longitude-min={x0}&longitude-max={x1}&parameters={parametro}&community=RE&format=CSV"
+                "https://power.larc.nasa.gov/api/temporal/{inicio}latitude-min={y0}&latitude-max={y1}&longitude-min={x0}&longitude-max={x1}&parameters={parametro}&community=RE&format=CSV"
             ));
         }
     }
@@ -131,48 +140,73 @@ pub fn celulas(respostas: &[&str], mes: Option<u8>) -> (String, usize) {
 }
 
 /// As células, do tamanho `lado` (longitude e latitude, em graus), das `respostas` cruas do
-/// `host.fetch`, como o texto de um GeoJSON com o valor do período em `campo`, e quantas são: um
-/// polígono por ponto com dado, sem repetir os das bordas. Cada resposta é o CSV do POWER dentro do
-/// JSON da resposta, com as quebras de linha escapadas: um cabeçalho livre, a linha dos nomes
-/// `PARAMETER,LAT,LON,JAN,…,ANN` e uma linha por ponto. Em texto, e não em `Value`: o Brasil inteiro
-/// (25 pedidos, mais de 2 mil pontos da radiação e 6 mil do vento) passaria da cota de instruções do
-/// plugin, com o JSON do POWER ou com o GeoJSON em `Value`.
+/// `host.fetch`, como o texto de um GeoJSON com o valor do período em `campo`, e quantas são
+/// ([`pontos_de`] e [`celulas_dos_pontos`]).
 pub fn celulas_de(respostas: &[&str], parametro: &str, lado: (f64, f64), campo: &str, mes: Option<u8>) -> (String, usize) {
+    let pontos = pontos_de(respostas, parametro, lado, mes);
+    (celulas_dos_pontos(&pontos, lado, campo), pontos.len())
+}
+
+/// O ponto `x`, `y` em meias células de `lado`: os pontos são múltiplos dele, ou os centros entre eles.
+pub fn chave_do_ponto(x: f64, y: f64, lado: (f64, f64)) -> (i32, i32) {
+    ((x * 2.0 / lado.0).round() as i32, (y * 2.0 / lado.1).round() as i32)
+}
+
+/// Os pontos com dado (longitude, latitude e o valor do período) das `respostas` cruas do `host.fetch`,
+/// sem repetir os das bordas. Cada resposta é o CSV do POWER dentro do JSON da resposta, com as quebras
+/// de linha escapadas: um cabeçalho livre, a linha dos nomes `PARAMETER,LAT,LON,JAN,…,ANN` (na API
+/// mensal, com o `YEAR` depois do `PARAMETER`) e uma linha por ponto.
+pub fn pontos_de(respostas: &[&str], parametro: &str, lado: (f64, f64), mes: Option<u8>) -> Vec<(f64, f64, f64)> {
     let k = chave(mes);
     let mut vistas = std::collections::HashSet::new();
-    let mut geojson = String::from("{\"type\":\"FeatureCollection\",\"features\":[");
+    let mut pontos = Vec::new();
     for t in respostas {
-        let mut coluna = None;
+        let (mut coluna, mut com_ano) = (None, false);
         for l in t.split("\\n") {
             let l = l.trim_end_matches("\\r");
-            if let Some(nomes) = l.strip_prefix("PARAMETER,LAT,LON,") {
-                coluna = nomes.split(',').position(|n| n == k);
+            if let Some(nomes) = l.strip_prefix("PARAMETER,") {
+                let sem_ano = nomes.strip_prefix("YEAR,");
+                com_ano = sem_ano.is_some();
+                coluna = sem_ano.unwrap_or(nomes).strip_prefix("LAT,LON,").and_then(|n| n.split(',').position(|n| n == k));
                 continue;
             }
             let (Some(i), Some(resto)) = (coluna, l.strip_prefix(parametro).and_then(|r| r.strip_prefix(','))) else { continue };
             let mut p = resto.split(',');
+            if com_ano {
+                p.next();
+            }
             let (Some(Ok(y)), Some(Ok(x)), Some(v)) = (p.next().map(str::parse::<f64>), p.next().map(str::parse::<f64>), p.nth(i)) else {
                 continue;
             };
             // O sem dado (-999) e o que não for um número ficam de fora.
             let Some(v) = v.parse::<f64>().ok().filter(|v| *v >= 0.0 && v.is_finite()) else { continue };
-            // Em meias células: os pontos são múltiplos do lado, ou os centros entre eles.
-            if !vistas.insert(((x * 2.0 / lado.0).round() as i32, (y * 2.0 / lado.1).round() as i32)) {
-                continue;
+            if vistas.insert(chave_do_ponto(x, y, lado)) {
+                pontos.push((x, y, v));
             }
-            if vistas.len() > 1 {
-                geojson.push(',');
-            }
-            let (x0, y0) = (decimos(x - lado.0 / 2.0), decimos(y - lado.1 / 2.0));
-            let (x1, y1) = (decimos(x + lado.0 / 2.0), decimos(y + lado.1 / 2.0));
-            let v = decimos(v);
-            geojson.push_str(&format!(
-                "{{\"type\":\"Feature\",\"geometry\":{{\"type\":\"Polygon\",\"coordinates\":[[[{x0},{y0}],[{x1},{y0}],[{x1},{y1}],[{x0},{y1}],[{x0},{y0}]]]}},\"properties\":{{\"{campo}\":{v}}}}}"
-            ));
         }
     }
+    pontos
+}
+
+/// As células, do tamanho `lado`, em volta dos `pontos`, como o texto de um GeoJSON com o valor em
+/// `campo`. Em texto, e não em `Value`: o Brasil inteiro (25 pedidos, mais de 2 mil pontos da radiação e
+/// 6 mil do vento) passaria da cota de instruções do plugin, com o JSON do POWER ou com o GeoJSON em
+/// `Value`.
+pub fn celulas_dos_pontos(pontos: &[(f64, f64, f64)], lado: (f64, f64), campo: &str) -> String {
+    let mut geojson = String::from("{\"type\":\"FeatureCollection\",\"features\":[");
+    for (i, &(x, y, v)) in pontos.iter().enumerate() {
+        if i > 0 {
+            geojson.push(',');
+        }
+        let (x0, y0) = (decimos(x - lado.0 / 2.0), decimos(y - lado.1 / 2.0));
+        let (x1, y1) = (decimos(x + lado.0 / 2.0), decimos(y + lado.1 / 2.0));
+        let v = decimos(v);
+        geojson.push_str(&format!(
+            "{{\"type\":\"Feature\",\"geometry\":{{\"type\":\"Polygon\",\"coordinates\":[[[{x0},{y0}],[{x1},{y0}],[{x1},{y1}],[{x0},{y1}],[{x0},{y0}]]]}},\"properties\":{{\"{campo}\":{v}}}}}"
+        ));
+    }
     geojson.push_str("]}");
-    (geojson, vistas.len())
+    geojson
 }
 
 /// `v` com quatro casas (os cantos das células são exatos nelas, e o POWER não dá mais), por

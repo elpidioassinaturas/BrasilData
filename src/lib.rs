@@ -55,6 +55,7 @@ pub mod municipios;
 pub mod nisar;
 pub mod olm;
 pub mod pardig;
+pub mod power;
 pub mod radar;
 pub mod radar_pc;
 pub mod risco_fogo;
