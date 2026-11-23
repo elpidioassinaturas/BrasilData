@@ -9,8 +9,8 @@
 //!   Viçosa, em 40 s). O pedido é síncrono, uma cena por vez.
 //! - **Login:** o Harmony pede o token Earthdata Login, que o RustGIS guarda e manda aos hosts
 //!   `*.earthdata.nasa.gov`; o plugin só passa o endereço ao `layer.addUrl`.
-//! - **Os valores:** o gama0 (potência linear) da frequência A (20 MHz). Como no radar do
-//!   Sentinel-1, passa pelo filtro de Lee e chega em dB; a razão HV/HH, em dB, é HV − HH.
+//! - **Os valores:** o gama0 (potência linear) da frequência A (20 MHz). Vai para dB e passa pelo filtro
+//!   sigma de Lee no dB ([`SIGMA`]), que guarda as bordas; a razão HV/HH, em dB, é HV − HH.
 
 use serde_json::{Value, json};
 
@@ -56,17 +56,24 @@ pub enum Pol {
 /// (eco forte), como nas imagens do NISAR da NASA.
 pub const RAMPA: &str = "Magma";
 
+/// O sigma do filtro de Lee, em dB: perto do desvio do granulado que sobra no GCOV em 20 m (cerca
+/// de 2,2 dB numa janela 5 × 5 em Viçosa). No dB, o filtro só mistura vizinhos parecidos e guarda
+/// as bordas; a média simples da janela (o filtro do Sentinel-1) borrava a imagem do NISAR.
+/// O `lee_filter` do GeoLibre na potência linear vira essa média: opengeos/whitebox-wasm#66.
+pub const SIGMA: f64 = 2.5;
+
 /// A escala de cinza da razão HV/HH, em dB (HV − HH).
-pub const ESCALA_DA_RAZAO: (f64, f64) = (-11.0, -4.0);
+pub const ESCALA_DA_RAZAO: (f64, f64) = (-11.0, -1.0);
 
 impl Pol {
-    /// A escala de cinza, em dB, depois do filtro de Lee: os percentis 2 e 98 de Viçosa em
-    /// 01/11/2026, na grade de 30 m (HH de −10,9 a −1,2; HV de −17,8 a −8,5; HV − HH de −11,0 a
-    /// −3,8). Fixos, como no radar do Sentinel-1, para datas e lugares comparáveis.
+    /// A escala de cinza, em dB, depois do filtro sigma de Lee: os percentis 2 e 98 de Viçosa em
+    /// 16/11/2026, em 20 m (HH de −15,1 a −0,7; HV de −18,7 a −7,1; HV − HH de −10,6 a 1,5, onde
+    /// o topo é granulado e encosta virada para o radar). Fixos, como no radar do Sentinel-1, para
+    /// datas e lugares comparáveis.
     pub fn escala(self) -> (f64, f64) {
         match self {
-            Pol::Hh => (-11.0, -1.0),
-            Pol::Hv => (-18.0, -8.0),
+            Pol::Hh => (-15.0, -1.0),
+            Pol::Hv => (-19.0, -7.0),
         }
     }
 
@@ -273,10 +280,10 @@ pub fn nome_da_composicao(d: Data) -> String {
 
 /// As escalas, em dB, do vermelho (HH), do verde (HV) e do azul (HH − HV, o contrário da razão), no
 /// estilo das imagens do NISAR da NASA sobre o delta do Mississippi: mais escuras e contrastadas,
-/// com a mata em verde forte. São os percentis 5 e 99,5 de Viçosa (01/11/2026) com gama 1,2 no
-/// vermelho e no azul e 0,9 no verde, passados para faixas lineares (o realce do RustGIS não tem
-/// gama), as que mais se aproximam da curva.
-pub const ESCALAS_DA_COMPOSICAO: [(f64, f64); 3] = [(-9.5, 3.1), (-17.2, -7.4), (4.5, 14.1)];
+/// com a mata em verde forte. São os percentis 5 e 99,5 de Viçosa (16/11/2026, 20 m, com o filtro
+/// sigma de Lee) com gama 1,2 no vermelho e no azul e 0,9 no verde, passados para faixas lineares
+/// (o realce do RustGIS não tem gama), as que mais se aproximam da curva.
+pub const ESCALAS_DA_COMPOSICAO: [(f64, f64); 3] = [(-12.7, 4.3), (-18.0, -5.3), (0.8, 13.4)];
 
 /// O nome da composição temporal das passagens de `de` a `ate`.
 pub fn nome_da_temporal(de: Data, ate: Data) -> String {
@@ -285,8 +292,9 @@ pub fn nome_da_temporal(de: Data, ate: Data) -> String {
 
 /// As escalas, em dB, do vermelho (a mediana do HH), do verde (a mediana do HV) e do azul (o
 /// desvio-padrão do HV entre as passagens, que sobe onde a vegetação muda: lavoura que cresce ou é
-/// colhida, pasto que seca).
-pub const ESCALAS_DA_TEMPORAL: [(f64, f64); 3] = [(-11.0, -1.0), (-18.0, -8.0), (0.0, 3.0)];
+/// colhida, pasto que seca). Os percentis 2 e 98 de Viçosa com 3 passagens (23/10 a 16/11/2026,
+/// 20 m, com o filtro sigma de Lee): HH de −13,2 a −0,8, HV de −18,9 a −7,9, desvio de 0,1 a 2,7.
+pub const ESCALAS_DA_TEMPORAL: [(f64, f64); 3] = [(-13.0, -1.0), (-19.0, -8.0), (0.0, 3.0)];
 
 /// Se uma camada do mapa é do NISAR (para a citação).
 pub fn eh_do_nisar(nome: &str) -> bool {

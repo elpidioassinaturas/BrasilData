@@ -39,6 +39,8 @@ pub fn comando_da_camada(nome: &str, fonte: &str) -> Option<&'static str> {
         "cemaden-chuva"
     } else if nome == cemaden::ALERTAS {
         "cemaden-alertas"
+    } else if crate::radar_pc::eh_daqui(nome) {
+        "radar-10m"
     } else if nisar::eh_do_nisar(nome) {
         if n.starts_with("Radar HH") {
             "nisar-hh"
@@ -145,6 +147,7 @@ mod tests {
             ("BrasilData: Composição HH, HV, HH − HV (NISAR, 01/11/2026)", "nisar-cor"),
             ("BrasilData: Composição temporal HH, HV, variação do HV (NISAR, 08/10/2026 a 13/11/2026)", "nisar-tempo"),
             ("BrasilData: Razão VH/VV em dB (Sentinel-1, 26/10/2026)", "radar-razao"),
+            ("BrasilData: Radar VV 10 m, mediana de 10 passagens (Sentinel-1, 03/08/2026 a 19/11/2026)", "radar-10m"),
             ("BrasilData: Perturbação, dias antes de 28/02/2026 (OPERA DIST-S1)", "dist-data"),
             ("BrasilData: Perturbação da vegetação (OPERA DIST-S1, até 28/02/2026)", "dist-situacao"),
             ("BrasilData: Biomassa acima do solo (GEDI L4D)", "gedi-biomassa"),

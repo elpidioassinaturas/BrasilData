@@ -66,9 +66,9 @@ fn data_no_nome(n: &str) -> Option<&str> {
 }
 
 /// A nota da composição colorida do NISAR.
-const NOTA_NISAR_TEMPO: &str = "Vermelho: mediana do HH (−11 a −1 dB); verde: mediana do HV (−18 a −8 dB); azul: desvio-padrão do HV entre as passagens (0 a 3 dB). Verde: mata e vegetação estável; azul e lilás: vegetação que mudou (lavoura, pasto); vermelho e laranja: solo exposto, superfícies ásperas e construções; escuro: água e sombras do relevo.";
+const NOTA_NISAR_TEMPO: &str = "Vermelho: mediana do HH (−13 a −1 dB); verde: mediana do HV (−19 a −8 dB); azul: desvio-padrão do HV entre as passagens (0 a 3 dB). Verde: mata e vegetação estável; azul e lilás: vegetação que mudou (lavoura, pasto); vermelho e laranja: solo exposto, superfícies ásperas e construções; escuro: água e sombras do relevo.";
 
-const NOTA_NISAR_COR: &str = "Vermelho: HH (−9,5 a 3,1 dB); verde: HV (−17,2 a −7,4 dB); azul: HH − HV (4,5 a 14,1 dB). Mata em verde forte (volume das copas), cidade em rosa e magenta (eco duplo das construções), pasto e solo exposto em azul e roxo escuros, água escura.";
+const NOTA_NISAR_COR: &str = "Vermelho: HH (−12,7 a 4,3 dB); verde: HV (−18 a −5,3 dB); azul: HH − HV (0,8 a 13,4 dB). Mata em verde forte (volume das copas), cidade em rosa e magenta (eco duplo das construções), pasto e solo exposto em azul e roxo escuros, água escura.";
 
 /// A receita da camada `nome`, se o layout a conhece.
 /// O nome antes do período e o período ("01/06/2025 a 31/08/2025"), cortados no " de " seguido de

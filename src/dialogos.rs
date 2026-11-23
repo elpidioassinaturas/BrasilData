@@ -69,6 +69,9 @@ pub const ESTILOS: [(&str, &str); 6] = [
 /// As escolhas das cores da situação do DIST-S1 e a `paleta` de cada uma.
 pub const PALETAS: [(&str, &str); 2] = [("A do BrasilData: etapa e confiança", "brasildata"), ("A oficial da OPERA", "oficial")];
 
+/// As polarizações do radar de 10 m.
+pub const POLARIZACOES: [(&str, &str); 2] = [("VV: solo, água e construções", "VV"), ("VH: volume da vegetação", "VH")];
+
 /// As escolhas do modelo do GEM-15 e o `modelo` de cada uma.
 pub const MODELOS_GEM15: [(&str, &str); 3] = [
     ("Terreno nu (DTM)", "dtm"),
@@ -182,6 +185,7 @@ const TROCAS: &[(&str, &str, Escolhas)] = &[
     ("ctrees-biomassa", "camada", &CAMADAS_CTREES),
     ("gdo-seca", "indicador", &INDICADORES_GDO),
     ("dist-situacao", "paleta", &PALETAS),
+    ("radar-10m", "polarizacao", &POLARIZACOES),
     ("gem15", "modelo", &MODELOS_GEM15),
     ("olm-solo", "propriedade", &PROPRIEDADES_OLM),
     ("olm-solo", "profundidade", &PROFUNDIDADES_OLM),
@@ -240,10 +244,10 @@ pub fn normalizar(id: &str, params: &mut Value) {
                 }
             }
         }
-        // A escala do GEDTM30, em metros, e as passagens da composição temporal do NISAR, como
-        // números.
-        "gedtm-relevo" | "nisar-tempo" => {
-            let campo = if id == "nisar-tempo" { "passagens" } else { "escala" };
+        // A escala do GEDTM30, em metros, e as passagens da composição temporal do NISAR e do
+        // radar de 10 m, como números.
+        "gedtm-relevo" | "nisar-tempo" | "radar-10m" => {
+            let campo = if id == "gedtm-relevo" { "escala" } else { "passagens" };
             let e = p.get(campo).and_then(Value::as_str).and_then(|t| t.trim().parse::<f64>().ok());
             if let Some(e) = e {
                 p.insert(campo.into(), json!(e));

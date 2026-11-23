@@ -56,6 +56,7 @@ pub mod nisar;
 pub mod olm;
 pub mod pardig;
 pub mod radar;
+pub mod radar_pc;
 pub mod risco_fogo;
 pub mod rodovias;
 pub mod saude;

@@ -2,7 +2,7 @@
 
 <!-- Gerado por scripts/gerar.py a partir do fontes.csv e do fichas.csv; não edite à mão. -->
 
-A ficha de cada uma das 164 camadas que os botões da aba BrasilData trazem: o que é, a fonte, o período, a resolução, as unidades, a legenda, a licença, a citação, os cuidados de uso, se funciona no app web, e um mapa exemplo feito com o plugin (o botão Layout). Os mapas exemplo são de Viçosa (MG), ou da Zona da Mata mineira para os produtos de baixa resolução; os temas que não existem lá vêm de outro município, dito em cada ficha. Os mapas saem do `scripts/mapas_exemplo.py`.
+A ficha de cada uma das 165 camadas que os botões da aba BrasilData trazem: o que é, a fonte, o período, a resolução, as unidades, a legenda, a licença, a citação, os cuidados de uso, se funciona no app web, e um mapa exemplo feito com o plugin (o botão Layout). Os mapas exemplo são de Viçosa (MG), ou da Zona da Mata mineira para os produtos de baixa resolução; os temas que não existem lá vêm de outro município, dito em cada ficha. Os mapas saem do `scripts/mapas_exemplo.py`.
 
 ## Território
 
@@ -180,6 +180,7 @@ A ficha de cada uma das 164 camadas que os botões da aba BrasilData trazem: o q
 | [Risco de fogo (INPE)](risco-fogo.md) | Vegetação e meio ambiente › Queimadas | O perigo meteorológico de fogo do modelo de Risco de Fogo do INPE: dias de secura, umidade, temperatura, vegetação, relevo e latitude. |
 | [Cobertura da terra 100 m (Copernicus)](clms-cobertura.md) | Vegetação e meio ambiente › Uso e cobertura | A cobertura da terra global do serviço de terra do Copernicus (CLMS Land Cover 100 m, coleção 3), feita com imagens do satélite PROBA-V. |
 | [Composição temporal (NISAR, banda L)](nisar-tempo.md) | Vegetação e meio ambiente › Uso e cobertura | A composição temporal do NISAR: a mediana do HH no vermelho, a mediana do HV no verde e o desvio-padrão do HV entre as passagens no azul. |
+| [Radar 10 m, mediana no tempo (Sentinel-1)](radar-10m.md) | Vegetação e meio ambiente › Uso e cobertura | O retroespalhamento do radar Sentinel-1 (banda C) em 10 m, corrigido do relevo: a mediana das passagens mais recentes da mesma órbita, como no Sentinel-1 Global Backscatter Model. |
 
 ## Infraestrutura
 

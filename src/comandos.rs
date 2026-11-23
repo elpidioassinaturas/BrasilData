@@ -39,6 +39,7 @@ use crate::municipios::{self, Territorio};
 use crate::nisar;
 use crate::olm;
 use crate::radar;
+use crate::radar_pc;
 use crate::risco_fogo;
 use crate::rodovias;
 use crate::saude;
@@ -249,6 +250,7 @@ fn executar_comando(req: Request) -> Result<Value, String> {
         "nisar-razao" => radar_nisar(&req, None),
         "nisar-cor" => composicao_nisar(&req),
         "nisar-tempo" => nisar_no_tempo(&req),
+        "radar-10m" => radar_10m_no_tempo(&req),
         "dist-situacao" => perturbacao(&req, dist::Camada::Situacao),
         "dist-data" => perturbacao(&req, dist::Camada::Data),
         "dist-confianca" => perturbacao(&req, dist::Camada::Confianca),
@@ -1891,6 +1893,8 @@ fn citacoes() -> Result<(Vec<Value>, String), String> {
             lista.push(json!({"layer": n, "source": cemaden::CITACAO, "license": cemaden::LICENCA}));
         } else if n == cemaden::ALERTAS {
             lista.push(json!({"layer": n, "source": cemaden::CITACAO_ALERTAS, "license": cemaden::LICENCA}));
+        } else if radar_pc::eh_daqui(&n) {
+            lista.push(json!({"layer": n, "source": radar_pc::CITACAO, "license": radar_pc::LICENCA}));
         } else if nisar::eh_do_nisar(&n) {
             lista.push(json!({"layer": n, "source": nisar::CITACAO, "license": nisar::LICENCA}));
         } else if radar::eh_do_radar(&n) {
@@ -2156,7 +2160,7 @@ fn recortes_do_radar(c: [f64; 4], dia: Option<Data>) -> Result<Result<Vec<radar:
 fn radar_na_grade(recortes: &[radar::Recorte], p: radar::Pol, g: &Grade, c: [f64; 4], nome: &str) -> Result<Option<Value>, String> {
     let pedidos: Vec<(String, String)> =
         recortes.iter().map(|r| (r.url(p).to_string(), format!("{}radar {} {}", PREFIXO, p.sigla(), r.rotulo()))).collect();
-    let sar = Sar { sigla: p.sigla(), de_onde: "do ASF (cerca de 7 MB cada)", celula: 30.0, escala: p.escala(), rampa: None };
+    let sar = Sar { sigla: p.sigla(), de_onde: "do ASF (cerca de 7 MB cada)", celula: 30.0, escala: p.escala(), rampa: None, sigma: None };
     sar_na_grade(&pedidos, &sar, g, c, nome)
 }
 
@@ -2172,10 +2176,13 @@ struct Sar {
     escala: (f64, f64),
     /// Uma rampa de cores no lugar do cinza (a do NISAR é a "Magma", como nas imagens da NASA).
     rampa: Option<&'static str>,
+    /// O sigma do filtro de Lee, em dB (o filtro no dB, que guarda as bordas); sem ele, a média da
+    /// janela na potência linear.
+    sigma: Option<f64>,
 }
 
 /// Os arquivos de radar `pedidos` (endereço, nome da camada bruta), em potência linear, na grade
-/// `g`, com o filtro de Lee, recortados pela área e em dB, como a camada `nome`; ou o pedido
+/// `g`, com o filtro de Lee refinado, recortados pela área e em dB, como a camada `nome`; ou o pedido
 /// pendente (a janela e o app web, que não esperam o download).
 fn sar_na_grade(pedidos: &[(String, String)], sar: &Sar, g: &Grade, c: [f64; 4], nome: &str) -> Result<Option<Value>, String> {
     // A lista de camadas do mapa custa caro ao plugin (cerca de 16 milhões de instruções, com
@@ -2184,12 +2191,16 @@ fn sar_na_grade(pedidos: &[(String, String)], sar: &Sar, g: &Grade, c: [f64; 4],
     // As camadas intermediárias de uma vez anterior que tenha parado no meio.
     let (mosaico, recorte) = ("BrasilData: mosaico do radar".to_string(), "BrasilData: recorte do radar".to_string());
     let brutos: Vec<String> = pedidos.iter().map(|(_, b)| b.clone()).collect();
+    let logs: Vec<String> = brutos.iter().map(|b| format!("{b} log")).collect();
+    let em_db: Vec<String> = brutos.iter().map(|b| format!("{b} dB")).collect();
     let filtrados: Vec<String> = brutos.iter().map(|b| format!("{b} filtrado")).collect();
     let na_grade: Vec<String> = brutos.iter().map(|b| format!("{b} na grade")).collect();
     let na_area: Vec<String> = brutos.iter().map(|b| format!("{b} na área")).collect();
     let (linear, log) = (format!("{nome} linear"), format!("{nome} log"));
     let velhas: Vec<&str> = filtrados
         .iter()
+        .chain(&logs)
+        .chain(&em_db)
         .chain(&na_grade)
         .chain(&na_area)
         .map(String::as_str)
@@ -2212,15 +2223,40 @@ fn sar_na_grade(pedidos: &[(String, String)], sar: &Sar, g: &Grade, c: [f64; 4],
     }
     let mut temporarias: Vec<String> = Vec::new();
     let resultado = (|| -> Result<(), String> {
-        for (((bruto, f), q), a) in brutos.iter().zip(&filtrados).zip(&na_grade).zip(&na_area) {
+        for ((((bruto, d), f), q), a) in brutos.iter().zip(&em_db).zip(&filtrados).zip(&na_grade).zip(&na_area) {
             // A célula do próprio arquivo, que pode não ser a do produto: o NISAR vem em 20 m no
             // modo de 20 MHz e em 10 m no de 40 MHz.
             let real = celula_do_raster(bruto)?.unwrap_or(sar.celula);
-            // O filtro de Lee tira o granulado (speckle) do radar, na geometria do próprio recorte,
-            // antes de qualquer reamostragem, como se faz com radar: 5 × 5 na célula do produto, e
-            // a mesma largura no chão numa célula menor (11 × 11 em 10 m).
             let lado = filtro_do_radar(sar.celula, real);
-            ferramenta("geolibre:lee_filter", json!({"input": bruto, "filter_size_x": lado, "filter_size_y": lado}), f)?;
+            // Em dB (10 · log10, como o radar costuma ser visto; o `bandMath` não tem logaritmo, o
+            // GeoLibre tem), antes ou depois do filtro de Lee, que tira o granulado (speckle) na
+            // geometria do próprio recorte, antes de qualquer reamostragem. O `lee_filter` do
+            // GeoLibre é o filtro sigma de Lee com o sigma absoluto: a média dos vizinhos que
+            // diferem da célula até sigma.
+            let log = format!("{bruto} log");
+            match sar.sigma {
+                // No dB, com sigma em dB: só entram os vizinhos parecidos, e as bordas (talhões,
+                // estradas, casas) não se espalham.
+                Some(sigma) => {
+                    ferramenta("geolibre:log10", json!({"input": bruto}), &log)?;
+                    host::run("raster.function", json!({"layer": log, "function": "bandMath", "expression": "b1 * 10", "name": d}))?;
+                    host::run("layer.remove", json!({"layer": [bruto, &log]}))?;
+                    ferramenta(
+                        "geolibre:lee_filter",
+                        json!({"input": d, "filter_size_x": lado, "filter_size_y": lado, "sigma": sigma}),
+                        f,
+                    )?;
+                    host::run("layer.remove", json!({"layer": [d]}))?;
+                }
+                // Na potência linear (valores < 1), com o sigma padrão (10): todo vizinho entra, e
+                // é a média simples da janela, que alisa mais e borra as bordas.
+                None => {
+                    ferramenta("geolibre:lee_filter", json!({"input": bruto, "filter_size_x": lado, "filter_size_y": lado}), d)?;
+                    ferramenta("geolibre:log10", json!({"input": d}), &log)?;
+                    host::run("raster.function", json!({"layer": log, "function": "bandMath", "expression": "b1 * 10", "name": f}))?;
+                    host::run("layer.remove", json!({"layer": [bruto, d, &log]}))?;
+                }
+            }
             // Para células bem maiores que as do arquivo, a média, que também tira granulado; a
             // bilinear só pegaria uma amostra de cada 3 × 3 (de 10 m para 30 m).
             let resampling = if g.celula > 1.5 * real { "average" } else { "bilinear" };
@@ -2232,8 +2268,8 @@ fn sar_na_grade(pedidos: &[(String, String)], sar: &Sar, g: &Grade, c: [f64; 4],
             // mesorregião inteira passaria do limite de 120 milhões de valores de um raster.
             recortar_retangulo(q, c, g.celula, a)?;
             temporarias.push(a.clone());
-            // O bruto, o filtrado e o projetado saem já, para poupar memória.
-            host::run("layer.remove", json!({"layer": [bruto, f, q]}))?;
+            // O filtrado e o projetado saem já, para poupar memória.
+            host::run("layer.remove", json!({"layer": [f, q]}))?;
         }
         let junto = if na_area.len() == 1 {
             na_area[0].clone()
@@ -2247,14 +2283,8 @@ fn sar_na_grade(pedidos: &[(String, String)], sar: &Sar, g: &Grade, c: [f64; 4],
         // Já na rede da grade: a extensão dela, sem reamostrar.
         host::run(
             "raster.project",
-            json!({"layer": recorte, "crs": g.epsg, "cellSize": g.celula, "extent": GRADE, "resampling": "nearest", "name": linear}),
+            json!({"layer": recorte, "crs": g.epsg, "cellSize": g.celula, "extent": GRADE, "resampling": "nearest", "name": nome}),
         )?;
-        temporarias.push(linear.clone());
-        // Em dB, como o radar costuma ser visto: 10 · log10 (o `bandMath` não tem logaritmo; o
-        // GeoLibre tem).
-        ferramenta("geolibre:log10", json!({"input": linear}), &log)?;
-        temporarias.push(log.clone());
-        host::run("raster.function", json!({"layer": log, "function": "bandMath", "expression": "b1 * 10", "name": nome}))?;
         if let Some(rampa) = sar.rampa {
             host::run("raster.symbology", json!({"layer": nome, "type": "stretch", "ramp": rampa}))?;
         }
@@ -2269,19 +2299,19 @@ fn sar_na_grade(pedidos: &[(String, String)], sar: &Sar, g: &Grade, c: [f64; 4],
     resultado.map(|()| None)
 }
 
+/// O lado (ímpar, de 3 a 15) do filtro de Lee para células de `real` metros: 5 na célula `produto`
+/// do radar, e a mesma largura no chão numa célula menor.
+fn filtro_do_radar(produto: f64, real: f64) -> i64 {
+    let k = ((5.0 * produto / real.max(1.0)).round() as i64).clamp(3, 15);
+    if k % 2 == 0 { k + 1 } else { k }
+}
+
 /// A célula de um raster do mapa, em metros (num sistema em graus, pelo grau no equador).
 fn celula_do_raster(camada: &str) -> Result<Option<f64>, String> {
     let i = host::run("raster.info", json!({"layer": camada}))?;
     let Some(x) = i["cellSize"][0].as_f64().map(f64::abs).filter(|x| *x > 0.0) else { return Ok(None) };
     let graus = i["crs"].as_str().is_some_and(|c| c == "EPSG:4326" || c == "EPSG:4674");
     Ok(Some(if graus { x * 111_320.0 } else { x }))
-}
-
-/// O lado (ímpar, de 3 a 15) do filtro de Lee para células de `real` metros: 5 na célula `produto`
-/// do radar, e a mesma largura no chão numa célula menor.
-fn filtro_do_radar(produto: f64, real: f64) -> i64 {
-    let k = ((5.0 * produto / real.max(1.0)).round() as i64).clamp(3, 15);
-    if k % 2 == 0 { k + 1 } else { k }
 }
 
 /// Pede ao RustGIS os arquivos do ASF `pedidos` (endereço, nome da camada) inteiros, como
@@ -2814,7 +2844,7 @@ fn radar_nisar(req: &Request, qual: Option<nisar::Pol>) -> Result<Value, String>
         Err(p) => return Ok(p),
     };
     let data = cenas[0].data;
-    // Um pouco além do retângulo da área, para o filtro de Lee e a reprojeção não perderem a borda.
+    // Um pouco além do retângulo da área, para o filtro e a reprojeção não perderem a borda.
     let folga = 0.01;
     let pedido = [c[0] - folga, c[1] - folga, c[2] + folga, c[3] + folga];
     let epsg = nisar::utm_do_harmony(c);
@@ -2839,6 +2869,7 @@ fn radar_nisar(req: &Request, qual: Option<nisar::Pol>) -> Result<Value, String>
             celula: nisar::CELULA,
             escala: p.escala(),
             rampa: Some(nisar::RAMPA),
+            sigma: Some(nisar::SIGMA),
         };
         if let Some(pendente) = sar_na_grade(&pedidos, &sar, &g, c, &nome)? {
             return Ok(pendente);
@@ -2945,7 +2976,14 @@ fn nisar_no_tempo(req: &Request) -> Result<Value, String> {
         if ha.contains(&k.nome) {
             continue;
         }
-        let sar = Sar { sigla: k.pol.sigla(), de_onde: "pelo Harmony da NASA", celula: nisar::CELULA, escala: k.pol.escala(), rampa: None };
+        let sar = Sar {
+            sigla: k.pol.sigla(),
+            de_onde: "pelo Harmony da NASA",
+            celula: nisar::CELULA,
+            escala: k.pol.escala(),
+            rampa: None,
+            sigma: Some(nisar::SIGMA),
+        };
         if let Some(pendente) = sar_na_grade(&k.pedidos, &sar, &g, c, &k.nome)? {
             return Ok(pendente);
         }
@@ -2995,6 +3033,198 @@ fn nisar_no_tempo(req: &Request) -> Result<Value, String> {
     }
     avisar(&texto);
     Ok(json!({"layer": nome, "dates": datas, "report": texto}))
+}
+
+/// O radar do Sentinel-1 em 10 m do Planetary Computer ([`radar_pc`]): a mediana das passagens
+/// mais recentes da mesma órbita, numa polarização, em dB, na grade do projeto, em Viridis. A
+/// janela da área de cada cena é lida por faixas; na janela do RustGIS, o comando roda de novo
+/// quando elas chegam.
+fn radar_10m_no_tempo(req: &Request) -> Result<Value, String> {
+    let pol = match req.str("polarizacao").map(str::trim) {
+        None | Some("") | Some("VV") | Some("vv") => radar::Pol::Vv,
+        Some("VH") | Some("vh") => radar::Pol::Vh,
+        Some(o) => return Err(format!("polarização '{o}': use VV ou VH")),
+    };
+    let n = req.f64("passagens").map_or(radar_pc::PASSAGENS, |x| x.round().max(0.0) as usize).clamp(2, radar_pc::MAX_PASSAGENS);
+    let celula = req.f64("celula");
+    if let Some(m) = celula {
+        grade::conferir_celula(m)?;
+    }
+    let (c, na_area) = retangulo()?;
+    if !na_area {
+        return Err("escolha a área primeiro (painel Área de trabalho, ou Área: seleção)".into());
+    }
+    if (c[2] - c[0]).max(c[3] - c[1]) > radar_pc::MAX_GRAUS {
+        return Err(format!(
+            "a área passa de {}° de lado: o radar de 10 m lê áreas de até cerca de 220 km; escolha uma área menor",
+            decimal(radar_pc::MAX_GRAUS, 1)
+        ));
+    }
+    let sem_janela = "o radar de 10 m precisa de um RustGIS que leia só a janela da área de um arquivo remoto (desktop ou linha de comando, depois da 0.5.0)";
+    if !le_janela_remota()? {
+        return Err(sem_janela.into());
+    }
+    // Sem grade no mapa, uma de 10 m, a célula do dado (se couber na área).
+    let celula = match (celula, grade_no_mapa()?) {
+        (None, None) => Some(celula_que_cabe(c, 10.0)),
+        (m, _) => m,
+    };
+    let g = grade_para(c, celula)?;
+    conferir_grade_fina(c, g.celula, "o radar de 10 m")?;
+    // As passagens e o token.
+    let r = match buscar_varios(&[radar_pc::url_busca(c), radar_pc::URL_DO_TOKEN.to_string()])? {
+        Ok(r) => r,
+        Err(p) => return Ok(p),
+    };
+    let passagens = radar_pc::passagens(&r[0], pol, n);
+    if passagens.len() < 2 {
+        return Err(format!(
+            "o Planetary Computer tem {} passagem(ns) do Sentinel-1 nesta área: a mediana precisa de pelo menos 2",
+            passagens.len()
+        ));
+    }
+    let token = radar_pc::token(&r[1]).ok_or("o serviço de tokens do Planetary Computer não deu um token: tente de novo daqui a pouco")?;
+    let leitura = radar_pc::celula_de_leitura(c, g.celula);
+    let folga = 0.005;
+    let janela = [c[0] - folga, c[1] - folga, c[2] + folga, c[3] + folga];
+    // As janelas que faltam (as de um clique anterior ficam).
+    let ha = nomes()?;
+    let mut lendo = 0;
+    let mut sem_janela_lida = false;
+    for ps in &passagens {
+        for (i, href) in ps.arquivos.iter().enumerate() {
+            let nome = radar_pc::nome_da_janela(pol, ps.data, i);
+            if ha.contains(&nome) {
+                continue;
+            }
+            if lendo >= crate::FILA_DO_APP {
+                break;
+            }
+            let r = host::run(
+                "layer.addUrl",
+                // Com folga: a célula de uma visão reduzida passa um pouco do dobro (20,007 m
+                // numa janela de largura ímpar), e o RustGIS só a escolhe se ela não passar do
+                // pedido.
+                json!({"url": radar_pc::assinar(href, &token), "name": nome, "bbox": janela, "cellSize": leitura * 1.05, "zoom": false}),
+            )
+            .map_err(|e| {
+                if falha_passageira(&e) || e.contains("timeout") || e.contains("403") {
+                    format!("o Planetary Computer não respondeu agora: tente de novo daqui a pouco ({e})")
+                } else {
+                    e
+                }
+            })?;
+            if pendente(&r) {
+                lendo += 1;
+            } else if r.get("inPlace").and_then(Value::as_bool) == Some(true) || r.get("window").is_none() {
+                sem_janela_lida = true;
+            }
+        }
+    }
+    if sem_janela_lida {
+        let fora: Vec<String> =
+            passagens.iter().flat_map(|ps| (0..ps.arquivos.len()).map(move |i| radar_pc::nome_da_janela(pol, ps.data, i))).collect();
+        let fora: Vec<&str> = fora.iter().map(String::as_str).collect();
+        remover(&fora)?;
+        return Err(sem_janela.into());
+    }
+    if lendo > 0 {
+        avisar(&format!(
+            "Radar {} 10 m (Sentinel-1, Planetary Computer): lendo a área em {lendo} cena(s) de {} passagens; a mediana vem quando chegarem",
+            pol.sigla(),
+            passagens.len()
+        ));
+        return Ok(json!({"pending": lendo}));
+    }
+    let (ultima, primeira) = (passagens[0].data, passagens[passagens.len() - 1].data);
+    let nome = radar_pc::nome_da_camada(pol, passagens.len(), primeira, ultima);
+    let (mediana, log, recorte) = (format!("{nome} linear"), format!("{nome} log"), format!("{nome} recorte"));
+    let mut temporarias: Vec<String> = Vec::new();
+    remover(&[&nome, &mediana, &log, &recorte])?;
+    let mut estatistica = "mediana";
+    let feito = (|| -> Result<(), String> {
+        // Cada passagem na grade, no retângulo da área: as cenas do dia juntadas.
+        let mut na_grade = Vec::new();
+        let mut datas = Vec::new();
+        for ps in &passagens {
+            let mut partes = Vec::new();
+            for i in 0..ps.arquivos.len() {
+                let bruta = radar_pc::nome_da_janela(pol, ps.data, i);
+                temporarias.push(bruta.clone());
+                // O 0 e os negativos (sem dado na borda da cena) ficam de fora da mediana.
+                host::run("raster.mask", json!({"layer": bruta, "min": 1e-6, "max": 1000.0}))?;
+                let (q, a) = (format!("{bruta} na grade"), format!("{bruta} na área"));
+                let resampling = if g.celula > 1.5 * leitura { "average" } else { "bilinear" };
+                host::run(
+                    "raster.project",
+                    json!({"layer": bruta, "crs": g.epsg, "cellSize": g.celula, "resampling": resampling, "name": q}),
+                )?;
+                temporarias.push(q.clone());
+                recortar_retangulo(&q, c, g.celula, &a)?;
+                temporarias.push(a.clone());
+                partes.push(a);
+            }
+            let dia = if partes.len() == 1 {
+                partes.remove(0)
+            } else {
+                let m = format!("{}radar 10 m {} {} junto", PREFIXO, pol.sigla(), ps.data.iso());
+                mosaicar(&partes, &m)?;
+                temporarias.push(m.clone());
+                m
+            };
+            na_grade.push(dia);
+            datas.push(ps.data.iso());
+        }
+        // A mediana; um RustGIS antes da 0.8.0 (sem a mediana no `cube.reduce`) fica com a média.
+        if let Err(e) = host::run("cube.reduce", json!({"layers": na_grade, "dates": datas, "stat": "median", "name": mediana})) {
+            host::log(&format!("radar 10 m: sem a mediana no cube.reduce ({e}); vai a média"));
+            estatistica = "média";
+            host::run("cube.reduce", json!({"layers": na_grade, "dates": datas, "stat": "mean", "name": mediana}))?;
+        }
+        temporarias.push(mediana.clone());
+        // Em dB: 10 · log10 (o `bandMath` não tem logaritmo; o GeoLibre tem).
+        ferramenta("geolibre:log10", json!({"input": mediana}), &log)?;
+        temporarias.push(log.clone());
+        let db = format!("{nome} dB");
+        host::run("raster.function", json!({"layer": log, "function": "bandMath", "expression": "b1 * 10", "name": db}))?;
+        temporarias.push(db.clone());
+        recortar(&db, AREA, &recorte)?;
+        temporarias.push(recorte.clone());
+        host::run(
+            "raster.project",
+            json!({"layer": recorte, "crs": g.epsg, "cellSize": g.celula, "extent": GRADE, "resampling": "nearest", "name": nome}),
+        )?;
+        if host::run("raster.symbology", json!({"layer": nome, "type": "stretch", "ramp": radar_pc::RAMPA})).is_err() {
+            host::log("radar 10 m: sem a rampa Viridis; fica a de cinza");
+        }
+        let (min, max) = radar_pc::escala(pol);
+        let _ = host::run("raster.stretch", json!({"layer": nome, "type": "custom", "min": min, "max": max}));
+        Ok(())
+    })();
+    let fora: Vec<&str> = temporarias.iter().map(String::as_str).collect();
+    remover(&fora)?;
+    feito?;
+    sob_as_linhas(&nome)?;
+    let (min, max) = radar_pc::escala(pol);
+    let mut texto = format!(
+        "{}: a {estatistica} do retroespalhamento {} de {} passagens da órbita {} ({}), de {} a {}, em dB, na grade do projeto, {}; lida em células de {} m. A {estatistica} de várias passagens tira o granulado sem borrar as bordas. Viridis de {} a {} dB: água e sombra do relevo escuras, cidade e encostas viradas para o satélite em amarelo",
+        nome.trim_start_matches(PREFIXO),
+        pol.sigla(),
+        passagens.len(),
+        passagens[0].orbita,
+        if passagens[0].sentido == "ascending" { "ascendente" } else { "descendente" },
+        primeira.texto(),
+        ultima.texto(),
+        g.texto(),
+        leitura,
+        decimal(min, 0),
+        decimal(max, 0)
+    );
+    if estatistica == "média" {
+        texto.push_str(". A mediana precisa do RustGIS 0.8.0 ou mais novo; neste, foi a média");
+    }
+    avisar(&texto);
+    Ok(json!({"layer": nome, "dates": passagens.iter().map(|p| p.data.iso()).collect::<Vec<_>>(), "report": texto}))
 }
 
 /// A composição colorida do NISAR: HH no vermelho, HV no verde e HH − HV no azul, em dB, nas
