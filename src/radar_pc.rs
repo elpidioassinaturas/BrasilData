@@ -166,9 +166,23 @@ pub fn nome_da_camada(p: Pol, n: usize, de: Data, ate: Data) -> String {
     format!("{}Radar {} 10 m, mediana de {n} passagens (Sentinel-1, {} a {})", crate::PREFIXO, p.sigla(), de.texto(), ate.texto())
 }
 
+/// O nome da composição colorida feita das camadas VV e VH de nome como o `vv` (o período e as
+/// passagens vêm dele).
+pub fn nome_da_composicao(vv: &str) -> Option<String> {
+    let resto = vv.strip_prefix(crate::PREFIXO)?.strip_prefix("Radar VV 10 m, ")?;
+    Some(format!("{}Composição VV, VH, VV/VH 10 m, {resto}", crate::PREFIXO))
+}
+
+/// As escalas, em dB, do vermelho (VV), do verde (VH) e do azul (VV − VH) da composição: entre os
+/// percentis 2 e 98 de Viçosa (VV de −12,5 a −2,8; VH de −17,8 a −9,1; VV − VH de 3,2 a 8,5) e os
+/// de uma área de pivôs de João Pinheiro (−16,1 a −5,9; −23,1 a −11,4; 3,3 a 9,6), com 10
+/// passagens de agosto a novembro de 2026.
+pub const ESCALAS_DA_COMPOSICAO: [(f64, f64); 3] = [(-15.0, -3.0), (-21.0, -10.0), (3.0, 9.0)];
+
 /// Se uma camada do mapa é desta fonte (para a citação).
 pub fn eh_daqui(nome: &str) -> bool {
-    nome.strip_prefix(crate::PREFIXO).is_some_and(|n| n.starts_with("Radar V") && n.contains(" 10 m, mediana de "))
+    nome.strip_prefix(crate::PREFIXO)
+        .is_some_and(|n| (n.starts_with("Radar V") || n.starts_with("Composição VV, VH")) && n.contains(" 10 m, mediana de "))
 }
 
 #[cfg(test)]
@@ -232,6 +246,10 @@ mod tests {
         let n = nome_da_camada(Pol::Vv, 10, Data { ano: 2026, mes: 8, dia: 3 }, d);
         assert_eq!(n, "BrasilData: Radar VV 10 m, mediana de 10 passagens (Sentinel-1, 03/08/2026 a 19/11/2026)");
         assert!(eh_daqui(&n) && !eh_daqui("BrasilData: Radar VV em dB (Sentinel-1, 19/11/2026)"));
+        let cor = nome_da_composicao(&n).unwrap();
+        assert_eq!(cor, "BrasilData: Composição VV, VH, VV/VH 10 m, mediana de 10 passagens (Sentinel-1, 03/08/2026 a 19/11/2026)");
+        assert!(eh_daqui(&cor));
+        assert_eq!(nome_da_composicao("BrasilData: Radar VH 10 m, mediana de 10 passagens"), None);
         assert_eq!(nome_da_janela(Pol::Vh, d, 0), "BrasilData: radar 10 m VH 2026-11-19 1");
         assert_eq!(data_iso("2026-08-03T08:21:25.206356Z"), Some(Data { ano: 2026, mes: 8, dia: 3 }));
     }

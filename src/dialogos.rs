@@ -246,7 +246,7 @@ pub fn normalizar(id: &str, params: &mut Value) {
         }
         // A escala do GEDTM30, em metros, e as passagens da composição temporal do NISAR e do
         // radar de 10 m, como números.
-        "gedtm-relevo" | "nisar-tempo" | "radar-10m" => {
+        "gedtm-relevo" | "nisar-tempo" | "radar-10m" | "radar-10m-cor" => {
             let campo = if id == "gedtm-relevo" { "escala" } else { "passagens" };
             let e = p.get(campo).and_then(Value::as_str).and_then(|t| t.trim().parse::<f64>().ok());
             if let Some(e) = e {

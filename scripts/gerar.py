@@ -37,7 +37,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.64"
+VERSAO = "0.1.65"
 AUTOR = "Elpídio Filho"
 # Como o texto Sobre chama o autor (o manifesto e o README levam o nome completo).
 AUTOR_SOBRE = "Professor Elpídio"
@@ -871,6 +871,20 @@ EM_MENUS = [
             "params": "{\"polarizacao\"?: \"VV\" (padrão) ou \"VH\", \"passagens\"?: de 2 a 30, quantas passagens (padrão 10), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 10)}",
             "form": [
                 {"name": "polarizacao", "label": "Polarização", "kind": "choice", "choices": ["VV: solo, água e construções", "VH: volume da vegetação"], "default": "VV: solo, água e construções", "help": "VV responde mais ao solo, à água e às construções; VH, ao volume da vegetação."},
+                {"name": "passagens", "label": "Passagens", "kind": "choice", "choices": ["4", "6", "10", "15", "20", "30"], "default": "10", "help": "Quantas passagens da mesma órbita, das mais recentes (uma a cada 12 dias): mais passagens, menos granulado e mais tempo, mas misturam estações do ano."},
+            ],
+        },
+    ),
+    (
+        "Vegetação e meio ambiente",
+        "Uso e cobertura",
+        {
+            "id": "radar-10m-cor",
+            "label": "Radar 10 m, composição colorida (Sentinel-1)",
+            "help": "A composição colorida do radar Sentinel-1 em 10 m: a mediana do VV no vermelho, a do VH no verde e VV − VH (a razão VV/VH, em dB) no azul. Cidade e construções em rosa e magenta, mata e cerrado em amarelo e verde, lavoura e solo exposto em lilás, roxo e azul, água preta: separa bem pivôs centrais e talhões. As camadas VV e VH da mediana (as do Radar 10 m, mediana no tempo) também ficam no mapa. Do Planetary Computer da Microsoft (coleção sentinel-1-rtc, CC-BY 4.0), sem login; só a janela da área de cada cena. Áreas de até cerca de 220 km; o dobro do tempo do Radar 10 m (uma leitura por polarização).",
+            "icon": "rgb",
+            "params": "{\"passagens\"?: de 2 a 30, quantas passagens (padrão 10), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 10)}",
+            "form": [
                 {"name": "passagens", "label": "Passagens", "kind": "choice", "choices": ["4", "6", "10", "15", "20", "30"], "default": "10", "help": "Quantas passagens da mesma órbita, das mais recentes (uma a cada 12 dias): mais passagens, menos granulado e mais tempo, mas misturam estações do ano."},
             ],
         },

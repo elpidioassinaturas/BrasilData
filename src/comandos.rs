@@ -251,6 +251,7 @@ fn executar_comando(req: Request) -> Result<Value, String> {
         "nisar-cor" => composicao_nisar(&req),
         "nisar-tempo" => nisar_no_tempo(&req),
         "radar-10m" => radar_10m_no_tempo(&req),
+        "radar-10m-cor" => radar_10m_cor(&req),
         "dist-situacao" => perturbacao(&req, dist::Camada::Situacao),
         "dist-data" => perturbacao(&req, dist::Camada::Data),
         "dist-confianca" => perturbacao(&req, dist::Camada::Confianca),
@@ -3035,16 +3036,69 @@ fn nisar_no_tempo(req: &Request) -> Result<Value, String> {
     Ok(json!({"layer": nome, "dates": datas, "report": texto}))
 }
 
-/// O radar do Sentinel-1 em 10 m do Planetary Computer ([`radar_pc`]): a mediana das passagens
-/// mais recentes da mesma órbita, numa polarização, em dB, na grade do projeto, em Viridis. A
-/// janela da área de cada cena é lida por faixas; na janela do RustGIS, o comando roda de novo
-/// quando elas chegam.
+/// O radar do Sentinel-1 em 10 m do Planetary Computer ([`radar_pc`]) na polarização pedida
+/// ([`radar_10m`]).
 fn radar_10m_no_tempo(req: &Request) -> Result<Value, String> {
     let pol = match req.str("polarizacao").map(str::trim) {
         None | Some("") | Some("VV") | Some("vv") => radar::Pol::Vv,
         Some("VH") | Some("vh") => radar::Pol::Vh,
         Some(o) => return Err(format!("polarização '{o}': use VV ou VH")),
     };
+    radar_10m(req, pol, false)
+}
+
+/// A composição colorida do radar de 10 m: a mediana do VV no vermelho, a do VH no verde e VV − VH
+/// (a razão VV/VH, em dB) no azul. Faz antes as camadas VV e VH ([`radar_10m`]), que ficam no
+/// mapa; as de um clique anterior com as mesmas passagens servem.
+fn radar_10m_cor(req: &Request) -> Result<Value, String> {
+    let vv = radar_10m(req, radar::Pol::Vv, true)?;
+    if pendente(&vv) || vv.get("layer").is_none() {
+        return Ok(vv);
+    }
+    let vh = radar_10m(req, radar::Pol::Vh, true)?;
+    if pendente(&vh) || vh.get("layer").is_none() {
+        return Ok(vh);
+    }
+    let (camada_vv, camada_vh) =
+        (vv["layer"].as_str().unwrap_or_default().to_string(), vh["layer"].as_str().unwrap_or_default().to_string());
+    let Some(nome) = radar_pc::nome_da_composicao(&camada_vv) else {
+        return Err(format!("a camada {camada_vv} não tem o nome esperado"));
+    };
+    let azul = format!("{nome} azul");
+    remover(&[&nome, &azul])?;
+    let feito = (|| -> Result<(), String> {
+        // VV − VH: a razão VV/VH em dB.
+        calculadora(&format!("\"{camada_vv}\" - \"{camada_vh}\""), &azul)?;
+        ferramenta("geolibre:composite_bands", json!({"inputs": [camada_vv, camada_vh, azul]}), &nome)?;
+        host::run("raster.symbology", json!({"layer": nome, "type": "rgb"}))?;
+        let [r, g, b] = radar_pc::ESCALAS_DA_COMPOSICAO;
+        host::run("raster.stretch", json!({"layer": nome, "type": "custom", "min": [r.0, g.0, b.0], "max": [r.1, g.1, b.1]}))?;
+        Ok(())
+    })();
+    remover(&[&azul])?;
+    feito?;
+    sob_as_linhas(&nome)?;
+    let [r, g, b] = radar_pc::ESCALAS_DA_COMPOSICAO;
+    let faixa = |e: (f64, f64)| format!("{} a {} dB", decimal(e.0, 0), decimal(e.1, 1).trim_end_matches(",0"));
+    let texto = format!(
+        "{}: vermelho, a mediana do VV ({}); verde, a do VH ({}); azul, VV − VH, a razão VV/VH ({}). Cidade e construções em rosa e magenta, mata e cerrado em amarelo e verde, lavoura e solo exposto em lilás, roxo e azul, água preta; as camadas VV e VH também ficam no mapa",
+        nome.trim_start_matches(PREFIXO),
+        faixa(r),
+        faixa(g),
+        faixa(b)
+    );
+    avisar(&texto);
+    let mut saida = vv;
+    saida["layer"] = json!(nome);
+    saida["report"] = json!(texto);
+    Ok(saida)
+}
+
+/// O radar do Sentinel-1 em 10 m do Planetary Computer ([`radar_pc`]): a mediana das passagens
+/// mais recentes da mesma órbita, na polarização `pol`, em dB, na grade do projeto, em Viridis. A
+/// janela da área de cada cena é lida por faixas; na janela do RustGIS, o comando roda de novo
+/// quando elas chegam. Com `reaproveitar`, a camada já no mapa com as mesmas passagens serve.
+fn radar_10m(req: &Request, pol: radar::Pol, reaproveitar: bool) -> Result<Value, String> {
     let n = req.f64("passagens").map_or(radar_pc::PASSAGENS, |x| x.round().max(0.0) as usize).clamp(2, radar_pc::MAX_PASSAGENS);
     let celula = req.f64("celula");
     if let Some(m) = celula {
@@ -3084,6 +3138,12 @@ fn radar_10m_no_tempo(req: &Request) -> Result<Value, String> {
         ));
     }
     let token = radar_pc::token(&r[1]).ok_or("o serviço de tokens do Planetary Computer não deu um token: tente de novo daqui a pouco")?;
+    let (ultima, primeira) = (passagens[0].data, passagens[passagens.len() - 1].data);
+    let nome = radar_pc::nome_da_camada(pol, passagens.len(), primeira, ultima);
+    let datas: Vec<String> = passagens.iter().map(|p| p.data.iso()).collect();
+    if reaproveitar && nomes()?.contains(&nome) {
+        return Ok(json!({"layer": nome, "dates": datas}));
+    }
     let leitura = radar_pc::celula_de_leitura(c, g.celula);
     let folga = 0.005;
     let janela = [c[0] - folga, c[1] - folga, c[2] + folga, c[3] + folga];
@@ -3136,8 +3196,6 @@ fn radar_10m_no_tempo(req: &Request) -> Result<Value, String> {
         ));
         return Ok(json!({"pending": lendo}));
     }
-    let (ultima, primeira) = (passagens[0].data, passagens[passagens.len() - 1].data);
-    let nome = radar_pc::nome_da_camada(pol, passagens.len(), primeira, ultima);
     let (mediana, log, recorte) = (format!("{nome} linear"), format!("{nome} log"), format!("{nome} recorte"));
     let mut temporarias: Vec<String> = Vec::new();
     remover(&[&nome, &mediana, &log, &recorte])?;
@@ -3224,7 +3282,7 @@ fn radar_10m_no_tempo(req: &Request) -> Result<Value, String> {
         texto.push_str(". A mediana precisa do RustGIS 0.8.0 ou mais novo; neste, foi a média");
     }
     avisar(&texto);
-    Ok(json!({"layer": nome, "dates": passagens.iter().map(|p| p.data.iso()).collect::<Vec<_>>(), "report": texto}))
+    Ok(json!({"layer": nome, "dates": datas, "report": texto}))
 }
 
 /// A composição colorida do NISAR: HH no vermelho, HV no verde e HH − HV no azul, em dB, nas

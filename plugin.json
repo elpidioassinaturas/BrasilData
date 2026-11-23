@@ -1,7 +1,7 @@
 {
   "id": "brasildata",
   "name": "BrasilData",
-  "version": "0.1.64",
+  "version": "0.1.65",
   "description": "Dados públicos do Brasil para a área do usuário (IBGE, MMA, ICMBio, INPE, CEMADEN, ANA, ANEEL, ANP, SFB/CAR, INCRA, FUNAI, IBAMA, ANM, DNIT, Ministério da Saúde, Copernicus, NASA/ASF, FAO, WRI, Open-Meteo, CHIRPS, Google DeepMind): só o que cruza a área, recortado por ela, com a fonte e a licença de cada camada.",
   "author": "Elpídio Filho",
   "homepage": "https://github.com/elpidioassinaturas/BrasilData",
@@ -1329,6 +1329,30 @@
       ]
     },
     {
+      "id": "radar-10m-cor",
+      "label": "Radar 10 m, composição colorida (Sentinel-1)",
+      "help": "A composição colorida do radar Sentinel-1 em 10 m: a mediana do VV no vermelho, a do VH no verde e VV − VH (a razão VV/VH, em dB) no azul. Cidade e construções em rosa e magenta, mata e cerrado em amarelo e verde, lavoura e solo exposto em lilás, roxo e azul, água preta: separa bem pivôs centrais e talhões. As camadas VV e VH da mediana (as do Radar 10 m, mediana no tempo) também ficam no mapa. Do Planetary Computer da Microsoft (coleção sentinel-1-rtc, CC-BY 4.0), sem login; só a janela da área de cada cena. Áreas de até cerca de 220 km; o dobro do tempo do Radar 10 m (uma leitura por polarização). Período: as passagens mais recentes da mesma órbita (de 2 a 30, uma a cada 12 dias). Resolução ou escala: 10 m. Unidades: dB em cada canal. Licença: CC-BY 4.0, com citação. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/radar-10m-cor.md",
+      "icon": "rgb",
+      "params": "{\"passagens\"?: de 2 a 30, quantas passagens (padrão 10), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 10)}",
+      "form": [
+        {
+          "name": "passagens",
+          "label": "Passagens",
+          "kind": "choice",
+          "choices": [
+            "4",
+            "6",
+            "10",
+            "15",
+            "20",
+            "30"
+          ],
+          "default": "10",
+          "help": "Quantas passagens da mesma órbita, das mais recentes (uma a cada 12 dias): mais passagens, menos granulado e mais tempo, mas misturam estações do ano."
+        }
+      ]
+    },
+    {
       "id": "nisar-cor",
       "label": "Composição colorida (NISAR, banda L)",
       "help": "A composição colorida: HH no vermelho, HV no verde e HH − HV no azul. No estilo das imagens do NISAR da NASA: mata em verde forte, cidade em rosa e magenta, pasto e solo exposto em azul e roxo escuros, água escura; as camadas HH, HV e a razão da mesma passagem também ficam no mapa. O radar de banda L do NISAR (NASA e ISRO), o GCOV corrigido do relevo, 20 m, em dB e com o filtro sigma de Lee contra o granulado: as cenas da passagem mais recente (ou a do dia escolhido na janela do comando) que cruzam o polígono da área, tiradas do HDF5 e recortadas pelo retângulo da área pelo Harmony da NASA, juntadas, recortadas pela área e postas na grade do projeto. A banda L (24 cm) atravessa mais as copas que a banda C do Sentinel-1. Pede o login Earthdata, que é grátis: o token vai no RustGIS (Início › Dados web › NASA Earthaccess › Earthdata Login), nunca no plugin. Áreas de até cerca de 110 km; cerca de 40 s por cena. Período: a passagem mais recente, ou a do dia escolhido. Resolução ou escala: 20 m. Unidades: dB em cada canal. Licença: dados da NASA de uso livre e aberto, com citação. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/nisar-cor.md",
@@ -2342,7 +2366,7 @@
     {
       "id": "sobre",
       "label": "Sobre",
-      "help": "BrasilData 0.1.64, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nAs fontes dos dados e como contribuir estão nas abas do fim do painel Área de trabalho: basta clicar nelas. Para lê-las aqui, marque a caixa e clique em Executar. A janela fica aberta até o X do canto de cima.",
+      "help": "BrasilData 0.1.65, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nAs fontes dos dados e como contribuir estão nas abas do fim do painel Área de trabalho: basta clicar nelas. Para lê-las aqui, marque a caixa e clique em Executar. A janela fica aberta até o X do canto de cima.",
       "icon": "about",
       "params": "{\"completo\"?: true para as fontes e como contribuir | \"parte\"?: \"tudo\" (padrão) | \"autoria\" | \"fontes\" | \"contribuir\"}",
       "form": [
@@ -2510,7 +2534,7 @@
         "kind": "text",
         "id": "sobre",
         "label": "Sobre o BrasilData: Autoria",
-        "text": "BrasilData 0.1.64, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData"
+        "text": "BrasilData 0.1.65, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData"
       }
     ]
   },
@@ -2842,6 +2866,7 @@
               "nisar-razao",
               "nisar-tempo",
               "radar-10m",
+              "radar-10m-cor",
               "nisar-cor"
             ]
           },
