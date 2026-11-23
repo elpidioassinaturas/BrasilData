@@ -2,7 +2,7 @@
 
 <!-- Gerado por scripts/gerar.py a partir do fontes.csv e do fichas.csv; não edite à mão. -->
 
-A ficha de cada uma das 166 camadas que os botões da aba BrasilData trazem: o que é, a fonte, o período, a resolução, as unidades, a legenda, a licença, a citação, os cuidados de uso, se funciona no app web, e um mapa exemplo feito com o plugin (o botão Layout). Os mapas exemplo são de Viçosa (MG), ou da Zona da Mata mineira para os produtos de baixa resolução; os temas que não existem lá vêm de outro município, dito em cada ficha. Os mapas saem do `scripts/mapas_exemplo.py`.
+A ficha de cada uma das 167 camadas que os botões da aba BrasilData trazem: o que é, a fonte, o período, a resolução, as unidades, a legenda, a licença, a citação, os cuidados de uso, se funciona no app web, e um mapa exemplo feito com o plugin (o botão Layout). Os mapas exemplo são de Viçosa (MG), ou da Zona da Mata mineira para os produtos de baixa resolução; os temas que não existem lá vêm de outro município, dito em cada ficha. Os mapas saem do `scripts/mapas_exemplo.py`.
 
 ## Território
 
@@ -101,6 +101,7 @@ A ficha de cada uma das 166 camadas que os botões da aba BrasilData trazem: o q
 | [Temperatura prevista (Open-Meteo)](temperatura-prevista.md) | Tempo e clima › Previsão | A temperatura do ar a 2 m prevista para os próximos dias por um modelo global: a média da máxima do dia, da mínima ou da média, nos dias pedidos. |
 | [Chuva do mês (CHIRPS v3)](chirps-mes.md) | Tempo e clima › Chuva observada | A chuva total de um mês, estimada por satélite (infravermelho) e corrigida com estações, do CHIRPS v3.0. |
 | [Radiação solar (NASA POWER)](sol-radiacao.md) | Tempo e clima › Clima | A irradiação solar global horizontal na superfície, com todos os céus (nuvens incluídas). |
+| [Vento a 50 m (NASA POWER)](vento-50m.md) | Tempo e clima › Clima | A velocidade média do vento a 50 m de altura, da reanálise MERRA-2. |
 | [Chuva nas estações (CEMADEN)](cemaden-chuva.md) | Tempo e clima › Chuva observada | A chuva medida nas estações automáticas do CEMADEN: os acumulados das últimas horas em cada pluviômetro e nas estações hidrológicas, geotécnicas e agrometeorológicas. |
 | [Chuva agora (PARDIG)](pardig-agora.md) | Tempo e clima › Chuva observada | A taxa de chuva de um instante, estimada por inteligência artificial a partir de satélites geoestacionários e de micro-ondas, treinada nas medidas do radar do satélite GPM (PARDIG, do Google DeepMind e do Google Research). |
 | [Alertas vigentes (CEMADEN)](cemaden-alertas.md) | Tempo e clima › Desastres | Os alertas de risco geo-hidrológico vigentes que o CEMADEN emite para a Defesa Civil: risco hidrológico (enxurradas, inundações) e movimentos de massa (deslizamentos), por município. |

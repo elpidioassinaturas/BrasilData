@@ -37,7 +37,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.66"
+VERSAO = "0.1.67"
 AUTOR = "Elpídio Filho"
 # Como o texto Sobre chama o autor (o manifesto e o README levam o nome completo).
 AUTOR_SOBRE = "Professor Elpídio"
@@ -1305,6 +1305,20 @@ EM_MENUS = [
             "params": "{\"mes\"?: de 1 a 12, a média diária desse mês (padrão: a do ano), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
             "form": [
                 {"name": "mes", "label": "Período", "kind": "choice", "required": True, "choices": [MEDIA_DO_ANO] + MESES, "default": MEDIA_DO_ANO, "help": "A média diária do ano, ou a de um mês, de 2001 a 2025."},
+            ],
+        },
+    ),
+    (
+        "Tempo e clima",
+        "Clima",
+        {
+            "id": "vento-50m",
+            "label": "Vento a 50 m (NASA POWER)",
+            "help": "A velocidade média do vento a 50 m de altura, em m/s: a média de 2001 a 2025, do ano ou de um mês, do NASA POWER (reanálise MERRA-2, NASA), em células de 0,625° × 0,5° (cerca de 55 × 65 km). As células em volta da área, com margem, viram um raster, interpolado (bilinear) para a grade do projeto e recortado pela área. Serve para o país, uma região ou um estado: é um modelo de cerca de 50 km, que não mostra o efeito do relevo nem serve para localizar turbinas; numa área com menos de umas 10 células, um aviso diz isso. Sem login. Precisa de um RustGIS com o Polígonos para raster (raster.rasterize, desde a 0.6.0).",
+            "icon": "raster_layer",
+            "params": "{\"mes\"?: de 1 a 12, a média desse mês (padrão: a do ano), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+            "form": [
+                {"name": "mes", "label": "Período", "kind": "choice", "required": True, "choices": [MEDIA_DO_ANO] + MESES, "default": MEDIA_DO_ANO, "help": "A média do ano, ou a de um mês, de 2001 a 2025."},
             ],
         },
     ),

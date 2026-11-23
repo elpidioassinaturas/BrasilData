@@ -234,7 +234,7 @@ pub fn normalizar(id: &str, params: &mut Value) {
     }
     match id {
         // O mês pelo nome; a média do ano é a radiação sem mês.
-        "risco-fogo" | "sol-radiacao" => {
+        "risco-fogo" | "sol-radiacao" | "vento-50m" => {
             let mes = p.get("mes").and_then(Value::as_str).map(str::to_string);
             if let Some(m) = mes {
                 if m == MEDIA_DO_ANO {
@@ -328,6 +328,8 @@ mod tests {
         );
         assert_eq!(norm("sol-radiacao", json!({"mes": MEDIA_DO_ANO})), json!({}));
         assert_eq!(norm("sol-radiacao", json!({"mes": "março"})), json!({"mes": 3}));
+        assert_eq!(norm("vento-50m", json!({"mes": MEDIA_DO_ANO})), json!({}));
+        assert_eq!(norm("vento-50m", json!({"mes": "setembro"})), json!({"mes": 9}));
         assert_eq!(norm("layout", json!({"perfil": "Folha A3", "estilo": "Pôster"})), json!({"perfil": "a3", "estilo": "poster"}));
         assert_eq!(norm("layout", json!({"perfil": "a2"})), json!({"perfil": "a2"}));
         assert_eq!(norm("layout", json!({"orientacao": "Paisagem (deitada)"})), json!({"orientacao": "paisagem"}));

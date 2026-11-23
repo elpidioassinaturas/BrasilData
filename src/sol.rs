@@ -9,7 +9,7 @@
 //!   viram um raster de 1° (`raster.rasterize`), que vai para a grade do projeto por interpolação
 //!   bilinear (a radiação varia devagar: a margem dá os vizinhos das bordas) e é recortado pela área.
 
-use serde_json::{Value, json};
+use serde_json::Value;
 
 /// O nome da camada.
 pub const CAMADA: &str = "BrasilData: Radiação solar (NASA POWER)";
@@ -21,9 +21,6 @@ pub const NA_GRADE: &str = "BrasilData: radiação solar na grade";
 
 /// O parâmetro do POWER.
 const PARAMETRO: &str = "ALLSKY_SFC_SW_DWN";
-
-/// O valor que o POWER dá onde não há dado.
-const SEM_DADO: f64 = -999.0;
 
 /// O campo das células.
 pub const CAMPO: &str = "kwh_m2_dia";
@@ -94,25 +91,33 @@ fn pedacos(a: i32, b: i32) -> Vec<(i32, i32)> {
 /// os pontos que voltam são os de centro dentro de cada retângulo, que não se sobrepõem. Cada
 /// resposta traz os 12 meses e o ano.
 pub fn pedidos(c: [f64; 4]) -> Vec<String> {
+    pedidos_de(c, PARAMETRO)
+}
+
+/// [`pedidos`] de outro parâmetro do POWER (um por pedido), em CSV, que é um terço do JSON.
+pub fn pedidos_de(c: [f64; 4], parametro: &str) -> Vec<String> {
     let (o, s) = (c[0].floor() as i32 - 1, c[1].floor() as i32 - 1);
     let (l, n) = (c[2].ceil() as i32 + 1, c[3].ceil() as i32 + 1);
     let mut urls = Vec::new();
     for (y0, y1) in pedacos(s, n) {
         for (x0, x1) in pedacos(o, l) {
             urls.push(format!(
-                "https://power.larc.nasa.gov/api/temporal/climatology/regional?latitude-min={y0}&latitude-max={y1}&longitude-min={x0}&longitude-max={x1}&parameters={PARAMETRO}&community=RE&format=JSON"
+                "https://power.larc.nasa.gov/api/temporal/climatology/regional?latitude-min={y0}&latitude-max={y1}&longitude-min={x0}&longitude-max={x1}&parameters={parametro}&community=RE&format=CSV"
             ));
         }
     }
     urls
 }
 
-/// O erro de uma resposta do POWER sem pontos (as `messages` dele).
-pub fn erro(resposta: &Value) -> Option<String> {
-    if resposta["features"].is_array() {
+/// O erro de uma resposta crua do `host.fetch` que não é o CSV do POWER (as `messages` dele).
+pub fn erro(resposta: &str) -> Option<String> {
+    if resposta.contains("-END HEADER-") {
         return None;
     }
-    let msgs: Vec<&str> = resposta["messages"].as_array().into_iter().flatten().filter_map(Value::as_str).collect();
+    // Uma recusa é curta; um texto longo que não é o CSV não se lê, pela cota de instruções.
+    let v: Value = Some(resposta).filter(|r| r.len() < 16_384).and_then(|r| serde_json::from_str(r).ok()).unwrap_or_default();
+    let corpo = v["ok"]["text"].as_str().and_then(|t| serde_json::from_str::<Value>(t).ok()).unwrap_or_default();
+    let msgs: Vec<&str> = corpo["messages"].as_array().into_iter().flatten().filter_map(Value::as_str).collect();
     Some(if msgs.is_empty() {
         "o NASA POWER não devolveu os pontos".into()
     } else {
@@ -120,27 +125,60 @@ pub fn erro(resposta: &Value) -> Option<String> {
     })
 }
 
-/// As células de 1° das `respostas`, com o valor do período em [`CAMPO`]: um polígono por ponto
-/// com dado, sem repetir pontos.
-pub fn celulas(respostas: &[Value], mes: Option<u8>) -> Value {
+/// As células de 1° das `respostas`, com o valor do período em [`CAMPO`] ([`celulas_de`]).
+pub fn celulas(respostas: &[&str], mes: Option<u8>) -> (String, usize) {
+    celulas_de(respostas, PARAMETRO, (1.0, 1.0), CAMPO, mes)
+}
+
+/// As células, do tamanho `lado` (longitude e latitude, em graus), das `respostas` cruas do
+/// `host.fetch`, como o texto de um GeoJSON com o valor do período em `campo`, e quantas são: um
+/// polígono por ponto com dado, sem repetir os das bordas. Cada resposta é o CSV do POWER dentro do
+/// JSON da resposta, com as quebras de linha escapadas: um cabeçalho livre, a linha dos nomes
+/// `PARAMETER,LAT,LON,JAN,…,ANN` e uma linha por ponto. Em texto, e não em `Value`: o Brasil inteiro
+/// (25 pedidos, mais de 2 mil pontos da radiação e 6 mil do vento) passaria da cota de instruções do
+/// plugin, com o JSON do POWER ou com o GeoJSON em `Value`.
+pub fn celulas_de(respostas: &[&str], parametro: &str, lado: (f64, f64), campo: &str, mes: Option<u8>) -> (String, usize) {
     let k = chave(mes);
-    let mut vistas: Vec<(i64, i64)> = Vec::new();
-    let mut feicoes = Vec::new();
-    for f in respostas.iter().flat_map(|r| r["features"].as_array().into_iter().flatten()) {
-        let p = &f["geometry"]["coordinates"];
-        let (Some(x), Some(y)) = (p[0].as_f64(), p[1].as_f64()) else { continue };
-        let Some(v) = f["properties"]["parameter"][PARAMETRO][k].as_f64() else { continue };
-        let chave = ((x * 2.0).round() as i64, (y * 2.0).round() as i64);
-        if v <= SEM_DADO + 0.5 || v < 0.0 || vistas.contains(&chave) {
-            continue;
+    let mut vistas = std::collections::HashSet::new();
+    let mut geojson = String::from("{\"type\":\"FeatureCollection\",\"features\":[");
+    for t in respostas {
+        let mut coluna = None;
+        for l in t.split("\\n") {
+            let l = l.trim_end_matches("\\r");
+            if let Some(nomes) = l.strip_prefix("PARAMETER,LAT,LON,") {
+                coluna = nomes.split(',').position(|n| n == k);
+                continue;
+            }
+            let (Some(i), Some(resto)) = (coluna, l.strip_prefix(parametro).and_then(|r| r.strip_prefix(','))) else { continue };
+            let mut p = resto.split(',');
+            let (Some(Ok(y)), Some(Ok(x)), Some(v)) = (p.next().map(str::parse::<f64>), p.next().map(str::parse::<f64>), p.nth(i)) else {
+                continue;
+            };
+            // O sem dado (-999) e o que não for um número ficam de fora.
+            let Some(v) = v.parse::<f64>().ok().filter(|v| *v >= 0.0 && v.is_finite()) else { continue };
+            // Em meias células: os pontos são múltiplos do lado, ou os centros entre eles.
+            if !vistas.insert(((x * 2.0 / lado.0).round() as i32, (y * 2.0 / lado.1).round() as i32)) {
+                continue;
+            }
+            if vistas.len() > 1 {
+                geojson.push(',');
+            }
+            let (x0, y0) = (decimos(x - lado.0 / 2.0), decimos(y - lado.1 / 2.0));
+            let (x1, y1) = (decimos(x + lado.0 / 2.0), decimos(y + lado.1 / 2.0));
+            let v = decimos(v);
+            geojson.push_str(&format!(
+                "{{\"type\":\"Feature\",\"geometry\":{{\"type\":\"Polygon\",\"coordinates\":[[[{x0},{y0}],[{x1},{y0}],[{x1},{y1}],[{x0},{y1}],[{x0},{y0}]]]}},\"properties\":{{\"{campo}\":{v}}}}}"
+            ));
         }
-        vistas.push(chave);
-        let (x0, y0, x1, y1) = (x - 0.5, y - 0.5, x + 0.5, y + 0.5);
-        feicoes.push(json!({"type": "Feature",
-            "geometry": {"type": "Polygon", "coordinates": [[[x0, y0], [x1, y0], [x1, y1], [x0, y1], [x0, y0]]]},
-            "properties": {CAMPO: v}}));
     }
-    json!({"type": "FeatureCollection", "features": feicoes})
+    geojson.push_str("]}");
+    (geojson, vistas.len())
+}
+
+/// `v` com quatro casas (os cantos das células são exatos nelas, e o POWER não dá mais), por
+/// inteiros, que custam menos que o texto de um `f64`.
+pub fn decimos(v: f64) -> String {
+    crate::malhas::decimos((v * 10_000.0).round() as i64)
 }
 
 /// A escala das cores, em kWh/m² por dia: o Brasil vai de cerca de 4 a 6,5 na média do ano.
@@ -153,13 +191,14 @@ pub const RAMPA: (&str, &str) =
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
 
     #[test]
     fn um_municipio_pede_um_retangulo_de_graus_inteiros_com_margem() {
         let u = pedidos([-43.0, -20.85, -42.75, -20.62]);
         assert_eq!(u.len(), 1);
         assert!(u[0].contains("latitude-min=-22&latitude-max=-19&longitude-min=-44&longitude-max=-41"), "{}", u[0]);
-        assert!(u[0].contains("parameters=ALLSKY_SFC_SW_DWN&community=RE&format=JSON"));
+        assert!(u[0].contains("parameters=ALLSKY_SFC_SW_DWN&community=RE&format=CSV"));
     }
 
     #[test]
@@ -178,24 +217,32 @@ mod tests {
 
     #[test]
     fn os_pontos_viram_celulas_de_um_grau_sem_os_sem_dado_e_sem_repetir() {
-        let ponto = |x: f64, y: f64, ann: f64, jan: f64| {
-            json!({"type": "Feature", "geometry": {"type": "Point", "coordinates": [x, y, 700.0]},
-                "properties": {"parameter": {"ALLSKY_SFC_SW_DWN": {"JAN": jan, "ANN": ann}}}})
-        };
-        let r = [
-            json!({"type": "FeatureCollection", "features": [ponto(-42.5, -20.5, 4.8554, 5.6), ponto(-41.5, -20.5, -999.0, -999.0)]}),
-            json!({"type": "FeatureCollection", "features": [ponto(-42.5, -20.5, 4.8554, 5.6), ponto(-42.5, -19.5, 4.84, 5.5)]}),
-        ];
-        let fc = celulas(&r, None);
+        let cab = "-BEGIN HEADER-\r\nLocation: Regional \r\n-END HEADER-\r\nPARAMETER,LAT,LON,JAN,FEB,MAR,APR,MAY,JUN,JUL,AUG,SEP,OCT,NOV,DEC,ANN\r\n";
+        let linha = |x: f64, y: f64, ann: f64, jan: f64| format!("ALLSKY_SFC_SW_DWN,{y},{x},{jan},2,3,4,5,6,7,8,9,10,11,12,{ann}\r\n");
+        // Como o `host.fetch` responde: o texto dentro de um JSON.
+        let resposta = |t: String| json!({"ok": {"status": 200, "text": t}}).to_string();
+        let a = resposta(format!("{cab}{}{}", linha(-42.5, -20.5, 4.8554, 5.6), linha(-41.5, -20.5, -999.0, -999.0)));
+        let b = resposta(format!("{cab}{}{}", linha(-42.5, -20.5, 4.8554, 5.6), linha(-42.5, -19.5, 4.84, 5.5)));
+        let r = [a.as_str(), b.as_str()];
+        let (texto, n) = celulas(&r, None);
+        let fc: Value = serde_json::from_str(&texto).unwrap();
         let f = fc["features"].as_array().unwrap();
-        assert_eq!(f.len(), 2);
+        assert_eq!((f.len(), n), (2, 2));
         assert_eq!(f[0]["properties"][CAMPO], 4.8554);
         assert_eq!(f[0]["geometry"]["coordinates"][0][0], json!([-43.0, -21.0]));
         assert_eq!(f[0]["geometry"]["coordinates"][0][2], json!([-42.0, -20.0]));
-        assert_eq!(celulas(&r, Some(1))["features"][1]["properties"][CAMPO], 5.5);
-        assert!(erro(&r[0]).is_none());
-        let recusa = json!({"header": "x", "messages": ["Please provide at least a 2 degree range in latitude."]});
+        let jan: Value = serde_json::from_str(&celulas(&r, Some(1)).0).unwrap();
+        assert_eq!(jan["features"][1]["properties"][CAMPO], 5.5);
+        assert!(erro(r[0]).is_none());
+        // Os centros em volta do zero não se confundem.
+        let c = resposta(format!("{cab}{}{}", linha(-60.5, -0.5, 4.5, 4.5), linha(-60.5, 0.5, 4.6, 4.6)));
+        assert_eq!(celulas(&[&c], None).1, 2);
+        // Uma recusa diz o motivo; outra coisa, que os pontos não vieram.
+        let recusa = resposta(json!({"header": "x", "messages": ["Please provide at least a 2 degree range in latitude."]}).to_string());
         assert!(erro(&recusa).unwrap().contains("2 degree range"));
+        assert_eq!(celulas(&[&recusa], None).1, 0);
+        assert_eq!(erro(&resposta("Service Unavailable".into())).unwrap(), "o NASA POWER não devolveu os pontos");
+        assert_eq!((decimos(-0.3125), decimos(0.25), decimos(-43.4375)), ("-0.3125".into(), "0.2500".into(), "-43.4375".into()));
     }
 
     #[test]

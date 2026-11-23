@@ -46,6 +46,7 @@ use crate::saude;
 use crate::sem_nuvens::{self, Caminho, Composicao, DataNaArea, Valor};
 use crate::sol;
 use crate::tempo;
+use crate::vento;
 use crate::versao;
 use crate::zoom;
 // A Chuva agora (PARDIG) fica em comandos/agora.rs.
@@ -212,6 +213,7 @@ fn executar_comando(req: Request) -> Result<Value, String> {
         "escolher-area" => escolher_area(&req),
         "elevacao" => elevacao(req.f64("celula")),
         "sol-radiacao" => sol_na_area(&req),
+        "vento-50m" => vento_na_area(&req),
         "chuva-prevista" => chuva_prevista(&req),
         "chuva-ensemble" => chuva_do_ensemble(&req),
         "temperatura-prevista" => temperatura_prevista(&req),
@@ -334,10 +336,20 @@ fn substituir(antigas: &[&str], destino: &str, veio: &Value) -> Result<(), Strin
     Ok(())
 }
 
-/// Põe `fc` como a área, no lugar da anterior.
-fn por_area(fc: Value) -> Result<Value, String> {
-    let caixa = caixa_de(&fc).ok_or("a área não tem geometria")?;
-    let texto = descrever(&fc);
+/// Uma camada nova, do `geojson` em texto, que vai no pedido como está: montá-lo como `Value` e
+/// copiá-lo para o pedido (o `host::add_layer`) custaria a cota de instruções do comando.
+fn por_geojson(nome: &str, geojson: &str) -> Result<(), String> {
+    let req = format!("{{\"op\":\"host.addLayer\",\"params\":{{\"name\":{},\"geojson\":{geojson}}}}}", json!(nome));
+    let r: Value = serde_json::from_slice(&chamar_cru(&req)?).map_err(|e| format!("resposta ilegível do host.addLayer ({e})"))?;
+    match r.get("error") {
+        Some(e) => Err(e.as_str().map(str::to_string).unwrap_or_else(|| e.to_string())),
+        None => Ok(()),
+    }
+}
+
+/// Põe o `geojson` (em texto), de retângulo `caixa`, como a área, no lugar da anterior. O `texto` é
+/// o do painel ([`texto_da_area`]).
+fn por_area(geojson: &str, caixa: [f64; 4], texto: &str) -> Result<Value, String> {
     // A grade acompanha a área, com as mesmas escolhas; no automático, o fuso pode mudar. Ela
     // vem antes, para a área ficar como a camada ativa.
     // Sem grade, a padrão (30 m, sistema automático): um comando de dados que a criasse antes de
@@ -351,7 +363,7 @@ fn por_area(fc: Value) -> Result<Value, String> {
         None => por_grade(Grade::nova(caixa, Escolha::Automatico, grade::celula_padrao(caixa)))?,
     });
     remover(&[AREA])?;
-    host::add_layer(AREA, fc)?;
+    por_geojson(AREA, geojson)?;
     vista_no_sistema(caixa, grade.as_ref().map(|g| g.epsg));
     // Escolhida pelo nome, a área pode estar longe da vista.
     host::run("layer.zoomTo", json!({"layer": AREA}))?;
@@ -568,6 +580,11 @@ fn camada_no_projeto(nome: &str) -> Result<Option<Value>, String> {
 /// simplificado (1/50 da diagonal do retângulo `c`), que é apagada em seguida: só os atributos
 /// interessam, e a cópia é leve em qualquer tamanho de área.
 fn nomes_da_area(c: [f64; 4]) -> Result<Vec<String>, String> {
+    Ok(nomes_nas_feicoes(&area_simplificada(c)?))
+}
+
+/// A área com o contorno bem simplificado, para ler os atributos ([`nomes_da_area`]).
+fn area_simplificada(c: [f64; 4]) -> Result<Value, String> {
     let lat = ((c[1] + c[3]) / 2.0).to_radians();
     let diagonal_km = ((c[2] - c[0]) * 111.32 * lat.cos()).hypot((c[3] - c[1]) * 110.57);
     let copia = format!("{AREA} (nomes)");
@@ -579,7 +596,7 @@ fn nomes_da_area(c: [f64; 4]) -> Result<Vec<String>, String> {
     )?;
     let fc = host::features(&copia, false);
     remover(&[&copia])?;
-    Ok(nomes_nas_feicoes(&fc?))
+    fc
 }
 
 /// O retângulo `[oeste, sul, leste, norte]` da camada `nome`, pelo RustGIS.
@@ -750,19 +767,30 @@ fn afinar_area(de_dados: bool) -> Result<Option<Value>, String> {
 /// e o Brasil são os seus estados, com o contorno detalhado). O nome vai em cada feição, para o
 /// painel dizer qual é a área.
 fn area_de(t: &Territorio) -> Result<Value, String> {
-    let mut feicoes = Vec::with_capacity(t.codigos.len());
-    for codigo in &t.codigos {
-        let geometria = malhas::geometria(codigo).ok_or_else(|| format!("o plugin não tem o limite de {} ({codigo})", t.nome))?;
-        let mut feicao = json!({"type": "Feature", "properties": {"nome": t.nome, "codigo": codigo}});
+    let mut geojson = String::from("{\"type\":\"FeatureCollection\",\"features\":[");
+    let mut caixa = [f64::MAX, f64::MAX, f64::MIN, f64::MIN];
+    for (i, codigo) in t.codigos.iter().enumerate() {
+        let mut p = json!({"nome": t.nome, "codigo": codigo});
         if !t.uf.is_empty() {
-            feicao["properties"]["uf"] = json!(t.uf);
+            p["uf"] = json!(t.uf);
         }
-        feicao["geometry"] = geometria;
-        feicoes.push(feicao);
+        // Só o contorno de um município se troca pelo oficial ([`afinar_area`], que assim reconhece
+        // as outras áreas sem ler as feições).
+        if codigo.len() != 7 {
+            p["malha"] = json!("embutida");
+        }
+        if i > 0 {
+            geojson.push(',');
+        }
+        geojson.push_str(&format!("{{\"type\":\"Feature\",\"properties\":{p},\"geometry\":"));
+        let r = malhas::escrever_geometria(codigo, &mut geojson)
+            .ok_or_else(|| format!("o plugin não tem o limite de {} ({codigo})", t.nome))?;
+        geojson.push('}');
+        caixa = [caixa[0].min(r[0]), caixa[1].min(r[1]), caixa[2].max(r[2]), caixa[3].max(r[3])];
     }
-    let mut fc = json!({"type": "FeatureCollection"});
-    fc["features"] = Value::Array(feicoes);
-    por_area(fc)
+    geojson.push_str("]}");
+    let nome = if t.uf.is_empty() { t.nome.clone() } else { format!("{} ({})", t.nome, t.uf) };
+    por_area(&geojson, caixa, &texto_da_area(&[nome], t.codigos.len(), Some(caixa)))
 }
 
 /// `r` com a árvore sem marca, depois de uma área que veio de outro lugar (a seleção, um desenho):
@@ -826,7 +854,8 @@ fn usar_desenho() -> Result<Value, String> {
             json!({"type": "Feature", "properties": {"nome": nome}, "geometry": g})
         })
         .collect();
-    let mut r = por_area(json!({"type": "FeatureCollection", "features": feicoes}))?;
+    let fc = json!({"type": "FeatureCollection", "features": feicoes});
+    let mut r = por_area(&fc.to_string(), caixa_de(&fc).ok_or("a área não tem geometria")?, &descrever(&fc))?;
     desistir_do_desenho(&mut r)?;
     desmarcar_na_arvore(&mut r);
     Ok(r)
@@ -1902,6 +1931,8 @@ fn citacoes() -> Result<(Vec<Value>, String), String> {
             lista.push(json!({"layer": n, "source": radar::CITACAO, "license": radar::LICENCA}));
         } else if sol::eh_do_sol(&n) {
             lista.push(json!({"layer": n, "source": sol::CITACAO, "license": sol::LICENCA}));
+        } else if vento::eh_do_vento(&n) {
+            lista.push(json!({"layer": n, "source": vento::CITACAO, "license": sol::LICENCA}));
         } else if tempo::eh_da_previsao(&n) {
             lista.push(json!({"layer": n, "source": tempo::citacao_da_camada(&n), "license": tempo::LICENCA}));
         } else if era5::eh_do_era5(&n) {
@@ -3354,17 +3385,24 @@ fn area_que_ha() -> Result<String, String> {
     // Um território escolhido no painel vem leve, com o nome; uma área de seleção pode ser
     // detalhada demais para o plugin ler, e fica com o retângulo e quantos polígonos são.
     let do_painel = camada["fields"].as_array().is_some_and(|f| f.iter().any(|c| c.as_str().is_some_and(|c| c.starts_with("nome "))));
-    if do_painel && n <= 50 {
+    // Uma grande região são os contornos dos estados dela, que juntos pesam demais.
+    if do_painel && n <= 50 && !area_de_estados(&camada) {
         return Ok(descrever(&host::features(AREA, false)?));
     }
-    // O limite oficial de um município ([`afinar_area`]) pode ser pesado demais para o plugin ler:
-    // os nomes vêm de uma cópia simplificada.
+    // O limite oficial de um município ([`afinar_area`]) também pode ser pesado demais para o plugin
+    // ler: os nomes vêm de uma cópia simplificada.
     if tem_campo(&camada, "malha")
         && let Some(c) = extensao(AREA)?
     {
         return Ok(texto_da_area(&nomes_da_area(c)?, n, Some(c)));
     }
     Ok(texto_da_area(&[], n, extensao(AREA)?))
+}
+
+/// Se a área (como [`camada_no_projeto`] a descreve) é uma grande região do painel: os contornos dos
+/// estados dela, que juntos o plugin não lê sem passar da cota de instruções.
+fn area_de_estados(camada: &Value) -> bool {
+    camada["features"].as_u64().unwrap_or(0) > 1 && tem_campo(camada, "malha") && tem_campo(camada, "codigo")
 }
 
 /// O estado do painel, quando ele abre.
@@ -3524,10 +3562,13 @@ const LIMITE_DE_MUNICIPIOS: usize = 200;
 /// Zona da Mata tem 142, e o retângulo dela pegava 288 no WFS, que passavam do
 /// [`LIMITE_DE_MUNICIPIOS`]. `None` sem área, ou num desenho ou numa seleção, que não têm código.
 fn municipios_das_malhas() -> Result<Option<Vec<String>>, String> {
-    if !nomes()?.iter().any(|n| n == AREA) {
+    let Some(camada) = camada_no_projeto(AREA)? else {
         return Ok(None);
-    }
-    let area = host::features(AREA, false)?;
+    };
+    let area = match extensao(AREA)? {
+        Some(c) if area_de_estados(&camada) => area_simplificada(c)?,
+        _ => host::features(AREA, false)?,
+    };
     let feicoes = area["features"].as_array().cloned().unwrap_or_default();
     if feicoes.is_empty() {
         return Ok(None);
@@ -4034,18 +4075,7 @@ fn por_feicoes(nome: &str, feicoes: &[String], recortar: bool) -> Result<u64, St
     let n = feicoes.len() as u64;
     // O GeoJSON vai como texto, montado aqui: como `Value`, centenas de pontos passavam da cota
     // de instruções do comando (ver `cemaden::chuva_dos_bytes`).
-    let camada = |nome: &str| -> Result<(), String> {
-        let req = format!(
-            r#"{{"op":"host.addLayer","params":{{"name":{},"geojson":{{"type":"FeatureCollection","features":[{}]}}}}}}"#,
-            serde_json::to_string(nome).map_err(|e| e.to_string())?,
-            feicoes.join(",")
-        );
-        let r: Value = serde_json::from_slice(&chamar_cru(&req)?).map_err(|e| format!("resposta ilegível do host.addLayer ({e})"))?;
-        match r.get("error") {
-            Some(e) => Err(e.as_str().map(str::to_string).unwrap_or_else(|| e.to_string())),
-            None => Ok(()),
-        }
-    };
+    let camada = |nome: &str| por_geojson(nome, &format!(r#"{{"type":"FeatureCollection","features":[{}]}}"#, feicoes.join(",")));
     if !recortar {
         camada(nome)?;
         return Ok(n);
@@ -4099,10 +4129,10 @@ fn chamar_cru(req: &str) -> Result<Vec<u8>, String> {
 /// `host::call` do SDK lê a resposta inteira (o texto e o JSON do documento) e a copia, e a
 /// chuva de três estados do CEMADEN (uns 250 KB cada) já passa da cota de instruções do
 /// comando. Uma resposta curta (um erro, o pedido pendente do app web) é lida. Como em
-/// [`buscar`], `Ok(Err(p))` é um pedido pendente: o RustGIS roda o comando de novo.
+/// [`buscar`], `Ok(Err(p))` é um pedido pendente (até 8 de cada vez): o RustGIS roda o comando de novo.
 fn buscar_bytes(urls: &[String]) -> Result<Result<Vec<Vec<u8>>, Value>, String> {
     let mut respostas = Vec::new();
-    let mut pendente = None;
+    let (mut pendente, mut esperando) = (None, 0);
     for url in urls {
         let buf = chamar_cru(&json!({"op": "host.fetch", "params": {"url": url}}).to_string())?;
         if buf.len() < 16_384 {
@@ -4112,6 +4142,10 @@ fn buscar_bytes(urls: &[String]) -> Result<Result<Vec<Vec<u8>>, Value>, String> 
             }
             if v["ok"].get("pending").and_then(Value::as_bool) == Some(true) {
                 pendente = Some(v["ok"].clone());
+                esperando += 1;
+                if esperando == 8 {
+                    break;
+                }
                 continue;
             }
         }
@@ -4578,15 +4612,15 @@ fn sol_na_area(req: &Request) -> Result<Value, String> {
     if !tem_comando("raster.rasterize")? {
         return Err("a radiação solar precisa de um RustGIS com o Polígonos para raster (raster.rasterize, desde a 0.6.0): as células de 1° do NASA POWER viram um raster com ele".into());
     }
-    let respostas = match buscar_varios(&sol::pedidos(c))? {
+    let respostas = match buscar_bytes(&sol::pedidos(c))? {
         Ok(r) => r,
         Err(p) => return Ok(p),
     };
-    if let Some(e) = respostas.iter().find_map(sol::erro) {
+    let textos: Vec<&str> = respostas.iter().map(|r| std::str::from_utf8(r).unwrap_or_default()).collect();
+    if let Some(e) = textos.iter().find_map(|t| sol::erro(t)) {
         return Err(e);
     }
-    let fc = sol::celulas(&respostas, mes);
-    let n = fc["features"].as_array().map_or(0, Vec::len);
+    let (geojson, n) = sol::celulas(&textos, mes);
     if n == 0 {
         return Err("o NASA POWER não tem a radiação solar na área".into());
     }
@@ -4596,7 +4630,7 @@ fn sol_na_area(req: &Request) -> Result<Value, String> {
     remover(&temporarias)?;
     remover(&[&saida])?;
     let feito = (|| -> Result<(), String> {
-        host::add_layer(sol::CELULAS, fc)?;
+        por_geojson(sol::CELULAS, &geojson)?;
         // Células de 1° com os cantos nos graus inteiros, como as do POWER.
         host::run(
             "raster.rasterize",
@@ -4631,6 +4665,85 @@ fn sol_na_area(req: &Request) -> Result<Value, String> {
         g.texto()
     ));
     Ok(json!({"layer": saida, "cells": n, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula}))
+}
+
+/// O vento a 50 m do NASA POWER na área ([`vento`]): as células do MERRA-2 em volta dela viram um
+/// raster, interpolado para a grade do projeto e recortado pela área.
+fn vento_na_area(req: &Request) -> Result<Value, String> {
+    let mes = sol::conferir_mes(req.f64("mes"))?;
+    let celula = req.f64("celula");
+    if let Some(m) = celula {
+        grade::conferir_celula(m)?;
+    }
+    let (c, na_area) = retangulo()?;
+    if !na_area {
+        return Err("escolha a área primeiro (painel Área de trabalho, ou Área: seleção)".into());
+    }
+    if !tem_comando("raster.rasterize")? {
+        return Err("o vento a 50 m precisa de um RustGIS com o Polígonos para raster (raster.rasterize, desde a 0.6.0): as células do NASA POWER viram um raster com ele".into());
+    }
+    let respostas = match buscar_bytes(&vento::pedidos(c))? {
+        Ok(r) => r,
+        Err(p) => return Ok(p),
+    };
+    let textos: Vec<&str> = respostas.iter().map(|r| std::str::from_utf8(r).unwrap_or_default()).collect();
+    if let Some(e) = textos.iter().find_map(|t| sol::erro(t)) {
+        return Err(e);
+    }
+    let merra2 = textos.iter().all(|t| vento::do_merra2(t));
+    let (geojson, n) = vento::celulas(&textos, mes);
+    if n == 0 {
+        return Err("o NASA POWER não tem o vento na área".into());
+    }
+    let g = grade_para(c, celula)?;
+    let saida = vento::camada(mes);
+    let temporarias = [vento::CELULAS, vento::RASTER, vento::NA_GRADE];
+    remover(&temporarias)?;
+    remover(&[&saida])?;
+    let feito = (|| -> Result<(), String> {
+        por_geojson(vento::CELULAS, &geojson)?;
+        host::run(
+            "raster.rasterize",
+            json!({"layer": vento::CELULAS, "field": vento::CAMPO, "nodata": -999, "crs": 4326, "cellSize": [vento::LADO.0, vento::LADO.1],
+                "origin": [vento::CANTO.0, vento::CANTO.1], "name": vento::RASTER}),
+        )?;
+        host::run(
+            "raster.project",
+            json!({"layer": vento::RASTER, "crs": g.epsg, "cellSize": g.celula, "extent": GRADE, "resampling": "bilinear", "name": vento::NA_GRADE}),
+        )?;
+        recortar(vento::NA_GRADE, AREA, &saida)?;
+        host::run("raster.mask", json!({"layer": saida, "min": 0.0, "max": 60.0}))?;
+        host::run("raster.symbology", json!({"layer": saida, "type": "stretch", "ramp": vento::RAMPA}))?;
+        let (a, b) = vento::ESCALA;
+        let _ = host::run("raster.stretch", json!({"layer": saida, "type": "custom", "min": a, "max": b}));
+        Ok(())
+    })();
+    remover(&temporarias)?;
+    feito?;
+    sob_as_linhas(&saida)?;
+    let media = host::run("raster.info", json!({"layer": saida}))
+        .ok()
+        .and_then(|i| i["bands"][0]["mean"].as_f64())
+        .map(|m| format!("; média na área: {} m/s", formatar_decimal(m)))
+        .unwrap_or_default();
+    let fonte = if merra2 { "NASA POWER, da reanálise MERRA-2" } else { "NASA POWER; a resposta não diz que é do MERRA-2" };
+    let mut texto = format!(
+        "{}: a velocidade {} de 2001 a 2025 ({fonte}), de {n} células de 0,625° × 0,5° em volta da área, interpolada para a grade do projeto, {}{media}",
+        saida.trim_start_matches(PREFIXO),
+        vento::periodo(mes),
+        g.texto()
+    );
+    avisar(&texto);
+    let cabem = vento::celulas_na_area(c);
+    if cabem < vento::MIN_CELULAS {
+        let aviso = format!(
+            "Vento a 50 m: no retângulo da área cabem {} células do dado (cerca de 55 × 65 km cada): o mapa mostra a interpolação entre elas, não o vento de cada lugar. Use o valor como regional",
+            decimal(cabem, 1)
+        );
+        avisar(&aviso);
+        texto = format!("{texto}\n\n{aviso}");
+    }
+    Ok(json!({"layer": saida, "cells": n, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula, "report": texto}))
 }
 
 /// O retângulo da área e a célula pedida, para a previsão do Open-Meteo, com as conferências

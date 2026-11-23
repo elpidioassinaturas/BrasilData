@@ -63,6 +63,7 @@ pub mod saude;
 pub mod sem_nuvens;
 pub mod sol;
 pub mod tempo;
+pub mod vento;
 pub mod versao;
 pub mod vista;
 pub mod zoom;

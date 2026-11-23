@@ -29,6 +29,7 @@ pub struct Receita {
 const NOTA_GEDI: &str = "Valores imputados a 30 m (cada pixel recebe o disparo do GEDI mais parecido pelas séries do Landsat): mostram padrões, não medidas locais.";
 const NOTA_SOL: &str =
     "Células de 1° (cerca de 110 km) do NASA POWER interpoladas para a grade: mostram a variação regional, não detalhes locais.";
+const NOTA_VENTO: &str = "Células de 0,625° × 0,5° (cerca de 55 × 65 km) da reanálise MERRA-2, interpoladas para a grade: mostram a variação regional, não o vento de cada lugar.";
 const NOTA_IRRIGACAO: &str =
     "Porcentagem de cada célula de 5′ (cerca de 9 km) equipada para irrigação por volta de 2005; a área de fato irrigada pode ser menor.";
 const NOTA_AQUEDUCT: &str = "Por sub-bacia (HydroBASINS, nível 6) e unidade administrativa: a retirada anual de água para todos os usos dividida pela oferta renovável de superfície e subterrânea.";
@@ -143,6 +144,15 @@ pub fn receita(nome: &str) -> Option<Receita> {
             barra: Some(("Radiação solar (kWh/m² por dia)".into(), 6)),
             legenda: None,
             nota: Some(NOTA_SOL),
+        });
+    }
+    if crate::vento::eh_do_vento(nome) {
+        let periodo = crate::vento::periodo(crate::vento::mes_da_camada(nome));
+        return Some(Receita {
+            subtitulo: format!("Vento a 50 m de altura, {periodo} de 2001 a 2025 (NASA POWER, MERRA-2)"),
+            barra: Some(("Velocidade do vento (m/s)".into(), 6)),
+            legenda: None,
+            nota: Some(NOTA_VENTO),
         });
     }
     if crate::tempo::eh_da_previsao(nome) {
@@ -624,6 +634,9 @@ mod tests {
         let r = receita(crate::sol::CAMADA).unwrap();
         assert_eq!(r.barra, Some(("Radiação solar (kWh/m² por dia)".into(), 6)));
         assert!(receita(&crate::sol::camada(Some(8))).unwrap().subtitulo.contains("média diária de agosto"));
+        let r = receita(&crate::vento::camada(Some(9))).unwrap();
+        assert_eq!(r.barra, Some(("Velocidade do vento (m/s)".into(), 6)));
+        assert!(r.subtitulo.contains("média de setembro"));
         let m = &crate::tempo::DETERMINISTICOS[0];
         let r = receita(&crate::tempo::camada_chuva(m, 5, "14/11", "18/11")).unwrap();
         assert_eq!(r.barra, Some(("Chuva (mm)".into(), 7)));

@@ -34,9 +34,8 @@ impl Leitor {
     }
 }
 
-/// A geometria GeoJSON (`Polygon` ou `MultiPolygon`) do código do IBGE: o de um estado (2 dígitos),
-/// mesorregião (4), microrregião (5) ou município (7), ou o do Brasil (0).
-pub fn geometria(codigo: &str) -> Option<Value> {
+/// Onde começa a malha do código do IBGE.
+fn inicio(codigo: &str) -> Option<usize> {
     let alvo: u32 = codigo.parse().ok()?;
     let (mut baixo, mut alto) = (0, u32_em(0) as usize);
     while baixo < alto {
@@ -50,7 +49,13 @@ pub fn geometria(codigo: &str) -> Option<Value> {
     if baixo == u32_em(0) as usize || u32_em(4 + 8 * baixo) != alvo {
         return None;
     }
-    let mut l = Leitor { pos: u32_em(4 + 8 * baixo + 4) as usize };
+    Some(u32_em(4 + 8 * baixo + 4) as usize)
+}
+
+/// A geometria GeoJSON (`Polygon` ou `MultiPolygon`) do código do IBGE: o de um estado (2 dígitos),
+/// mesorregião (4), microrregião (5) ou município (7), ou o do Brasil (0).
+pub fn geometria(codigo: &str) -> Option<Value> {
+    let mut l = Leitor { pos: inicio(codigo)? };
     let (mut x, mut y) = (0, 0);
     let mut poligonos: Vec<Value> = Vec::new();
     for _ in 0..l.varint() {
@@ -72,6 +77,75 @@ pub fn geometria(codigo: &str) -> Option<Value> {
     let mut g = json!({"type": tipo});
     g["coordinates"] = coordenadas;
     Some(g)
+}
+
+/// [`geometria`], em texto, no fim de `s`, e o retângulo dela. É o que a área usa: os contornos dos
+/// estados do Norte ou do Nordeste, em `Value`, passavam da cota de instruções do plugin. Um código
+/// sem malha deixa `s` como estava.
+pub fn escrever_geometria(codigo: &str, s: &mut String) -> Option<[f64; 4]> {
+    let mut l = Leitor { pos: inicio(codigo)? };
+    let (mut x, mut y) = (0, 0);
+    let mut caixa = [i64::MAX, i64::MAX, i64::MIN, i64::MIN];
+    let n = l.varint();
+    s.push_str(if n == 1 { "{\"type\":\"Polygon\",\"coordinates\":" } else { "{\"type\":\"MultiPolygon\",\"coordinates\":[" });
+    for i in 0..n {
+        if i > 0 {
+            s.push(',');
+        }
+        s.push('[');
+        for j in 0..l.varint() {
+            if j > 0 {
+                s.push(',');
+            }
+            s.push('[');
+            for k in 0..l.varint() {
+                if k > 0 {
+                    s.push(',');
+                }
+                x += l.zigzag();
+                y += l.zigzag();
+                caixa = [caixa[0].min(x), caixa[1].min(y), caixa[2].max(x), caixa[3].max(y)];
+                s.push('[');
+                escrever_decimos(x, s);
+                s.push(',');
+                escrever_decimos(y, s);
+                s.push(']');
+            }
+            s.push(']');
+        }
+        s.push(']');
+    }
+    s.push_str(if n == 1 { "}" } else { "]}" });
+    Some(caixa.map(|v| v as f64 / 10_000.0))
+}
+
+/// `n` décimos de milésimo, com as quatro casas: -434375 é "-43.4375". Por inteiros e algarismo por
+/// algarismo, que custam menos que o texto de um `f64` e que o `format!`.
+fn escrever_decimos(n: i64, s: &mut String) {
+    let mut algarismos = [0u8; 20];
+    let (mut resto, mut i) = (n.unsigned_abs(), 0);
+    while resto > 0 || i < 5 {
+        algarismos[i] = b'0' + (resto % 10) as u8;
+        resto /= 10;
+        i += 1;
+    }
+    if n < 0 {
+        s.push('-');
+    }
+    while i > 0 {
+        i -= 1;
+        s.push(char::from(algarismos[i]));
+        if i == 4 {
+            s.push('.');
+        }
+    }
+}
+
+/// [`escrever_decimos`], num texto novo.
+pub fn decimos(n: i64) -> String {
+    let mut s = String::new();
+    escrever_decimos(n, &mut s);
+    s
 }
 
 /// Se o contorno de um polígono desenhado (`Polygon` em GeoJSON) cruza a si mesmo. Um polígono em
@@ -194,6 +268,23 @@ mod tests {
             [-42.93977890916313, -21.082850702795508],
             [-42.94572345740798, -20.94253509968024]
         ]))));
+    }
+
+    #[test]
+    fn a_geometria_em_texto_e_a_mesma() {
+        // Estados de várias partes e de uma só, o Brasil e municípios.
+        for c in ["0", "21", "26", "31", "3171303", "2605459"] {
+            let mut s = String::from("antes");
+            let r = escrever_geometria(c, &mut s).unwrap();
+            let g: Value = serde_json::from_str(s.strip_prefix("antes").unwrap()).unwrap();
+            assert_eq!(g, geometria(c).unwrap(), "{c}");
+            assert_eq!(r, caixa(c), "{c}");
+        }
+        let mut s = String::from("antes");
+        assert!(escrever_geometria("99", &mut s).is_none() && s == "antes");
+        for (n, t) in [(0, "0.0000"), (5, "0.0005"), (-3125, "-0.3125"), (-434_375, "-43.4375"), (2500, "0.2500"), (10_000, "1.0000")] {
+            assert_eq!(decimos(n), t);
+        }
     }
 
     /// Os pontos dos anéis de uma geometria; e confere que os anéis fecham.

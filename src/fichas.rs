@@ -63,6 +63,8 @@ pub fn comando_da_camada(nome: &str, fonte: &str) -> Option<&'static str> {
         }
     } else if sol::eh_do_sol(nome) {
         "sol-radiacao"
+    } else if crate::vento::eh_do_vento(nome) {
+        "vento-50m"
     } else if risco_fogo::mes_da_camada(nome).is_some() {
         "risco-fogo"
     } else if nome == irrigacao::CAMADA {
@@ -147,6 +149,8 @@ mod tests {
             ("BrasilData: Composição HH, HV, HH − HV (NISAR, 01/11/2026)", "nisar-cor"),
             ("BrasilData: Composição temporal HH, HV, variação do HV (NISAR, 08/10/2026 a 13/11/2026)", "nisar-tempo"),
             ("BrasilData: Razão VH/VV em dB (Sentinel-1, 26/10/2026)", "radar-razao"),
+            ("BrasilData: Vento a 50 m (NASA POWER)", "vento-50m"),
+            ("BrasilData: Vento a 50 m em março (NASA POWER)", "vento-50m"),
             ("BrasilData: Radar VV 10 m, mediana de 10 passagens (Sentinel-1, 03/08/2026 a 19/11/2026)", "radar-10m"),
             ("BrasilData: Composição VV, VH, VV/VH 10 m, mediana de 10 passagens (Sentinel-1, 03/08/2026 a 19/11/2026)", "radar-10m-cor"),
             ("BrasilData: Perturbação, dias antes de 28/02/2026 (OPERA DIST-S1)", "dist-data"),
