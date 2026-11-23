@@ -14,7 +14,7 @@ A composição colorida do radar Sentinel-1 em 10 m: a mediana do VV no vermelho
 | **Resolução ou escala** | 10 m |
 | **Unidades** | dB em cada canal |
 | **Legenda** | Cidade e construções em rosa e magenta, mata e cerrado em amarelo e verde, lavoura e solo exposto em lilás, roxo e azul, água preta. |
-| **Cuidados de uso** | A mediana mistura as estações do ano: um pivô com culturas diferentes no período sai em setores de cores diferentes. O relevo íngreme deixa sombras e encostas claras. A resolução real do GRD é de cerca de 20 × 22 m, em pixels de 10 m. Precisa do RustGIS desktop ou de linha de comando (a janela remota); áreas de até cerca de 220 km. |
+| **Cuidados de uso** | A mediana mistura as estações do ano: um pivô com culturas diferentes no período sai em setores de cores diferentes. O relevo íngreme deixa sombras e encostas claras. A posição não é exata: em oito áreas planas do Brasil, o dado ficou de 13 a 33 m a oeste do Sentinel-2 (mediana de 18 m; medido em 22/11/2026), e no relevo forte o desvio muda de um lugar para outro; confira antes de sobrepor a outro dado de 10 m. A resolução real do GRD é de cerca de 20 × 22 m, em pixels de 10 m. Precisa do RustGIS desktop ou de linha de comando (a janela remota); áreas de até cerca de 220 km. |
 | **Licença** | CC-BY 4.0, com citação |
 | **Citação** | Sentinel-1 Radiometrically Terrain Corrected (RTC), Microsoft Planetary Computer, coleção sentinel-1-rtc, processado pela Catalyst a partir do GRD da ESA; contém dados Copernicus Sentinel-1 modificados (ESA). |
 | **App desktop** | sim |

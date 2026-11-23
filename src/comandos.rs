@@ -3044,7 +3044,20 @@ fn radar_10m_no_tempo(req: &Request) -> Result<Value, String> {
         Some("VH") | Some("vh") => radar::Pol::Vh,
         Some(o) => return Err(format!("polarização '{o}': use VV ou VH")),
     };
-    radar_10m(req, pol, false)
+    radar_10m(req, pol, false).map(com_aviso_de_posicao)
+}
+
+/// O resultado `r` do radar de 10 m com o aviso da posição ([`radar_pc::AVISO_POSICAO`]), no mapa e no
+/// texto da janela do comando; um pedido pendente fica como está.
+fn com_aviso_de_posicao(mut r: Value) -> Value {
+    if pendente(&r) || r.get("layer").is_none() {
+        return r;
+    }
+    avisar(radar_pc::AVISO_POSICAO);
+    if let Some(t) = r["report"].as_str() {
+        r["report"] = json!(format!("{t}\n\n{}", radar_pc::AVISO_POSICAO));
+    }
+    r
 }
 
 /// A composição colorida do radar de 10 m: a mediana do VV no vermelho, a do VH no verde e VV − VH
@@ -3091,7 +3104,7 @@ fn radar_10m_cor(req: &Request) -> Result<Value, String> {
     let mut saida = vv;
     saida["layer"] = json!(nome);
     saida["report"] = json!(texto);
-    Ok(saida)
+    Ok(com_aviso_de_posicao(saida))
 }
 
 /// O radar do Sentinel-1 em 10 m do Planetary Computer ([`radar_pc`]): a mediana das passagens

@@ -37,7 +37,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.65"
+VERSAO = "0.1.66"
 AUTOR = "Elpídio Filho"
 # Como o texto Sobre chama o autor (o manifesto e o README levam o nome completo).
 AUTOR_SOBRE = "Professor Elpídio"
@@ -866,7 +866,7 @@ EM_MENUS = [
         {
             "id": "radar-10m",
             "label": "Radar 10 m, mediana no tempo (Sentinel-1)",
-            "help": "O retroespalhamento do radar Sentinel-1 (banda C) em 10 m, corrigido do relevo, como no Sentinel-1 Global Backscatter Model: a mediana das passagens mais recentes da mesma órbita (uma a cada 12 dias), que tira o granulado sem borrar as bordas, em dB e em Viridis (água e sombra do relevo escuras, cidade e encostas viradas para o satélite em amarelo). Do Planetary Computer da Microsoft (coleção sentinel-1-rtc, processada pela Catalyst, CC-BY 4.0): só a janela da área de cada cena, lida por faixas, sem login. Sem grade no mapa, cria uma de 10 m; numa grade mais grossa, a janela vem de uma visão reduzida do arquivo. Áreas de até cerca de 220 km; cerca de 20 s por passagem num município (10 passagens: uns 3 min).",
+            "help": "O retroespalhamento do radar Sentinel-1 (banda C) em 10 m, corrigido do relevo, como no Sentinel-1 Global Backscatter Model: a mediana das passagens mais recentes da mesma órbita (uma a cada 12 dias), que tira o granulado sem borrar as bordas, em dB e em Viridis (água e sombra do relevo escuras, cidade e encostas viradas para o satélite em amarelo). Do Planetary Computer da Microsoft (coleção sentinel-1-rtc, processada pela Catalyst, CC-BY 4.0): só a janela da área de cada cena, lida por faixas, sem login. Sem grade no mapa, cria uma de 10 m; numa grade mais grossa, a janela vem de uma visão reduzida do arquivo. Áreas de até cerca de 220 km; cerca de 20 s por passagem num município (10 passagens: uns 3 min). A posição do dado não é exata: de 13 a 33 m a oeste do Sentinel-2 em oito áreas planas do Brasil, e variável no relevo forte.",
             "icon": "raster_layer",
             "params": "{\"polarizacao\"?: \"VV\" (padrão) ou \"VH\", \"passagens\"?: de 2 a 30, quantas passagens (padrão 10), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 10)}",
             "form": [
@@ -881,7 +881,7 @@ EM_MENUS = [
         {
             "id": "radar-10m-cor",
             "label": "Radar 10 m, composição colorida (Sentinel-1)",
-            "help": "A composição colorida do radar Sentinel-1 em 10 m: a mediana do VV no vermelho, a do VH no verde e VV − VH (a razão VV/VH, em dB) no azul. Cidade e construções em rosa e magenta, mata e cerrado em amarelo e verde, lavoura e solo exposto em lilás, roxo e azul, água preta: separa bem pivôs centrais e talhões. As camadas VV e VH da mediana (as do Radar 10 m, mediana no tempo) também ficam no mapa. Do Planetary Computer da Microsoft (coleção sentinel-1-rtc, CC-BY 4.0), sem login; só a janela da área de cada cena. Áreas de até cerca de 220 km; o dobro do tempo do Radar 10 m (uma leitura por polarização).",
+            "help": "A composição colorida do radar Sentinel-1 em 10 m: a mediana do VV no vermelho, a do VH no verde e VV − VH (a razão VV/VH, em dB) no azul. Cidade e construções em rosa e magenta, mata e cerrado em amarelo e verde, lavoura e solo exposto em lilás, roxo e azul, água preta: separa bem pivôs centrais e talhões. As camadas VV e VH da mediana (as do Radar 10 m, mediana no tempo) também ficam no mapa. Do Planetary Computer da Microsoft (coleção sentinel-1-rtc, CC-BY 4.0), sem login; só a janela da área de cada cena. Áreas de até cerca de 220 km; o dobro do tempo do Radar 10 m (uma leitura por polarização). A posição do dado não é exata: de 13 a 33 m a oeste do Sentinel-2 em oito áreas planas do Brasil, e variável no relevo forte.",
             "icon": "rgb",
             "params": "{\"passagens\"?: de 2 a 30, quantas passagens (padrão 10), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 10)}",
             "form": [

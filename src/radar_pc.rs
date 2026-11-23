@@ -12,6 +12,13 @@
 //! - **Os valores:** só a janela da área de cada cena, lida por faixas (`layer.addUrl` com
 //!   `bbox`), posta na grade do projeto; a mediana das passagens (`cube.reduce`) tira o granulado
 //!   sem borrar as bordas, como no Sentinel-1 Global Backscatter Model da TU Wien, e chega em dB.
+//! - **A posição:** o dado vem deslocado para oeste. Medido em 22/11/2026 contra o Sentinel-2 L2A
+//!   (VH mediano x NDVI, em oito áreas planas, 17 medidas, S1A, S1C e S1D): de 13 a 33 m a oeste,
+//!   mediana de 18 m, e de 7 m ao sul a 8 m ao norte; o controle, Sentinel-2 x Sentinel-2, dá até
+//!   1,4 m. Não é desta leitura: o rasterio e o RustGIS leem o arquivo no mesmo lugar (1 m). Não
+//!   inverte entre as órbitas na única área com as duas (Cascavel: 33 m na descendente, 25 m na
+//!   ascendente), e em Viçosa, de relevo forte, muda ao longo da área. Sem um valor único, nada é
+//!   corrigido: o comando e a ficha avisam ([`AVISO_POSICAO`]).
 
 use serde_json::Value;
 
@@ -55,6 +62,10 @@ pub fn escala(p: Pol) -> (f64, f64) {
         Pol::Vh => (-18.0, -9.0),
     }
 }
+
+/// O aviso da posição, dado depois da camada (o RustGIS corta um aviso em 500 caracteres, e o texto da
+/// camada já ocupa quase tudo).
+pub const AVISO_POSICAO: &str = "Radar 10 m: a posição deste dado não é exata. Em oito áreas planas do Brasil ele ficou de 13 a 33 m a oeste do Sentinel-2 (mediana de 18 m), e no relevo forte o desvio muda de um lugar para outro. Confira antes de sobrepor a outro dado de 10 m";
 
 /// A chave do arquivo da polarização na cena.
 fn chave(p: Pol) -> &'static str {
@@ -224,6 +235,11 @@ mod tests {
         assert_eq!(token(&json!({"token": ""})), None);
         assert_eq!(assinar("https://x/a.tiff", "st=1&sig=b"), "https://x/a.tiff?st=1&sig=b");
         assert_eq!(assinar("https://x/a.tiff?st=1", "st=2"), "https://x/a.tiff?st=1");
+    }
+
+    #[test]
+    fn o_aviso_da_posicao_cabe_num_aviso_do_rustgis() {
+        assert!(AVISO_POSICAO.chars().count() <= 480, "{}", AVISO_POSICAO.chars().count());
     }
 
     #[test]
