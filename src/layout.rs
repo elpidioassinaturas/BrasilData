@@ -30,6 +30,7 @@ const NOTA_GEDI: &str = "Valores imputados a 30 m (cada pixel recebe o disparo d
 const NOTA_SOL: &str =
     "Células de 1° (cerca de 110 km) do NASA POWER interpoladas para a grade: mostram a variação regional, não detalhes locais.";
 const NOTA_VENTO: &str = "Células de 0,625° × 0,5° (cerca de 55 × 65 km) da reanálise MERRA-2, interpoladas para a grade: mostram a variação regional, não o vento de cada lugar.";
+const NOTA_EMIT: &str = "Contornos das cenas da refletância hiperespectral (60 m) do EMIT, na Estação Espacial Internacional; onde elas se sobrepõem, aparece a menos nublada. A nuvem é a fração da cena inteira, não de cada lugar dela.";
 const NOTA_IRRIGACAO: &str =
     "Porcentagem de cada célula de 5′ (cerca de 9 km) equipada para irrigação por volta de 2005; a área de fato irrigada pode ser menor.";
 const NOTA_AQUEDUCT: &str = "Por sub-bacia (HydroBASINS, nível 6) e unidade administrativa: a retirada anual de água para todos os usos dividida pela oferta renovável de superfície e subterrânea.";
@@ -44,6 +45,7 @@ const NOTA_SEM_NUVENS: &str = "O melhor pixel das datas de 16 dias do cubo de da
 const NOTA_BDC: &str = "Compostos de 16 dias do cubo de dados do INPE (Brazil Data Cube), com o pixel mais limpo de cada período; nuvens e sombras persistentes ainda podem aparecer.";
 const NOTA_CTREES: &str = "Biomassa estimada por um modelo de IA calibrado com lidar aéreo e parcelas de campo, a partir do Landsat, do radar ALOS PALSAR-2 e das alturas do GEDI; a série da CTrees ainda está em pré-publicação, sem revisão por pares.";
 const NOTA_FORTY: &str = "Códigos da legenda: 1 floresta primária, 2 em regeneração natural, 3 plantada, 4 plantio florestal comercial, 5 culturas arbóreas e agrofloresta, 6 outros usos. Classes de um modelo de IA sobre imagens de 2020, alinhadas à FAO e ao EUDR.";
+const NOTA_WORLDCOVER: &str = "Códigos da legenda: 10 árvores, 20 arbustos, 30 campo e pastagem, 40 cultivos anuais, 50 área construída, 60 solo exposto ou vegetação esparsa, 80 água, 90 área úmida herbácea, 95 manguezal. Mapa mundial feito com o Sentinel-1 e o Sentinel-2; os de 2020 e 2021 usam versões diferentes do algoritmo e não se subtraem.";
 const NOTA_OLM: &str = "Propriedade do solo prevista a 30 m por aprendizado de máquina sobre amostras de solo do mundo inteiro (OpenLandMap-soildb): mostra padrões, não substitui a análise de laboratório; o Brasil tem menos amostras que a Europa e os Estados Unidos.";
 const NOTA_GEDTM: &str = "Derivada do GEDTM30, um modelo do terreno a 30 m feito por aprendizado de máquina com os pontos de laser do ICESat-2 e do GEDI: sob a mata o terreno é estimado, não medido.";
 const NOTA_GEOMORFONS: &str = "Códigos da legenda: 1 plano, 2 pico, 3 crista, 4 ombro, 5 esporão, 6 encosta, 7 concavidade, 8 sopé, 9 vale, 10 depressão. Formas do relevo do GEDTM30 (OpenGeoHub), um terreno feito por aprendizado de máquina com o laser do ICESat-2 e do GEDI.";
@@ -144,6 +146,15 @@ pub fn receita(nome: &str) -> Option<Receita> {
             barra: Some(("Radiação solar (kWh/m² por dia)".into(), 6)),
             legenda: None,
             nota: Some(NOTA_SOL),
+        });
+    }
+    if crate::emit::eh_do_emit(nome) {
+        return Some(Receita {
+            subtitulo: format!("Cenas do EMIT{} (NASA)", crate::emit::quais(nome)),
+            barra: None,
+            // Sem título: ele tiraria da caixa as linhas das classes.
+            legenda: None,
+            nota: Some(NOTA_EMIT),
         });
     }
     if crate::vento::eh_do_vento(nome) {
@@ -328,6 +339,15 @@ pub fn receita(nome: &str) -> Option<Receita> {
             barra: None,
             legenda: Some("Tipo de floresta (código)"),
             nota: Some(NOTA_FORTY),
+        });
+    }
+    if let Some(ano) = crate::worldcover::ano_da_camada(nome) {
+        return Some(Receita {
+            subtitulo: format!("Cobertura da terra em {ano} a 10 m (ESA WorldCover)"),
+            barra: None,
+            // Sem título: ele tiraria linhas da caixa, e as últimas classes sumiriam.
+            legenda: None,
+            nota: Some(NOTA_WORLDCOVER),
         });
     }
     if let Some(m) = crate::gem15::Modelo::TODOS.into_iter().find(|m| m.camada() == nome) {

@@ -1,7 +1,7 @@
 {
   "id": "brasildata",
   "name": "BrasilData",
-  "version": "0.1.67",
+  "version": "0.1.68",
   "description": "Dados públicos do Brasil para a área do usuário (IBGE, MMA, ICMBio, INPE, CEMADEN, ANA, ANEEL, ANP, SFB/CAR, INCRA, FUNAI, IBAMA, ANM, DNIT, Ministério da Saúde, Copernicus, NASA/ASF, FAO, WRI, Open-Meteo, CHIRPS, Google DeepMind): só o que cruza a área, recortado por ela, com a fonte e a licença de cada camada.",
   "author": "Elpídio Filho",
   "homepage": "https://github.com/elpidioassinaturas/BrasilData",
@@ -948,6 +948,27 @@
       ]
     },
     {
+      "id": "worldcover",
+      "label": "Cobertura da terra a 10 m (ESA WorldCover)",
+      "help": "A cobertura da terra do ESA WorldCover a 10 m, de 2020 ou 2021, com as cores da legenda oficial: árvores, arbustos, campo e pastagem, cultivos, área construída, solo exposto, água, área úmida e manguezal. Um mapa mundial, feito com o Sentinel-1 e o Sentinel-2 por um consórcio liderado pela VITO (licença CC BY 4.0): serve também para áreas que passam da fronteira. Só a área, lida de cada bloco de 3° que ela toca no Planetary Computer da Microsoft, sem login, posta na grade do projeto com a classe mais frequente e recortada pelo contorno; sem grade no mapa, cria uma de 10 m; numa grade mais grossa, lida da visão reduzida do arquivo. Os dois anos usam versões diferentes do algoritmo: a diferença entre eles não é só mudança do terreno (para isso, o MapBiomas). Pastagem e campo nativo são a mesma classe; cultivos são só os anuais (as lavouras perenes lenhosas, como o café, entram em árvores ou arbustos). Até 24 blocos por clique: um município, uma região ou um estado médio. Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área); só no app desktop e no rustgis-cli. Período: 2020 (versão 100 do algoritmo) ou 2021 (versão 200). Resolução ou escala: 1/12.000° (cerca de 10 m), posta na grade do projeto com a classe mais frequente; numa grade mais grossa, a visão reduzida do arquivo (a classe mais frequente). Unidades: classe (valor do pixel, de 10 a 100). Licença: CC BY 4.0. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/worldcover.md",
+      "icon": "unique",
+      "params": "{\"ano\"?: 2020 ou 2021 (padrão 2021), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 10)}",
+      "form": [
+        {
+          "name": "ano",
+          "label": "Ano",
+          "kind": "choice",
+          "required": true,
+          "choices": [
+            "2021 (o mais recente)",
+            "2020 (algoritmo anterior)"
+          ],
+          "default": "2021 (o mais recente)",
+          "help": "O ano do mapa. O de 2021 é a versão 200 do algoritmo e o de 2020 a 100: não subtraia um do outro."
+        }
+      ]
+    },
+    {
       "id": "bdc-indice",
       "label": "Índice de vegetação (cubo do INPE)",
       "help": "O NDVI ou o EVI do cubo de dados do INPE (Brazil Data Cube), dos compostos de 16 dias do Sentinel-2, do Landsat, do CBERS-4 WFI ou do MODIS, resumido num período: a média das datas, a máxima, a mínima ou o desvio-padrão. Os compostos já tiram as nuvens (o pixel mais limpo de cada 16 dias). Só a área, lida pelo RustGIS da coleção no STAC do INPE (sem login), posta na grade do projeto e recortada pelo contorno. Sem período, os 3 meses até a data mais recente do cubo. Precisa de um RustGIS com o resumo de um cubo STAC (cube.reduce, desde a 0.6.0); só no app desktop e no rustgis-cli. Período: Sentinel-2 desde 2017, Landsat desde 1990, CBERS-4 desde 2016, MODIS desde 2000, até a data mais recente. Resolução ou escala: 10 m (Sentinel-2), 30 m (Landsat), 64 m (CBERS-4 WFI) ou 232 m (MODIS). Unidades: índice, de -1 a 1 (a vegetação vai de 0,2 a 0,9). Licença: Sentinel-2: dados Copernicus, livres com atribuição; Landsat: domínio público (USGS); CBERS-4: CC BY 4.0 (INPE); MODIS: sem restrição de uso (NASA LP DAAC). Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/bdc-indice.md",
@@ -1220,6 +1241,35 @@
         }
       ],
       "login": "earthdata"
+    },
+    {
+      "id": "emit-cenas",
+      "label": "Cenas hiperespectrais do EMIT (NASA)",
+      "help": "Onde há cena do EMIT, o espectrômetro de imagem da NASA na Estação Espacial Internacional (refletância da superfície em 285 bandas, de 381 a 2.493 nm, 60 m, desde agosto de 2022): o contorno de cada cena que cruza a área (sem área, a vista), na cor da nuvem dela, a menos nublada por cima. Os campos dizem a data, a hora, a nuvem, a versão, o endereço da prévia (aberta) e o do arquivo netCDF (quase 2 GB por cena, com o login Earthdata), que o plugin não baixa. A janela do comando escolhe o limite de nuvem e o ano. A nuvem é da cena inteira, não da área. A versão 002 vale no lugar da 001 na mesma cena. Sem login para a lista. Período: de agosto de 2022 em diante, todos os anos ou um só. Resolução ou escala: contornos das cenas (cerca de 80 km de lado); a imagem tem 60 m e 285 bandas, de 381 a 2.493 nm. Unidades: nuvem da cena, em %. Licença: dados da NASA de uso livre e aberto, com citação. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/emit-cenas.md",
+      "icon": "polygon_layer",
+      "params": "{\"nuvem\"?: de 0 a 100, o limite de nuvem da cena, em % (padrão 30; 100: todas), \"ano\"?: de 2022 em diante (padrão: todos)}",
+      "form": [
+        {
+          "name": "nuvem",
+          "label": "Nuvem na cena",
+          "kind": "choice",
+          "required": true,
+          "choices": [
+            "até 10%",
+            "até 30%",
+            "até 50%",
+            "todas as cenas"
+          ],
+          "default": "até 30%",
+          "help": "Só as cenas com até essa fração de nuvem, na cena inteira."
+        },
+        {
+          "name": "ano",
+          "label": "Ano",
+          "kind": "text",
+          "help": "Só as cenas desse ano, de 2022 em diante. Vazio: todos os anos."
+        }
+      ]
     },
     {
       "id": "nisar-hh",
@@ -2110,7 +2160,7 @@
     {
       "id": "gedtm-relevo",
       "label": "Relevo e derivadas (GEDTM30)",
-      "help": "As variáveis do relevo do GEDTM30 da OpenGeoHub (o terreno global a 30 m feito por aprendizado de máquina com os pontos de laser do ICESat-2 e do GEDI; licença CC BY 4.0), as covariáveis de relevo do mapeamento de solos: a elevação do terreno nu (da cópia da OpenTopography), a declividade, o índice topográfico de umidade, a diferença da elevação média em volta, a rugosidade, as curvaturas (mínima, máxima, de perfil, tangencial e anelar), o índice de forma, as aberturas positiva e negativa, o sombreamento, os geomorfons (dez formas do relevo, de pico a depressão) e o fator LS da equação de perda de solo. Algumas também calculadas sobre o terreno de 480 e 960 m (os geomorfons em todas as escalas, de 30 a 960 m): a escala maior mostra a encosta inteira, não os detalhes de 30 m. As aberturas, o índice de forma e a curvatura anelar só vêm nas escalas maiores: o RustGIS não lê por partes os outros arquivos da OpenGeoHub. Só a área, lida do arquivo global da variável, posta na grade do projeto e recortada pelo contorno; numa área grande, lida da pirâmide do arquivo. Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área). Período: terreno de 2000 a 2022 (v1.0, de dezembro de 2024; o sombreamento e as escalas de 480 e 960 m do TWI, da diferença da elevação média, da rugosidade e das curvaturas mínima e máxima, da v1.2, de março de 2026). Resolução ou escala: 0,00025° (cerca de 30 m); nas escalas maiores, 240, 480 ou 960 m; numa área grande, a pirâmide do arquivo. Unidades: m (elevação e diferença da elevação média), graus (declividade, rugosidade e aberturas), 1/m (curvaturas), classe (geomorfons) ou índice sem unidade. Licença: CC BY 4.0. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/gedtm-relevo.md",
+      "help": "As variáveis do relevo do GEDTM30 da OpenGeoHub (o terreno global a 30 m feito por aprendizado de máquina com os pontos de laser do ICESat-2 e do GEDI; licença CC BY 4.0), as covariáveis de relevo do mapeamento de solos: a elevação do terreno nu (da cópia da OpenTopography), a declividade, o índice topográfico de umidade, a diferença da elevação média em volta, a rugosidade, as curvaturas (mínima, máxima, de perfil, tangencial e anelar), o índice de forma, as aberturas positiva e negativa, o sombreamento, os geomorfons (dez formas do relevo, de pico a depressão) e o fator LS da equação de perda de solo. Algumas também calculadas sobre o terreno de 480 e 960 m (os geomorfons em todas as escalas, de 30 a 960 m): a escala maior mostra a encosta inteira, não os detalhes de 30 m. As aberturas, o índice de forma e a curvatura anelar só vêm nas escalas maiores: o RustGIS não lê por partes os outros arquivos da OpenGeoHub. Só a área, lida do arquivo global da variável, posta na grade do projeto e recortada pelo contorno; numa grade mais grossa, lida da pirâmide (menos os geomorfons). Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área). Período: terreno de 2000 a 2022 (v1.0, de dezembro de 2024; o sombreamento e as escalas de 480 e 960 m do TWI, da diferença da elevação média, da rugosidade e das curvaturas mínima e máxima, da v1.2, de março de 2026). Resolução ou escala: 0,00025° (cerca de 30 m); nas escalas maiores, 240, 480 ou 960 m; numa grade mais grossa ou numa área grande, a pirâmide do arquivo (média; os geomorfons vêm sempre da imagem inteira). Unidades: m (elevação e diferença da elevação média), graus (declividade, rugosidade e aberturas), 1/m (curvaturas), classe (geomorfons) ou índice sem unidade. Licença: CC BY 4.0. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/gedtm-relevo.md",
       "icon": "relief",
       "params": "{\"variavel\"?: \"elevacao\" (padrão) | \"declividade\" | \"twi\" | \"dfme\" | \"rugosidade\" | \"curvatura-minima\" | \"curvatura-maxima\" | \"curvatura-perfil\" | \"curvatura-tangencial\" | \"curvatura-anelar\" | \"indice-forma\" | \"abertura-positiva\" | \"abertura-negativa\" | \"sombreamento\" | \"geomorfons\" | \"fator-ls\", \"escala\"?: 30 (padrão), 60, 120, 240, 480 ou 960 m (a que a variável não tem dá a mais próxima que ela tem, com aviso), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
       "form": [
@@ -2398,7 +2448,7 @@
     {
       "id": "sobre",
       "label": "Sobre",
-      "help": "BrasilData 0.1.67, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nAs fontes dos dados e como contribuir estão nas abas do fim do painel Área de trabalho: basta clicar nelas. Para lê-las aqui, marque a caixa e clique em Executar. A janela fica aberta até o X do canto de cima.",
+      "help": "BrasilData 0.1.68, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nAs fontes dos dados e como contribuir estão nas abas do fim do painel Área de trabalho: basta clicar nelas. Para lê-las aqui, marque a caixa e clique em Executar. A janela fica aberta até o X do canto de cima.",
       "icon": "about",
       "params": "{\"completo\"?: true para as fontes e como contribuir | \"parte\"?: \"tudo\" (padrão) | \"autoria\" | \"fontes\" | \"contribuir\"}",
       "form": [
@@ -2566,7 +2616,7 @@
         "kind": "text",
         "id": "sobre",
         "label": "Sobre o BrasilData: Autoria",
-        "text": "BrasilData 0.1.67, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData"
+        "text": "BrasilData 0.1.68, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData"
       }
     ]
   },
@@ -2744,7 +2794,8 @@
               "mg-zee-erosao",
               "mg-zee-risco-erosao",
               "olm-solo",
-              "gdo-seca"
+              "gdo-seca",
+              "emit-cenas"
             ]
           }
         ]
@@ -2891,9 +2942,11 @@
             "items": [
               "mapbiomas-cobertura",
               "clms-cobertura",
+              "worldcover",
               "radar-vv",
               "radar-vh",
               "radar-razao",
+              "emit-cenas",
               "nisar-hh",
               "nisar-hv",
               "nisar-razao",

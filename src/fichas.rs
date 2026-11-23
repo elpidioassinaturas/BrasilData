@@ -65,6 +65,8 @@ pub fn comando_da_camada(nome: &str, fonte: &str) -> Option<&'static str> {
         "sol-radiacao"
     } else if crate::vento::eh_do_vento(nome) {
         "vento-50m"
+    } else if crate::emit::eh_do_emit(nome) {
+        "emit-cenas"
     } else if risco_fogo::mes_da_camada(nome).is_some() {
         "risco-fogo"
     } else if nome == irrigacao::CAMADA {
@@ -111,6 +113,8 @@ pub fn comando_da_camada(nome: &str, fonte: &str) -> Option<&'static str> {
         "gem15"
     } else if clms::ano_da_camada(nome).is_some() {
         "clms-cobertura"
+    } else if crate::worldcover::ano_da_camada(nome).is_some() {
+        "worldcover"
     } else if n.starts_with("Elevação (Copernicus") {
         "elevacao"
     } else if n.starts_with("Setores censitários") {
@@ -150,6 +154,7 @@ mod tests {
             ("BrasilData: Composição temporal HH, HV, variação do HV (NISAR, 08/10/2026 a 13/11/2026)", "nisar-tempo"),
             ("BrasilData: Razão VH/VV em dB (Sentinel-1, 26/10/2026)", "radar-razao"),
             ("BrasilData: Vento a 50 m (NASA POWER)", "vento-50m"),
+            ("BrasilData: Cenas do EMIT de 2024 com até 30% de nuvem (NASA)", "emit-cenas"),
             ("BrasilData: Vento a 50 m em março (NASA POWER)", "vento-50m"),
             ("BrasilData: Radar VV 10 m, mediana de 10 passagens (Sentinel-1, 03/08/2026 a 19/11/2026)", "radar-10m"),
             ("BrasilData: Composição VV, VH, VV/VH 10 m, mediana de 10 passagens (Sentinel-1, 03/08/2026 a 19/11/2026)", "radar-10m-cor"),
@@ -173,6 +178,7 @@ mod tests {
             (crate::anadem::CAMADA, "anadem"),
             ("BrasilData: Metano no ar, XCH4 (Sentinel-5P, março de 2023)", "metano-tropomi"),
             (irrigacao::CAMADA, "irrigacao-gmia"),
+            ("BrasilData: Cobertura da terra 2021 (ESA WorldCover, 10 m)", "worldcover"),
         ];
         for (nome, id) in casos {
             assert_eq!(comando_da_camada(nome, ""), Some(id), "{nome}");

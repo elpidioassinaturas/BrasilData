@@ -26,6 +26,7 @@ pub mod ctrees;
 pub mod datas;
 pub mod dialogos;
 pub mod dist;
+pub mod emit;
 pub mod era5;
 pub mod estilo;
 pub mod extensoes;
@@ -66,6 +67,7 @@ pub mod tempo;
 pub mod vento;
 pub mod versao;
 pub mod vista;
+pub mod worldcover;
 pub mod zoom;
 
 pub use catalogo::{FICHAS, SOBRE, SOBRE_AVISO, TEMAS};

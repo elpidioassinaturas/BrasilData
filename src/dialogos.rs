@@ -173,6 +173,12 @@ pub const PERIODOS_METANO: [(&str, &str); 13] = [
     ("dezembro de 2023", "2023-12"),
 ];
 
+/// As escolhas do limite de nuvem das cenas do EMIT, em %.
+pub const NUVENS_EMIT: [(&str, &str); 4] = [("até 10%", "10"), ("até 30%", "30"), ("até 50%", "50"), ("todas as cenas", "100")];
+
+/// As escolhas do ano do WorldCover e o `ano` de cada uma.
+pub const ANOS_WORLDCOVER: [(&str, &str); 2] = [("2021 (o mais recente)", "2021"), ("2020 (algoritmo anterior)", "2020")];
+
 /// As escolhas de um parâmetro e o valor de cada uma.
 type Escolhas = &'static [(&'static str, &'static str)];
 
@@ -211,6 +217,8 @@ const TROCAS: &[(&str, &str, Escolhas)] = &[
     ("chuva-ensemble", "modelo", &ESCOLHAS_ENSEMBLES),
     ("chuva-ensemble", "medida", &ESCOLHAS_MEDIDAS),
     ("metano-tropomi", "periodo", &PERIODOS_METANO),
+    ("emit-cenas", "nuvem", &NUVENS_EMIT),
+    ("worldcover", "ano", &ANOS_WORLDCOVER),
 ];
 
 /// O número do mês de nome `nome` (janeiro é 1).
@@ -251,6 +259,16 @@ pub fn normalizar(id: &str, params: &mut Value) {
             let e = p.get(campo).and_then(Value::as_str).and_then(|t| t.trim().parse::<f64>().ok());
             if let Some(e) = e {
                 p.insert(campo.into(), json!(e));
+            }
+        }
+        // A nuvem e o ano das cenas do EMIT, como números; um que não é número vira −1, que o comando
+        // recusa dizendo por quê (como texto, seria ignorado).
+        "emit-cenas" => {
+            for campo in ["nuvem", "ano"] {
+                let v = p.get(campo).and_then(Value::as_str).map(|t| t.trim().trim_end_matches('%').parse::<f64>().unwrap_or(-1.0));
+                if let Some(v) = v {
+                    p.insert(campo.into(), json!(v));
+                }
             }
         }
         // Outro sistema, pelo código EPSG, vale no lugar da escolha.
@@ -330,6 +348,9 @@ mod tests {
         assert_eq!(norm("sol-radiacao", json!({"mes": "março"})), json!({"mes": 3}));
         assert_eq!(norm("vento-50m", json!({"mes": MEDIA_DO_ANO})), json!({}));
         assert_eq!(norm("vento-50m", json!({"mes": "setembro"})), json!({"mes": 9}));
+        assert_eq!(norm("emit-cenas", json!({"nuvem": "até 30%", "ano": "2024"})), json!({"nuvem": 30.0, "ano": 2024.0}));
+        assert_eq!(norm("emit-cenas", json!({"nuvem": "todas as cenas", "ano": " "})), json!({"nuvem": 100.0}));
+        assert_eq!(norm("emit-cenas", json!({"nuvem": 40, "ano": "dois mil"})), json!({"nuvem": 40, "ano": -1.0}));
         assert_eq!(norm("layout", json!({"perfil": "Folha A3", "estilo": "Pôster"})), json!({"perfil": "a3", "estilo": "poster"}));
         assert_eq!(norm("layout", json!({"perfil": "a2"})), json!({"perfil": "a2"}));
         assert_eq!(norm("layout", json!({"orientacao": "Paisagem (deitada)"})), json!({"orientacao": "paisagem"}));

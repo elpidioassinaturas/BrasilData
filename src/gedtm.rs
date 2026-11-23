@@ -18,8 +18,8 @@
 //!   a declividade ou a umidade de uma encosta inteira aparecem na escala maior, os detalhes de
 //!   30 m somem. Uma escala que a variável não tem dá a mais próxima que ela tem, com aviso.
 //! - **Como:** só a janela da área (`layer.addUrl` com `bbox`), do nível de pirâmide mais grosso
-//!   cujas células não passam das da grade; o valor passa à unidade, vai para a grade do projeto e
-//!   é recortado pela área.
+//!   cujas células não passam das da grade (menos os geomorfons: a pirâmide deles é a média dos
+//!   códigos); o valor passa à unidade, vai para a grade do projeto e é recortado pela área.
 //! - **App web:** os dois servidores mandam o cabeçalho CORS: funciona também no navegador.
 
 use crate::cog_global::Arquivo;
@@ -285,7 +285,8 @@ impl Variavel {
     }
 
     /// O arquivo da variável na escala `escala` (m, uma das [`Variavel::escalas`]), com a célula e
-    /// as pirâmides.
+    /// as pirâmides que servem: as dos geomorfons são a média dos códigos, que não é classe nenhuma,
+    /// e eles se leem sempre da imagem inteira.
     pub fn arquivo(self, escala: u32) -> Arquivo {
         if escala == 30
             && let Some((servidor, caminho, graus)) = self.de_30m()
@@ -297,7 +298,7 @@ impl Variavel {
         Arquivo {
             url: format!("{CEPH}/gedtmlsp_{}_m_{escala}m_sg_{}_go01_epsg4326_{}_srl03.tif", m.codigo, m.periodo, m.versao),
             graus: m.graus * f64::from(vezes),
-            piramides: 10 - vezes.trailing_zeros() as i32,
+            piramides: if self.classes() { 0 } else { 10 - vezes.trailing_zeros() as i32 },
         }
     }
 }
@@ -416,7 +417,9 @@ mod tests {
         assert_eq!(t.piramides, 6);
         let g = Variavel::Geomorfons.arquivo(30);
         assert!(g.url.ends_with("gedtmlsp_geomrphn_m_30m_sg_20000101_20221231_go01_epsg4326_v1.0.0_srl03.tif"));
-        assert_eq!((g.graus, g.piramides), (EDTM, 10));
+        // As pirâmides dos geomorfons são médias de códigos: não se leem.
+        assert_eq!((g.graus, g.piramides), (EDTM, 0));
+        assert_eq!(Variavel::Geomorfons.arquivo(480).piramides, 0);
         assert_eq!(Variavel::AberturaPositiva.arquivo(960).piramides, 5);
         assert!(Variavel::Sombreamento.arquivo(30).url.starts_with(CEPH));
         let e = Variavel::Elevacao.arquivo(30);

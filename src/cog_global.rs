@@ -12,6 +12,14 @@ pub const MAX_VALORES: f64 = 60e6;
 /// Um metro em graus de latitude (o inverso).
 const GRAU_M: f64 = 111_320.0;
 
+/// O `cellSize` que faz o `layer.addUrl` ler a visão cuja célula tem `graus` de lado: em metros, com
+/// o grau valendo 111,32 km (é como ele mede um arquivo em longitude e latitude), e com folga, porque
+/// a célula de uma visão reduzida pode passar um pouco do dobro e ele só a escolhe se ela não passar
+/// do pedido.
+pub fn celula_pedida(graus: f64) -> f64 {
+    graus * GRAU_M * 1.05
+}
+
 /// O arquivo: o endereço, o lado da célula do arquivo inteiro, em graus, e quantos níveis de
 /// pirâmide ele tem além do inteiro.
 #[derive(Clone, Debug, PartialEq)]
@@ -75,6 +83,13 @@ mod tests {
         // Viçosa cabe a 30 m; Minas Gerais inteira, só da pirâmide de cerca de 200 m.
         assert_eq!(a.nivel_que_cabe([-43.003, -20.838, -42.754, -20.655], 0), Some(0));
         assert_eq!(a.nivel_que_cabe([-51.05, -22.93, -39.85, -14.23], 0), Some(3));
+        // O pedido, em metros, escolhe a visão do nível e não a seguinte. A dos arquivos passa até
+        // 0,3% do dobro.
+        for k in 0..=10 {
+            let lado = 27.83 * 2f64.powi(k);
+            let pedido = celula_pedida(a.graus_do_nivel(k));
+            assert!(pedido > 1.003 * lado && pedido < 1.5 * lado, "{k}");
+        }
         // O Brasil inteiro, da pirâmide de uns 900 m; o mundo não cabe com só duas pirâmides.
         assert_eq!(a.nivel_que_cabe([-74.0, -34.0, -34.8, 5.3], 0), Some(5));
         assert_eq!(Arquivo { piramides: 2, ..a }.nivel_que_cabe([-180.0, -56.0, 180.0, 76.0], 0), None);

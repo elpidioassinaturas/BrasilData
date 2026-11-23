@@ -37,7 +37,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.67"
+VERSAO = "0.1.68"
 AUTOR = "Elpídio Filho"
 # Como o texto Sobre chama o autor (o manifesto e o README levam o nome completo).
 AUTOR_SOBRE = "Professor Elpídio"
@@ -79,6 +79,10 @@ CAMADAS_CTREES = ["Biomassa (Mg/ha)", "Incerteza: erro-padrão (Mg/ha)"]
 INDICADORES_GDO = ["Anomalia da umidade do solo", "Anomalia da vegetação (fAPAR)", "SPI de 1 mês (CHIRPS)", "SPI de 3 meses (CHIRPS)", "SPI de 6 meses (CHIRPS)", "SPI de 12 meses (CHIRPS)"]
 ORIENTACOES = ["Automática: a que der o mapa maior", "Retrato (em pé)", "Paisagem (deitada)"]
 ESTILOS = ["Clássico", "Faixa", "Painel", "Editorial", "Modular", "Pôster"]
+# As escolhas do limite de nuvem das cenas do EMIT (as mesmas de src/dialogos.rs).
+NUVENS_EMIT = ["até 10%", "até 30%", "até 50%", "todas as cenas"]
+# As escolhas do ano do WorldCover (as mesmas de src/dialogos.rs).
+ANOS_WORLDCOVER = ["2021 (o mais recente)", "2020 (algoritmo anterior)"]
 PALETAS = ["A do BrasilData: etapa e confiança", "A oficial da OPERA"]
 # As escolhas do tema Tempo e clima (iguais às de src/tempo.rs).
 MODELOS_PREVISAO = ["ECMWF IFS (15 dias)", "ECMWF AIFS, de IA (15 dias)", "GFS da NOAA (16 dias)", "ICON do DWD (7 dias)", "O melhor do Open-Meteo para o lugar (16 dias)"]
@@ -615,6 +619,20 @@ EM_MENUS = [
     ),
     (
         "Vegetação e meio ambiente",
+        "Uso e cobertura",
+        {
+            "id": "worldcover",
+            "label": "Cobertura da terra a 10 m (ESA WorldCover)",
+            "help": "A cobertura da terra do ESA WorldCover a 10 m, de 2020 ou 2021, com as cores da legenda oficial: árvores, arbustos, campo e pastagem, cultivos, área construída, solo exposto, água, área úmida e manguezal. Um mapa mundial, feito com o Sentinel-1 e o Sentinel-2 por um consórcio liderado pela VITO (licença CC BY 4.0): serve também para áreas que passam da fronteira. Só a área, lida de cada bloco de 3° que ela toca no Planetary Computer da Microsoft, sem login, posta na grade do projeto com a classe mais frequente e recortada pelo contorno; sem grade no mapa, cria uma de 10 m; numa grade mais grossa, lida da visão reduzida do arquivo. Os dois anos usam versões diferentes do algoritmo: a diferença entre eles não é só mudança do terreno (para isso, o MapBiomas). Pastagem e campo nativo são a mesma classe; cultivos são só os anuais (as lavouras perenes lenhosas, como o café, entram em árvores ou arbustos). Até 24 blocos por clique: um município, uma região ou um estado médio. Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área); só no app desktop e no rustgis-cli.",
+            "icon": "unique",
+            "params": "{\"ano\"?: 2020 ou 2021 (padrão 2021), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 10)}",
+            "form": [
+                {"name": "ano", "label": "Ano", "kind": "choice", "required": True, "choices": ANOS_WORLDCOVER, "default": ANOS_WORLDCOVER[0], "help": "O ano do mapa. O de 2021 é a versão 200 do algoritmo e o de 2020 a 100: não subtraia um do outro."},
+            ],
+        },
+    ),
+    (
+        "Vegetação e meio ambiente",
         "Cubo de dados do INPE",
         {
             "id": "bdc-indice",
@@ -801,6 +819,21 @@ EM_MENUS = [
             "params": "{\"data\"?: \"dd/mm/aaaa\", a passagem desse dia (padrão: a mais recente que cobre a área), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
             "form": [
                 {"name": "data", "label": "Data da passagem", "kind": "text", "help": "A passagem do satélite desse dia, dd/mm/aaaa. Vazio: a mais recente que cobre a área."},
+            ],
+        },
+    ),
+    (
+        "Vegetação e meio ambiente",
+        "Uso e cobertura",
+        {
+            "id": "emit-cenas",
+            "label": "Cenas hiperespectrais do EMIT (NASA)",
+            "help": "Onde há cena do EMIT, o espectrômetro de imagem da NASA na Estação Espacial Internacional (refletância da superfície em 285 bandas, de 381 a 2.493 nm, 60 m, desde agosto de 2022): o contorno de cada cena que cruza a área (sem área, a vista), na cor da nuvem dela, a menos nublada por cima. Os campos dizem a data, a hora, a nuvem, a versão, o endereço da prévia (aberta) e o do arquivo netCDF (quase 2 GB por cena, com o login Earthdata), que o plugin não baixa. A janela do comando escolhe o limite de nuvem e o ano. A nuvem é da cena inteira, não da área. A versão 002 vale no lugar da 001 na mesma cena. Sem login para a lista.",
+            "icon": "polygon_layer",
+            "params": "{\"nuvem\"?: de 0 a 100, o limite de nuvem da cena, em % (padrão 30; 100: todas), \"ano\"?: de 2022 em diante (padrão: todos)}",
+            "form": [
+                {"name": "nuvem", "label": "Nuvem na cena", "kind": "choice", "required": True, "choices": NUVENS_EMIT, "default": NUVENS_EMIT[1], "help": "Só as cenas com até essa fração de nuvem, na cena inteira."},
+                {"name": "ano", "label": "Ano", "kind": "text", "help": "Só as cenas desse ano, de 2022 em diante. Vazio: todos os anos."},
             ],
         },
     ),
@@ -1389,7 +1422,7 @@ EM_MENUS = [
         {
             "id": "gedtm-relevo",
             "label": "Relevo e derivadas (GEDTM30)",
-            "help": "As variáveis do relevo do GEDTM30 da OpenGeoHub (o terreno global a 30 m feito por aprendizado de máquina com os pontos de laser do ICESat-2 e do GEDI; licença CC BY 4.0), as covariáveis de relevo do mapeamento de solos: a elevação do terreno nu (da cópia da OpenTopography), a declividade, o índice topográfico de umidade, a diferença da elevação média em volta, a rugosidade, as curvaturas (mínima, máxima, de perfil, tangencial e anelar), o índice de forma, as aberturas positiva e negativa, o sombreamento, os geomorfons (dez formas do relevo, de pico a depressão) e o fator LS da equação de perda de solo. Algumas também calculadas sobre o terreno de 480 e 960 m (os geomorfons em todas as escalas, de 30 a 960 m): a escala maior mostra a encosta inteira, não os detalhes de 30 m. As aberturas, o índice de forma e a curvatura anelar só vêm nas escalas maiores: o RustGIS não lê por partes os outros arquivos da OpenGeoHub. Só a área, lida do arquivo global da variável, posta na grade do projeto e recortada pelo contorno; numa área grande, lida da pirâmide do arquivo. Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área).",
+            "help": "As variáveis do relevo do GEDTM30 da OpenGeoHub (o terreno global a 30 m feito por aprendizado de máquina com os pontos de laser do ICESat-2 e do GEDI; licença CC BY 4.0), as covariáveis de relevo do mapeamento de solos: a elevação do terreno nu (da cópia da OpenTopography), a declividade, o índice topográfico de umidade, a diferença da elevação média em volta, a rugosidade, as curvaturas (mínima, máxima, de perfil, tangencial e anelar), o índice de forma, as aberturas positiva e negativa, o sombreamento, os geomorfons (dez formas do relevo, de pico a depressão) e o fator LS da equação de perda de solo. Algumas também calculadas sobre o terreno de 480 e 960 m (os geomorfons em todas as escalas, de 30 a 960 m): a escala maior mostra a encosta inteira, não os detalhes de 30 m. As aberturas, o índice de forma e a curvatura anelar só vêm nas escalas maiores: o RustGIS não lê por partes os outros arquivos da OpenGeoHub. Só a área, lida do arquivo global da variável, posta na grade do projeto e recortada pelo contorno; numa grade mais grossa, lida da pirâmide (menos os geomorfons). Precisa de um RustGIS depois da 0.5.0 (leitura da janela da área).",
             "icon": "relief",
             "params": "{\"variavel\"?: \"elevacao\" (padrão) | \"declividade\" | \"twi\" | \"dfme\" | \"rugosidade\" | \"curvatura-minima\" | \"curvatura-maxima\" | \"curvatura-perfil\" | \"curvatura-tangencial\" | \"curvatura-anelar\" | \"indice-forma\" | \"abertura-positiva\" | \"abertura-negativa\" | \"sombreamento\" | \"geomorfons\" | \"fator-ls\", \"escala\"?: 30 (padrão), 60, 120, 240, 480 ou 960 m (a que a variável não tem dá a mais próxima que ela tem, com aviso), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
             "form": [
@@ -1614,8 +1647,8 @@ GRUPOS = list(TOPICOS)
 # Comandos que também aparecem num segundo subtópico: (tópico, subtópico, id). A Agricultura
 # tem o Censo Agropecuário próprio (censo-agro); os censos por município ficam na População. A
 # irrigação do GMIA fica na Água e também na Agricultura, ao lado do Censo Agropecuário. Os mapas de
-# seca do GDO ficam no Clima e também nos Solos (a umidade do solo).
-TAMBEM = [("Sociedade e economia", "Agricultura", "mapbiomas-irrigacao"), ("Sociedade e economia", "Agricultura", "irrigacao-gmia"), ("Tempo e clima", "Clima", "risco-fogo"), ("Meio físico", "Solos", "gdo-seca")]
+# seca do GDO ficam no Clima e também nos Solos (a umidade do solo), e as cenas do EMIT também.
+TAMBEM = [("Sociedade e economia", "Agricultura", "mapbiomas-irrigacao"), ("Sociedade e economia", "Agricultura", "irrigacao-gmia"), ("Tempo e clima", "Clima", "risco-fogo"), ("Meio físico", "Solos", "gdo-seca"), ("Meio físico", "Solos", "emit-cenas")]
 
 # O ícone de um subtópico, quando um dos ícones do RustGIS diz mais que a geometria da primeira
 # camada (o plugin só pode usar os ícones do RustGIS, pelo nome).

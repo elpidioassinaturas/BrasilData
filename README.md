@@ -45,6 +45,8 @@ comando e mostra embaixo o que ele fez. São eles:
 | Amostragem (aleatória, estratificada, sistemática) | o número de pontos ou o espaçamento, o sorteio, os estratos e o arquivo de pontos (mais abaixo) |
 | Uso e cobertura e Sistemas de irrigação (MapBiomas) | o ano, e no uso e cobertura, se vem só a área |
 | Cobertura da terra 100 m (Copernicus) | o ano, de 2015 a 2019 |
+| Cobertura da terra a 10 m (ESA WorldCover) | o ano, 2020 ou 2021 |
+| Cenas hiperespectrais do EMIT (NASA) | o limite de nuvem da cena e o ano |
 | Índice de vegetação (cubo do INPE) | o satélite (Sentinel-2, Landsat, CBERS-4 WFI ou MODIS), o índice (NDVI ou EVI), o período e o resumo das datas (média, máxima, mínima ou desvio-padrão) |
 | Biomassa acima do solo por ano (CTrees) | o ano e se vem a biomassa ou o erro-padrão dela |
 | Radar VV, VH e VH/VV (Sentinel-1); HH, HV, HV/HH e composição (NISAR) | a data da passagem (vazio: a mais recente) |
@@ -573,6 +575,14 @@ Fora da tabela, com a citação no comando **Fontes**:
     do RustGIS (opengeos/RustGIS#2570);
 - **Cobertura da terra 100 m:** Buchhorn, M. et al., Copernicus Global Land Service: Land Cover
   100m, coleção 3, de 2015 a 2019, pelo Zenodo (CC BY 4.0);
+- **Cobertura da terra a 10 m (ESA WorldCover):** © ESA WorldCover project 2020 ou 2021 / Contains
+  modified Copernicus Sentinel data processed by ESA WorldCover consortium; Zanaga, D. et al.,
+  doi:10.5281/zenodo.5571936 (2020) e doi:10.5281/zenodo.7254221 (2021), CC BY 4.0, pelo Planetary
+  Computer da Microsoft, sem login. Os dois anos usam versões diferentes do algoritmo e não se
+  subtraem;
+- **Cenas hiperespectrais do EMIT:** EMIT L2A Surface Reflectance and Uncertainty and Masks 60 m V002
+  (doi:10.5067/EMIT/EMITL2ARFL.002) e V001 (doi:10.5067/EMIT/EMITL2ARFL.001), NASA LP DAAC; contornos
+  e nuvem do catálogo CMR da NASA, sem login (as imagens pedem o Earthdata Login);
 - **Índice de vegetação (cubo do INPE):** Brazil Data Cube, cubos de 16 dias do Sentinel-2, do
   Landsat, do CBERS-4 WFI e do MODIS; Ferreira et al. 2020, Remote Sensing 12(24), 4033. Só no
   app desktop;

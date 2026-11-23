@@ -6,9 +6,12 @@
 //!   Data, sem login, licença CC BY 4.0), um por ano e um da incerteza (o erro-padrão): WGS 84,
 //!   células de 1/1125° (cerca de 100 m), Int16 com o valor em décimos de Mg/ha, −9999 sem dado, e
 //!   dez níveis de pirâmide (cúbica), cada um com o dobro da célula.
-//! - **Como:** só a janela da área (`layer.addUrl` com `bbox`), do nível de pirâmide mais grosso
-//!   cujas células não passam das da grade; o valor passa a Mg/ha, vai para a grade do projeto e é
-//!   recortado pela área.
+//! - **Como:** só a janela da área (`layer.addUrl` com `bbox`), do nível mais fino que cabe em 4
+//!   milhões de células (numa área grande, do nível de pirâmide mais grosso cujas células não passam
+//!   das da grade); o valor passa a Mg/ha, vai para a grade do projeto e é recortado pela área.
+//! - **O mar:** o arquivo da biomassa não declara o −9999 como sem dado, e a pirâmide (cúbica) o
+//!   mistura com a terra do litoral. Por isso a imagem inteira sempre que ela cabe, e o que é negativo
+//!   vira sem dado antes da reamostragem.
 //! - **App web:** o bucket manda o cabeçalho CORS: funciona também no navegador.
 
 /// O primeiro e o último ano.
@@ -131,6 +134,21 @@ pub fn nivel_que_cabe(c: [f64; 4], k: i32) -> Option<i32> {
     (k..=PIRAMIDES).find(|&n| valores(janela(c, n), n) <= MAX_VALORES)
 }
 
+/// Quantas células se leem sem recorrer a uma pirâmide mais grossa.
+pub const VALORES_LEVES: f64 = 4e6;
+
+/// O nível que se lê para a área `c`, na grade de `celula` metros e na latitude `lat`: o mais fino
+/// que cabe em [`VALORES_LEVES`], sem passar do nível da grade; se nenhum cabe, o da grade, ou o
+/// primeiro depois dele que cabe no limite.
+pub fn nivel_da_leitura(c: [f64; 4], celula: f64, lat: f64) -> Option<i32> {
+    let n = nivel(celula, lat);
+    (0..=n).find(|&k| valores(janela(c, k), k) <= VALORES_LEVES).or_else(|| nivel_que_cabe(c, n))
+}
+
+/// A conta que passa o valor do arquivo a Mg/ha: o arquivo guarda décimos, e o −9999 (mar, sem
+/// dado) vira sem dado, pela divisão por zero.
+pub const EM_MG: &str = "b1 / 10 + 0 / (b1 + 9999)";
+
 /// A reamostragem para a grade: bilinear até a célula lida, média numa grade mais grossa.
 pub fn reamostragem(celula: f64, lido: f64) -> &'static str {
     if celula > lido * 1.5 { "average" } else { "bilinear" }
@@ -183,6 +201,14 @@ mod tests {
         assert_eq!(nivel_que_cabe(mg, 0), Some(1));
         // Viçosa cabe a 100 m.
         assert_eq!(nivel_que_cabe([-43.003, -20.838, -42.754, -20.655], 0), Some(0));
+        // O município se lê inteiro mesmo numa grade de 500 m; Minas Gerais a 1 km, da pirâmide da grade;
+        // numa grade de 30 m, o município sempre inteiro.
+        let vicosa = [-43.003, -20.838, -42.754, -20.655];
+        assert_eq!(nivel(500.0, -20.7), 2);
+        assert_eq!(nivel_da_leitura(vicosa, 500.0, -20.7), Some(0));
+        assert_eq!(nivel_da_leitura(vicosa, 30.0, -20.7), Some(0));
+        assert_eq!(nivel_da_leitura(mg, 1000.0, -18.6), Some(3));
+        assert_eq!(nivel_da_leitura(mg, 30.0, -18.6), Some(1));
         assert_eq!(reamostragem(30.0, 93.0), "bilinear");
         assert_eq!(reamostragem(1000.0, 372.0), "average");
     }

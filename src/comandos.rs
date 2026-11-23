@@ -17,6 +17,7 @@ use crate::datas::{self, Data};
 use crate::dialogos;
 use crate::dist;
 use crate::drenagem;
+use crate::emit;
 use crate::era5;
 use crate::estilo;
 use crate::extensoes;
@@ -48,6 +49,7 @@ use crate::sol;
 use crate::tempo;
 use crate::vento;
 use crate::versao;
+use crate::worldcover;
 use crate::zoom;
 // A Chuva agora (PARDIG) fica em comandos/agora.rs.
 mod agora;
@@ -214,6 +216,7 @@ fn executar_comando(req: Request) -> Result<Value, String> {
         "elevacao" => elevacao(req.f64("celula")),
         "sol-radiacao" => sol_na_area(&req),
         "vento-50m" => vento_na_area(&req),
+        "emit-cenas" => cenas_do_emit(&req),
         "chuva-prevista" => chuva_prevista(&req),
         "chuva-ensemble" => chuva_do_ensemble(&req),
         "temperatura-prevista" => temperatura_prevista(&req),
@@ -244,6 +247,7 @@ fn executar_comando(req: Request) -> Result<Value, String> {
         "era5-temperatura" => era5_na_area(&req, era5::Variavel::Temperatura(tempo::temperatura(req.str("tipo"))?)),
         "era5-umidade" => era5_na_area(&req, era5::Variavel::Umidade),
         "clms-cobertura" => cobertura_clms(&req),
+        "worldcover" => worldcover_na_area(&req),
         "radar-vv" => radar(&req, Some(radar::Pol::Vv)),
         "radar-vh" => radar(&req, Some(radar::Pol::Vh)),
         "radar-razao" => radar(&req, None),
@@ -583,13 +587,18 @@ fn nomes_da_area(c: [f64; 4]) -> Result<Vec<String>, String> {
     Ok(nomes_nas_feicoes(&area_simplificada(c)?))
 }
 
-/// A área com o contorno bem simplificado, para ler os atributos ([`nomes_da_area`]).
-fn area_simplificada(c: [f64; 4]) -> Result<Value, String> {
+/// A tolerância da área simplificada, em km: 1/50 da diagonal do retângulo `c`.
+fn tolerancia_dos_nomes(c: [f64; 4]) -> f64 {
     let lat = ((c[1] + c[3]) / 2.0).to_radians();
     let diagonal_km = ((c[2] - c[0]) * 111.32 * lat.cos()).hypot((c[3] - c[1]) * 110.57);
+    (diagonal_km / 50.0).max(0.1)
+}
+
+/// A área com o contorno bem simplificado, para ler os atributos ([`nomes_da_area`]).
+fn area_simplificada(c: [f64; 4]) -> Result<Value, String> {
     let copia = format!("{AREA} (nomes)");
     remover(&[&copia])?;
-    let r = host::run("gp.run", json!({"tool": "simplify", "params": {"input": AREA, "tolerance": (diagonal_km / 50.0).max(0.1)}}))?;
+    let r = host::run("gp.run", json!({"tool": "simplify", "params": {"input": AREA, "tolerance": tolerancia_dos_nomes(c)}}))?;
     host::run(
         "layer.rename",
         json!({"layer": r.get("layer").cloned().ok_or("a simplificação não disse a camada que fez")?, "name": copia}),
@@ -640,8 +649,13 @@ fn area_municipio(req: &Request) -> Result<Value, String> {
 /// O limite oficial é pedido antes de mudar o mapa: no app ele chega depois, e o comando, que
 /// fica pendente sem ter mexido no projeto, roda de novo quando ele chega e põe a área já com ele.
 /// Pôr a área e só então pedir o limite não dá: a nova rodada seria recusada porque a área mudou
-/// desde o começo do comando, e ele seria desfeito.
+/// desde o começo do comando, e ele seria desfeito. Pelo mesmo motivo, se o limite oficial não vem
+/// (o WFS do IBGE fora do ar), ele não é pedido outra vez nesta rodada: o RustGIS responde uma
+/// falha uma vez só, e o segundo pedido, já com a área no mapa, seria um novo download pendente. A
+/// reserva, a malha máxima, também vem antes.
 fn area_municipal(t: &Territorio) -> Result<Value, String> {
+    // Sem o limite oficial: o código do município e a malha máxima, se ela veio.
+    let mut sem_oficial: Option<(&str, Option<Value>)> = None;
     if let [codigo] = t.codigos.as_slice()
         && codigo.len() == 7
     {
@@ -656,9 +670,33 @@ fn area_municipal(t: &Territorio) -> Result<Value, String> {
                 Err(e) => host::log(&format!("área: o limite oficial do IBGE não veio ({e})")),
             }
         }
+        if camada_no_projeto(&oficial)?.is_none_or(|l| l["features"].as_u64().unwrap_or(0) == 0) {
+            sem_oficial = Some((codigo, None));
+            match buscar_varios(&[malhas::url_maxima(codigo)]) {
+                Ok(Ok(r)) => sem_oficial = Some((codigo, r.into_iter().next())),
+                Ok(Err(p)) => return Ok(p),
+                Err(e) => host::log(&format!("área: a malha máxima do IBGE não veio ({e})")),
+            }
+        }
     }
     let mut r = area_de(t)?;
-    if afinar_area(false)?.is_some() {
+    let trocada = match sem_oficial {
+        None => afinar_area(false)?.is_some(),
+        Some((codigo, maxima)) => {
+            remover(&[&format!("{AREA} (limite oficial {codigo})")])?;
+            let trocada = match maxima {
+                Some(m) => trocar_pela_maxima(&host::features(AREA, false)?, codigo, m)?,
+                None => false,
+            };
+            avisar(if trocada {
+                "Área: o limite oficial do IBGE não veio (o serviço dele não respondeu); o contorno é o da malha máxima do IBGE"
+            } else {
+                "Área: o limite oficial do IBGE não veio (o serviço dele não respondeu); o contorno é o que vem no plugin"
+            });
+            trocada
+        }
+    };
+    if trocada {
         // O limite oficial passa um pouco do contorno embutido: a grade, feita para ele, é
         // refeita para cobrir o oficial (senão o primeiro comando de dados a refaria).
         let (c, _) = retangulo()?;
@@ -671,6 +709,18 @@ fn area_municipal(t: &Territorio) -> Result<Value, String> {
         }
     }
     Ok(r)
+}
+
+/// Troca o contorno da área `fc` (as feições dela) pelo da `resposta` da API do IBGE para o
+/// município `codigo` ([`malhas::url_maxima`]). `false` se a resposta não tem contorno.
+fn trocar_pela_maxima(fc: &Value, codigo: &str, resposta: Value) -> Result<bool, String> {
+    let novo = malhas::com_malhas(fc, &[(codigo.to_string(), resposta)], "maxima");
+    if novo == *fc {
+        return Ok(false);
+    }
+    remover(&[AREA])?;
+    host::add_layer(AREA, novo)?;
+    Ok(true)
 }
 
 /// Se a camada `camada` (como [`camada_no_projeto`] a descreve) tem o campo `campo`.
@@ -749,10 +799,7 @@ fn afinar_area(de_dados: bool) -> Result<Option<Value>, String> {
     // A reserva: a malha máxima da API, pequena, lida pelo plugin.
     match buscar_varios(&[malhas::url_maxima(codigo)]) {
         Ok(Ok(r)) => {
-            let novo = malhas::com_malhas(&fc, &[(codigo.clone(), r.into_iter().next().unwrap_or_default())], "maxima");
-            if novo != fc {
-                remover(&[AREA])?;
-                host::add_layer(AREA, novo)?;
+            if trocar_pela_maxima(&fc, codigo, r.into_iter().next().unwrap_or_default())? {
                 return Ok(Some(trocada("contorno da malha máxima")));
             }
         }
@@ -1931,6 +1978,8 @@ fn citacoes() -> Result<(Vec<Value>, String), String> {
             lista.push(json!({"layer": n, "source": radar::CITACAO, "license": radar::LICENCA}));
         } else if sol::eh_do_sol(&n) {
             lista.push(json!({"layer": n, "source": sol::CITACAO, "license": sol::LICENCA}));
+        } else if emit::eh_do_emit(&n) {
+            lista.push(json!({"layer": n, "source": emit::CITACAO, "license": nisar::LICENCA}));
         } else if vento::eh_do_vento(&n) {
             lista.push(json!({"layer": n, "source": vento::CITACAO, "license": sol::LICENCA}));
         } else if tempo::eh_da_previsao(&n) {
@@ -1951,6 +2000,8 @@ fn citacoes() -> Result<(Vec<Value>, String), String> {
             lista.push(json!({"layer": n, "source": dist::CITACAO, "license": radar::LICENCA}));
         } else if let Some(ano) = clms::ano_da_camada(&n) {
             lista.push(json!({"layer": n, "source": clms::citacao(ano), "license": clms::LICENCA}));
+        } else if let Some(ano) = worldcover::ano_da_camada(&n) {
+            lista.push(json!({"layer": n, "source": worldcover::citacao(ano), "license": worldcover::LICENCA}));
         } else if n == chm::CAMADA {
             lista.push(json!({"layer": n, "source": chm::CITACAO, "license": chm::LICENCA}));
         } else if n == chm_amazonia::CAMADA {
@@ -4746,6 +4797,135 @@ fn vento_na_area(req: &Request) -> Result<Value, String> {
     Ok(json!({"layer": saida, "cells": n, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula, "report": texto}))
 }
 
+/// Uma lista do CMR ([`emit::url`]), página a página até a que não vem cheia: as respostas cruas, ou o
+/// pedido pendente (app web).
+fn lista_do_emit(formato: &str, versao: u32, c: &[[f64; 4]], nuvem: u32, ano: Option<u32>) -> Result<Result<Vec<String>, Value>, String> {
+    let mut paginas = Vec::new();
+    for p in 1..=emit::MAX_PAGINAS {
+        let r = match buscar_bytes(&[emit::url(formato, versao, c, nuvem, ano, p)]).map_err(|e| {
+            if crate::falha_passageira(&e) || e.contains("timeout") {
+                format!("o catálogo da NASA (CMR) não respondeu agora: tente de novo daqui a pouco ({e})")
+            } else {
+                e
+            }
+        })? {
+            Ok(mut r) => r.remove(0),
+            Err(p) => return Ok(Err(p)),
+        };
+        let t = String::from_utf8(r).unwrap_or_default();
+        if !emit::eh_lista(formato, &t) {
+            return Err("o catálogo da NASA (CMR) não devolveu a lista das cenas: tente de novo daqui a pouco".into());
+        }
+        let cheia = emit::cheia(formato, &t);
+        paginas.push(t);
+        if !cheia {
+            return Ok(Ok(paginas));
+        }
+    }
+    Err(format!(
+        "há mais de {} cenas do EMIT em volta da área: escolha uma área menor, um ano ou menos nuvem",
+        emit::MAX_PAGINAS * emit::POR_PAGINA
+    ))
+}
+
+/// As cenas do EMIT ([`emit`]) que cruzam a área (sem área, o retângulo da vista), inteiras, na cor da
+/// nuvem de cada uma.
+fn cenas_do_emit(req: &Request) -> Result<Value, String> {
+    let nuvem = req.f64("nuvem").map(emit::conferir_nuvem).transpose()?.unwrap_or(emit::NUVEM);
+    let ano = req.f64("ano").map(emit::conferir_ano).transpose()?;
+    let (c, area) = retangulo()?;
+    let nome = emit::camada(nuvem, ano);
+    let curto = nome.trim_start_matches(PREFIXO).to_string();
+    // Uma área grande vai em faixas, pelo contorno simplificado dela.
+    let caixas = if area && (c[2] - c[0]) * (c[3] - c[1]) > emit::GRANDE {
+        let km = tolerancia_dos_nomes(c);
+        let perto_do_polo = c[1].abs().max(c[3].abs()).to_radians().cos().max(0.2);
+        emit::faixas(&area_simplificada(c)?, c, km / (110.0 * perto_do_polo))
+    } else {
+        vec![c]
+    };
+    // As listas: primeiro os CSV, com o limite de nuvem, que dizem se são cenas demais; depois os
+    // contornos, os da V002 sem o limite (o que ela tem, para a V001 só completar).
+    let mut listas = Vec::new();
+    let mut bytes = 0;
+    for (formato, versao, limite) in [("csv", 2, nuvem), ("csv", 1, nuvem), ("kml", 2, 100), ("kml", 1, nuvem)] {
+        let l = match lista_do_emit(formato, versao, &caixas, limite, ano)? {
+            Ok(l) => l,
+            Err(p) => return Ok(p),
+        };
+        if formato == "csv" {
+            bytes += l.iter().map(String::len).sum::<usize>();
+            if bytes > emit::MAX_BYTES {
+                return Err(format!(
+                    "há cenas demais do EMIT em volta da área (o limite é de umas {} mil, somadas as duas versões): escolha uma área menor, um ano ou menos nuvem",
+                    emit::MAX_BYTES / emit::BYTES_POR_MIL
+                ));
+            }
+        }
+        listas.push(l);
+    }
+    let textos: Vec<Vec<&str>> = listas.iter().map(|l| l.iter().map(String::as_str).collect()).collect();
+    let v2 = emit::Listas { csv: textos[0].clone(), kml: textos[2].clone() };
+    let v1 = emit::Listas { csv: textos[1].clone(), kml: textos[3].clone() };
+    let lista = emit::cenas(&v2, &v1);
+    let onde = if area { "cruza a área" } else { "cruza a vista" };
+    let (geojson, lidas) = emit::geojson(&lista);
+    remover(&[&nome, emit::NO_RETANGULO])?;
+    if lidas == 0 {
+        let t = format!("{curto}: nenhuma cena {onde}{}", if nuvem < 100 { "; aceite mais nuvem" } else { "" });
+        avisar(&t);
+        return Ok(json!({"layer": null, "features": 0, "report": t}));
+    }
+    let ficaram = if area {
+        por_geojson(emit::NO_RETANGULO, &geojson)?;
+        let n = (|| -> Result<u64, String> {
+            host::run("gp.run", json!({"tool": "selectByLocation", "params": {"input": emit::NO_RETANGULO, "select": AREA}}))?;
+            let n = camada_no_projeto(emit::NO_RETANGULO)?.and_then(|l| l["selected"].as_u64()).unwrap_or(0);
+            if n > 0 {
+                let r = host::run("select.layerFromSelection", json!({"layer": emit::NO_RETANGULO}))?;
+                host::run("layer.rename", json!({"layer": r.get("layer").cloned().ok_or("a seleção não virou camada")?, "name": nome}))?;
+            }
+            Ok(n)
+        })();
+        remover(&[emit::NO_RETANGULO])?;
+        n?
+    } else {
+        por_geojson(&nome, &geojson)?;
+        lidas as u64
+    };
+    if ficaram == 0 {
+        let t = format!("{curto}: nenhuma cena {onde} ({lidas} em volta dela)");
+        avisar(&t);
+        return Ok(json!({"layer": null, "read": lidas, "features": 0, "report": t}));
+    }
+    estilo_padrao(&nome, emit::ESTILO, &emit::estilo(nuvem));
+    sob_as_linhas(&nome)?;
+    // Quantas há em cada classe, e as mais limpas se são poucas.
+    let mut contagem = Vec::new();
+    for (_, classe, _) in emit::classes(nuvem) {
+        let onde = format!("{} = '{classe}'", emit::CAMPO);
+        let n = host::run("select.byAttributes", json!({"layer": nome, "where": onde}))?["selected"].as_u64().unwrap_or(0);
+        if n > 0 {
+            contagem.push(format!("{n} com {classe}"));
+        }
+    }
+    let _ = host::run("select.clear", json!({"layer": nome}));
+    let limpas = if ficaram <= emit::PARA_LER { emit::as_mais_limpas(&host::features(&nome, false)?) } else { Vec::new() };
+    let melhores = if limpas.is_empty() { String::new() } else { format!(". As mais limpas: {}", limpas.join("; ")) };
+    let quantas = match (ficaram, area) {
+        (1, true) => "cena cruza a área",
+        (1, false) => "cena cruza a vista",
+        (_, true) => "cenas cruzam a área",
+        (_, false) => "cenas cruzam a vista",
+    };
+    let texto = format!(
+        "{curto}: {ficaram} {quantas} ({}){melhores}. A nuvem é da cena inteira, não da área; o campo arquivo leva ao netCDF (login Earthdata) e o previa, à imagem de prévia",
+        contagem.join(", ")
+    );
+    avisar(&texto);
+    Ok(json!({"layer": nome, "read": lidas, "features": ficaram, "report": texto}))
+}
+
 /// O retângulo da área e a célula pedida, para a previsão do Open-Meteo, com as conferências
 /// comuns aos três comandos.
 fn preparar_previsao(req: &Request) -> Result<([f64; 4], Option<f64>), String> {
@@ -5736,6 +5916,143 @@ fn cobertura_clms(req: &Request) -> Result<Value, String> {
     Ok(json!({
         "layer": nome, "year": ano, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula,
         "width": r["width"], "height": r["height"],
+    }))
+}
+
+/// A cobertura da terra do ESA WorldCover a 10 m ([`worldcover`]) de 2020 ou 2021 na área: a janela
+/// da área em cada bloco de 3° que ela toca, lida do Planetary Computer, posta na grade do projeto
+/// com a classe mais frequente; as janelas se juntam e o mosaico é recortado pela área.
+fn worldcover_na_area(req: &Request) -> Result<Value, String> {
+    let ano = req.f64("ano").map(worldcover::conferir_ano).transpose()?.unwrap_or(worldcover::ANOS[0]);
+    let celula = req.f64("celula");
+    if let Some(m) = celula {
+        grade::conferir_celula(m)?;
+    }
+    let (c, na_area) = retangulo()?;
+    if !na_area {
+        return Err("escolha a área primeiro (painel Área de trabalho, ou Área: seleção)".into());
+    }
+    let sem_janela = "o WorldCover precisa de um RustGIS que leia só a janela da área de um arquivo remoto (desktop ou linha de comando, depois da 0.5.0)";
+    if !le_janela_remota()? {
+        return Err(sem_janela.into());
+    }
+    let quantos = worldcover::quantos_blocos(c);
+    if quantos > worldcover::MAX_BLOCOS {
+        return Err(format!(
+            "a área toca {quantos} blocos de 3° do WorldCover; o limite de um clique é {} (um estado médio): escolha uma área menor",
+            worldcover::MAX_BLOCOS
+        ));
+    }
+    // Sem grade no mapa, uma de 10 m, a célula do dado (se couber na área).
+    let celula = match (celula, grade_no_mapa()?) {
+        (None, None) => Some(celula_que_cabe(c, 10.0)),
+        (m, _) => m,
+    };
+    let g = grade_para(c, celula)?;
+    conferir_grade_fina(c, g.celula, "a cobertura da terra do WorldCover")?;
+    // Os blocos e o token.
+    let r = match buscar_varios(&[worldcover::url_busca(c), worldcover::URL_DO_TOKEN.to_string()])? {
+        Ok(r) => r,
+        Err(p) => return Ok(p),
+    };
+    let bs = worldcover::blocos(&r[0], ano, c);
+    if bs.is_empty() {
+        return Err(format!("o Planetary Computer não tem blocos do WorldCover {ano} nesta área (no mar não há)"));
+    }
+    let token = radar_pc::token(&r[1]).ok_or("o serviço de tokens do Planetary Computer não deu um token: tente de novo daqui a pouco")?;
+    let lat = (c[1] + c[3]) / 2.0;
+    let k = worldcover::nivel(&bs, g.celula, lat).ok_or("a área é grande demais para o WorldCover: escolha uma área menor")?;
+    let arquivo = worldcover::arquivo();
+    // As janelas de um clique anterior servem se cobrem a parte da área (no desktop, o comando
+    // roda de novo quando cada uma chega).
+    let ha = nomes()?;
+    let mut lidas: Vec<String> = Vec::new();
+    let mut lendo = 0;
+    for b in &bs {
+        let nome = b.nome_da_janela(ano, k);
+        if ha.contains(&nome)
+            && let Some(e) = extensao(&nome)?
+            && retangulo_cabe(b.parte, e)
+        {
+            lidas.push(nome);
+            continue;
+        }
+        if lendo >= crate::FILA_DO_APP {
+            break;
+        }
+        tirar_janela(&nome)?;
+        let mut p = json!({"url": radar_pc::assinar(&b.href, &token), "name": nome, "bbox": arquivo.janela(b.parte, k), "zoom": false});
+        if k > 0 {
+            p["cellSize"] = json!(worldcover::celula_pedida(k));
+        }
+        let r = host::run("layer.addUrl", p).map_err(|e| {
+            if falha_passageira(&e) || e.contains("timeout") || e.contains("403") {
+                format!("o Planetary Computer não respondeu agora: tente de novo daqui a pouco ({e})")
+            } else {
+                e
+            }
+        })?;
+        if pendente(&r) {
+            lendo += 1;
+            continue;
+        }
+        if r.get("inPlace").and_then(Value::as_bool) == Some(true) || r.get("window").is_none() {
+            tirar_janela(&nome)?;
+            return Err(sem_janela.into());
+        }
+        lidas.push(nome);
+    }
+    if lendo > 0 {
+        avisar(&format!("Cobertura da terra {ano} (WorldCover): lendo a área em {lendo} bloco(s); a camada vem quando chegarem"));
+        return Ok(json!({"pending": lendo, "tiles": bs.len()}));
+    }
+    let saida = worldcover::camada(ano);
+    let lido = arquivo.metros_do_nivel(k, lat);
+    let resampling = forty::reamostragem(g.celula, lido);
+    let na_grade: Vec<String> = (0..lidas.len()).map(|i| format!("{PREFIXO}WorldCover na grade {i}")).collect();
+    let junto = format!("{PREFIXO}WorldCover junto");
+    let mut temporarias: Vec<&str> = lidas.iter().chain(&na_grade).map(String::as_str).collect();
+    temporarias.push(junto.as_str());
+    remover(&[&saida])?;
+    let feito = (|| -> Result<(), String> {
+        for (j, n) in lidas.iter().zip(&na_grade) {
+            host::run(
+                "raster.project",
+                json!({"layer": j, "crs": g.epsg, "cellSize": g.celula, "extent": GRADE, "resampling": resampling, "name": n}),
+            )?;
+            // Só as classes: o 0 (sem dado) e o que fica fora da janela somem, para não cobrir o
+            // bloco vizinho no mosaico.
+            host::run("raster.mask", json!({"layer": n, "min": 5.0, "max": 105.0}))?;
+        }
+        let mosaico = if na_grade.len() == 1 {
+            na_grade[0].clone()
+        } else {
+            mosaicar(&na_grade, &junto)?;
+            junto.clone()
+        };
+        recortar(&mosaico, AREA, &saida)?;
+        host::run("style.importQgis", json!({"layer": saida, "text": worldcover::qml()}))?;
+        Ok(())
+    })();
+    remover(&temporarias)?;
+    feito?;
+    let piramide = if k > 0 { format!(", lida da visão de cerca de {} m do arquivo", lido.round()) } else { String::new() };
+    let texto = format!(
+        "{saida}: {} bloco(s), na grade do projeto, {} ({}){piramide}. Códigos: {}",
+        bs.len(),
+        g.texto(),
+        if resampling == "mode" { "a classe mais frequente" } else { "a célula mais próxima" },
+        worldcover::CHAVE
+    );
+    avisar(&texto);
+    // O aviso dos anos só quando os dois estão no mapa, que é quando alguém os compararia.
+    let ha = nomes()?;
+    if worldcover::ANOS.iter().all(|&a| ha.contains(&worldcover::camada(a))) {
+        avisar(worldcover::AVISO_ANOS);
+    }
+    Ok(json!({
+        "layer": saida, "year": ano, "tiles": bs.len(), "level": k, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula,
+        "report": texto.trim_start_matches(PREFIXO),
     }))
 }
 
@@ -6962,7 +7279,7 @@ fn ctrees_na_area(req: &Request) -> Result<Value, String> {
     }
     let g = grade_para(c, celula)?;
     let lat = (c[1] + c[3]) / 2.0;
-    let k = match ctrees::nivel_que_cabe(c, ctrees::nivel(g.celula, lat)) {
+    let k = match ctrees::nivel_da_leitura(c, g.celula, lat) {
         Some(k) => k,
         None => return Err("a área é grande demais para a biomassa da CTrees: escolha uma área menor".into()),
     };
@@ -6975,7 +7292,7 @@ fn ctrees_na_area(req: &Request) -> Result<Value, String> {
         tirar_janela(&bruto)?;
         let mut p = json!({"url": v.url(ano), "name": bruto, "bbox": janela, "zoom": false});
         if k > 0 {
-            p["cellSize"] = json!(ctrees::graus_do_nivel(k));
+            p["cellSize"] = json!(cog_global::celula_pedida(ctrees::graus_do_nivel(k)));
         }
         let r = host::run("layer.addUrl", p).map_err(|e| {
             if falha_passageira(&e) || e.contains("timeout") {
@@ -6994,20 +7311,25 @@ fn ctrees_na_area(req: &Request) -> Result<Value, String> {
         }
     }
     let saida = v.camada(ano);
+    let sem_mar = format!("{PREFIXO}CTrees sem o mar");
     let em_mg = format!("{PREFIXO}CTrees em Mg/ha");
     let na_grade = format!("{PREFIXO}CTrees na grade");
     let lido = ctrees::metros_do_nivel(k, lat);
     let resampling = ctrees::reamostragem(g.celula, lido);
     remover(&[&saida])?;
     let feito = (|| -> Result<(), String> {
-        // O arquivo guarda décimos de Mg/ha.
-        host::run("raster.function", json!({"layer": bruto, "function": "bandMath", "expression": "b1 / 10", "name": em_mg}))?;
+        // O que é negativo (o mar, e a mistura dele com a terra na pirâmide) vira o −9999, e o −9999
+        // vira sem dado na conta, para não entrar na reamostragem nem na média.
+        host::run(
+            "raster.function",
+            json!({"layer": bruto, "function": "remap", "ranges": [[-1e6, 0, -9999]], "keep": true, "name": sem_mar}),
+        )?;
+        host::run("raster.function", json!({"layer": sem_mar, "function": "bandMath", "expression": ctrees::EM_MG, "name": em_mg}))?;
         host::run(
             "raster.project",
             json!({"layer": em_mg, "crs": g.epsg, "cellSize": g.celula, "extent": GRADE, "resampling": resampling, "name": na_grade}),
         )?;
         recortar(&na_grade, AREA, &saida)?;
-        // O −9999 do arquivo (mar, sem dado) vira sem dado.
         host::run("raster.mask", json!({"layer": saida, "min": 0.0, "max": 3000.0}))?;
         let (rampa, cores) = v.rampa();
         let _ = host::run("ramp.add", json!({"text": cores, "format": "gdal", "name": rampa}));
@@ -7018,7 +7340,7 @@ fn ctrees_na_area(req: &Request) -> Result<Value, String> {
         let _ = host::run("raster.stretch", json!({"layer": saida, "type": "custom", "min": a, "max": b}));
         Ok(())
     })();
-    remover(&[&bruto, &em_mg, &na_grade])?;
+    remover(&[&bruto, &sem_mar, &em_mg, &na_grade])?;
     feito?;
     let media = host::run("raster.info", json!({"layer": saida}))
         .ok()
@@ -7072,6 +7394,12 @@ fn ler_cog_global(l: &LeituraGlobal, c: [f64; 4], g: &Grade) -> Result<Result<(i
     let a = &l.arquivo;
     let k = match a.nivel_que_cabe(c, a.nivel(g.celula, lat)) {
         Some(k) => k,
+        None if l.classes => {
+            return Err(format!(
+                "a área é grande demais para {}, que se lê sempre da imagem inteira: escolha uma área menor ou uma escala maior",
+                l.dado
+            ));
+        }
         None => return Err(format!("a área é grande demais para {}: escolha uma área menor", l.dado)),
     };
     let janela = a.janela(c, k);
@@ -7082,7 +7410,7 @@ fn ler_cog_global(l: &LeituraGlobal, c: [f64; 4], g: &Grade) -> Result<Result<(i
         tirar_janela(&bruto)?;
         let mut p = json!({"url": a.url, "name": bruto, "bbox": janela, "zoom": false});
         if k > 0 {
-            p["cellSize"] = json!(a.graus_do_nivel(k));
+            p["cellSize"] = json!(cog_global::celula_pedida(a.graus_do_nivel(k)));
         }
         let r = host::run("layer.addUrl", p).map_err(|e| {
             if falha_passageira(&e) || e.contains("timeout") {
@@ -7447,6 +7775,13 @@ fn layout_do_mapa(req: &Request) -> Result<Value, String> {
         .find_map(|n| layout::receita(n).map(|r| ((*n).clone(), r)))
         .ok_or("nenhum dado do BrasilData visível no mapa para o layout: traga um dado (um tema, o censo, a elevação, o radar, o GEDI...) e deixe-o visível")?;
     let titulo = layout::titulo(&area_que_ha()?);
+    // As cenas do EMIT são inteiras, de uns 80 km: num município, a folha enquadra as cenas (a área
+    // ficaria toda dentro de uma), e o contorno da área vai por cima delas, em vermelho.
+    let emit = emit::eh_do_emit(&principal);
+    let c = match extensao(&principal) {
+        Ok(Some(e)) if emit && (e[2] - e[0] > 1.5 * (c[2] - c[0]) || e[3] - e[1] > 1.5 * (c[3] - c[1])) => e,
+        _ => c,
+    };
     // As fontes das camadas visíveis, sem repetir, e a do limite.
     let mut fontes: Vec<String> = Vec::new();
     for f in citacoes()?.0 {
@@ -7478,7 +7813,13 @@ fn layout_do_mapa(req: &Request) -> Result<Value, String> {
     // A área só como contorno, e a grade (um retângulo de trabalho) fora do mapa.
     // (o `layer.noFill` não basta na 0.5.0: a cor transparente, sim)
     host::run("layer.color", json!({"layer": AREA, "color": "#00000000"}))?;
-    host::run("layer.outline", json!({"layer": AREA, "color": "#5E5547", "width": 1.2}))?;
+    host::run(
+        "layer.outline",
+        json!({"layer": AREA, "color": if emit { "#D7301F" } else { "#5E5547" }, "width": if emit { 1.6 } else { 1.2 }}),
+    )?;
+    if emit {
+        host::run("layer.move", json!({"layer": AREA, "to": 0}))?;
+    }
     // O fim do comando devolve a cada camada o estilo do começo ([`devolver_estilos`]): o da
     // área passa a ser este.
     let _ = host::run("style.remove", json!({"name": estilo::guardado(AREA)}));
