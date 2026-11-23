@@ -31,17 +31,35 @@ PASTA = ROOT / gerar.PAGINAS
 LOGS = ROOT / "saida" / "mapas_exemplo"
 # Os parâmetros do comando no mapa exemplo, quando o padrão não serve: o MapBiomas recortado só
 # vai de 2019 a 2024; a radiação solar e a temperatura, em Minas Gerais, numa grade de 1 km.
-PARAMS = {"mapbiomas-cobertura": {"ano": 2024}, "bdc-sem-nuvens": {"inicio": "01/06/2025", "fim": "31/08/2025"}, "sol-radiacao": {"celula": 1000}, "temperatura-prevista": {"celula": 1000}}
+PARAMS = {"nisar-tempo": {"passagens": 2}, "mapbiomas-cobertura": {"ano": 2024}, "bdc-sem-nuvens": {"inicio": "01/06/2025", "fim": "31/08/2025"}, "sol-radiacao": {"celula": 1000}, "temperatura-prevista": {"celula": 1000}}
 # Os comandos que pedem o login Earthdata (pelo começo do id).
-EARTHDATA = ("gedi-", "radar-", "nisar-", "dist-")
+EARTHDATA = ("gedi-", "radar-v", "radar-razao", "nisar-", "dist-")
 # A rampa das classes, quando a tab20 (categorias sem ordem) não combina com o tema: os solos em
 # cores vivas (com poucas classes, as rampas em sequência deixam a primeira quase branca), os anos do PRODES do mais claro ao mais escuro.
 RAMPAS = {"solos": "Set2", "vegetacao": "Set3", "geomorfologia": "tab20", "ana-bho": "Blues"}
 RAMPAS.update({i: "YlOrRd" for i in ("prodes-cerrado", "prodes-caatinga", "prodes-amazonia", "prodes-mata-atlantica", "prodes-pantanal", "prodes-pampa")})
+# A grade do projeto (em metros) do mapa exemplo, quando a automática é mais grossa que o dado.
+GRADES = {"radar-10m": 10, "radar-10m-cor": 10}
+# As classes dos números (os limites de cima) e as cores e os nomes delas (os das legendas da ANA).
+NUMEROS = {
+    "ana-disponibilidade": (
+        "DISPQ95",
+        [1, 10, 100],
+        [("#A1DAB4", "até 1 m³/s"), ("#41B6C4", "1 a 10 m³/s"), ("#2C7FB8", "10 a 100 m³/s"), ("#253494", "mais de 100 m³/s")],
+    ),
+    "ana-balanco": (
+        "BQT_PC_C_1",
+        [5, 10, 20, 40],
+        [("#2C7BB6", "excelente (até 5%)"), ("#66BD63", "confortável (5 a 10%)"), ("#FDAE61", "preocupante (10 a 20%)"), ("#F46D43", "crítica (20 a 40%)"), ("#A50026", "muito crítica (mais de 40%)")],
+    ),
+}
+# As cores e os nomes dos valores únicos, quando o valor sozinho não diz o que é.
+VALORES = {"ana-seca-2015": [(1, "#FDBF6F", "1 ocorrência de seca"), (2, "#D95F0E", "2 ocorrências de seca")]}
 # Os nomes das camadas que não estão no fontes.csv (para as classes e a legenda), quando são fixos.
 NOMES = {
     "saude-estabelecimentos": "BrasilData: Estabelecimentos de saúde (CNES 04/2026)",
     "censo-setores": "BrasilData: Setores censitários 2022 (MG)",
+    "cemaden-alertas": "BrasilData: Alertas vigentes (CEMADEN)",
     "osm-vias": "BrasilData: Ruas e estradas (OpenStreetMap, Overture)",
     **{i: "BrasilData: Indicadores por município" for i in ("censo-municipios", "censo-agro", "censo-agroecologia", "indicadores-pix", "indicadores-credito", "indicadores-tse", "indicadores-caged", "indicadores-todos")},
 }
@@ -57,14 +75,23 @@ def fazer(cli: str, plugin: pathlib.Path, fi: dict, nome: str | None) -> tuple[s
     png = PASTA / f"{cid}.png"
     bruto = LOGS / f"{cid}.png"
     args = [cli, "run", "--no-plugins", "--plugin", str(plugin), "--yes", "--use-saved-secrets"]
-    args += cmd("plugin:brasildata/escolher-area", {"no": no})
-    args += cmd(f"plugin:brasildata/{cid}", PARAMS.get(cid, {}))
-    # Os do login Earthdata: o primeiro clique depois de o RustGIS ler o token guardado é
-    # cancelado por segurança, e o plugin pede outro.
+    # Os do login Earthdata: o comando que lê o token guardado é cancelado por segurança, e o CLI para
+    # nele; a situação do login, pedida antes, já o lê.
     if cid.startswith(EARTHDATA):
-        args += cmd(f"plugin:brasildata/{cid}", PARAMS.get(cid, {}))
+        args += cmd("earthdata.status", {})
+    args += cmd("plugin:brasildata/escolher-area", {"no": no})
+    if cid in GRADES:
+        args += cmd("plugin:brasildata/grade", {"celula": GRADES[cid]})
+    args += cmd(f"plugin:brasildata/{cid}", PARAMS.get(cid, {}))
     if nome and fi["classes"]:
         args += cmd("layer.symbology", {"layer": nome, "type": "unique", "field": fi["classes"], "ramp": RAMPAS.get(cid, "tab20")})
+    for v, cor, r in VALORES.get(cid, []):
+        args += cmd("layer.classStyle", {"layer": nome, "value": v, "color": cor, "label": r})
+    if nome and cid in NUMEROS:
+        campo, limites, classes = NUMEROS[cid]
+        args += cmd("layer.symbology", {"layer": nome, "type": "graduated", "field": campo, "method": "manual", "breaks": limites})
+        for i, (cor, r) in enumerate(classes):
+            args += cmd("layer.classStyle", {"layer": nome, "index": i, "color": cor, "label": r})
     args += cmd("plugin:brasildata/layout", {"perfil": "a3-landscape", "estilo": "panel"})
     if nome:
         args += cmd("layer.rename", {"layer": nome, "name": nome.removeprefix(gerar_prefixo())})

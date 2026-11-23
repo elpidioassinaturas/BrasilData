@@ -4,7 +4,9 @@
 
 Os municípios em que a ANA registrou eventos de seca em 2015 (decretos e reconhecimentos).
 
-*O mapa exemplo, de Petrolina (PE), ainda não foi gerado: rode `scripts/mapas_exemplo.py ana-seca-2015`.*
+![Mapa exemplo: Municípios atingidos por seca em 2015 (ANA) em Ceará](ana-seca-2015.png)
+
+*Mapa exemplo: Ceará, feito com o plugin.*
 
 | | |
 |---|---|

@@ -4,7 +4,9 @@
 
 A disponibilidade hídrica superficial por trecho de rio: a vazão de referência que a ANA considera disponível.
 
-*O mapa exemplo, de Zona da Mata (MG), ainda não foi gerado: rode `scripts/mapas_exemplo.py ana-disponibilidade`.*
+![Mapa exemplo: Disponibilidade hídrica superficial (ANA) em Zona da Mata (MG)](ana-disponibilidade.png)
+
+*Mapa exemplo: Zona da Mata (MG), feito com o plugin.*
 
 | | |
 |---|---|

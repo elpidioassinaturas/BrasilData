@@ -4,7 +4,9 @@
 
 A composição temporal do NISAR: a mediana do HH no vermelho, a mediana do HV no verde e o desvio-padrão do HV entre as passagens no azul.
 
-*O mapa exemplo, de Viçosa (MG), ainda não foi gerado: rode `scripts/mapas_exemplo.py nisar-tempo`.*
+![Mapa exemplo: Composição temporal (NISAR, banda L) em Viçosa (MG)](nisar-tempo.png)
+
+*Mapa exemplo: Viçosa (MG), feito com o plugin.*
 
 | | |
 |---|---|

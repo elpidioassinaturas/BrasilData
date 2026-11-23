@@ -4,7 +4,9 @@
 
 As estações da Rede Hidrometeorológica Nacional: pluviométricas, fluviométricas, de qualidade da água e de sedimentos.
 
-*O mapa exemplo, de Viçosa (MG), ainda não foi gerado: rode `scripts/mapas_exemplo.py ana-estacoes`.*
+![Mapa exemplo: Estações da Rede Hidrometeorológica Nacional (ANA) em Zona da Mata (MG)](ana-estacoes.png)
+
+*Mapa exemplo: Zona da Mata (MG), feito com o plugin.*
 
 | | |
 |---|---|

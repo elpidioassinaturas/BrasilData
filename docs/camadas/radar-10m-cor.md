@@ -4,7 +4,9 @@
 
 A composição colorida do radar Sentinel-1 em 10 m: a mediana do VV no vermelho, a do VH no verde e VV − VH (a razão VV/VH) no azul.
 
-*O mapa exemplo, de Viçosa (MG), ainda não foi gerado: rode `scripts/mapas_exemplo.py radar-10m-cor`.*
+![Mapa exemplo: Radar 10 m, composição colorida (Sentinel-1) em Viçosa (MG)](radar-10m-cor.png)
+
+*Mapa exemplo: Viçosa (MG), feito com o plugin.*
 
 | | |
 |---|---|

@@ -4,7 +4,9 @@
 
 A coluna média de metano no ar (XCH4) medida pelo Sentinel-5P/TROPOMI, em média do ano ou do mês, numa grade de 0,1° calculada pelo BrasilData das órbitas do satélite.
 
-*O mapa exemplo, de Viçosa (MG), ainda não foi gerado: rode `scripts/mapas_exemplo.py metano-tropomi`.*
+![Mapa exemplo: Metano no ar (Sentinel-5P) em Minas Gerais](metano-tropomi.png)
+
+*Mapa exemplo: Minas Gerais, feito com o plugin.*
 
 | | |
 |---|---|

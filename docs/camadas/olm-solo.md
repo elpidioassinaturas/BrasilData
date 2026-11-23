@@ -4,7 +4,9 @@
 
 Uma propriedade do solo a 30 m do OpenLandMap-soildb (OpenGeoHub): carbono orgânico, densidade de carbono, pH em água, densidade do solo, argila, areia ou silte, de 0 a 30, de 30 a 60 ou de 60 a 100 cm, prevista por aprendizado de máquina espaço-temporal sobre cerca de 400 mil amostras de solo do mundo inteiro.
 
-*O mapa exemplo, de Viçosa (MG), ainda não foi gerado: rode `scripts/mapas_exemplo.py olm-solo`.*
+![Mapa exemplo: Propriedades do solo a 30 m (OpenLandMap) em Viçosa (MG)](olm-solo.png)
+
+*Mapa exemplo: Viçosa (MG), feito com o plugin.*
 
 | | |
 |---|---|

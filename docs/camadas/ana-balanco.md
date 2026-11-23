@@ -4,7 +4,9 @@
 
 O balanço hídrico quantitativo por curso d'água: a demanda de água em relação à disponibilidade, que indica onde há criticidade.
 
-*O mapa exemplo, de Zona da Mata (MG), ainda não foi gerado: rode `scripts/mapas_exemplo.py ana-balanco`.*
+![Mapa exemplo: Balanço hídrico quantitativo por curso d'água (ANA) em Minas Gerais](ana-balanco.png)
+
+*Mapa exemplo: Minas Gerais, feito com o plugin.*
 
 | | |
 |---|---|

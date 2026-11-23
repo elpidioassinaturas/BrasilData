@@ -4,7 +4,9 @@
 
 O retroespalhamento do radar Sentinel-1 (banda C) em 10 m, corrigido do relevo: a mediana das passagens mais recentes da mesma órbita, como no Sentinel-1 Global Backscatter Model.
 
-*O mapa exemplo, de Viçosa (MG), ainda não foi gerado: rode `scripts/mapas_exemplo.py radar-10m`.*
+![Mapa exemplo: Radar 10 m, mediana no tempo (Sentinel-1) em Viçosa (MG)](radar-10m.png)
+
+*Mapa exemplo: Viçosa (MG), feito com o plugin.*
 
 | | |
 |---|---|

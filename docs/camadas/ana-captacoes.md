@@ -4,7 +4,9 @@
 
 As captações de água superficial para abastecimento público cadastradas pela ANA.
 
-*O mapa exemplo, de Viçosa (MG), ainda não foi gerado: rode `scripts/mapas_exemplo.py ana-captacoes`.*
+![Mapa exemplo: Captações superficiais (ANA) em Zona da Mata (MG)](ana-captacoes.png)
+
+*Mapa exemplo: Zona da Mata (MG), feito com o plugin.*
 
 | | |
 |---|---|

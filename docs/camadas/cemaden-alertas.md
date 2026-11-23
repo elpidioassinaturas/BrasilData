@@ -4,7 +4,9 @@
 
 Os alertas de risco geo-hidrológico vigentes que o CEMADEN emite para a Defesa Civil: risco hidrológico (enxurradas, inundações) e movimentos de massa (deslizamentos), por município.
 
-*Sem mapa exemplo: a camada não chega pelo `rustgis-cli`, que faz os mapas (veja App web).*
+![Mapa exemplo: Alertas vigentes (CEMADEN) em Brasil](cemaden-alertas.png)
+
+*Mapa exemplo: Brasil, feito com o plugin.*
 
 | | |
 |---|---|

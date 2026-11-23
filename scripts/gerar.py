@@ -1520,6 +1520,7 @@ AREAS_EXEMPLO = {
     "vicosa": ("mun:3171303", "Viçosa (MG)"),
     "zona-da-mata": ("meso:3112", "Zona da Mata (MG)"),
     "minas-gerais": ("uf:MG", "Minas Gerais"),
+    "ceara": ("uf:CE", "Ceará"),
     "brasil": ("br", "Brasil"),
 }
 # Os comandos que não trazem camada de dados: sem ficha.

@@ -4,7 +4,9 @@
 
 Mapas de seca do Global Drought Observatory do Copernicus: a anomalia da umidade do solo (modelo LISFLOOD), a anomalia da vegetação (fAPAR do VIIRS) e o SPI de 1, 3, 6 e 12 meses do CHIRPS.
 
-*Sem mapa exemplo: a camada não chega pelo `rustgis-cli`, que faz os mapas (veja App web).*
+![Mapa exemplo: Seca: umidade do solo, vegetação e SPI (Copernicus GDO) em Brasil](gdo-seca.png)
+
+*Mapa exemplo: Brasil, feito com o plugin.*
 
 | | |
 |---|---|
