@@ -71,6 +71,11 @@ fn data_no_nome(n: &str) -> Option<&str> {
 /// A nota da composição colorida do NISAR.
 const NOTA_NISAR_TEMPO: &str = "Vermelho: mediana do HH (−13 a −1 dB); verde: mediana do HV (−19 a −8 dB); azul: desvio-padrão do HV entre as passagens (0 a 3 dB). Verde: mata e vegetação estável; azul e lilás: vegetação que mudou (lavoura, pasto); vermelho e laranja: solo exposto, superfícies ásperas e construções; escuro: água e sombras do relevo.";
 
+/// A nota da composição colorida do radar de 10 m ([`crate::radar_pc`]).
+const NOTA_RADAR_10M_COR: &str = "Vermelho: VV (−15 a −3 dB); verde: VH (−21 a −10 dB); azul: VV − VH (3 a 9 dB). Cidade e construções em rosa e magenta, mata e cerrado em amarelo e verde, lavoura e solo exposto em lilás, roxo e azul, água em preto. A posição não é exata: em áreas planas, o dado ficou de 13 a 33 m a oeste do Sentinel-2.";
+const NOTA_RADAR_10M: &str = "A posição não é exata: em oito áreas planas do Brasil, o dado ficou de 13 a 33 m a oeste do Sentinel-2 (mediana de 18 m), e no relevo forte o desvio muda de um lugar para outro.";
+const NOTA_METANO: &str = "Metano na coluna de ar, não a emissão de cada lugar: o valor cai com a altitude (há menos ar acima) e varia com a estação. Grade de 0,1° (cerca de 11 km) calculada pelo BrasilData dos pixels de boa qualidade do satélite.";
+
 const NOTA_NISAR_COR: &str = "Vermelho: HH (−12,7 a 4,3 dB); verde: HV (−18 a −5,3 dB); azul: HH − HV (0,8 a 13,4 dB). Mata em verde forte (volume das copas), cidade em rosa e magenta (eco duplo das construções), pasto e solo exposto em azul e roxo escuros, água escura.";
 
 /// A receita da camada `nome`, se o layout a conhece.
@@ -398,6 +403,32 @@ pub fn receita(nome: &str) -> Option<Receita> {
             nota: None,
         });
     }
+    if crate::radar_pc::eh_daqui(nome) {
+        // "Radar VV 10 m, mediana de 10 passagens (Sentinel-1, 03/08/2026 a 19/11/2026)": antes do
+        // OPERA, que tem o mesmo começo.
+        let (qual, resto) = n.split_once(" 10 m, ").unwrap_or((n, ""));
+        let (quantas, periodo) = resto.split_once(" (Sentinel-1, ").unwrap_or((resto, ""));
+        let periodo = periodo.trim_end_matches(')');
+        let cor = composicao(nome);
+        return Some(Receita {
+            subtitulo: if cor {
+                format!("Composição colorida do radar Sentinel-1 (VV, VH, VV/VH), {quantas}, {periodo} (Planetary Computer)")
+            } else {
+                format!("{qual} do Sentinel-1, {quantas}, {periodo}, corrigido do relevo (Planetary Computer)")
+            },
+            barra: (!cor).then(|| (format!("{qual} (dB)"), if qual.ends_with("VV") { 6 } else { 10 })),
+            legenda: None,
+            nota: Some(if cor { NOTA_RADAR_10M_COR } else { NOTA_RADAR_10M }),
+        });
+    }
+    if let Some(periodo) = crate::metano::periodo_da_camada(nome) {
+        return Some(Receita {
+            subtitulo: format!("Coluna média de metano no ar (XCH4), {periodo} (Sentinel-5P/TROPOMI)"),
+            barra: Some(("Metano no ar, XCH4 (ppb)".into(), 6)),
+            legenda: None,
+            nota: Some(NOTA_METANO),
+        });
+    }
     if crate::radar::eh_do_radar(nome) {
         // "Radar VV em dB (Sentinel-1, 26/10/2026)": a polarização e a data da passagem.
         let qual = n.split(" (").next().unwrap_or(n).trim_end_matches(" em dB");
@@ -462,6 +493,13 @@ pub fn receita(nome: &str) -> Option<Receita> {
     // Qualquer outro dado do BrasilData (setores e indicadores do censo, saúde, focos...): o
     // subtítulo é o nome da camada, e ela vai para a legenda como está.
     Some(Receita { subtitulo: n.to_string(), barra: None, legenda: None, nota: None })
+}
+
+/// Se a camada `nome` é uma composição colorida de três canais (o radar de 10 m, o NISAR): ela não
+/// tem o que listar na legenda, e o que cada cor é vai na nota.
+pub fn composicao(nome: &str) -> bool {
+    nome.strip_prefix(crate::PREFIXO).is_some_and(|n| n.starts_with("Composição"))
+        && (crate::radar_pc::eh_daqui(nome) || crate::nisar::eh_do_nisar(nome))
 }
 
 /// Os mapas coropléticos das camadas de indicadores e de setores: o campo, o que ele é (vai no
@@ -641,6 +679,21 @@ mod tests {
         let r = receita("BrasilData: Radar VV em dB (Sentinel-1, 26/10/2026)").unwrap();
         assert_eq!(r.subtitulo, "Radar VV do Sentinel-1 em 26/10/2026, corrigido do relevo (OPERA RTC-S1)");
         assert_eq!(r.barra, Some(("Radar VV (dB)".into(), 8)));
+        let vv = "BrasilData: Radar VV 10 m, mediana de 10 passagens (Sentinel-1, 03/08/2026 a 19/11/2026)";
+        let r = receita(vv).unwrap();
+        assert_eq!(
+            r.subtitulo,
+            "Radar VV do Sentinel-1, mediana de 10 passagens, 03/08/2026 a 19/11/2026, corrigido do relevo (Planetary Computer)"
+        );
+        assert_eq!((r.barra, r.nota.is_some()), (Some(("Radar VV (dB)".into(), 6)), true));
+        assert_eq!(receita(&vv.replace("VV", "VH")).unwrap().barra, Some(("Radar VH (dB)".into(), 10)));
+        let cor = crate::radar_pc::nome_da_composicao(vv).unwrap();
+        let r = receita(&cor).unwrap();
+        assert_eq!((r.barra, r.nota), (None, Some(NOTA_RADAR_10M_COR)));
+        assert!(composicao(&cor) && !composicao(vv) && composicao("BrasilData: Composição HH, HV, HH − HV (NISAR, 01/11/2026)"));
+        let r = receita(&crate::metano::camada(2023, Some(3))).unwrap();
+        assert_eq!(r.subtitulo, "Coluna média de metano no ar (XCH4), março de 2023 (Sentinel-5P/TROPOMI)");
+        assert_eq!(r.barra, Some(("Metano no ar, XCH4 (ppb)".into(), 6)));
         let r = receita("BrasilData: Radar HV em dB (NISAR, 01/11/2026)").unwrap();
         assert_eq!(r.subtitulo, "Radar HV do NISAR (banda L) em 01/11/2026, corrigido do relevo (GCOV)");
         assert_eq!(r.barra, Some(("Radar HV (dB)".into(), 6)));

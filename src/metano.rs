@@ -81,6 +81,21 @@ pub fn camada(ano: i64, mes: Option<u32>) -> String {
     format!("{PREFIXO_CAMADA}, {})", periodo_texto(ano, mes))
 }
 
+/// O período no nome da camada ("2023", "março de 2023").
+pub fn periodo_da_camada(nome: &str) -> Option<&str> {
+    nome.strip_prefix(PREFIXO_CAMADA)?.strip_prefix(", ")?.strip_suffix(')')
+}
+
+/// A citação da camada `nome` (o ano dos dados está no período dela).
+pub fn citacao(nome: &str) -> String {
+    let ano = periodo_da_camada(nome).and_then(|p| p.rsplit(' ').next()).unwrap_or_default();
+    format!(
+        "Contém dados modificados do Copernicus Sentinel {ano}, processados pelo BrasilData; Sentinel-5P/TROPOMI L2 CH4 (ESA/SRON), pelo Microsoft Planetary Computer"
+    )
+}
+
+pub const LICENCA: &str = "livre e aberto (licença dos dados Copernicus Sentinel), com a citação";
+
 /// Se a camada `nome` é do metano.
 pub fn da_camada(nome: &str) -> bool {
     nome.starts_with(PREFIXO_CAMADA)
@@ -105,6 +120,8 @@ mod testes {
         assert!(url(2023, Some(3)).ends_with("/metano_tropomi_2023_03.tif"));
         assert!(url(2023, None).ends_with("/metano_tropomi_2023.tif"));
         assert_eq!(camada(2023, Some(3)), "BrasilData: Metano no ar, XCH4 (Sentinel-5P, março de 2023)");
+        assert_eq!(periodo_da_camada(&camada(2023, Some(3))), Some("março de 2023"));
+        assert!(citacao(&camada(2023, Some(3))).contains("Sentinel 2023,") && citacao(&camada(2023, None)).contains("Sentinel 2023,"));
         assert!(da_camada(&camada(2023, None)));
         assert_eq!(escolhas()[0], "média de 2023");
         assert_eq!(escolhas().len(), 13);

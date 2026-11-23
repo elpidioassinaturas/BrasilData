@@ -1976,6 +1976,8 @@ fn citacoes() -> Result<(Vec<Value>, String), String> {
             lista.push(json!({"layer": n, "source": nisar::CITACAO, "license": nisar::LICENCA}));
         } else if radar::eh_do_radar(&n) {
             lista.push(json!({"layer": n, "source": radar::CITACAO, "license": radar::LICENCA}));
+        } else if metano::da_camada(&n) {
+            lista.push(json!({"layer": n, "source": metano::citacao(&n), "license": metano::LICENCA}));
         } else if sol::eh_do_sol(&n) {
             lista.push(json!({"layer": n, "source": sol::CITACAO, "license": sol::LICENCA}));
         } else if emit::eh_do_emit(&n) {
@@ -7804,6 +7806,8 @@ fn layout_do_mapa(req: &Request) -> Result<Value, String> {
     // Um dado do JAXA Earth sai na resolução original, fora da grade: a célula dele, não a da grade.
     let celula = match jaxa::variavel_da_camada(&principal) {
         Some(v) => format!("; células do dado: {}", v.resolucao()),
+        // O metano fica na grade de 0,1° do arquivo.
+        None if metano::da_camada(&principal) => "; células do dado: 0,1° (cerca de 11 km)".into(),
         None => g.as_ref().map(|g| format!("; células de {}", grade::texto_da_celula(g.celula))).unwrap_or_default(),
     };
     let referencia = [
@@ -7909,7 +7913,11 @@ fn layout_do_mapa(req: &Request) -> Result<Value, String> {
     fora.extend(alheias.iter().filter(|n| no_mapa.iter().any(|m| m == *n)).cloned());
     // Os nomes dos rios da drenagem: a linha deles é invisível, só os rótulos aparecem.
     fora.extend(no_mapa.iter().filter(|n| so_rotulos(n)).cloned());
-    if r.barra.is_some() {
+    // (uma composição colorida não tem classes, nem os canais dela, que ficam por baixo: a legenda
+    // seria uma caixa vazia)
+    if layout::composicao(&principal) {
+        fora.extend(visiveis.iter().filter(|v| radar_pc::eh_daqui(v) || nisar::eh_do_nisar(v)).map(|v| v.to_string()));
+    } else if r.barra.is_some() {
         fora.push(principal.clone());
     }
     // O MapBiomas recortado com a camada das classes logo abaixo: a legenda mostra os nomes das
@@ -7936,6 +7944,13 @@ fn layout_do_mapa(req: &Request) -> Result<Value, String> {
         if sobra && !rotulos.is_empty() {
             let _ = host::run("layout.update", json!({"layout": nome, "element": id, "labels": rotulos}));
         }
+    }
+    // Sem legenda nem barra de cores (uma composição colorida), a caixa delas sai também.
+    if r.barra.is_none()
+        && elemento("Legend").is_none()
+        && let Some(caixa) = elemento("Legend Box")
+    {
+        host::run("layout.update", json!({"layout": nome, "element": caixa, "visible": false}))?;
     }
     if let Some(id) = elemento("Colorbar") {
         match &r.barra {
