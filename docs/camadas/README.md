@@ -2,7 +2,7 @@
 
 <!-- Gerado por scripts/gerar.py a partir do fontes.csv e do fichas.csv; não edite à mão. -->
 
-A ficha de cada uma das 173 camadas que os botões da aba BrasilData trazem: o que é, a fonte, o período, a resolução, as unidades, a legenda, a licença, a citação, os cuidados de uso, se funciona no app web, e um mapa exemplo feito com o plugin (o botão Layout). Os mapas exemplo são de Viçosa (MG), ou da Zona da Mata mineira para os produtos de baixa resolução; os temas que não existem lá vêm de outro município, dito em cada ficha. Os mapas saem do `scripts/mapas_exemplo.py`.
+A ficha de cada uma das 174 camadas que os botões da aba BrasilData trazem: o que é, a fonte, o período, a resolução, as unidades, a legenda, a licença, a citação, os cuidados de uso, se funciona no app web, e um mapa exemplo feito com o plugin (o botão Layout). Os mapas exemplo são de Viçosa (MG), ou da Zona da Mata mineira para os produtos de baixa resolução; os temas que não existem lá vêm de outro município, dito em cada ficha. Os mapas saem do `scripts/mapas_exemplo.py`.
 
 ## Território
 
@@ -189,6 +189,7 @@ A ficha de cada uma das 173 camadas que os botões da aba BrasilData trazem: o q
 | [Composição temporal (NISAR, banda L)](nisar-tempo.md) | Vegetação e meio ambiente › Uso e cobertura | A composição temporal do NISAR: a mediana do HH no vermelho, a mediana do HV no verde e o desvio-padrão do HV entre as passagens no azul. |
 | [Radar 10 m, mediana no tempo (Sentinel-1)](radar-10m.md) | Vegetação e meio ambiente › Uso e cobertura | O retroespalhamento do radar Sentinel-1 (banda C) em 10 m, corrigido do relevo: a mediana das passagens mais recentes da mesma órbita, como no Sentinel-1 Global Backscatter Model. |
 | [Radar 10 m, composição colorida (Sentinel-1)](radar-10m-cor.md) | Vegetação e meio ambiente › Uso e cobertura | A composição colorida do radar Sentinel-1 em 10 m: a mediana do VV no vermelho, a do VH no verde e VV − VH (a razão VV/VH) no azul. |
+| [NDVI a 300 m, de 10 em 10 dias (Copernicus)](ndvi-copernicus.md) | Vegetação e meio ambiente › Vegetação | O índice de vegetação NDVI do serviço de terra do Copernicus (CLMS, versão 3), um mapa global a cada 10 dias, do Sentinel-3 (e do PROBA-V até dezembro de 2018). |
 
 ## Infraestrutura
 

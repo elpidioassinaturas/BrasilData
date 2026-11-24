@@ -76,6 +76,7 @@ const NOTA_NISAR_TEMPO: &str = "Vermelho: mediana do HH (−13 a −1 dB); verde
 const NOTA_RADAR_10M_COR: &str = "Vermelho: VV (−15 a −3 dB); verde: VH (−21 a −10 dB); azul: VV − VH (3 a 9 dB). Cidade e construções em rosa e magenta, mata e cerrado em amarelo e verde, lavoura e solo exposto em lilás, roxo e azul, água em preto. A posição não é exata: em áreas planas, o dado ficou de 13 a 33 m a oeste do Sentinel-2.";
 const NOTA_RADAR_10M: &str = "A posição não é exata: em oito áreas planas do Brasil, o dado ficou de 13 a 33 m a oeste do Sentinel-2 (mediana de 18 m), e no relevo forte o desvio muda de um lugar para outro.";
 const NOTA_LUZES: &str = "Número relativo, sem unidade. A série usa o satélite DMSP até 2013 e o VIIRS depois, corrigidos um pelo outro: de 2013 para 2014 as células acesas do Brasil sobem 23%, e boa parte disso deve vir da troca.";
+const NOTA_NDVI_COPERNICUS: &str = "Células de cerca de 300 m, com um valor para cada 10 dias. Sem cor: água ou sem dado.";
 const NOTA_METANO: &str = "Metano na coluna de ar, não a emissão de cada lugar: o valor cai com a altitude (há menos ar acima) e varia com a estação. Grade de 0,1° (cerca de 11 km) calculada pelo BrasilData dos pixels de boa qualidade do satélite.";
 
 const NOTA_NISAR_COR: &str = "Vermelho: HH (−12,7 a 4,3 dB); verde: HV (−18 a −5,3 dB); azul: HH − HV (0,8 a 13,4 dB). Mata em verde forte (volume das copas), cidade em rosa e magenta (eco duplo das construções), pasto e solo exposto em azul e roxo escuros, água escura.";
@@ -446,6 +447,14 @@ pub fn receita(nome: &str) -> Option<Receita> {
         };
         return Some(Receita { subtitulo, barra: Some((barra.into(), marcas)), legenda: None, nota: Some(NOTA_LUZES) });
     }
+    if let Some((inicio, fim)) = crate::ndvi_cdse::da_camada(nome) {
+        return Some(Receita {
+            subtitulo: format!("NDVI de {} a {} (Copernicus, {}, 300 m)", inicio.texto(), fim.texto(), crate::ndvi_cdse::satelite(inicio)),
+            barra: Some(("NDVI".into(), 10)),
+            legenda: None,
+            nota: Some(NOTA_NDVI_COPERNICUS),
+        });
+    }
     if let Some(periodo) = crate::metano::periodo_da_camada(nome) {
         return Some(Receita {
             subtitulo: format!("Coluna média de metano no ar (XCH4), {periodo} (Sentinel-5P/TROPOMI)"),
@@ -719,6 +728,8 @@ mod tests {
         let r = receita(&crate::luzes::camada_mudanca(2000, 2024)).unwrap();
         assert_eq!(r.subtitulo, "Mudança das luzes noturnas de 2000 a 2024 (PCNL, DMSP e VIIRS)");
         assert_eq!(receita(&crate::luzes::camada(2024)).unwrap().barra, Some(("Luz (número relativo)".into(), 5)));
+        let r = receita("BrasilData: NDVI de 11/10/2026 a 20/10/2026 (Copernicus 300 m)").unwrap();
+        assert_eq!(r.subtitulo, "NDVI de 11/10/2026 a 20/10/2026 (Copernicus, Sentinel-3, 300 m)");
         let r = receita(&crate::metano::camada(2023, Some(3))).unwrap();
         assert_eq!(r.subtitulo, "Coluna média de metano no ar (XCH4), março de 2023 (Sentinel-5P/TROPOMI)");
         assert_eq!(r.barra, Some(("Metano no ar, XCH4 (ppb)".into(), 6)));

@@ -103,6 +103,8 @@ pub fn comando_da_camada(nome: &str, fonte: &str) -> Option<&'static str> {
         "gedtm-relevo"
     } else if nome == crate::anadem::CAMADA {
         "anadem"
+    } else if crate::ndvi_cdse::da_camada(nome).is_some() {
+        "ndvi-copernicus"
     } else if crate::metano::da_camada(nome) {
         "metano-tropomi"
     } else if let Some(l) = crate::luzes::da_camada(nome) {
@@ -188,6 +190,7 @@ mod tests {
             ("BrasilData: Metano no ar, XCH4 (Sentinel-5P, março de 2023)", "metano-tropomi"),
             ("BrasilData: Luzes noturnas 2024 (PCNL, DMSP e VIIRS)", "luzes-noturnas"),
             ("BrasilData: Mudança das luzes noturnas, 2000 a 2024 (PCNL, DMSP e VIIRS)", "luzes-mudanca"),
+            ("BrasilData: NDVI de 11/10/2026 a 20/10/2026 (Copernicus 300 m)", "ndvi-copernicus"),
             (irrigacao::CAMADA, "irrigacao-gmia"),
             ("BrasilData: Cobertura da terra 2021 (ESA WorldCover, 10 m)", "worldcover"),
         ];

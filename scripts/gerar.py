@@ -37,7 +37,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.70"
+VERSAO = "0.1.71"
 AUTOR = "Elpídio Filho"
 # Como o texto Sobre chama o autor (o manifesto e o README levam o nome completo).
 AUTOR_SOBRE = "Professor Elpídio"
@@ -429,6 +429,7 @@ OUTRAS_FONTES = [
     "Ministério da Saúde (CNES, pelo geobr do Ipea)",
     "Open-Meteo (previsão do ECMWF, da NOAA e do DWD)",
     "CHIRPS v3 (Climate Hazards Center, UCSB)",
+    "Copernicus Land Monitoring Service (pelo Copernicus Data Space)",
 ]
 # O RustGIS aceita até 2.000 caracteres num texto declarado do painel e corta um aviso em 500
 # (com o "BrasilData: " na frente).
@@ -476,6 +477,9 @@ LOGIN_EARTHDATA = {
     "nisar-hh", "nisar-hv", "nisar-razao", "nisar-cor", "nisar-tempo",
     "dist-situacao", "dist-data", "dist-confianca", "dist-intensidade",
 }
+
+# Os que pedem o do Copernicus Data Space.
+LOGIN_COPERNICUS = {"ndvi-copernicus"}
 
 EM_MENUS = [
     (
@@ -670,6 +674,20 @@ EM_MENUS = [
                 {"name": "composicao", "label": "Composição", "kind": "choice", "required": True, "choices": COMPOSICOES, "default": COMPOSICOES[0], "help": "A cor verdadeira mostra a área como o olho a veria; a falsa-cor põe o infravermelho no vermelho: a vegetação viva sai vermelha, a água escura, a cidade e o solo exposto em azul e cinza."},
                 {"name": "inicio", "label": "Início (dd/mm/aaaa)", "kind": "text", "help": "A primeira data. Vazio: 3 meses antes do fim."},
                 {"name": "fim", "label": "Fim (dd/mm/aaaa)", "kind": "text", "help": "A última data. Vazio: a mais recente do cubo. O período vai de 16 dias a 1 ano; mais datas dão mais chance de céu limpo, mas misturam estações."},
+            ],
+        },
+    ),
+    (
+        "Vegetação e meio ambiente",
+        "Vegetação",
+        {
+            "id": "ndvi-copernicus",
+            "label": "NDVI a 300 m, de 10 em 10 dias (Copernicus)",
+            "help": "O índice de vegetação NDVI do serviço de terra do Copernicus (CLMS, versão 3), um mapa a cada 10 dias desde janeiro de 2014, em células de cerca de 300 m: o verde da vegetação de um estado ou de uma região numa data, para acompanhar a seca, a safra e as estações. Só a área, lida do Copernicus Data Space e posta na grade do projeto. Pede o login do Copernicus Data Space, que é grátis (Início › Dados web › Copernicus Data Space): o RustGIS o guarda, e o plugin não vê a senha. O servidor às vezes derruba a conexão: o plugin tenta de novo sozinho.",
+            "icon": "dra",
+            "params": "{\"data\"?: dd/mm/aaaa ou aaaa-mm-dd (o produto de 10 dias que contém o dia; padrão: o mais recente), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+            "form": [
+                {"name": "data", "label": "Data (dd/mm/aaaa)", "kind": "text", "help": "Um dia de janeiro de 2014 em diante: vem o mapa dos 10 dias que o contêm (1 a 10, 11 a 20 ou 21 ao fim do mês). Vazio: o mais recente."},
             ],
         },
     ),
@@ -1884,12 +1902,13 @@ def manifesto(linhas: list[dict], fichas: dict[str, dict]) -> str:
             sys.exit(f"{g}: a aba tem os subtópicos {menus}, e TOPICOS diz {TOPICOS[g]}")
         # No grupo Área, o painel, a seleção, o desenho e a grade vêm antes dos menus.
         itens.sort(key=lambda i: TOPICOS[g].index(i["menu"]) if isinstance(i, dict) else (-1 if i in NA_ABA_AREA else len(TOPICOS[g])))
-    faltam = LOGIN_EARTHDATA - {c["id"] for c in comandos}
-    if faltam:
-        sys.exit(f"LOGIN_EARTHDATA nomeia comandos que não existem: {', '.join(sorted(faltam))}")
-    for c in comandos:
-        if c["id"] in LOGIN_EARTHDATA:
-            c["login"] = "earthdata"
+    for login, quais in (("earthdata", LOGIN_EARTHDATA), ("copernicus", LOGIN_COPERNICUS)):
+        faltam = quais - {c["id"] for c in comandos}
+        if faltam:
+            sys.exit(f"o login {login} nomeia comandos que não existem: {', '.join(sorted(faltam))}")
+        for c in comandos:
+            if c["id"] in quais:
+                c["login"] = login
     usados = [(c["id"], c["icon"]) for c in comandos] + [("painel", PAINEL["icon"])]
     usados += [(i["menu"], i["icon"]) for itens in grupos.values() for i in itens if isinstance(i, dict)]
     fora = [f"{quem} ({icone})" for quem, icone in usados if icone not in ICONES_DO_RUSTGIS]

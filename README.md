@@ -49,6 +49,7 @@ comando e mostra embaixo o que ele fez. São eles:
 | Luzes noturnas | o ano, de 1992 a 2024 |
 | Mudança das luzes noturnas | o primeiro e o último ano |
 | Cenas hiperespectrais do EMIT (NASA) | o limite de nuvem da cena e o ano |
+| NDVI a 300 m, de 10 em 10 dias (Copernicus) | a data (vazia: a mais recente) |
 | Índice de vegetação (cubo do INPE) | o satélite (Sentinel-2, Landsat, CBERS-4 WFI ou MODIS), o índice (NDVI ou EVI), o período e o resumo das datas (média, máxima, mínima ou desvio-padrão) |
 | Biomassa acima do solo por ano (CTrees) | o ano e se vem a biomassa ou o erro-padrão dela |
 | Radar VV, VH e VH/VV (Sentinel-1); HH, HV, HV/HH e composição (NISAR) | a data da passagem (vazio: a mais recente) |
@@ -594,6 +595,8 @@ Fora da tabela, com a citação no comando **Fontes**:
 - **Cenas hiperespectrais do EMIT:** EMIT L2A Surface Reflectance and Uncertainty and Masks 60 m V002
   (doi:10.5067/EMIT/EMITL2ARFL.002) e V001 (doi:10.5067/EMIT/EMITL2ARFL.001), NASA LP DAAC; contornos
   e nuvem do catálogo CMR da NASA, sem login (as imagens pedem o Earthdata Login);
+- **NDVI a 300 m (Copernicus):** Copernicus Land Monitoring Service, NDVI 300 m de 10 em 10 dias,
+  versão 3 (União Europeia), pelo Copernicus Data Space Ecosystem, com o login que o RustGIS guarda;
 - **Índice de vegetação (cubo do INPE):** Brazil Data Cube, cubos de 16 dias do Sentinel-2, do
   Landsat, do CBERS-4 WFI e do MODIS; Ferreira et al. 2020, Remote Sensing 12(24), 4033. Só no
   app desktop;

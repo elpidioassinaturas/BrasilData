@@ -1,7 +1,7 @@
 {
   "id": "brasildata",
   "name": "BrasilData",
-  "version": "0.1.70",
+  "version": "0.1.71",
   "description": "Dados públicos do Brasil para a área do usuário (IBGE, MMA, ICMBio, INPE, CEMADEN, ANA, ANEEL, ANP, SFB/CAR, INCRA, FUNAI, IBAMA, ANM, DNIT, Ministério da Saúde, Copernicus, NASA/ASF, FAO, WRI, Open-Meteo, CHIRPS, Google DeepMind): só o que cruza a área, recortado por ela, com a fonte e a licença de cada camada.",
   "author": "Elpídio Filho",
   "homepage": "https://github.com/elpidioassinaturas/BrasilData",
@@ -1072,6 +1072,22 @@
           "help": "A última data. Vazio: a mais recente do cubo. O período vai de 16 dias a 1 ano; mais datas dão mais chance de céu limpo, mas misturam estações."
         }
       ]
+    },
+    {
+      "id": "ndvi-copernicus",
+      "label": "NDVI a 300 m, de 10 em 10 dias (Copernicus)",
+      "help": "O índice de vegetação NDVI do serviço de terra do Copernicus (CLMS, versão 3), um mapa a cada 10 dias desde janeiro de 2014, em células de cerca de 300 m: o verde da vegetação de um estado ou de uma região numa data, para acompanhar a seca, a safra e as estações. Só a área, lida do Copernicus Data Space e posta na grade do projeto. Pede o login do Copernicus Data Space, que é grátis (Início › Dados web › Copernicus Data Space): o RustGIS o guarda, e o plugin não vê a senha. O servidor às vezes derruba a conexão: o plugin tenta de novo sozinho. Período: de 10 em 10 dias, de 01/01/2014 à data mais recente do catálogo. Resolução ou escala: 1/336° (cerca de 300 m), posta na grade do projeto; numa área maior que uns 23° (o Brasil inteiro), a visão reduzida do arquivo (cerca de 1,3 km), que guarda uma célula de cada 4 × 4, sem média. Unidades: NDVI, de -0,08 a 0,92. Licença: política de dados do Copernicus: uso livre e gratuito, com a citação. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/ndvi-copernicus.md",
+      "icon": "dra",
+      "params": "{\"data\"?: dd/mm/aaaa ou aaaa-mm-dd (o produto de 10 dias que contém o dia; padrão: o mais recente), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+      "form": [
+        {
+          "name": "data",
+          "label": "Data (dd/mm/aaaa)",
+          "kind": "text",
+          "help": "Um dia de janeiro de 2014 em diante: vem o mapa dos 10 dias que o contêm (1 a 10, 11 a 20 ou 21 ao fim do mês). Vazio: o mais recente."
+        }
+      ],
+      "login": "copernicus"
     },
     {
       "id": "chm-altura",
@@ -2594,7 +2610,7 @@
     {
       "id": "sobre",
       "label": "Sobre",
-      "help": "BrasilData 0.1.70, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nAs fontes dos dados e como contribuir estão nas abas do fim do painel Área de trabalho: basta clicar nelas. Para lê-las aqui, marque a caixa e clique em Executar. A janela fica aberta até o X do canto de cima.",
+      "help": "BrasilData 0.1.71, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nAs fontes dos dados e como contribuir estão nas abas do fim do painel Área de trabalho: basta clicar nelas. Para lê-las aqui, marque a caixa e clique em Executar. A janela fica aberta até o X do canto de cima.",
       "icon": "about",
       "params": "{\"completo\"?: true para as fontes e como contribuir | \"parte\"?: \"tudo\" (padrão) | \"autoria\" | \"fontes\" | \"contribuir\"}",
       "form": [
@@ -2762,7 +2778,7 @@
         "kind": "text",
         "id": "sobre",
         "label": "Sobre o BrasilData: Autoria",
-        "text": "BrasilData 0.1.70, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData"
+        "text": "BrasilData 0.1.71, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData"
       }
     ]
   },
@@ -3069,6 +3085,7 @@
             "icon": "dra",
             "items": [
               "vegetacao",
+              "ndvi-copernicus",
               "chm-altura",
               "chm-amazonia",
               "forty-tipologia",

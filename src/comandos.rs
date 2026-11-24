@@ -38,6 +38,7 @@ use crate::malhas;
 use crate::mapbiomas;
 use crate::metano;
 use crate::municipios::{self, Territorio};
+use crate::ndvi_cdse;
 use crate::nisar;
 use crate::olm;
 use crate::power;
@@ -247,6 +248,7 @@ fn executar_comando(req: Request) -> Result<Value, String> {
         "gedtm-relevo" => gedtm_na_area(&req),
         "anadem" => anadem_na_area(&req),
         "metano-tropomi" => metano_na_area(&req),
+        "ndvi-copernicus" => ndvi_copernicus(&req),
         "luzes-noturnas" => luzes_na_area(&req),
         "luzes-mudanca" => mudanca_das_luzes(&req),
         "bdc-indice" => bdc_indice(&req),
@@ -2033,6 +2035,8 @@ fn citacoes() -> Result<(Vec<Value>, String), String> {
             lista.push(json!({"layer": n, "source": radar::CITACAO, "license": radar::LICENCA}));
         } else if let Some(l) = luzes::da_camada(&n) {
             lista.push(json!({"layer": n, "source": luzes::citacao(l), "license": luzes::LICENCA}));
+        } else if ndvi_cdse::da_camada(&n).is_some() {
+            lista.push(json!({"layer": n, "source": ndvi_cdse::CITACAO, "license": ndvi_cdse::LICENCA}));
         } else if metano::da_camada(&n) {
             lista.push(json!({"layer": n, "source": metano::citacao(&n), "license": metano::LICENCA}));
         } else if sol::eh_do_sol(&n) {
@@ -7736,8 +7740,8 @@ fn leitura_das_luzes<'a>(ano: i64, saida: String, janela: &'a dyn Fn(i32) -> Str
     }
 }
 
-/// A área e a grade das luzes noturnas.
-fn area_das_luzes(req: &Request) -> Result<([f64; 4], Grade), String> {
+/// A área e a grade, com a célula pedida se não há uma.
+fn area_e_grade(req: &Request) -> Result<([f64; 4], Grade), String> {
     let celula = req.f64("celula");
     if let Some(m) = celula {
         grade::conferir_celula(m)?;
@@ -7751,7 +7755,7 @@ fn area_das_luzes(req: &Request) -> Result<([f64; 4], Grade), String> {
 
 /// As cores da camada `nome`, com a rampa do plugin (ou a `reserva`, se o RustGIS não a aceita) na
 /// `escala`.
-fn cores_das_luzes(nome: &str, (rampa, cores): (&str, &str), reserva: &str, (a, b): (f64, f64)) -> Result<(), String> {
+fn cores_na_escala(nome: &str, (rampa, cores): (&str, &str), reserva: &str, (a, b): (f64, f64)) -> Result<(), String> {
     let _ = host::run("ramp.add", json!({"text": cores, "format": "gdal", "name": rampa}));
     if host::run("raster.symbology", json!({"layer": nome, "type": "stretch", "ramp": rampa})).is_err() {
         host::run("raster.symbology", json!({"layer": nome, "type": "stretch", "ramp": reserva}))?;
@@ -7770,14 +7774,14 @@ fn texto_da_leitura(k: i32, lido: f64, resampling: &str, g: &Grade) -> String {
 /// projeto e recortada pela área.
 fn luzes_na_area(req: &Request) -> Result<Value, String> {
     let ano = req.f64("ano").map(luzes::conferir_ano).transpose()?.unwrap_or(luzes::ULTIMO_ANO);
-    let (c, g) = area_das_luzes(req)?;
+    let (c, g) = area_e_grade(req)?;
     let janela = |k: i32| luzes::janela_nome(ano, k);
     let l = leitura_das_luzes(ano, luzes::camada(ano), &janela);
     let (k, lido, resampling) = match ler_cog_global(&l, c, &g)? {
         Ok(r) => r,
         Err(pendente) => return Ok(pendente),
     };
-    cores_das_luzes(&l.saida, luzes::RAMPA, "Inferno", luzes::ESCALA)?;
+    cores_na_escala(&l.saida, luzes::RAMPA, "Inferno", luzes::ESCALA)?;
     let sensor = if ano < luzes::PRIMEIRO_DO_VIIRS { "sensor DMSP" } else { "sensor VIIRS, na escala da série" };
     let texto = format!(
         "{}: {sensor}, número relativo, sem unidade, {}{}",
@@ -7800,7 +7804,7 @@ fn mudanca_das_luzes(req: &Request) -> Result<Value, String> {
     if inicio >= fim {
         return Err(format!("o primeiro ano ({inicio}) vem antes do último ({fim})"));
     }
-    let (c, g) = area_das_luzes(req)?;
+    let (c, g) = area_e_grade(req)?;
     let antes = format!("{PREFIXO}luzes antes");
     let depois = format!("{PREFIXO}luzes depois");
     let (ja, jb) = (|k: i32| luzes::janela_nome(inicio, k), |k: i32| luzes::janela_nome(fim, k));
@@ -7827,7 +7831,7 @@ fn mudanca_das_luzes(req: &Request) -> Result<Value, String> {
         Ok(r) => r,
         Err(pendente) => return Ok(pendente),
     };
-    cores_das_luzes(&saida, luzes::RAMPA_MUDANCA, "PuOr", luzes::ESCALA_MUDANCA)?;
+    cores_na_escala(&saida, luzes::RAMPA_MUDANCA, "PuOr", luzes::ESCALA_MUDANCA)?;
     let texto = format!(
         "{saida}: {fim} menos {inicio}, número relativo, sem unidade, {}{}",
         texto_da_leitura(k, lido, resampling, &g),
@@ -8047,6 +8051,167 @@ fn metano_na_area(req: &Request) -> Result<Value, String> {
     );
     avisar(&texto);
     Ok(json!({"layer": nome, "year": ano, "month": mes, "report": texto}))
+}
+
+/// Pede `pedido` (um `layer.addUrl` de uma janela do NDVI do Copernicus) até `vezes` vezes, a cada vez
+/// no endereço que `url` dá (ver [`ndvi_cdse`]). Devolve a vez que deu certo; ou o `pending` de uma
+/// leitura que ainda vem (no desktop, o comando roda de novo quando ela chega).
+fn insistir(pedido: &Value, vezes: i32, url: impl Fn(i32) -> String) -> Result<Result<i32, Value>, String> {
+    let mut i = 1;
+    loop {
+        let mut p = pedido.clone();
+        p["url"] = json!(url(i));
+        let e = match host::run("layer.addUrl", p) {
+            Ok(r) if pendente(&r) => return Ok(Err(r)),
+            Ok(r) if r.get("inPlace").and_then(Value::as_bool) == Some(true) || r.get("window").is_none() => {
+                tirar_janela(pedido["name"].as_str().unwrap_or_default())?;
+                return Err("o NDVI do Copernicus precisa de um RustGIS que leia só a janela da área: o arquivo é o mundo inteiro".into());
+            }
+            Ok(_) => return Ok(Ok(i)),
+            Err(e) => e,
+        };
+        if e.contains("http status: 401") || e.contains("http status: 403") {
+            return Err(format!(
+                "o Copernicus Data Space recusou o login: entre de novo em Início › Dados web › Copernicus Data Space ({e})"
+            ));
+        }
+        if !ndvi_cdse::conexao_caiu(&e) {
+            return Err(e);
+        }
+        if i == vezes {
+            return Err(format!(
+                "o servidor de arquivos do Copernicus recusou ou derrubou {i} pedidos seguidos: espere um minuto e clique de novo ({e})"
+            ));
+        }
+        i += 1;
+    }
+}
+
+/// A camada de passagem com uma célula só de `bruto`, para o cabeçalho do arquivo.
+fn sonda_do_ndvi(bruto: &str) -> String {
+    format!("{bruto}, sonda")
+}
+
+/// A janela da área `c` no nível `k` do NDVI do Copernicus, na camada de passagem `bruto`, se ela ainda
+/// não está no mapa; ou o `pending` de uma leitura que ainda vem. Primeiro uma célula só, mudando de
+/// endereço até o cabeçalho do arquivo vir; depois a janela, sempre no endereço que respondeu: cada
+/// vez só pede os blocos que faltam.
+fn janela_do_ndvi(p: &ndvi_cdse::Produto, c: [f64; 4], k: i32, bruto: &str) -> Result<Result<(), Value>, String> {
+    if nomes()?.iter().any(|n| n == bruto) && extensao(bruto)?.is_some_and(|e| retangulo_cabe(c, e)) {
+        return Ok(Ok(()));
+    }
+    tirar_janela(bruto)?;
+    let a = ndvi_cdse::arquivo(p.url.clone());
+    let pedido = |nome: &str, caixa: [f64; 4]| {
+        let mut v = json!({"name": nome, "cog": true, "bbox": caixa, "zoom": false});
+        if k > 0 {
+            v["cellSize"] = json!(cog_global::celula_pedida(a.graus_do_nivel(k)));
+        }
+        v
+    };
+    let sonda = sonda_do_ndvi(bruto);
+    let aviso = |v: Value| {
+        avisar("NDVI do Copernicus: lendo a área no arquivo global; a camada vem quando chegar");
+        Ok(Err(v))
+    };
+    let j = match insistir(&pedido(&sonda, ndvi_cdse::uma_celula(&a, c, k)), ndvi_cdse::TENTATIVAS, |i| ndvi_cdse::endereco(&p.url, i))? {
+        Ok(j) => j,
+        Err(v) => return aviso(v),
+    };
+    let lida = insistir(&pedido(bruto, a.janela(c, k)), ndvi_cdse::TENTATIVAS_DA_JANELA, |_| ndvi_cdse::endereco(&p.url, j));
+    if !matches!(lida, Ok(Err(_))) {
+        remover(&[&sonda])?;
+    }
+    match lida? {
+        Ok(_) => Ok(Ok(())),
+        Err(v) => aviso(v),
+    }
+}
+
+/// O NDVI de 10 em 10 dias a 300 m do Copernicus ([`ndvi_cdse`]): o produto mais recente, ou o do dia
+/// pedido, lido do Copernicus Data Space com o login do RustGIS.
+fn ndvi_copernicus(req: &Request) -> Result<Value, String> {
+    const SEM_LOGIN: &str = "o NDVI do Copernicus pede o login do Copernicus Data Space, que é grátis: entre em Início › Dados web › Copernicus Data Space (a conta se cria em dataspace.copernicus.eu)";
+    let dia = match req.str("data") {
+        Some(t) => Some(bdc::ler_data(t).ok_or(format!("data '{t}': use dia/mês/ano, como 15/10/2026"))?),
+        None => None,
+    };
+    if dia.is_some_and(|d| d < ndvi_cdse::PRIMEIRO) {
+        return Err(format!("o NDVI do Copernicus a 300 m começa em {}", ndvi_cdse::PRIMEIRO.texto()));
+    }
+    let (c, g) = area_e_grade(req)?;
+    // O login guardado neste computador (remembered) entra sozinho quando o arquivo é pedido.
+    let s = host::run("copernicus.status", json!({})).map_err(|e| {
+        format!("o NDVI do Copernicus precisa de um RustGIS com o login do Copernicus Data Space (0.7.0 ou mais novo): {e}")
+    })?;
+    if s["signedIn"].as_bool() != Some(true) && s["remembered"].as_bool() != Some(true) {
+        return Err(SEM_LOGIN.into());
+    }
+    let r = match buscar_varios(&[ndvi_cdse::url_busca(dia)])? {
+        Ok(r) => r,
+        Err(p) => return Ok(p),
+    };
+    let p = ndvi_cdse::produto(&r[0])
+        .ok_or("o catálogo do Copernicus Data Space não respondeu com um NDVI de 300 m: tente de novo daqui a pouco")?;
+    let (a, lat) = (ndvi_cdse::arquivo(p.url.clone()), (c[1] + c[3]) / 2.0);
+    let k = ndvi_cdse::nivel(&a, c).ok_or("a área é grande demais para o NDVI do Copernicus: escolha uma área menor")?;
+    let bruto = format!("{PREFIXO}NDVI Copernicus {} (janela {k})", p.inicio.iso());
+    if let Err(pendente) = janela_do_ndvi(&p, c, k, &bruto)? {
+        return Ok(pendente);
+    }
+    let saida = ndvi_cdse::camada(p.inicio, p.fim);
+    let (conta, na_grade) = (format!("{PREFIXO}NDVI na unidade"), format!("{PREFIXO}NDVI na grade"));
+    let lido = a.metros_do_nivel(k, lat);
+    let resampling = cog_global::reamostragem(g.celula, lido);
+    remover(&[&saida])?;
+    let feito = (|| -> Result<(), String> {
+        host::run(
+            "raster.functionChain",
+            json!({"layer": bruto, "name": conta, "steps": [
+                {"function": "bandMath", "expression": "b1 + 1"},
+                {"function": "remap", "ranges": [[251.5, 1e9, 0]], "keep": true},
+                {"function": "bandMath", "expression": ndvi_cdse::CONTA},
+            ]}),
+        )?;
+        // (o `raster.georeference` é da extensão Imagens)
+        if k > 0
+            && let Some(e) = extensao(&conta)?
+            && let Err(e) = host::run("raster.georeference", json!({"layer": conta, "extent": ndvi_cdse::posta_no_lugar(&a, e, k)}))
+        {
+            host::log(&format!("NDVI do Copernicus, o ajuste da posição: {e}"));
+            avisar(
+                "NDVI do Copernicus: nesta área, lida da visão reduzida do arquivo, as células ficam cerca de 0,5 km a sudeste do lugar; com a extensão Imagens ligada (Plugins › Extensões), o plugin corrige",
+            );
+        }
+        host::run(
+            "raster.project",
+            json!({"layer": conta, "crs": g.epsg, "cellSize": g.celula, "extent": GRADE, "resampling": resampling, "name": na_grade}),
+        )?;
+        recortar(&na_grade, AREA, &saida)?;
+        // As mesmas cores e escala do NDVI do cubo do INPE, para que se comparem.
+        let (rampa, cores) = bdc::rampa(bdc::Indice::Ndvi);
+        cores_na_escala(&saida, (rampa, &cores), "RdYlGn", bdc::Indice::Ndvi.escala())
+    })();
+    // No desktop, a janela chega com a sonda ainda no mapa.
+    remover(&[&bruto, &sonda_do_ndvi(&bruto), &conta, &na_grade])?;
+    feito?;
+    let media = host::run("raster.info", json!({"layer": saida}))
+        .ok()
+        .and_then(|i| i["bands"][0]["mean"].as_f64())
+        .map(|m| format!("; média na área: {}", format!("{m:.2}").replace('.', ",")))
+        .unwrap_or_default();
+    let texto = format!(
+        "{}: {}, {}{}",
+        saida.trim_start_matches(PREFIXO),
+        ndvi_cdse::satelite(p.inicio),
+        texto_da_leitura(k, lido, resampling, &g),
+        media
+    );
+    avisar(&texto);
+    Ok(json!({
+        "layer": saida, "start": p.inicio.iso(), "end": p.fim.iso(), "level": k, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula,
+        "report": texto,
+    }))
 }
 
 /// Põe a camada `nome` (um raster, que chega no topo) logo abaixo das camadas de linhas e de pontos

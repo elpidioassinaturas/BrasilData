@@ -54,6 +54,7 @@ pub mod malhas;
 pub mod mapbiomas;
 pub mod metano;
 pub mod municipios;
+pub mod ndvi_cdse;
 pub mod nisar;
 pub mod olm;
 pub mod pardig;
