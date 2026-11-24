@@ -84,6 +84,77 @@ pub fn declarar_sem_dado(camada: &str, nome: &str) -> Value {
     json!({"layer": camada, "function": "bandMath", "expression": "b1", "name": nome})
 }
 
+/// O `cube.reduce` que junta rasters da mesma grade, com o primeiro que tem valor em cada célula, como
+/// o `raster.mosaic` da Imagens: a média inventaria classes na emenda (no WorldCover de Minas Gerais,
+/// 655 células com 15, 25, 23,3…).
+///
+/// Args:
+///     entradas: os rasters, na ordem em que valem.
+///     estatistica: a do `cube.reduce` onde eles se sobrepõem.
+///     nome: o nome da camada nova.
+pub fn juntar(entradas: &[String], estatistica: &str, nome: &str) -> Value {
+    // O cube.reduce quer uma data por camada: datas quaisquer, na ordem das entradas.
+    let datas: Vec<String> = (0..entradas.len()).map(|i| format!("{}-01-01", 2000 + i)).collect();
+    let mut p = json!({"layers": entradas, "dates": datas, "stat": estatistica, "name": nome});
+    if estatistica == "first" {
+        p["order"] = json!("date");
+    }
+    p
+}
+
+/// Os `raster.project` que põem tiles em longitude e latitude (os do Copernicus, baixados inteiros)
+/// na janela do contorno, todos na mesma rede de células, sem reamostrar: a célula do vizinho mais
+/// próximo cai no centro da do tile. Com eles na mesma grade, o [`juntar`] serve.
+///
+/// O `geolibre:mosaic`, que une tiles de extensões diferentes, não toma o `PixelIsPoint` do Copernicus
+/// e os põe meia célula (15 m) para leste e para baixo.
+///
+/// Args:
+///     tiles: o nome e a resposta do `raster.info` de cada tile.
+///     poligono: a camada do contorno.
+///     nome: o nome da camada nova de cada um (a do índice).
+///
+/// Returns:
+///     Os pedidos, ou `None` se os tiles não estão no EPSG:4326 ou não têm a mesma rede de células.
+pub fn tiles_na_janela(tiles: &[(String, Value)], poligono: &str, nome: impl Fn(usize) -> String) -> Option<Vec<Value>> {
+    let rede = |i: &Value| -> Option<[f64; 4]> {
+        if i["crs"] != "EPSG:4326" || !i["overviewOf"].is_null() {
+            return None;
+        }
+        let cel = |k: usize| i["cellSize"][k].as_f64().filter(|c| *c > 0.0);
+        Some([i["extent"]["west"].as_f64()?, i["extent"]["north"].as_f64()?, cel(0)?, cel(1)?])
+    };
+    let [oeste, norte, cx, cy] = rede(&tiles.first()?.1)?;
+    let inteiro = |d: f64, c: f64| ((d / c) - (d / c).round()).abs() < 1e-3;
+    let mesma_rede = |i: &Value| {
+        rede(i).is_some_and(|[o, n, x, y]| {
+            (x / cx - 1.0).abs() < 1e-6 && (y / cy - 1.0).abs() < 1e-6 && inteiro(o - oeste, cx) && inteiro(n - norte, cy)
+        })
+    };
+    if !tiles.iter().all(|(_, i)| mesma_rede(i)) {
+        return None;
+    }
+    let pedido = |(k, (tile, _)): (usize, &(String, Value))| json!({"layer": tile, "cellSize": [cx, cy], "origin": [oeste, norte], "extent": poligono, "resampling": "nearest", "name": nome(k)});
+    Some(tiles.iter().enumerate().map(pedido).collect())
+}
+
+/// O aviso de que o mosaico dos tiles foi do `geolibre:mosaic`.
+pub const AVISO_DO_MOSAICO: &str = "Os tiles foram juntados pelo GeoLibre, que pode deixá-los meia célula (cerca de 15 m no Copernicus) fora do lugar. Com a extensão Imagens ligada (Plugins › Extensões), ou numa área menor, isso não acontece";
+
+/// A mensagem de um mosaico que não saiu.
+///
+/// Args:
+///     erro: o erro do `cube.reduce`.
+///     na_grade: se os blocos estão na grade do projeto, em que uma célula maior também resolve (os
+///         tiles do Copernicus ficam na célula deles).
+pub fn mosaico_nao_saiu(erro: &str, na_grade: bool) -> String {
+    format!(
+        "os blocos da área não se juntaram com a extensão Imagens do RustGIS desligada ({}). Ligue a Imagens em Plugins › Extensões e clique de novo, ou use uma área menor{}",
+        motivo(erro),
+        if na_grade { " ou uma célula maior" } else { "" }
+    )
+}
+
 /// O aviso de que o recorte do GeoLibre demorou, se o raster tem muitas células.
 ///
 /// Args:
@@ -179,8 +250,44 @@ mod testes {
     }
 
     #[test]
+    fn o_mosaico_toma_o_primeiro_que_tem_valor() {
+        let p = juntar(&["a".into(), "b".into()], "first", "m");
+        assert_eq!(p["layers"], json!(["a", "b"]));
+        assert_eq!(p["dates"], json!(["2000-01-01", "2001-01-01"]));
+        assert_eq!(p["order"], "date");
+        // `order` é só do `first`: noutra estatística o RustGIS o recusa.
+        assert!(juntar(&["a".into()], "max", "m").get("order").is_none());
+    }
+
+    #[test]
+    fn os_tiles_vao_para_a_mesma_rede_na_janela() {
+        let c = 1.0 / 3600.0;
+        let tile = |oeste: f64, norte: f64, c: f64| json!({"crs": "EPSG:4326", "cellSize": [c, c], "overviewOf": null, "extent": {"west": oeste, "north": norte}});
+        // Dois tiles do Copernicus: o canto a meia célula do grau.
+        let (a, b) = (tile(-44.0 - c / 2.0, -20.0 + c / 2.0, c), tile(-43.0 - c / 2.0, -20.0 + c / 2.0, c));
+        let tiles = vec![("t0".to_string(), a.clone()), ("t1".to_string(), b)];
+        let p = tiles_na_janela(&tiles, "área", |k| format!("j{k}")).unwrap();
+        assert_eq!(p.len(), 2);
+        assert_eq!((p[1]["layer"].as_str(), p[1]["name"].as_str(), p[1]["extent"].as_str()), (Some("t1"), Some("j1"), Some("área")));
+        // A rede é a do primeiro, nos dois.
+        assert_eq!(p[0]["origin"], p[1]["origin"]);
+        assert_eq!(p[0]["origin"], json!([-44.0 - c / 2.0, -20.0 + c / 2.0]));
+        // Outra célula, meia célula fora, outro sistema ou uma visão reduzida: não são da mesma rede.
+        let mut outro = a.clone();
+        outro["crs"] = json!("EPSG:31983");
+        let mut visao = a.clone();
+        visao["overviewOf"] = json!([3600, 3600]);
+        for x in [tile(-43.0 - c / 2.0, -20.0 + c / 2.0, c * 1.5), tile(-43.0, -20.0 + c / 2.0, c), outro, visao] {
+            assert!(tiles_na_janela(&[("t0".into(), a.clone()), ("t1".into(), x)], "área", |k| k.to_string()).is_none());
+        }
+        assert!(tiles_na_janela(&[], "área", |k| k.to_string()).is_none());
+    }
+
+    #[test]
     fn a_mensagem_diz_o_que_ligar() {
         let t = nao_saiu("motivo", "outro");
         assert!(t.contains("Plugins › Extensões") && t.contains("motivo") && t.contains("outro"));
+        assert!(mosaico_nao_saiu("motivo", true).ends_with("área menor ou uma célula maior"));
+        assert!(mosaico_nao_saiu("motivo", false).ends_with("área menor"));
     }
 }

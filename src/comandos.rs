@@ -2819,10 +2819,9 @@ fn recortar_retangulo(camada: &str, c: [f64; 4], celula: f64, nome: &str) -> Res
 }
 
 /// Junta os rasters `entradas` (o primeiro vale onde se sobrepõem) numa camada nova `nome`: pelo
-/// `raster.mosaic`, ou, sem a extensão Imagens, como [`mosaico_sem_imagens`] diz, com a média onde
-/// se sobrepõem.
+/// `raster.mosaic`, ou, sem a extensão Imagens, como [`mosaico_sem_imagens`] diz.
 fn mosaicar(entradas: &[String], nome: &str) -> Result<(), String> {
-    mosaicar_com(entradas, nome, "mean")
+    mosaicar_com(entradas, nome, "first")
 }
 
 /// [`mosaicar`], com a estatística `stat` do `cube.reduce` onde as entradas se sobrepõem sem a
@@ -2835,22 +2834,50 @@ fn mosaicar_com(entradas: &[String], nome: &str, stat: &str) -> Result<(), Strin
 /// sem valor fora de si): o `cube.reduce` com `stat`, que toma o que falta (NaN) como falta. O
 /// GeoLibre não serve aí: ele não toma NaN por sem-dado, e o `geolibre:mosaic` de entradas de mesma
 /// extensão sai igual à primeira (o GEM-15 de Viçosa vinha só com a faixa de uma célula, média de
-/// 639 m em vez de 717). Rasters de extensões diferentes (tiles baixados inteiros): o
-/// `geolibre:mosaic`, que os une.
+/// 639 m em vez de 717). Rasters de extensões diferentes (os tiles do Copernicus, baixados inteiros):
+/// postos antes na janela da área ([`recorte::tiles_na_janela`]), e só se isso não der (uma janela
+/// acima do limite do `cube.reduce`) o `geolibre:mosaic`, com o aviso de que ele os desloca.
 fn mosaico_sem_imagens(entradas: &[String], nome: &str, stat: &str) -> Result<(), String> {
-    let grade = |l: &str| -> Option<Value> {
-        let i = host::run("raster.info", json!({"layer": l})).ok()?;
-        Some(json!([i["width"], i["height"], i["extent"], i["crs"]]))
-    };
-    let primeira = entradas.first().and_then(|e| grade(e));
-    let mesma_grade = primeira.is_some() && entradas.iter().skip(1).all(|e| grade(e) == primeira);
-    if !mesma_grade {
-        return ferramenta("geolibre:mosaic", json!({"inputs": entradas}), nome);
+    let infos: Vec<(String, Value)> =
+        entradas.iter().map(|e| (e.clone(), host::run("raster.info", json!({"layer": e})).unwrap_or_default())).collect();
+    let grade = |i: &Value| json!([i["width"], i["height"], i["extent"], i["crs"]]);
+    let mesma_grade = infos.first().is_some_and(|(_, p)| !p.is_null() && infos.iter().all(|(_, i)| grade(i) == grade(p)));
+    if mesma_grade {
+        return juntar_na_grade(entradas, nome, stat).map_err(|e| recorte::mosaico_nao_saiu(&e, true));
     }
-    // O cube.reduce quer uma data por camada: datas quaisquer, uma por entrada.
-    let datas: Vec<String> = (0..entradas.len()).map(|i| format!("{}-01-01", 2000 + i)).collect();
-    host::run("cube.reduce", json!({"layers": entradas, "dates": datas, "stat": stat, "name": nome}))?;
+    let Some(pedidos) = recorte::tiles_na_janela(&infos, AREA, |k| format!("{nome} (janela {k})")) else {
+        return ferramenta("geolibre:mosaic", json!({"inputs": entradas}), nome);
+    };
+    let mut janelas = Vec::new();
+    let feito = pedidos
+        .into_iter()
+        .try_for_each(|p| {
+            let n = p["name"].as_str().unwrap_or_default().to_string();
+            host::run("raster.project", p)?;
+            janelas.push(n);
+            Ok(())
+        })
+        .and_then(|()| juntar_na_grade(&janelas, nome, stat));
+    if !janelas.is_empty() {
+        host::run("layer.remove", json!({"layer": janelas}))?;
+    }
+    let Err(motivo) = feito else { return Ok(()) };
+    host::log(&format!("mosaico na janela da área: {motivo}; vai pelo GeoLibre"));
+    ferramenta("geolibre:mosaic", json!({"inputs": entradas}), nome)
+        .map_err(|e| format!("{}. (Pelo GeoLibre: {e})", recorte::mosaico_nao_saiu(&motivo, false)))?;
+    avisar(recorte::AVISO_DO_MOSAICO);
     Ok(())
+}
+
+/// Junta rasters da mesma grade pelo `cube.reduce` ([`recorte::juntar`]). O RustGIS 0.7.0 não tem o
+/// `first`: lá vai o maior valor, que ao menos é o de uma das entradas.
+fn juntar_na_grade(entradas: &[String], nome: &str, stat: &str) -> Result<(), String> {
+    let r = host::run("cube.reduce", recorte::juntar(entradas, stat, nome));
+    match r {
+        Err(_) if stat == "first" => host::run("cube.reduce", recorte::juntar(entradas, "max", nome)),
+        r => r,
+    }
+    .map(|_| ())
 }
 
 /// A diferença `depois` − `antes`, numa camada nova `nome`: pelo `raster.change difference`, ou
