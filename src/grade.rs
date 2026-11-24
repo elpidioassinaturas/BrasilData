@@ -92,6 +92,42 @@ pub fn celula_sem_imagens(c: [f64; 4], escolha: Escolha, minima: f64) -> f64 {
         .unwrap_or(CELULAS[CELULAS.len() - 1])
 }
 
+/// A célula da grade de uma área de retângulo `c`: a `pedida`, ou outra, com o porquê, se ela passa do
+/// limite do RustGIS ([`MAX_CELULAS`]; fica a padrão da área) ou, com a extensão Imagens desligada, do
+/// que o recorte sem ela aceita ([`celula_sem_imagens`]).
+///
+/// Args:
+///     c: o retângulo da área, em graus.
+///     escolha: o sistema da grade.
+///     pedida: a célula escolhida, ou a padrão da área.
+///     sem_imagens: se a Imagens está desligada; só é perguntado quando importa.
+///
+/// Returns:
+///     A célula e, se ela não é a pedida, o que dizer ao usuário.
+pub fn celula_da_grade(c: [f64; 4], escolha: Escolha, pedida: f64, sem_imagens: impl FnOnce() -> bool) -> (f64, Option<String>) {
+    let passa = celulas(c, pedida) > MAX_CELULAS;
+    let base = if passa { celula_padrao(c) } else { pedida };
+    let sobe = celulas_no_sistema(c, escolha.epsg(c), base) > MAX_VALORES_OPERACAO && sem_imagens();
+    let m = if sobe { celula_sem_imagens(c, escolha, base).max(base) } else { base };
+    let (antes, agora, com) = (texto_da_celula(pedida), texto_da_celula(m), texto_da_celula(base));
+    let milhoes = (celulas(c, pedida) / 1e6).round();
+    let sem = "sem a extensão Imagens do RustGIS, que está desligada, o recorte vai até 32 milhões de células";
+    let volta = format!("para {com}, ligue a Imagens (Plugins › Extensões) e use Grade do projeto");
+    let aviso = match (passa, m > base) {
+        (false, false) => return (m, None),
+        (false, true) => format!("Células de {agora}, e não de {antes}: {sem}; {volta}"),
+        (true, false) => {
+            format!("Células de {agora}, e não de {antes}: seriam cerca de {milhoes} milhões nesta área, mais que o RustGIS aceita")
+        }
+        (true, true) => {
+            format!(
+                "Células de {agora}, e não de {antes}: seriam cerca de {milhoes} milhões nesta área, mais que o RustGIS aceita, e {sem}; {volta}"
+            )
+        }
+    };
+    (m, Some(aviso))
+}
+
 /// Quantas células uma grade de `celula` metros tem no retângulo `c` (em graus) posto no sistema
 /// `epsg`: o retângulo fica torto longe do meridiano central, e a grade que o envolve tem mais
 /// células que a conta de [`celulas`] (14% no Rio Grande do Norte, no Albers).
@@ -272,6 +308,10 @@ pub fn conferir_celula(m: f64) -> Result<(), String> {
     }
 }
 
+/// O atributo `celula_origem` da camada da grade: a célula é a padrão da área, ou foi escolhida.
+const CELULA_DA_AREA: &str = "padrão da área";
+const CELULA_ESCOLHIDA: &str = "escolhida";
+
 /// A grade que está no mapa.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Grade {
@@ -280,12 +320,15 @@ pub struct Grade {
     pub escolha: Escolha,
     /// O retângulo dela, em graus.
     pub caixa: [f64; 4],
+    /// Se a célula é a padrão da área, e não uma que alguém escolheu: ao trocar de área, a padrão dá
+    /// lugar à da área nova, e a escolhida fica.
+    pub automatica: bool,
 }
 
 impl Grade {
-    /// A grade de `escolha` e `celula` na área de retângulo `c`.
+    /// A grade de `escolha` e `celula` na área de retângulo `c`, com a célula tida por escolhida.
     pub fn nova(c: [f64; 4], escolha: Escolha, celula: f64) -> Grade {
-        Grade { epsg: escolha.epsg(c), celula, escolha, caixa: c }
+        Grade { epsg: escolha.epsg(c), celula, escolha, caixa: c, automatica: false }
     }
 
     /// O texto do painel e dos avisos.
@@ -305,6 +348,7 @@ impl Grade {
                 "celula_m": self.celula,
                 "escolha": self.escolha.codigo(),
                 "origem": "0, 0",
+                "celula_origem": if self.automatica { CELULA_DA_AREA } else { CELULA_ESCOLHIDA },
             },
         }]})
     }
@@ -320,7 +364,9 @@ impl Grade {
         let xy: Vec<(f64, f64)> = pts.iter().filter_map(|p| Some((p[0].as_f64()?, p[1].as_f64()?))).collect();
         let caixa =
             xy.iter().fold([f64::MAX, f64::MAX, f64::MIN, f64::MIN], |b, (x, y)| [b[0].min(*x), b[1].min(*y), b[2].max(*x), b[3].max(*y)]);
-        (!xy.is_empty()).then_some(Grade { epsg, celula, escolha, caixa })
+        // Uma grade de um plugin mais antigo não diz: fica como escolhida.
+        let automatica = p["celula_origem"] == CELULA_DA_AREA;
+        (!xy.is_empty()).then_some(Grade { epsg, celula, escolha, caixa, automatica })
     }
 
     /// Se ela cobre a área de retângulo `c` (com folga de arredondamento).
@@ -357,6 +403,42 @@ mod tests {
         // O erro do RustGIS: o Brasil a 30 m tem uns 23 bilhões de células.
         assert!(celulas(brasil, 30.0) > MAX_CELULAS);
         assert!(celulas(brasil, 500.0) < MAX_CELULAS_PADRAO);
+    }
+
+    #[test]
+    fn a_celula_da_grade_e_o_aviso() {
+        let auto = Escolha::Automatico;
+        // Cabe: nada a dizer, nem a pergunta sobre a Imagens.
+        assert_eq!(celula_da_grade(VICOSA, auto, 30.0, || panic!()), (30.0, None));
+        assert_eq!(celula_da_grade(SERGIPE, auto, 30.0, || false), (30.0, None));
+        let (m, t) = celula_da_grade(SERGIPE, auto, 30.0, || true);
+        assert_eq!(m, 50.0);
+        assert!(
+            t.as_ref()
+                .is_some_and(|t| t.starts_with("Células de 50 m, e não de 30 m: sem a extensão Imagens") && t.contains("para 30 m, ligue"))
+        );
+        // O Brasil a 90 m passa do RustGIS; com a Imagens desligada, um aviso só diz as duas coisas.
+        let (m, t) = celula_da_grade(BRASIL, auto, 90.0, || false);
+        assert_eq!(m, 500.0);
+        assert!(t.unwrap().ends_with("mais que o RustGIS aceita"));
+        let (m, t) = celula_da_grade(BRASIL, auto, 90.0, || true);
+        assert_eq!(m, 1000.0);
+        let t = t.unwrap();
+        assert!(t.starts_with("Células de 1 km, e não de 90 m: seriam cerca de") && t.contains("para 500 m, ligue"), "{t}");
+        // Nem a maior do painel cabe: fica ela, sem laço.
+        assert_eq!(celula_da_grade(BRASIL, auto, 2000.0, || true), (2000.0, None));
+    }
+
+    #[test]
+    fn a_grade_diz_se_a_celula_foi_escolhida() {
+        let g = Grade::nova(VICOSA, Escolha::Automatico, 30.0);
+        assert!(!g.automatica && !Grade::ler(&g.camada()).unwrap().automatica);
+        let a = Grade { automatica: true, ..g };
+        assert_eq!(Grade::ler(&a.camada()), Some(a));
+        // A de um plugin mais antigo, sem o atributo.
+        let mut antiga = a.camada();
+        antiga["features"][0]["properties"].as_object_mut().unwrap().remove("celula_origem");
+        assert!(!Grade::ler(&antiga).unwrap().automatica);
     }
 
     const SERGIPE: [f64; 4] = [-38.245, -11.5681, -36.3959, -9.515];

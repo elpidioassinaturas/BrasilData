@@ -174,7 +174,11 @@ fn executar(req: Request) -> Result<Value, String> {
         Err(e) if e == GRADE_FEITA => {
             let t = "Grade do projeto feita para a área. Clique de novo para trazer os dados";
             avisar(t);
-            json!({"grid": GRADE, "report": t})
+            let mut r = json!({"grid": GRADE, "report": t});
+            if let Some(g) = grade_no_mapa()? {
+                grade_no_painel(&mut r, &g);
+            }
+            r
         }
         r => r?,
     };
@@ -369,34 +373,41 @@ fn por_area(geojson: &str, caixa: [f64; 4], texto: &str) -> Result<Value, String
     // pedir as janelas seria recusado quando elas chegam (ver executar).
     let havia = grade_no_mapa()?;
     let nova = havia.is_none();
-    // A célula padrão cresce com a área; a de uma grade que já havia fica, a não ser que passe do
-    // limite do RustGIS nesta área (uma grade de 30 m no Brasil inteiro teria 23 bilhões de células).
-    // Com a Imagens desligada, as duas sobem até caber no recorte sem ela.
-    let (escolha, celula) = match havia {
-        Some(g) => (g.escolha, celula_que_cabe(caixa, g.celula)),
-        None => (Escolha::Automatico, grade::celula_padrao(caixa)),
+    // A célula padrão é a da área; a que alguém escolheu fica, a não ser que não caiba nesta.
+    let (grade, outra) = match havia {
+        Some(g) => grade_refeita(caixa, g),
+        None => grade_nova(caixa, Escolha::Automatico, None),
     };
-    let (celula, maior) = celula_da_grade_nova(caixa, escolha, celula);
-    let maior = maior.map_or(String::new(), |t| format!(". {t}"));
-    let grade = Some(por_grade(Grade::nova(caixa, escolha, celula))?);
+    let grade = por_grade(grade)?;
     remover(&[AREA])?;
     por_geojson(AREA, geojson)?;
-    vista_no_sistema(caixa, grade.as_ref().map(|g| g.epsg));
+    vista_no_sistema(caixa, Some(grade.epsg));
     // Escolhida pelo nome, a área pode estar longe da vista.
     host::run("layer.zoomTo", json!({"layer": AREA}))?;
-    match &grade {
-        Some(g) if nova => avisar(&format!(
-            "Área do BrasilData: {texto}. Grade do projeto: {}; para outra, use Grade do projeto no painel Área de trabalho{maior}",
-            g.texto()
-        )),
-        Some(g) => avisar(&format!("Área do BrasilData: {texto}. Grade refeita para ela: {}{maior}", g.texto())),
-        None => avisar(&format!("Área do BrasilData: {texto}")),
-    }
+    // O porquê de outra célula vem antes: a barra de baixo só mostra o começo.
+    let outra = outra.map_or(String::new(), |t| format!("{t}. "));
+    avisar(&if nova {
+        format!(
+            "{outra}Área do BrasilData: {texto}. Grade do projeto: {}; para outra, use Grade do projeto no painel Área de trabalho",
+            grade.texto()
+        )
+    } else {
+        format!("{outra}Área do BrasilData: {texto}. Grade refeita para ela: {}", grade.texto())
+    });
     let mut r = json!({"area": AREA, "bbox": caixa, "panel": {"items": {"area": {"text": texto}}}});
-    if let Some(g) = grade {
-        r["panel"]["items"]["grade-texto"] = json!({"text": g.texto()});
-    }
+    grade_no_painel(&mut r, &grade);
     Ok(r)
+}
+
+/// Põe a `grade` no painel da resposta `r`: o texto e, se são dos controles, a célula e o sistema.
+fn grade_no_painel(r: &mut Value, grade: &Grade) {
+    r["panel"]["items"]["grade-texto"] = json!({"text": grade.texto()});
+    if let Some(i) = grade.no_controle_da_celula() {
+        r["panel"]["values"]["grade-celula"] = json!(i);
+    }
+    if let Some(i) = grade.no_controle_do_sistema() {
+        r["panel"]["values"]["grade-sistema"] = json!(i);
+    }
 }
 
 /// Desenha o mapa no sistema `epsg` da grade, ou, sem grade, no automático da área de retângulo
@@ -435,14 +446,16 @@ fn aparencia_da_grade() -> Result<(), String> {
     Ok(())
 }
 
-/// O botão Grade do projeto: a grade dos rasters do BrasilData na área, com a célula e o sistema
-/// dos controles do painel, ou os `celula` e `crs` de um script.
+/// O botão Grade do projeto: a grade dos rasters do BrasilData na área, com a célula e o sistema da
+/// janela do comando ou de um script (`celula`, `crs`), ou, sem nenhum dos dois (um RustGIS sem
+/// janelas de plugin), os dos controles do painel. Com o sistema e sem a célula, a padrão da área.
 fn grade_do_projeto(req: &Request) -> Result<Value, String> {
     let (c, na_area) = retangulo()?;
     if !na_area {
         return Err("escolha a área primeiro: a grade cobre o retângulo da área".into());
     }
     let posicao = |id: &str| req.panel.get(id).and_then(Value::as_u64).map(|i| i as usize);
+    let da_area = req.f64("celula").is_none() && req.params.get("crs").is_some();
     let celula = match req.f64("celula") {
         Some(m) => m,
         None => posicao("grade-celula").and_then(|i| grade::CELULAS.get(i).copied()).unwrap_or(grade::CELULA_PADRAO),
@@ -451,7 +464,7 @@ fn grade_do_projeto(req: &Request) -> Result<Value, String> {
         Some(v) => Escolha::do_parametro(v)?,
         None => posicao("grade-sistema").and_then(|i| Escolha::DO_PAINEL.get(i).copied()).unwrap_or(Escolha::Automatico),
     };
-    if grade::celulas(c, celula) > grade::MAX_CELULAS {
+    if !da_area && grade::celulas(c, celula) > grade::MAX_CELULAS {
         return Err(format!(
             "uma grade de {} teria cerca de {} milhões de células nesta área, mais que o RustGIS aceita (1 bilhão): escolha {} ou mais",
             grade::texto_da_celula(celula),
@@ -459,15 +472,18 @@ fn grade_do_projeto(req: &Request) -> Result<Value, String> {
             grade::texto_da_celula(grade::celula_padrao(c))
         ));
     }
-    let g = por_grade(Grade::nova(c, escolha, celula))?;
+    let (g, outra) = if da_area { grade_nova(c, escolha, None) } else { (Grade::nova(c, escolha, celula), None) };
+    let g = por_grade(g)?;
     vista_no_sistema(c, Some(g.epsg));
-    avisar(&format!(
-        "Grade do projeto: {}. Os rasters do BrasilData vão para ela, e o mapa passa a ser desenhado no sistema dela",
+    let outra = outra.map_or(String::new(), |t| format!("{t}. "));
+    let t = format!(
+        "{outra}Grade do projeto: {}. Os rasters do BrasilData vão para ela, e o mapa passa a ser desenhado no sistema dela",
         g.texto()
-    ));
-    Ok(
-        json!({"layer": GRADE, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula, "panel": {"items": {"grade-texto": {"text": g.texto()}}}}),
-    )
+    );
+    avisar(&t);
+    let mut r = json!({"layer": GRADE, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula, "report": t});
+    grade_no_painel(&mut r, &g);
+    Ok(r)
 }
 
 /// A grade para um raster na área de retângulo `c`: a do mapa, refeita se não cobre mais a área
@@ -487,30 +503,29 @@ fn grade_para(c: [f64; 4], celula: Option<f64>) -> Result<Grade, String> {
                     grade::texto_da_celula(m)
                 ));
             }
-            let m = celula_que_cabe(c, g.celula);
             // A célula de uma grade que cobre a área vale: é a que ficou com ela, ou a escolhida depois.
-            if g.cobre(c) && m == g.celula {
+            if g.cobre(c) && grade::celulas(c, g.celula) <= grade::MAX_CELULAS {
                 g
             } else {
-                let (m, maior) = celula_da_grade_nova(c, g.escolha, m);
-                por_grade(Grade::nova(c, g.escolha, m))?;
-                if let Some(t) = maior {
+                // Uma célula pedida neste comando (a mesma da grade) conta como escolhida.
+                let (nova, outra) = grade_refeita(c, Grade { automatica: g.automatica && celula.is_none(), ..g });
+                por_grade(nova)?;
+                if let Some(t) = outra {
                     avisar(&t);
                 }
                 return Err(GRADE_FEITA.into());
             }
         }
         None => {
-            let (m, maior) = match celula {
-                Some(m) => (m, None),
-                None => celula_da_grade_nova(c, Escolha::Automatico, grade::celula_padrao(c)),
+            let (nova, outra) = match celula {
+                Some(m) => (Grade::nova(c, Escolha::Automatico, m), None),
+                None => grade_nova(c, Escolha::Automatico, None),
             };
-            grade::conferir_celula(m)?;
-            let g = por_grade(Grade::nova(c, Escolha::Automatico, m))?;
+            let g = por_grade(nova)?;
             avisar(&format!(
-                "Grade do projeto criada: {}. Para outra, use Grade do projeto no painel Área de trabalho{}",
-                g.texto(),
-                maior.map_or(String::new(), |t| format!(". {t}"))
+                "{}Grade do projeto criada: {}. Para outra, use Grade do projeto no painel Área de trabalho",
+                outra.map_or(String::new(), |t| format!("{t}. ")),
+                g.texto()
             ));
             return Err(GRADE_FEITA.into());
         }
@@ -534,22 +549,19 @@ fn celula_que_cabe(c: [f64; 4], celula: f64) -> f64 {
     m
 }
 
-/// A célula da grade nova da área de retângulo `c`: `celula`, ou, com a extensão Imagens desligada e
-/// uma grade que não caberia no recorte sem ela, a menor do painel que cabe
-/// ([`grade::celula_sem_imagens`]), com o que dizer ao usuário.
-fn celula_da_grade_nova(c: [f64; 4], escolha: Escolha, celula: f64) -> (f64, Option<String>) {
-    if grade::celulas_no_sistema(c, escolha.epsg(c), celula) <= grade::MAX_VALORES_OPERACAO || !sem_imagens() {
-        return (celula, None);
-    }
-    let m = grade::celula_sem_imagens(c, escolha, celula);
-    if m <= celula {
-        return (celula, None);
-    }
-    let (antes, agora) = (grade::texto_da_celula(celula), grade::texto_da_celula(m));
-    let t = format!(
-        "Células de {agora}, e não de {antes}, porque a extensão Imagens do RustGIS está desligada e sem ela o recorte vai até 32 milhões de células; para {antes}, ligue a Imagens (Plugins › Extensões) e use Grade do projeto"
-    );
-    (m, Some(t))
+/// A grade nova da área de retângulo `c`, com a `celula` escolhida ou, sem ela, a padrão da área, e o
+/// que dizer ao usuário se a célula teve de ser outra ([`grade::celula_da_grade`]). Uma célula
+/// trocada conta como a padrão: numa área menor, ela volta.
+fn grade_nova(c: [f64; 4], escolha: Escolha, celula: Option<f64>) -> (Grade, Option<String>) {
+    let pedida = celula.unwrap_or_else(|| grade::celula_padrao(c));
+    let (m, outra) = grade::celula_da_grade(c, escolha, pedida, sem_imagens);
+    (Grade { automatica: celula.is_none() || outra.is_some(), ..Grade::nova(c, escolha, m) }, outra)
+}
+
+/// A grade `g` refeita para a área de retângulo `c`: o mesmo sistema, e a célula que alguém escolheu
+/// ou, se ela era a padrão da outra área, a padrão desta.
+fn grade_refeita(c: [f64; 4], g: Grade) -> (Grade, Option<String>) {
+    grade_nova(c, g.escolha, (!g.automatica).then_some(g.celula))
 }
 
 /// Recusa, antes de ler qualquer arquivo, uma grade fina demais para a área: com células de
@@ -746,9 +758,9 @@ fn area_municipal(t: &Territorio) -> Result<Value, String> {
         if let Some(g) = grade_no_mapa()?
             && !g.cobre(c)
         {
-            let g = por_grade(Grade::nova(c, g.escolha, g.celula))?;
+            let g = por_grade(grade_refeita(c, g).0)?;
             r["bbox"] = json!(c);
-            r["panel"]["items"]["grade-texto"] = json!({"text": g.texto()});
+            grade_no_painel(&mut r, &g);
         }
     }
     Ok(r)
@@ -3626,12 +3638,7 @@ fn painel(req: &Request) -> Result<Value, String> {
     // O mês do risco de fogo, pelo nome.
     r["panel"]["items"][risco_fogo::CONTROLE] = json!({"labels": risco_fogo::NOMES_DOS_MESES});
     if let Some(g) = g {
-        if let Some(i) = g.no_controle_da_celula() {
-            r["panel"]["values"]["grade-celula"] = json!(i);
-        }
-        if let Some(i) = g.no_controle_do_sistema() {
-            r["panel"]["values"]["grade-sistema"] = json!(i);
-        }
+        grade_no_painel(&mut r, &g);
     }
     // A árvore, com os municípios da grande região do nó escolhido (a busca só procura nos nós
     // que recebeu).

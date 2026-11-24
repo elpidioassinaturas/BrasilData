@@ -190,11 +190,11 @@ AREA = [
     {
         "id": "grade",
         "label": "Grade do\nprojeto",
-        "help": "A grade em que os rasters do BrasilData chegam (a Elevação, e depois os temas rasterizados): o sistema de coordenadas e o tamanho das células, no retângulo da área, como a camada BrasilData: grade. A célula e o sistema vêm da janela do comando; num RustGIS sem janelas de plugin, do painel Área de trabalho. Rasters na mesma grade têm as mesmas linhas e colunas. Uma área nova refaz a grade com as mesmas escolhas.",
+        "help": "A grade em que os rasters do BrasilData chegam (a Elevação, e depois os temas rasterizados): o sistema de coordenadas e o tamanho das células, no retângulo da área, como a camada BrasilData: grade. A célula e o sistema vêm da janela do comando; num RustGIS sem janelas de plugin, do painel Área de trabalho. Rasters na mesma grade têm as mesmas linhas e colunas. Uma área nova refaz a grade: o sistema e a célula escolhidos ficam, e a célula padrão dá lugar à da área nova.",
         "icon": "resample",
-        "params": "{\"celula\"?: tamanho da célula em metros, de 1 a 10.000 (padrão: o do painel, ou 30), \"crs\"?: código EPSG em metros (31983, \"EPSG:5880\") ou \"automatico\" (UTM do fuso, ou o Albers se a área passa de um fuso), \"policonica\" (que o RustGIS 0.5.0 ainda não projeta) ou \"albers\" (EPSG:10857, o do IBGE)}",
+        "params": "{\"celula\"?: tamanho da célula em metros, de 1 a 10.000 (padrão: com crs, o da área; sem ele, o do painel, ou 30), \"crs\"?: código EPSG em metros (31983, \"EPSG:5880\") ou \"automatico\" (UTM do fuso, ou o Albers se a área passa de um fuso), \"policonica\" (que o RustGIS 0.5.0 ainda não projeta) ou \"albers\" (EPSG:10857, o do IBGE)}",
         "form": [
-            {"name": "celula", "label": "Célula (m)", "kind": "number", "required": True, "default": 30, "help": "O lado das células, em metros, de 1 a 10.000: 30 m é o do Copernicus e do Landsat; 1.000 m serve a um estado inteiro."},
+            {"name": "celula", "label": "Célula (m; vazio: a padrão)", "kind": "number", "help": "O lado das células, em metros, de 1 a 10.000: 30 m é o do Copernicus e do Landsat; 1.000 m serve a um estado inteiro. Vazio: a padrão da área, de 30 m num município a 500 m no Brasil (ou maior, com a extensão Imagens do RustGIS desligada)."},
             {"name": "crs", "label": "Sistema", "kind": "choice", "required": True, "choices": SISTEMAS, "default": SISTEMAS[0], "help": "O sistema de coordenadas da grade. O automático escolhe o UTM SIRGAS 2000 do fuso da área, ou o Albers do IBGE quando ela passa de um fuso; o Albers preserva as áreas; a Policônica é a do mapa do Brasil (o RustGIS 0.5.0 ainda não a projeta)."},
             {"name": "epsg", "label": "Outro sistema (EPSG)", "kind": "text", "help": "Um código EPSG em metros (31983 é o UTM 23S SIRGAS 2000). Preenchido, vale no lugar do sistema acima."},
         ],
