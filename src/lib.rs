@@ -57,8 +57,10 @@ pub mod municipios;
 pub mod nisar;
 pub mod olm;
 pub mod pardig;
+pub mod power;
 pub mod radar;
 pub mod radar_pc;
+pub mod recorte;
 pub mod risco_fogo;
 pub mod rodovias;
 pub mod saude;
@@ -381,9 +383,53 @@ pub fn tiles(c: [f64; 4]) -> Vec<(String, String)> {
     out
 }
 
+/// Se o erro de um tile do Copernicus diz que ele não existe (o mar, que o Copernicus não tem): o
+/// 404, como o desktop ("http status: 404") e o app web ("HTTP 404") o dizem. Vale o de um dos dois
+/// servidores: no app web, o da AWS não responde nem isso (CORS).
+pub fn tile_inexistente(erro: &str) -> bool {
+    erro.contains("http status: 404") || erro.contains("HTTP 404")
+}
+
+/// O erro da elevação quando há tiles que não vieram, por outro motivo que não o de não existirem.
+///
+/// Sem eles, a camada sairia com um buraco, como se ali fosse mar.
+///
+/// Args:
+///     falhas: o endereço e o erro de cada tile que não veio.
+///     total: quantos tiles a área pede.
+///
+/// Returns:
+///     A mensagem a mostrar.
+pub fn tiles_que_nao_vieram(falhas: &[(String, String)], total: usize) -> String {
+    let quais: Vec<String> = falhas
+        .iter()
+        .map(|(url, e)| {
+            let tile = url.rsplit('/').next().unwrap_or(url).trim_start_matches("Copernicus_DSM_10_").trim_end_matches("_DEM.tif");
+            let motivo = e.rsplit(".tif: ").next().unwrap_or(e);
+            format!("{}: {motivo}", tile.replace("_00", "").replace('_', " "))
+        })
+        .collect();
+    format!(
+        "tiles do Copernicus que não vieram: {} de {total} ({}). A elevação sairia com um buraco: veja a conexão e clique em Elevação de novo",
+        falhas.len(),
+        quais.join("; ")
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn so_o_404_e_mar() {
+        let ot = "https://opentopography.s3.sdsc.edu/raster/COP30/COP30_hh/Copernicus_DSM_10_S21_00_W043_00_DEM.tif";
+        assert!(tile_inexistente(&format!("{ot}: http status: 404; https://x.tif: http status: 404")));
+        assert!(tile_inexistente(&format!("{ot}: HTTP 404; https://x.tif: Failed to fetch")));
+        let rede = format!("{ot}: timeout: global; https://x/Copernicus_DSM_COG_10_S21_00_W043_00_DEM.tif: io: Este host não é conhecido.");
+        assert!(!tile_inexistente(&rede) && !tile_inexistente(&format!("{ot}: http status: 503")));
+        let t = tiles_que_nao_vieram(&[(ot.to_string(), rede)], 4);
+        assert!(t.contains("não vieram: 1 de 4") && t.contains("(S21 W043: io: Este host não é conhecido.)"), "{t}");
+    }
 
     #[test]
     fn a_fila_cheia_do_app_nao_e_falha() {

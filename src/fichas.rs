@@ -67,6 +67,8 @@ pub fn comando_da_camada(nome: &str, fonte: &str) -> Option<&'static str> {
         "vento-50m"
     } else if crate::emit::eh_do_emit(nome) {
         "emit-cenas"
+    } else if let Some((v, _, _)) = crate::power::ler_camada(nome) {
+        v.comando()
     } else if risco_fogo::mes_da_camada(nome).is_some() {
         "risco-fogo"
     } else if nome == irrigacao::CAMADA {
@@ -161,6 +163,8 @@ mod tests {
             ("BrasilData: Vento a 50 m (NASA POWER)", "vento-50m"),
             ("BrasilData: Cenas do EMIT de 2024 com até 30% de nuvem (NASA)", "emit-cenas"),
             ("BrasilData: Vento a 50 m em março (NASA POWER)", "vento-50m"),
+            ("BrasilData: Anomalia da umidade do solo nas raízes, setembro de 2024 (NASA POWER)", "power-umidade"),
+            ("BrasilData: Evapotranspiração, média do ano (NASA POWER)", "power-evapotranspiracao"),
             ("BrasilData: Radar VV 10 m, mediana de 10 passagens (Sentinel-1, 03/08/2026 a 19/11/2026)", "radar-10m"),
             ("BrasilData: Composição VV, VH, VV/VH 10 m, mediana de 10 passagens (Sentinel-1, 03/08/2026 a 19/11/2026)", "radar-10m-cor"),
             ("BrasilData: Perturbação, dias antes de 28/02/2026 (OPERA DIST-S1)", "dist-data"),

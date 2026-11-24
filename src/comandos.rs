@@ -40,8 +40,10 @@ use crate::metano;
 use crate::municipios::{self, Territorio};
 use crate::nisar;
 use crate::olm;
+use crate::power;
 use crate::radar;
 use crate::radar_pc;
+use crate::recorte;
 use crate::risco_fogo;
 use crate::rodovias;
 use crate::saude;
@@ -54,7 +56,9 @@ use crate::worldcover;
 use crate::zoom;
 // A Chuva agora (PARDIG) fica em comandos/agora.rs.
 mod agora;
-use crate::{AREA, PREFIXO, TEMAS, Tema, falha_passageira, pedido_de_feicoes, tema_da_camada, tiles};
+use crate::{
+    AREA, PREFIXO, TEMAS, Tema, falha_passageira, pedido_de_feicoes, tema_da_camada, tile_inexistente, tiles, tiles_que_nao_vieram,
+};
 
 /// Os nomes das camadas dos censos, depois de [`PREFIXO`].
 const INDICADORES: &str = "Indicadores por município";
@@ -218,6 +222,8 @@ fn executar_comando(req: Request) -> Result<Value, String> {
         "sol-radiacao" => sol_na_area(&req),
         "vento-50m" => vento_na_area(&req),
         "emit-cenas" => cenas_do_emit(&req),
+        "power-umidade" => power_na_area(&req, power::Variavel::Umidade),
+        "power-evapotranspiracao" => power_na_area(&req, power::Variavel::Evapotranspiracao),
         "chuva-prevista" => chuva_prevista(&req),
         "chuva-ensemble" => chuva_do_ensemble(&req),
         "temperatura-prevista" => temperatura_prevista(&req),
@@ -365,10 +371,14 @@ fn por_area(geojson: &str, caixa: [f64; 4], texto: &str) -> Result<Value, String
     let nova = havia.is_none();
     // A célula padrão cresce com a área; a de uma grade que já havia fica, a não ser que passe do
     // limite do RustGIS nesta área (uma grade de 30 m no Brasil inteiro teria 23 bilhões de células).
-    let grade = Some(match havia {
-        Some(g) => por_grade(Grade::nova(caixa, g.escolha, celula_que_cabe(caixa, g.celula)))?,
-        None => por_grade(Grade::nova(caixa, Escolha::Automatico, grade::celula_padrao(caixa)))?,
-    });
+    // Com a Imagens desligada, as duas sobem até caber no recorte sem ela.
+    let (escolha, celula) = match havia {
+        Some(g) => (g.escolha, celula_que_cabe(caixa, g.celula)),
+        None => (Escolha::Automatico, grade::celula_padrao(caixa)),
+    };
+    let (celula, maior) = celula_da_grade_nova(caixa, escolha, celula);
+    let maior = maior.map_or(String::new(), |t| format!(". {t}"));
+    let grade = Some(por_grade(Grade::nova(caixa, escolha, celula))?);
     remover(&[AREA])?;
     por_geojson(AREA, geojson)?;
     vista_no_sistema(caixa, grade.as_ref().map(|g| g.epsg));
@@ -376,10 +386,10 @@ fn por_area(geojson: &str, caixa: [f64; 4], texto: &str) -> Result<Value, String
     host::run("layer.zoomTo", json!({"layer": AREA}))?;
     match &grade {
         Some(g) if nova => avisar(&format!(
-            "Área do BrasilData: {texto}. Grade do projeto: {}; para outra, use Grade do projeto no painel Área de trabalho",
+            "Área do BrasilData: {texto}. Grade do projeto: {}; para outra, use Grade do projeto no painel Área de trabalho{maior}",
             g.texto()
         )),
-        Some(g) => avisar(&format!("Área do BrasilData: {texto}. Grade refeita para ela: {}", g.texto())),
+        Some(g) => avisar(&format!("Área do BrasilData: {texto}. Grade refeita para ela: {}{maior}", g.texto())),
         None => avisar(&format!("Área do BrasilData: {texto}")),
     }
     let mut r = json!({"area": AREA, "bbox": caixa, "panel": {"items": {"area": {"text": texto}}}});
@@ -478,18 +488,30 @@ fn grade_para(c: [f64; 4], celula: Option<f64>) -> Result<Grade, String> {
                 ));
             }
             let m = celula_que_cabe(c, g.celula);
+            // A célula de uma grade que cobre a área vale: é a que ficou com ela, ou a escolhida depois.
             if g.cobre(c) && m == g.celula {
                 g
             } else {
+                let (m, maior) = celula_da_grade_nova(c, g.escolha, m);
                 por_grade(Grade::nova(c, g.escolha, m))?;
+                if let Some(t) = maior {
+                    avisar(&t);
+                }
                 return Err(GRADE_FEITA.into());
             }
         }
         None => {
-            let m = celula.unwrap_or(grade::celula_padrao(c));
+            let (m, maior) = match celula {
+                Some(m) => (m, None),
+                None => celula_da_grade_nova(c, Escolha::Automatico, grade::celula_padrao(c)),
+            };
             grade::conferir_celula(m)?;
             let g = por_grade(Grade::nova(c, Escolha::Automatico, m))?;
-            avisar(&format!("Grade do projeto criada: {}. Para outra, use Grade do projeto no painel Área de trabalho", g.texto()));
+            avisar(&format!(
+                "Grade do projeto criada: {}. Para outra, use Grade do projeto no painel Área de trabalho{}",
+                g.texto(),
+                maior.map_or(String::new(), |t| format!(". {t}"))
+            ));
             return Err(GRADE_FEITA.into());
         }
     };
@@ -510,6 +532,24 @@ fn celula_que_cabe(c: [f64; 4], celula: f64) -> f64 {
         grade::texto_da_celula(m)
     ));
     m
+}
+
+/// A célula da grade nova da área de retângulo `c`: `celula`, ou, com a extensão Imagens desligada e
+/// uma grade que não caberia no recorte sem ela, a menor do painel que cabe
+/// ([`grade::celula_sem_imagens`]), com o que dizer ao usuário.
+fn celula_da_grade_nova(c: [f64; 4], escolha: Escolha, celula: f64) -> (f64, Option<String>) {
+    if grade::celulas_no_sistema(c, escolha.epsg(c), celula) <= grade::MAX_VALORES_OPERACAO || !sem_imagens() {
+        return (celula, None);
+    }
+    let m = grade::celula_sem_imagens(c, escolha, celula);
+    if m <= celula {
+        return (celula, None);
+    }
+    let (antes, agora) = (grade::texto_da_celula(celula), grade::texto_da_celula(m));
+    let t = format!(
+        "Células de {agora}, e não de {antes}, porque a extensão Imagens do RustGIS está desligada e sem ela o recorte vai até 32 milhões de células; para {antes}, ligue a Imagens (Plugins › Extensões) e use Grade do projeto"
+    );
+    (m, Some(t))
 }
 
 /// Recusa, antes de ler qualquer arquivo, uma grade fina demais para a área: com células de
@@ -1989,6 +2029,8 @@ fn citacoes() -> Result<(Vec<Value>, String), String> {
             lista.push(json!({"layer": n, "source": emit::CITACAO, "license": nisar::LICENCA}));
         } else if vento::eh_do_vento(&n) {
             lista.push(json!({"layer": n, "source": vento::CITACAO, "license": sol::LICENCA}));
+        } else if let Some((v, _, _)) = power::ler_camada(&n) {
+            lista.push(json!({"layer": n, "source": v.citacao(), "license": sol::LICENCA}));
         } else if tempo::eh_da_previsao(&n) {
             lista.push(json!({"layer": n, "source": tempo::citacao_da_camada(&n), "license": tempo::LICENCA}));
         } else if era5::eh_do_era5(&n) {
@@ -2145,6 +2187,7 @@ fn elevacao(celula: Option<f64>) -> Result<Value, String> {
         .collect();
     let mut partes: Vec<String> = Vec::new();
     let mut baixando = 0;
+    let mut falhas: Vec<(String, String)> = Vec::new();
     for (i, (url, aws)) in urls.iter().enumerate() {
         let p = format!("BrasilData: tile {i}");
         if rasters.contains(&p) {
@@ -2159,8 +2202,9 @@ fn elevacao(celula: Option<f64>) -> Result<Value, String> {
             // camada com este nome, e o próximo clique o encontra.
             Ok(r) if r.get("pending").and_then(Value::as_bool) == Some(true) => baixando += 1,
             Ok(_) => partes.push(p),
-            // Mar: o Copernicus não tem tile ali.
-            Err(e) => host::log(&format!("sem tile em {url}: {e}")),
+            // Mar: o Copernicus não tem tile ali. Um tile que existe e não veio não é mar.
+            Err(e) if tile_inexistente(&e) => host::log(&format!("sem tile em {url}: {e}")),
+            Err(e) => falhas.push((url.clone(), e)),
         }
     }
     if baixando > 0 {
@@ -2169,6 +2213,9 @@ fn elevacao(celula: Option<f64>) -> Result<Value, String> {
             "Elevação: baixando {tiles} do Copernicus (cerca de 59 MB cada). Quando aparecerem no mapa como \"BrasilData: tile\", clique em Elevação de novo"
         ));
         return Ok(json!({"pending": baixando, "tiles": urls.len()}));
+    }
+    if !falhas.is_empty() {
+        return Err(tiles_que_nao_vieram(&falhas, urls.len()));
     }
     if partes.is_empty() {
         return Err("o Copernicus não tem dados na área".into());
@@ -2726,7 +2773,7 @@ fn perturbacao(req: &Request, camada: dist::Camada) -> Result<Value, String> {
 
 /// Roda uma ferramenta do RustGIS (`gp.run`) e dá à camada que ela cria o nome `nome`.
 fn ferramenta(tool: &str, params: Value, nome: &str) -> Result<(), String> {
-    let r = host::run("gp.run", json!({"tool": tool, "params": params}))?;
+    let r = host::run("gp.run", json!({"tool": tool, "params": params})).map_err(extensoes::erro_da_ferramenta)?;
     let id = r["layers"].get(0).cloned().ok_or(format!("{tool} não criou camada"))?;
     host::run("layer.rename", json!({"layer": id, "name": nome}))?;
     Ok(())
@@ -2739,8 +2786,9 @@ fn sem_imagens() -> bool {
 }
 
 /// Roda um comando da extensão Imagens; se ela estiver desligada (perguntada antes, ou recusado
-/// agora), roda `sem` no lugar, que faz o mesmo pelas ferramentas do GeoLibre.
+/// agora), roda `sem` no lugar, que faz o mesmo sem ela.
 fn com_imagens(comando: &str, params: Value, sem: impl FnOnce() -> Result<(), String>) -> Result<(), String> {
+    let sem = || sem().map_err(extensoes::ou_ligue_a_imagens);
     if sem_imagens() {
         return sem();
     }
@@ -2751,11 +2799,67 @@ fn com_imagens(comando: &str, params: Value, sem: impl FnOnce() -> Result<(), St
 }
 
 /// Recorta o raster `camada` pelo polígono da camada `poligono`, numa camada nova `nome`: pelo
-/// `raster.process clip`, ou pelo `geolibre:clip_raster_to_polygon` sem a extensão Imagens.
+/// `raster.process clip`, ou, sem a extensão Imagens, pela máscara do contorno (módulo [`recorte`]).
+/// O `geolibre:clip_raster_to_polygon`, lento e opcional, fica para quando ela não dá (um raster
+/// maior que o limite do `cube.reduce`).
 fn recortar(camada: &str, poligono: &str, nome: &str) -> Result<(), String> {
     com_imagens("raster.process", json!({"layer": camada, "operation": "clip", "polygon": poligono, "name": nome}), || {
+        let mut temporarias = Vec::new();
+        let feito = recortar_pela_mascara(camada, poligono, nome, &mut temporarias);
+        if !temporarias.is_empty() {
+            host::run("layer.remove", json!({"layer": temporarias}))?;
+        }
+        let Err(motivo) = feito else { return Ok(()) };
+        host::log(&format!("recorte pela máscara de {camada}: {motivo}; vai pelo GeoLibre"));
         ferramenta("geolibre:clip_raster_to_polygon", json!({"input": camada, "polygons": poligono}), nome)
+            .map_err(|e| recorte::nao_saiu(&recorte::motivo(&motivo), &e))?;
+        let i = host::run("raster.info", json!({"layer": camada})).unwrap_or_default();
+        if let Some(a) = recorte::aviso_de_demora(i["width"].as_f64().unwrap_or(0.0), i["height"].as_f64().unwrap_or(0.0)) {
+            avisar(&a);
+        }
+        Ok(())
     })
+}
+
+/// O recorte sem a extensão Imagens e sem o GeoLibre (módulo [`recorte`]): os valores de `camada` só
+/// nas células com o centro dentro do contorno. As camadas de passagem vão para `temporarias` (os
+/// ids), que quem chama tira. Um raster de mais bandas (a imagem sem nuvens) vai banda a banda e se
+/// junta de novo pelo `geolibre:composite_bands`, com que ele foi montado.
+fn recortar_pela_mascara(camada: &str, poligono: &str, nome: &str, temporarias: &mut Vec<Value>) -> Result<(), String> {
+    fn feita(r: &Value, temporarias: &mut Vec<Value>) -> Result<Value, String> {
+        let id = camada_feita(r).ok_or("o RustGIS não disse a camada que fez")?;
+        temporarias.push(id.clone());
+        Ok(id)
+    }
+    let bandas = host::run("raster.info", json!({"layer": camada}))?["bands"].as_array().map_or(1, Vec::len).max(1);
+    let m = format!("{PREFIXO}máscara da área");
+    let r = host::run("raster.rasterize", recorte::mascara(poligono, camada, &m))?;
+    let mut mascara = (feita(&r, temporarias)?, false);
+    let mut partes = Vec::new();
+    for b in 0..bandas {
+        let passo = |p: &str| format!("{nome} ({p} {})", b + 1);
+        let origem = if bandas > 1 {
+            let n = passo("banda");
+            feita(&host::run("cube.reduce", recorte::so_a_banda(camada, b, bandas, &n))?, temporarias)?;
+            n
+        } else {
+            camada.to_string()
+        };
+        let cortada = passo("recorte");
+        let mut feito = host::run("cube.reduce", recorte::combinar(&origem, &mascara.0, mascara.1, &cortada));
+        // Grande demais inteiro: só o retângulo do contorno, nas mesmas células.
+        if let (Err(e), false) = (&feito, mascara.1) {
+            let pedido = recorte::mascara_menor(poligono, &r, &m).ok_or_else(|| e.clone())?;
+            mascara = (feita(&host::run("raster.rasterize", pedido)?, temporarias)?, true);
+            feito = host::run("cube.reduce", recorte::combinar(&origem, &mascara.0, true, &cortada));
+        }
+        feita(&feito?, temporarias)?;
+        partes.push(cortada);
+    }
+    match partes.as_slice() {
+        [uma] => host::run("raster.function", recorte::declarar_sem_dado(uma, nome)).map(|_| ()),
+        _ => ferramenta("geolibre:composite_bands", json!({"inputs": partes}), nome),
+    }
 }
 
 /// Recorta o raster `camada` pelo retângulo `c` (oeste, sul, leste, norte, em graus), numa camada
@@ -2768,10 +2872,9 @@ fn recortar_retangulo(camada: &str, c: [f64; 4], celula: f64, nome: &str) -> Res
 }
 
 /// Junta os rasters `entradas` (o primeiro vale onde se sobrepõem) numa camada nova `nome`: pelo
-/// `raster.mosaic`, ou, sem a extensão Imagens, como [`mosaico_sem_imagens`] diz, com a média onde
-/// se sobrepõem.
+/// `raster.mosaic`, ou, sem a extensão Imagens, como [`mosaico_sem_imagens`] diz.
 fn mosaicar(entradas: &[String], nome: &str) -> Result<(), String> {
-    mosaicar_com(entradas, nome, "mean")
+    mosaicar_com(entradas, nome, "first")
 }
 
 /// [`mosaicar`], com a estatística `stat` do `cube.reduce` onde as entradas se sobrepõem sem a
@@ -2784,29 +2887,69 @@ fn mosaicar_com(entradas: &[String], nome: &str, stat: &str) -> Result<(), Strin
 /// sem valor fora de si): o `cube.reduce` com `stat`, que toma o que falta (NaN) como falta. O
 /// GeoLibre não serve aí: ele não toma NaN por sem-dado, e o `geolibre:mosaic` de entradas de mesma
 /// extensão sai igual à primeira (o GEM-15 de Viçosa vinha só com a faixa de uma célula, média de
-/// 639 m em vez de 717). Rasters de extensões diferentes (tiles baixados inteiros): o
-/// `geolibre:mosaic`, que os une.
+/// 639 m em vez de 717). Rasters de extensões diferentes (os tiles do Copernicus, baixados inteiros):
+/// postos antes na janela da área ([`recorte::tiles_na_janela`]), e só se isso não der (uma janela
+/// acima do limite do `cube.reduce`) o `geolibre:mosaic`, com o aviso de que ele os desloca.
 fn mosaico_sem_imagens(entradas: &[String], nome: &str, stat: &str) -> Result<(), String> {
-    let grade = |l: &str| -> Option<Value> {
-        let i = host::run("raster.info", json!({"layer": l})).ok()?;
-        Some(json!([i["width"], i["height"], i["extent"], i["crs"]]))
-    };
-    let primeira = entradas.first().and_then(|e| grade(e));
-    let mesma_grade = primeira.is_some() && entradas.iter().skip(1).all(|e| grade(e) == primeira);
-    if !mesma_grade {
-        return ferramenta("geolibre:mosaic", json!({"inputs": entradas}), nome);
+    let infos: Vec<(String, Value)> =
+        entradas.iter().map(|e| (e.clone(), host::run("raster.info", json!({"layer": e})).unwrap_or_default())).collect();
+    let grade = |i: &Value| json!([i["width"], i["height"], i["extent"], i["crs"]]);
+    let mesma_grade = infos.first().is_some_and(|(_, p)| !p.is_null() && infos.iter().all(|(_, i)| grade(i) == grade(p)));
+    if mesma_grade {
+        return juntar_na_grade(entradas, nome, stat).map_err(|e| recorte::mosaico_nao_saiu(&e, true));
     }
-    // O cube.reduce quer uma data por camada: datas quaisquer, uma por entrada.
-    let datas: Vec<String> = (0..entradas.len()).map(|i| format!("{}-01-01", 2000 + i)).collect();
-    host::run("cube.reduce", json!({"layers": entradas, "dates": datas, "stat": stat, "name": nome}))?;
+    let Some(pedidos) = recorte::tiles_na_janela(&infos, AREA, |k| format!("{nome} (janela {k})")) else {
+        return ferramenta("geolibre:mosaic", json!({"inputs": entradas}), nome);
+    };
+    let mut janelas = Vec::new();
+    let feito = pedidos
+        .into_iter()
+        .try_for_each(|p| {
+            let n = p["name"].as_str().unwrap_or_default().to_string();
+            host::run("raster.project", p)?;
+            janelas.push(n);
+            Ok(())
+        })
+        .and_then(|()| juntar_na_grade(&janelas, nome, stat));
+    if !janelas.is_empty() {
+        host::run("layer.remove", json!({"layer": janelas}))?;
+    }
+    let Err(motivo) = feito else { return Ok(()) };
+    host::log(&format!("mosaico na janela da área: {motivo}; vai pelo GeoLibre"));
+    ferramenta("geolibre:mosaic", json!({"inputs": entradas}), nome)
+        .map_err(|e| format!("{}. (Pelo GeoLibre: {e})", recorte::mosaico_nao_saiu(&motivo, false)))?;
+    avisar(recorte::AVISO_DO_MOSAICO);
     Ok(())
 }
 
-/// A diferença `depois` − `antes`, numa camada nova `nome`: pelo `raster.change difference`, ou
-/// pelo `geolibre:subtract` sem a extensão Imagens.
+/// Junta rasters da mesma grade pelo `cube.reduce` ([`recorte::juntar`]). O RustGIS 0.7.0 não tem o
+/// `first`: lá vai o maior valor, que ao menos é o de uma das entradas.
+fn juntar_na_grade(entradas: &[String], nome: &str, stat: &str) -> Result<(), String> {
+    let r = host::run("cube.reduce", recorte::juntar(entradas, stat, nome));
+    match r {
+        Err(_) if stat == "first" => host::run("cube.reduce", recorte::juntar(entradas, "max", nome)),
+        r => r,
+    }
+    .map(|_| ())
+}
+
+/// A diferença `depois` − `antes`, numa camada nova `nome`: pelo `raster.change difference`, ou, sem a
+/// extensão Imagens, pela soma do `cube.reduce` ([`recorte::somar`]). O `geolibre:subtract`, que o
+/// usuário instala à parte, fica para um raster maior que o limite do `cube.reduce`.
 fn diferenca(antes: &str, depois: &str, nome: &str) -> Result<(), String> {
     com_imagens("raster.change", json!({"before": antes, "after": depois, "method": "difference", "name": nome}), || {
+        let menos = format!("{nome} (menos)");
+        let soma = format!("{nome} (soma)");
+        let feito = (|| -> Result<(), String> {
+            host::run("raster.function", json!({"layer": antes, "function": "bandMath", "expression": "b1 * -1", "name": menos}))?;
+            host::run("cube.reduce", recorte::somar(depois, &menos, &soma))?;
+            host::run("raster.function", recorte::declarar_sem_dado(&soma, nome)).map(|_| ())
+        })();
+        remover(&[&menos, &soma])?;
+        let Err(motivo) = feito else { return Ok(()) };
+        host::log(&format!("diferença de {depois} e {antes}: {motivo}; vai pelo GeoLibre"));
         ferramenta("geolibre:subtract", json!({"input1": depois, "input2": antes}), nome)
+            .map_err(|e| format!("{e} ({})", recorte::motivo(&motivo)))
     })
 }
 
@@ -4931,6 +5074,97 @@ fn cenas_do_emit(req: &Request) -> Result<Value, String> {
     );
     avisar(&texto);
     Ok(json!({"layer": nome, "read": lidas, "features": ficaram, "report": texto}))
+}
+
+/// A umidade do solo nas raízes ou a evapotranspiração do NASA POWER na área ([`power`]): as células do
+/// MERRA-2 em volta dela viram um raster, interpolado para a grade do projeto e recortado pela área.
+fn power_na_area(req: &Request, v: power::Variavel) -> Result<Value, String> {
+    let e = power::conferir(req.str("medida"), req.f64("ano"), req.f64("mes"))?;
+    let celula = req.f64("celula");
+    if let Some(m) = celula {
+        grade::conferir_celula(m)?;
+    }
+    let (c, na_area) = retangulo()?;
+    if !na_area {
+        return Err("escolha a área primeiro (painel Área de trabalho, ou Área: seleção)".into());
+    }
+    if !tem_comando("raster.rasterize")? {
+        return Err(format!(
+            "{} precisa de um RustGIS com o Polígonos para raster (raster.rasterize, desde a 0.6.0): as células do NASA POWER viram um raster com ele",
+            v.por_extenso()
+        ));
+    }
+    let (do_ano, da_media) = power::pedidos(c, v, e);
+    let quantos = do_ano.len();
+    let respostas = match buscar_bytes(&[do_ano, da_media].concat())? {
+        Ok(r) => r,
+        Err(p) => return Ok(p),
+    };
+    let textos: Vec<&str> = respostas.iter().map(|r| std::str::from_utf8(r).unwrap_or_default()).collect();
+    if let Some(erro) = textos.iter().find_map(|t| sol::erro(t)) {
+        return Err(erro);
+    }
+    let (geojson, n) = power::celulas(&textos[..quantos], &textos[quantos..], v, e);
+    if n == 0 {
+        return Err(power::sem_dado(v, e));
+    }
+    let g = grade_para(c, celula)?;
+    let saida = e.camada(v);
+    let temporarias = [power::CELULAS, power::RASTER, power::NA_GRADE];
+    remover(&temporarias)?;
+    remover(&[&saida])?;
+    let feito = (|| -> Result<(), String> {
+        por_geojson(power::CELULAS, &geojson)?;
+        host::run(
+            "raster.rasterize",
+            json!({"layer": power::CELULAS, "field": power::CAMPO, "nodata": power::SEM_DADO, "crs": 4326, "cellSize": [vento::LADO.0, vento::LADO.1],
+                "origin": [vento::CANTO.0, vento::CANTO.1], "name": power::RASTER}),
+        )?;
+        host::run(
+            "raster.project",
+            json!({"layer": power::RASTER, "crs": g.epsg, "cellSize": g.celula, "extent": GRADE, "resampling": "bilinear", "name": power::NA_GRADE}),
+        )?;
+        recortar(power::NA_GRADE, AREA, &saida)?;
+        let (min, max) = v.aceitos(e.anomalia());
+        host::run("raster.mask", json!({"layer": saida, "min": min, "max": max}))?;
+        let (rampa, cores) = v.rampa(e.anomalia());
+        let reserva = if v == power::Variavel::Evapotranspiracao && !e.anomalia() { "YlGn" } else { "BrBG" };
+        pintar(&saida, &Pintura { rampa: (rampa, &cores), reserva, escala: v.escala(e.anomalia()), aceitos: (min, max) });
+        Ok(())
+    })();
+    remover(&temporarias)?;
+    feito?;
+    sob_as_linhas(&saida)?;
+    let media = host::run("raster.info", json!({"layer": saida})).ok().and_then(|i| i["bands"][0]["mean"].as_f64());
+    let na_media = media.map(|m| format!("; média na área: {} {}", decimal(m, v.casas()), v.unidade())).unwrap_or_default();
+    let total = match (v, media) {
+        (power::Variavel::Evapotranspiracao, Some(m)) => {
+            format!(", ou {} mm no {}", decimal(m * e.dias(), 0), if e.mes.is_some() { "mês" } else { "ano" })
+        }
+        _ => String::new(),
+    };
+    let o_que = match e.medida {
+        power::Medida::Media => format!("{}, {} de 2001 a 2025", v.por_extenso(), e.periodo()),
+        power::Medida::Valor => format!("{}, em {}", v.por_extenso(), e.periodo()),
+        power::Medida::Anomalia => format!("{}, em {}, menos a média de 2001 a 2025", v.por_extenso(), e.periodo()),
+    };
+    let mut texto = format!(
+        "{}: {o_que} (NASA POWER, da reanálise MERRA-2), de {n} células de 0,625° × 0,5° em volta da área, interpolada para a grade do projeto, {}{na_media}{total}",
+        saida.trim_start_matches(PREFIXO),
+        g.texto()
+    );
+    avisar(&texto);
+    let cabem = vento::celulas_na_area(c);
+    if cabem < vento::MIN_CELULAS {
+        let aviso = format!(
+            "{}: no retângulo da área cabem {} células do dado (cerca de 55 × 65 km cada): o mapa mostra a interpolação entre elas, não o valor de cada lugar. Use o valor como regional",
+            v.nome(e.anomalia()),
+            decimal(cabem, 1)
+        );
+        avisar(&aviso);
+        texto = format!("{texto}\n\n{aviso}");
+    }
+    Ok(json!({"layer": saida, "cells": n, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula, "mean": media, "report": texto}))
 }
 
 /// O retângulo da área e a célula pedida, para a previsão do Open-Meteo, com as conferências
@@ -7577,13 +7811,7 @@ fn mudanca_das_luzes(req: &Request) -> Result<Value, String> {
         }
         let r = ler_cog_global(&lb, c, &g)?;
         if r.is_ok() {
-            calculadora(&format!("\"{depois}\" - \"{antes}\""), &saida).map_err(|e| {
-                if sem_nuvens::ferramenta_ausente(&e) {
-                    "a mudança das luzes precisa da ferramenta Raster Calculator do GeoLibre, que vem com o RustGIS desde a 0.7.0; atualize o RustGIS".to_string()
-                } else {
-                    e
-                }
-            })?;
+            diferenca(&antes, &depois, &saida)?;
         }
         Ok(r)
     })();
@@ -8192,7 +8420,7 @@ fn cobertura_recortada(ano: i64) -> Result<Recorte, String> {
     });
     remover(&[&bruto, &recorte])?;
     let r = feito?;
-    // As cores e os nomes da legenda oficial: o recorte do GeoLibre (sem a extensão Imagens) perde a
+    // As cores e os nomes da legenda oficial: o recorte sem a extensão Imagens perde a
     // tabela de cores do arquivo, que o raster.process levava junto.
     host::run("style.importQgis", json!({"layer": nome, "text": mapbiomas::qml(None)}))?;
     // Uma área grande vem de uma pirâmide do arquivo: as células lidas são maiores que as da grade.
@@ -8356,7 +8584,7 @@ fn camada_feita(r: &Value) -> Option<Value> {
 
 /// Roda a ferramenta `tool` e dá o nome `nome` à camada que ela fizer, no lugar de uma anterior.
 fn ferramenta_em(tool: &str, params: Value, nome: &str) -> Result<(), String> {
-    let r = host::run("gp.run", json!({"tool": tool, "params": params}))?;
+    let r = host::run("gp.run", json!({"tool": tool, "params": params})).map_err(extensoes::erro_da_ferramenta)?;
     let id = camada_feita(&r).ok_or_else(|| format!("{tool} não disse a camada que fez"))?;
     remover(&[nome])?;
     host::run("layer.rename", json!({"layer": id, "name": nome}))?;

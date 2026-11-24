@@ -1661,7 +1661,7 @@
     {
       "id": "luzes-mudanca",
       "label": "Mudança das luzes noturnas",
-      "help": "Quanto a luz à noite mudou entre dois anos, de 1992 a 2024: o último menos o primeiro, célula a célula, das mesmas Luzes noturnas (PCNL, 30 segundos, cerca de 900 m). Laranja: mais luz (a cidade que cresce, a eletrificação rural); roxo: menos. Entre 2013 e 2014 o sensor muda, e parte da diferença pode vir da troca (um aviso diz isso): para o mesmo sensor, fique até 2013 ou a partir de 2014. Precisa da Raster Calculator do GeoLibre, que vem com o RustGIS desde a 0.7.0. Período: dois anos de 1992 a 2024 (padrão: 2014 e 2024). Resolução ou escala: 30 segundos de grau (cerca de 900 m); numa grade mais grossa, a visão reduzida do arquivo. Unidades: número relativo, sem unidade (0: sem luz). Licença: CC BY 4.0. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/luzes-mudanca.md",
+      "help": "Quanto a luz à noite mudou entre dois anos, de 1992 a 2024: o último menos o primeiro, célula a célula, das mesmas Luzes noturnas (PCNL, 30 segundos, cerca de 900 m). Laranja: mais luz (a cidade que cresce, a eletrificação rural); roxo: menos. Entre 2013 e 2014 o sensor muda, e parte da diferença pode vir da troca (um aviso diz isso): para o mesmo sensor, fique até 2013 ou a partir de 2014. Período: dois anos de 1992 a 2024 (padrão: 2014 e 2024). Resolução ou escala: 30 segundos de grau (cerca de 900 m); numa grade mais grossa, a visão reduzida do arquivo. Unidades: número relativo, sem unidade (0: sem luz). Licença: CC BY 4.0. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/luzes-mudanca.md",
       "icon": "raster_layer",
       "params": "{\"inicio\"?: o primeiro ano, de 1992 a 2023 (padrão: 2014), \"fim\"?: o último, até 2024 (padrão: 2024), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
       "form": [
@@ -2136,6 +2136,112 @@
           ],
           "default": "média do ano",
           "help": "A média do ano, ou a de um mês, de 2001 a 2025."
+        }
+      ]
+    },
+    {
+      "id": "power-umidade",
+      "label": "Umidade do solo nas raízes (NASA POWER)",
+      "help": "A umidade do primeiro metro do solo: a média, o valor de um mês ou ano, ou a anomalia (o quanto ele fugiu da média do mesmo mês ou ano). Do NASA POWER (reanálise MERRA-2), só em terra: serve para o país, uma região ou um estado, e não para medir tendências. Sem login. Período: média de 2001 a 2025, ou um mês ou ano desde 1981 (o valor ou a anomalia). Resolução ou escala: 0,625° × 0,5° (cerca de 55 × 65 km), interpolada para a grade do projeto. Unidades: fração da saturação, de 0 (seco) a 1 (saturado). Licença: política de dados da NASA: uso livre e gratuito, com a citação. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/power-umidade.md",
+      "icon": "classify",
+      "params": "{\"medida\"?: \"media\" | \"valor\" | \"anomalia\" (padrão: media; com o ano, valor), \"ano\"?: de 1981 em diante (no valor e na anomalia), \"mes\"?: de 1 a 12 (padrão: o ano), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+      "form": [
+        {
+          "name": "medida",
+          "label": "O que mostrar",
+          "kind": "choice",
+          "required": true,
+          "choices": [
+            "Média de 2001 a 2025",
+            "O valor de um mês ou ano",
+            "Anomalia de um mês ou ano"
+          ],
+          "default": "Média de 2001 a 2025",
+          "help": "A média do período de referência, o valor de um mês ou ano, ou a diferença entre ele e a média do mesmo mês ou ano."
+        },
+        {
+          "name": "ano",
+          "label": "Ano",
+          "kind": "number",
+          "required": true,
+          "default": 2025,
+          "help": "De 1981 em diante, para o valor e a anomalia (na média de 2001 a 2025, não conta). Os meses saem com alguns meses de atraso; o ano, só completo."
+        },
+        {
+          "name": "mes",
+          "label": "Período",
+          "kind": "choice",
+          "required": true,
+          "choices": [
+            "média do ano",
+            "janeiro",
+            "fevereiro",
+            "março",
+            "abril",
+            "maio",
+            "junho",
+            "julho",
+            "agosto",
+            "setembro",
+            "outubro",
+            "novembro",
+            "dezembro"
+          ],
+          "default": "média do ano",
+          "help": "O ano inteiro ou um mês."
+        }
+      ]
+    },
+    {
+      "id": "power-evapotranspiracao",
+      "label": "Evapotranspiração (NASA POWER)",
+      "help": "A evapotranspiração (a água que o solo e as plantas devolvem ao ar): a média, o valor de um mês ou ano, ou a anomalia (o quanto ele fugiu da média do mesmo mês ou ano). O aviso traz o total em mm. A do JAXA é mais fina (5,5 km), mas só desde 2025. Do NASA POWER (reanálise MERRA-2), só em terra: serve para o país, uma região ou um estado, e não para medir tendências. Sem login. Período: média de 2001 a 2025, ou um mês ou ano desde 1981 (o valor ou a anomalia). Resolução ou escala: 0,625° × 0,5° (cerca de 55 × 65 km), interpolada para a grade do projeto. Unidades: mm por dia. Licença: política de dados da NASA: uso livre e gratuito, com a citação. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/power-evapotranspiracao.md",
+      "icon": "dra",
+      "params": "{\"medida\"?: \"media\" | \"valor\" | \"anomalia\" (padrão: media; com o ano, valor), \"ano\"?: de 1981 em diante (no valor e na anomalia), \"mes\"?: de 1 a 12 (padrão: o ano), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+      "form": [
+        {
+          "name": "medida",
+          "label": "O que mostrar",
+          "kind": "choice",
+          "required": true,
+          "choices": [
+            "Média de 2001 a 2025",
+            "O valor de um mês ou ano",
+            "Anomalia de um mês ou ano"
+          ],
+          "default": "Média de 2001 a 2025",
+          "help": "A média do período de referência, o valor de um mês ou ano, ou a diferença entre ele e a média do mesmo mês ou ano."
+        },
+        {
+          "name": "ano",
+          "label": "Ano",
+          "kind": "number",
+          "required": true,
+          "default": 2025,
+          "help": "De 1981 em diante, para o valor e a anomalia (na média de 2001 a 2025, não conta). Os meses saem com alguns meses de atraso; o ano, só completo."
+        },
+        {
+          "name": "mes",
+          "label": "Período",
+          "kind": "choice",
+          "required": true,
+          "choices": [
+            "média do ano",
+            "janeiro",
+            "fevereiro",
+            "março",
+            "abril",
+            "maio",
+            "junho",
+            "julho",
+            "agosto",
+            "setembro",
+            "outubro",
+            "novembro",
+            "dezembro"
+          ],
+          "default": "média do ano",
+          "help": "O ano inteiro ou um mês."
         }
       ]
     },
@@ -2879,6 +2985,8 @@
               "gdo-seca",
               "sol-radiacao",
               "vento-50m",
+              "power-umidade",
+              "power-evapotranspiracao",
               "risco-fogo"
             ]
           },

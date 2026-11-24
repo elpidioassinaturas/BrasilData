@@ -343,14 +343,14 @@ pub fn caminho(parametros_do_cube_reduce: &str, calculadora: bool) -> Option<Cam
     }
 }
 
-/// Se um erro do RustGIS diz que uma ferramenta não existe ("unknown tool"): um RustGIS sem as
-/// ferramentas do GeoLibre.
+/// Se um erro diz que uma ferramenta não existe: um RustGIS sem as ferramentas do GeoLibre ("unknown
+/// tool" no 0.7.0; o aviso do [`crate::extensoes::erro_da_ferramenta`] desde o 0.8.0).
 pub fn ferramenta_ausente(erro: &str) -> bool {
-    erro.contains("unknown tool")
+    erro.contains("unknown tool") || crate::extensoes::falta_o_geolibre(erro)
 }
 
 /// O aviso de um RustGIS sem as ferramentas de que a imagem precisa.
-pub const PRECISA_DO_GEOLIBRE: &str = "a imagem sem nuvens precisa das ferramentas Raster Calculator, Maximum Filter e Composite Bands do GeoLibre, que vêm com o RustGIS desde a 0.7.0; atualize o RustGIS";
+pub const PRECISA_DO_GEOLIBRE: &str = "a imagem sem nuvens precisa das ferramentas Raster Calculator, Maximum Filter e Composite Bands do GeoLibre, que se instalam à parte (painel Geoprocessamento, Instalar as ferramentas Whitebox e GeoLibre, cerca de 20 MB), num RustGIS 0.7.0 ou mais novo";
 
 /// Os parâmetros do `cube.reduce` de uma banda no [`Caminho::PeloCubeReduce`]: a máscara da
 /// data de cada célula e a primeira data limpa, na ordem da parte limpa na área.
@@ -516,6 +516,8 @@ mod testes {
         assert!(ferramenta_ausente("geolibre:raster_calculator: unknown tool"));
         assert!(ferramenta_ausente("unknown tool 'geolibre:maximum_filter'"));
         assert!(!ferramenta_ausente("no raster layer 'x'"));
+        let e = "gp.run: no tool 'geolibre:maximum_filter' is published; locate or reload external tools from the native app first";
+        assert!(ferramenta_ausente(&crate::extensoes::erro_da_ferramenta(e.into())));
         let p =
             cube_reduce_com_mascara(Satelite::Sentinel2, "B04", [-43.0, -20.8, -42.7, -20.6], d(2025, 6, 1), d(2025, 8, 31), "x").unwrap();
         assert_eq!(p["mask"], json!({"asset": "SCL", "keep": [2, 4, 5, 6, 7]}));
