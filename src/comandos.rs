@@ -41,6 +41,7 @@ use crate::nisar;
 use crate::olm;
 use crate::radar;
 use crate::radar_pc;
+use crate::recorte;
 use crate::risco_fogo;
 use crate::rodovias;
 use crate::saude;
@@ -2719,7 +2720,7 @@ fn perturbacao(req: &Request, camada: dist::Camada) -> Result<Value, String> {
 
 /// Roda uma ferramenta do RustGIS (`gp.run`) e dá à camada que ela cria o nome `nome`.
 fn ferramenta(tool: &str, params: Value, nome: &str) -> Result<(), String> {
-    let r = host::run("gp.run", json!({"tool": tool, "params": params}))?;
+    let r = host::run("gp.run", json!({"tool": tool, "params": params})).map_err(extensoes::erro_da_ferramenta)?;
     let id = r["layers"].get(0).cloned().ok_or(format!("{tool} não criou camada"))?;
     host::run("layer.rename", json!({"layer": id, "name": nome}))?;
     Ok(())
@@ -2732,8 +2733,9 @@ fn sem_imagens() -> bool {
 }
 
 /// Roda um comando da extensão Imagens; se ela estiver desligada (perguntada antes, ou recusado
-/// agora), roda `sem` no lugar, que faz o mesmo pelas ferramentas do GeoLibre.
+/// agora), roda `sem` no lugar, que faz o mesmo sem ela.
 fn com_imagens(comando: &str, params: Value, sem: impl FnOnce() -> Result<(), String>) -> Result<(), String> {
+    let sem = || sem().map_err(extensoes::ou_ligue_a_imagens);
     if sem_imagens() {
         return sem();
     }
@@ -2744,11 +2746,67 @@ fn com_imagens(comando: &str, params: Value, sem: impl FnOnce() -> Result<(), St
 }
 
 /// Recorta o raster `camada` pelo polígono da camada `poligono`, numa camada nova `nome`: pelo
-/// `raster.process clip`, ou pelo `geolibre:clip_raster_to_polygon` sem a extensão Imagens.
+/// `raster.process clip`, ou, sem a extensão Imagens, pela máscara do contorno (módulo [`recorte`]).
+/// O `geolibre:clip_raster_to_polygon`, lento e opcional, fica para quando ela não dá (um raster
+/// maior que o limite do `cube.reduce`).
 fn recortar(camada: &str, poligono: &str, nome: &str) -> Result<(), String> {
     com_imagens("raster.process", json!({"layer": camada, "operation": "clip", "polygon": poligono, "name": nome}), || {
+        let mut temporarias = Vec::new();
+        let feito = recortar_pela_mascara(camada, poligono, nome, &mut temporarias);
+        if !temporarias.is_empty() {
+            host::run("layer.remove", json!({"layer": temporarias}))?;
+        }
+        let Err(motivo) = feito else { return Ok(()) };
+        host::log(&format!("recorte pela máscara de {camada}: {motivo}; vai pelo GeoLibre"));
         ferramenta("geolibre:clip_raster_to_polygon", json!({"input": camada, "polygons": poligono}), nome)
+            .map_err(|e| recorte::nao_saiu(&recorte::motivo(&motivo), &e))?;
+        let i = host::run("raster.info", json!({"layer": camada})).unwrap_or_default();
+        if let Some(a) = recorte::aviso_de_demora(i["width"].as_f64().unwrap_or(0.0), i["height"].as_f64().unwrap_or(0.0)) {
+            avisar(&a);
+        }
+        Ok(())
     })
+}
+
+/// O recorte sem a extensão Imagens e sem o GeoLibre (módulo [`recorte`]): os valores de `camada` só
+/// nas células com o centro dentro do contorno. As camadas de passagem vão para `temporarias` (os
+/// ids), que quem chama tira. Um raster de mais bandas (a imagem sem nuvens) vai banda a banda e se
+/// junta de novo pelo `geolibre:composite_bands`, com que ele foi montado.
+fn recortar_pela_mascara(camada: &str, poligono: &str, nome: &str, temporarias: &mut Vec<Value>) -> Result<(), String> {
+    fn feita(r: &Value, temporarias: &mut Vec<Value>) -> Result<Value, String> {
+        let id = camada_feita(r).ok_or("o RustGIS não disse a camada que fez")?;
+        temporarias.push(id.clone());
+        Ok(id)
+    }
+    let bandas = host::run("raster.info", json!({"layer": camada}))?["bands"].as_array().map_or(1, Vec::len).max(1);
+    let m = format!("{PREFIXO}máscara da área");
+    let r = host::run("raster.rasterize", recorte::mascara(poligono, camada, &m))?;
+    let mut mascara = (feita(&r, temporarias)?, false);
+    let mut partes = Vec::new();
+    for b in 0..bandas {
+        let passo = |p: &str| format!("{nome} ({p} {})", b + 1);
+        let origem = if bandas > 1 {
+            let n = passo("banda");
+            feita(&host::run("cube.reduce", recorte::so_a_banda(camada, b, bandas, &n))?, temporarias)?;
+            n
+        } else {
+            camada.to_string()
+        };
+        let cortada = passo("recorte");
+        let mut feito = host::run("cube.reduce", recorte::combinar(&origem, &mascara.0, mascara.1, &cortada));
+        // Grande demais inteiro: só o retângulo do contorno, nas mesmas células.
+        if let (Err(e), false) = (&feito, mascara.1) {
+            let pedido = recorte::mascara_menor(poligono, &r, &m).ok_or_else(|| e.clone())?;
+            mascara = (feita(&host::run("raster.rasterize", pedido)?, temporarias)?, true);
+            feito = host::run("cube.reduce", recorte::combinar(&origem, &mascara.0, true, &cortada));
+        }
+        feita(&feito?, temporarias)?;
+        partes.push(cortada);
+    }
+    match partes.as_slice() {
+        [uma] => host::run("raster.function", recorte::declarar_sem_dado(uma, nome)).map(|_| ()),
+        _ => ferramenta("geolibre:composite_bands", json!({"inputs": partes}), nome),
+    }
 }
 
 /// Recorta o raster `camada` pelo retângulo `c` (oeste, sul, leste, norte, em graus), numa camada
@@ -2761,10 +2819,9 @@ fn recortar_retangulo(camada: &str, c: [f64; 4], celula: f64, nome: &str) -> Res
 }
 
 /// Junta os rasters `entradas` (o primeiro vale onde se sobrepõem) numa camada nova `nome`: pelo
-/// `raster.mosaic`, ou, sem a extensão Imagens, como [`mosaico_sem_imagens`] diz, com a média onde
-/// se sobrepõem.
+/// `raster.mosaic`, ou, sem a extensão Imagens, como [`mosaico_sem_imagens`] diz.
 fn mosaicar(entradas: &[String], nome: &str) -> Result<(), String> {
-    mosaicar_com(entradas, nome, "mean")
+    mosaicar_com(entradas, nome, "first")
 }
 
 /// [`mosaicar`], com a estatística `stat` do `cube.reduce` onde as entradas se sobrepõem sem a
@@ -2777,22 +2834,50 @@ fn mosaicar_com(entradas: &[String], nome: &str, stat: &str) -> Result<(), Strin
 /// sem valor fora de si): o `cube.reduce` com `stat`, que toma o que falta (NaN) como falta. O
 /// GeoLibre não serve aí: ele não toma NaN por sem-dado, e o `geolibre:mosaic` de entradas de mesma
 /// extensão sai igual à primeira (o GEM-15 de Viçosa vinha só com a faixa de uma célula, média de
-/// 639 m em vez de 717). Rasters de extensões diferentes (tiles baixados inteiros): o
-/// `geolibre:mosaic`, que os une.
+/// 639 m em vez de 717). Rasters de extensões diferentes (os tiles do Copernicus, baixados inteiros):
+/// postos antes na janela da área ([`recorte::tiles_na_janela`]), e só se isso não der (uma janela
+/// acima do limite do `cube.reduce`) o `geolibre:mosaic`, com o aviso de que ele os desloca.
 fn mosaico_sem_imagens(entradas: &[String], nome: &str, stat: &str) -> Result<(), String> {
-    let grade = |l: &str| -> Option<Value> {
-        let i = host::run("raster.info", json!({"layer": l})).ok()?;
-        Some(json!([i["width"], i["height"], i["extent"], i["crs"]]))
-    };
-    let primeira = entradas.first().and_then(|e| grade(e));
-    let mesma_grade = primeira.is_some() && entradas.iter().skip(1).all(|e| grade(e) == primeira);
-    if !mesma_grade {
-        return ferramenta("geolibre:mosaic", json!({"inputs": entradas}), nome);
+    let infos: Vec<(String, Value)> =
+        entradas.iter().map(|e| (e.clone(), host::run("raster.info", json!({"layer": e})).unwrap_or_default())).collect();
+    let grade = |i: &Value| json!([i["width"], i["height"], i["extent"], i["crs"]]);
+    let mesma_grade = infos.first().is_some_and(|(_, p)| !p.is_null() && infos.iter().all(|(_, i)| grade(i) == grade(p)));
+    if mesma_grade {
+        return juntar_na_grade(entradas, nome, stat).map_err(|e| recorte::mosaico_nao_saiu(&e, true));
     }
-    // O cube.reduce quer uma data por camada: datas quaisquer, uma por entrada.
-    let datas: Vec<String> = (0..entradas.len()).map(|i| format!("{}-01-01", 2000 + i)).collect();
-    host::run("cube.reduce", json!({"layers": entradas, "dates": datas, "stat": stat, "name": nome}))?;
+    let Some(pedidos) = recorte::tiles_na_janela(&infos, AREA, |k| format!("{nome} (janela {k})")) else {
+        return ferramenta("geolibre:mosaic", json!({"inputs": entradas}), nome);
+    };
+    let mut janelas = Vec::new();
+    let feito = pedidos
+        .into_iter()
+        .try_for_each(|p| {
+            let n = p["name"].as_str().unwrap_or_default().to_string();
+            host::run("raster.project", p)?;
+            janelas.push(n);
+            Ok(())
+        })
+        .and_then(|()| juntar_na_grade(&janelas, nome, stat));
+    if !janelas.is_empty() {
+        host::run("layer.remove", json!({"layer": janelas}))?;
+    }
+    let Err(motivo) = feito else { return Ok(()) };
+    host::log(&format!("mosaico na janela da área: {motivo}; vai pelo GeoLibre"));
+    ferramenta("geolibre:mosaic", json!({"inputs": entradas}), nome)
+        .map_err(|e| format!("{}. (Pelo GeoLibre: {e})", recorte::mosaico_nao_saiu(&motivo, false)))?;
+    avisar(recorte::AVISO_DO_MOSAICO);
     Ok(())
+}
+
+/// Junta rasters da mesma grade pelo `cube.reduce` ([`recorte::juntar`]). O RustGIS 0.7.0 não tem o
+/// `first`: lá vai o maior valor, que ao menos é o de uma das entradas.
+fn juntar_na_grade(entradas: &[String], nome: &str, stat: &str) -> Result<(), String> {
+    let r = host::run("cube.reduce", recorte::juntar(entradas, stat, nome));
+    match r {
+        Err(_) if stat == "first" => host::run("cube.reduce", recorte::juntar(entradas, "max", nome)),
+        r => r,
+    }
+    .map(|_| ())
 }
 
 /// A diferença `depois` − `antes`, numa camada nova `nome`: pelo `raster.change difference`, ou
@@ -8031,7 +8116,7 @@ fn cobertura_recortada(ano: i64) -> Result<Recorte, String> {
     });
     remover(&[&bruto, &recorte])?;
     let r = feito?;
-    // As cores e os nomes da legenda oficial: o recorte do GeoLibre (sem a extensão Imagens) perde a
+    // As cores e os nomes da legenda oficial: o recorte sem a extensão Imagens perde a
     // tabela de cores do arquivo, que o raster.process levava junto.
     host::run("style.importQgis", json!({"layer": nome, "text": mapbiomas::qml(None)}))?;
     // Uma área grande vem de uma pirâmide do arquivo: as células lidas são maiores que as da grade.
@@ -8195,7 +8280,7 @@ fn camada_feita(r: &Value) -> Option<Value> {
 
 /// Roda a ferramenta `tool` e dá o nome `nome` à camada que ela fizer, no lugar de uma anterior.
 fn ferramenta_em(tool: &str, params: Value, nome: &str) -> Result<(), String> {
-    let r = host::run("gp.run", json!({"tool": tool, "params": params}))?;
+    let r = host::run("gp.run", json!({"tool": tool, "params": params})).map_err(extensoes::erro_da_ferramenta)?;
     let id = camada_feita(&r).ok_or_else(|| format!("{tool} não disse a camada que fez"))?;
     remover(&[nome])?;
     host::run("layer.rename", json!({"layer": id, "name": nome}))?;
