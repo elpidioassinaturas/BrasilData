@@ -1552,6 +1552,9 @@ AREAS_EXEMPLO = {
     "ceara": ("uf:CE", "Ceará"),
     "brasil": ("br", "Brasil"),
 }
+# Os mapas exemplo com a folha feita à parte no RustGIS (o dado é o do plugin; a folha não é a do botão
+# Layout, e o scripts/mapas_exemplo.py não os refaz).
+FOLHAS_PROPRIAS = {"luzes-noturnas", "nisar-cor"}
 # Os comandos que não trazem camada de dados: sem ficha.
 SEM_FICHA = {"area-selecao", "area-desenho", "area-municipio", "grade", "painel", "escolher-area", "layout", "fontes", "atualizacao", "sobre", "sobre-autoria", "sobre-fontes", "sobre-contribuir", "indicadores", "amostra-aleatoria", "amostra-estratificada", "amostra-sistematica"}
 # Onde ficam as fichas no repositório.
@@ -1567,6 +1570,11 @@ def endereco_da_ficha(cid: str) -> str:
 def municipios_do_plugin() -> dict[str, str]:
     with open(ROOT / "municipios.csv", encoding="utf-8", newline="") as f:
         return {l["codigo"]: f"{l['nome']} ({l['uf']})" for l in csv.DictReader(f)}
+
+
+def como_foi_feito(cid: str) -> str:
+    """Como o mapa exemplo da camada foi feito, para a legenda dele."""
+    return "com o dado do plugin e a folha feita à parte no RustGIS" if cid in FOLHAS_PROPRIAS else "feito com o plugin"
 
 
 def area_do_exemplo(ex: str) -> tuple[str, str] | None:
@@ -1985,7 +1993,7 @@ def paginas(linhas: list[dict], fichas: dict[str, dict], nomes: dict[str, str]) 
         area = area_do_exemplo(fi["exemplo"])
         imagem = pasta / f"{cid}.png"
         if area and imagem.exists():
-            mapa = [f"![Mapa exemplo: {nomes[cid]} em {area[1]}]({cid}.png)", "", f"*Mapa exemplo: {area[1]}, feito com o plugin.*"]
+            mapa = [f"![Mapa exemplo: {nomes[cid]} em {area[1]}]({cid}.png)", "", f"*Mapa exemplo: {area[1]}, {como_foi_feito(cid)}.*"]
         elif area:
             mapa = [f"*O mapa exemplo, de {area[1]}, ainda não foi gerado: rode `scripts/mapas_exemplo.py {cid}`.*"]
         else:

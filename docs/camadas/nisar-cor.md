@@ -6,7 +6,7 @@ A composição colorida do NISAR: HH no vermelho, HV no verde e HH − HV no azu
 
 ![Mapa exemplo: Composição colorida (NISAR, banda L) em Viçosa (MG)](nisar-cor.png)
 
-*Mapa exemplo: Viçosa (MG), feito com o plugin.*
+*Mapa exemplo: Viçosa (MG), com o dado do plugin e a folha feita à parte no RustGIS.*
 
 | | |
 |---|---|

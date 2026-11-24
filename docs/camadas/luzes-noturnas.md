@@ -4,7 +4,9 @@
 
 As luzes da Terra à noite vistas por satélite, num ano, com os sensores DMSP e VIIRS na mesma escala (série PCNL).
 
-*O mapa exemplo, de Minas Gerais, ainda não foi gerado: rode `scripts/mapas_exemplo.py luzes-noturnas`.*
+![Mapa exemplo: Luzes noturnas (1992–2024) em Minas Gerais](luzes-noturnas.png)
+
+*Mapa exemplo: Minas Gerais, com o dado do plugin e a folha feita à parte no RustGIS.*
 
 | | |
 |---|---|

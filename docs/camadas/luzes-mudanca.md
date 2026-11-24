@@ -4,7 +4,9 @@
 
 A diferença das luzes noturnas entre dois anos (o último menos o primeiro), da série PCNL.
 
-*O mapa exemplo, de Minas Gerais, ainda não foi gerado: rode `scripts/mapas_exemplo.py luzes-mudanca`.*
+![Mapa exemplo: Mudança das luzes noturnas em Minas Gerais](luzes-mudanca.png)
+
+*Mapa exemplo: Minas Gerais, feito com o plugin.*
 
 | | |
 |---|---|

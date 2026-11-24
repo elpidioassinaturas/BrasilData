@@ -288,7 +288,7 @@ def cartao(cid: str, fi: dict, nome: str, lugares: list[str], cmd: dict, vetoria
         figura = (
             f'<figure><a href="camadas/{cid}.png"><img src="camadas/{cid}.png" width="{larg}" height="{alt}" '
             f'loading="lazy" decoding="async" alt="Mapa exemplo: {esc(nome)} em {esc(area)}"></a>'
-            f"<figcaption>Mapa exemplo: {esc(area)}, feito com o plugin (botão Layout).</figcaption></figure>"
+            f"<figcaption>Mapa exemplo: {esc(area)}, {gerar.como_foi_feito(cid)}{'' if cid in gerar.FOLHAS_PROPRIAS else ' (botão Layout)'}.</figcaption></figure>"
         )
     botao = cmd["label"].replace("\n", " ")
     return (
@@ -493,7 +493,7 @@ def pagina(linhas, nomes, fichas, manifesto, readme, imagens) -> str:
 <footer class="rodape">
   <div class="largura">
     <p>BrasilData {versao} · <a href="{REPO}">repositório</a> · <a href="{RELEASES}">versões</a> · <a href="{ISSUE_NOVA}">pedir uma fonte</a></p>
-    <p class="nota">Página gerada a partir do repositório; os mapas exemplo foram feitos com o próprio plugin.</p>
+    <p class="nota">Página gerada a partir do repositório; os mapas exemplo foram feitos com o dado do próprio plugin.</p>
   </div>
 </footer>
 <script src="{com_versao("busca.js")}"></script>

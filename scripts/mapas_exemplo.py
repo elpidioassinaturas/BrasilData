@@ -143,6 +143,10 @@ def main() -> None:
         fichas = [fi for fi in fichas if fi["id"] in a.ids]
     elif not a.refazer:
         fichas = [fi for fi in fichas if not (PASTA / f"{fi['id']}.png").exists()]
+    proprias = [fi["id"] for fi in fichas if fi["id"] in gerar.FOLHAS_PROPRIAS]
+    if proprias:
+        print(f"com a folha feita à parte, não refeitos: {', '.join(proprias)}")
+        fichas = [fi for fi in fichas if fi["id"] not in gerar.FOLHAS_PROPRIAS]
     PASTA.mkdir(parents=True, exist_ok=True)
     LOGS.mkdir(parents=True, exist_ok=True)
     print(f"{len(fichas)} mapas, {a.workers} de cada vez")
