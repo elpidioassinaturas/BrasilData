@@ -366,10 +366,14 @@ fn por_area(geojson: &str, caixa: [f64; 4], texto: &str) -> Result<Value, String
     let nova = havia.is_none();
     // A célula padrão cresce com a área; a de uma grade que já havia fica, a não ser que passe do
     // limite do RustGIS nesta área (uma grade de 30 m no Brasil inteiro teria 23 bilhões de células).
-    let grade = Some(match havia {
-        Some(g) => por_grade(Grade::nova(caixa, g.escolha, celula_que_cabe(caixa, g.celula)))?,
-        None => por_grade(Grade::nova(caixa, Escolha::Automatico, grade::celula_padrao(caixa)))?,
-    });
+    // Com a Imagens desligada, as duas sobem até caber no recorte sem ela.
+    let (escolha, celula) = match havia {
+        Some(g) => (g.escolha, celula_que_cabe(caixa, g.celula)),
+        None => (Escolha::Automatico, grade::celula_padrao(caixa)),
+    };
+    let (celula, maior) = celula_da_grade_nova(caixa, escolha, celula);
+    let maior = maior.map_or(String::new(), |t| format!(". {t}"));
+    let grade = Some(por_grade(Grade::nova(caixa, escolha, celula))?);
     remover(&[AREA])?;
     por_geojson(AREA, geojson)?;
     vista_no_sistema(caixa, grade.as_ref().map(|g| g.epsg));
@@ -377,10 +381,10 @@ fn por_area(geojson: &str, caixa: [f64; 4], texto: &str) -> Result<Value, String
     host::run("layer.zoomTo", json!({"layer": AREA}))?;
     match &grade {
         Some(g) if nova => avisar(&format!(
-            "Área do BrasilData: {texto}. Grade do projeto: {}; para outra, use Grade do projeto no painel Área de trabalho",
+            "Área do BrasilData: {texto}. Grade do projeto: {}; para outra, use Grade do projeto no painel Área de trabalho{maior}",
             g.texto()
         )),
-        Some(g) => avisar(&format!("Área do BrasilData: {texto}. Grade refeita para ela: {}", g.texto())),
+        Some(g) => avisar(&format!("Área do BrasilData: {texto}. Grade refeita para ela: {}{maior}", g.texto())),
         None => avisar(&format!("Área do BrasilData: {texto}")),
     }
     let mut r = json!({"area": AREA, "bbox": caixa, "panel": {"items": {"area": {"text": texto}}}});
@@ -479,18 +483,30 @@ fn grade_para(c: [f64; 4], celula: Option<f64>) -> Result<Grade, String> {
                 ));
             }
             let m = celula_que_cabe(c, g.celula);
+            // A célula de uma grade que cobre a área vale: é a que ficou com ela, ou a escolhida depois.
             if g.cobre(c) && m == g.celula {
                 g
             } else {
+                let (m, maior) = celula_da_grade_nova(c, g.escolha, m);
                 por_grade(Grade::nova(c, g.escolha, m))?;
+                if let Some(t) = maior {
+                    avisar(&t);
+                }
                 return Err(GRADE_FEITA.into());
             }
         }
         None => {
-            let m = celula.unwrap_or(grade::celula_padrao(c));
+            let (m, maior) = match celula {
+                Some(m) => (m, None),
+                None => celula_da_grade_nova(c, Escolha::Automatico, grade::celula_padrao(c)),
+            };
             grade::conferir_celula(m)?;
             let g = por_grade(Grade::nova(c, Escolha::Automatico, m))?;
-            avisar(&format!("Grade do projeto criada: {}. Para outra, use Grade do projeto no painel Área de trabalho", g.texto()));
+            avisar(&format!(
+                "Grade do projeto criada: {}. Para outra, use Grade do projeto no painel Área de trabalho{}",
+                g.texto(),
+                maior.map_or(String::new(), |t| format!(". {t}"))
+            ));
             return Err(GRADE_FEITA.into());
         }
     };
@@ -511,6 +527,24 @@ fn celula_que_cabe(c: [f64; 4], celula: f64) -> f64 {
         grade::texto_da_celula(m)
     ));
     m
+}
+
+/// A célula da grade nova da área de retângulo `c`: `celula`, ou, com a extensão Imagens desligada e
+/// uma grade que não caberia no recorte sem ela, a menor do painel que cabe
+/// ([`grade::celula_sem_imagens`]), com o que dizer ao usuário.
+fn celula_da_grade_nova(c: [f64; 4], escolha: Escolha, celula: f64) -> (f64, Option<String>) {
+    if grade::celulas_no_sistema(c, escolha.epsg(c), celula) <= grade::MAX_VALORES_OPERACAO || !sem_imagens() {
+        return (celula, None);
+    }
+    let m = grade::celula_sem_imagens(c, escolha, celula);
+    if m <= celula {
+        return (celula, None);
+    }
+    let (antes, agora) = (grade::texto_da_celula(celula), grade::texto_da_celula(m));
+    let t = format!(
+        "Células de {agora}, e não de {antes}, porque a extensão Imagens do RustGIS está desligada e sem ela o recorte vai até 32 milhões de células; para {antes}, ligue a Imagens (Plugins › Extensões) e use Grade do projeto"
+    );
+    (m, Some(t))
 }
 
 /// Recusa, antes de ler qualquer arquivo, uma grade fina demais para a área: com células de

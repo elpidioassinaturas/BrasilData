@@ -80,6 +80,79 @@ pub fn celula_padrao(c: [f64; 4]) -> f64 {
     CELULAS.into_iter().filter(|m| *m >= CELULA_PADRAO).find(|m| celulas(c, *m) <= MAX_CELULAS_PADRAO).unwrap_or(CELULAS[CELULAS.len() - 1])
 }
 
+/// A célula para a área de retângulo `c` com a extensão Imagens do RustGIS desligada: a menor do
+/// painel, de `minima` para cima, com que a grade cabe no recorte sem ela
+/// ([`MAX_VALORES_OPERACAO`], módulo [`crate::recorte`]); numa área ainda maior, a maior do painel.
+pub fn celula_sem_imagens(c: [f64; 4], escolha: Escolha, minima: f64) -> f64 {
+    let epsg = escolha.epsg(c);
+    CELULAS
+        .into_iter()
+        .filter(|m| *m >= minima)
+        .find(|m| celulas_no_sistema(c, epsg, *m) <= MAX_VALORES_OPERACAO)
+        .unwrap_or(CELULAS[CELULAS.len() - 1])
+}
+
+/// Quantas células uma grade de `celula` metros tem no retângulo `c` (em graus) posto no sistema
+/// `epsg`: o retângulo fica torto longe do meridiano central, e a grade que o envolve tem mais
+/// células que a conta de [`celulas`] (14% no Rio Grande do Norte, no Albers).
+///
+/// A projeção é a da esfera: contra o RustGIS 0.8.0, em nove retângulos (Viçosa, sete UFs e o
+/// Brasil), a conta dá de 0 a 1% a mais. Um sistema que não é o UTM SIRGAS 2000, o Albers do IBGE ou
+/// a Policônica leva a conta de [`celulas`] com 15% de folga.
+pub fn celulas_no_sistema(c: [f64; 4], epsg: u32, celula: f64) -> f64 {
+    const PARTES: i32 = 32;
+    let lados = |t: f64| {
+        let (x, y) = (c[0] + t * (c[2] - c[0]), c[1] + t * (c[3] - c[1]));
+        [(x, c[1]), (x, c[3]), (c[0], y), (c[2], y)]
+    };
+    let (mut x, mut y) = ((f64::MAX, f64::MIN), (f64::MAX, f64::MIN));
+    for (lon, lat) in (0..=PARTES).flat_map(|i| lados(f64::from(i) / f64::from(PARTES))) {
+        let Some((px, py)) = na_esfera(epsg, lon, lat) else { return celulas(c, celula) * 1.15 };
+        x = (x.0.min(px), x.1.max(px));
+        y = (y.0.min(py), y.1.max(py));
+    }
+    // A grade vai até a célula inteira de cada lado.
+    ((x.1 - x.0) / celula + 1.0) * ((y.1 - y.0) / celula + 1.0)
+}
+
+/// O ponto `lon`, `lat` (em graus) no sistema `epsg`, em metros, na esfera, sem os deslocamentos da
+/// origem; `None` num sistema que não é um dos da grade.
+fn na_esfera(epsg: u32, lon: f64, lat: f64) -> Option<(f64, f64)> {
+    const RAIO: f64 = 6_378_137.0;
+    let f = lat.to_radians();
+    let delta = |lon0: f64| (lon - lon0).to_radians();
+    let fuso = match epsg {
+        31977..=31985 => Some(epsg - 31960),
+        31965..=31976 => Some(epsg - 31954),
+        _ => None,
+    };
+    if let Some(z) = fuso {
+        let l = delta(-183.0 + 6.0 * f64::from(z));
+        let k = 0.9996 * RAIO;
+        return Some((k * (f.cos() * l.sin()).atanh(), k * f.sin().atan2(f.cos() * l.cos())));
+    }
+    match epsg {
+        // O Albers do IBGE: paralelos padrão 2° S e 22° S, meridiano 54° W.
+        10857 => {
+            let (p1, p2) = ((-2f64).to_radians(), (-22f64).to_radians());
+            let n = (p1.sin() + p2.sin()) / 2.0;
+            let rho = (p1.cos().powi(2) + 2.0 * n * p1.sin() - 2.0 * n * f.sin()).sqrt() * RAIO / n;
+            let t = n * delta(-54.0);
+            Some((rho * t.sin(), -rho * t.cos()))
+        }
+        // A Policônica: o equador é uma reta.
+        5880 => {
+            let l = delta(-54.0);
+            if f.abs() < 1e-9 {
+                return Some((RAIO * l, 0.0));
+            }
+            let (t, cot) = (l * f.sin(), f.cos() / f.sin());
+            Some((RAIO * cot * t.sin(), RAIO * (f + cot * (1.0 - t.cos()))))
+        }
+        _ => None,
+    }
+}
+
 /// Os sistemas geográficos (em graus), que não servem para células em metros.
 const EM_GRAUS: [u32; 3] = [4326, 4674, 4618];
 
@@ -284,6 +357,45 @@ mod tests {
         // O erro do RustGIS: o Brasil a 30 m tem uns 23 bilhões de células.
         assert!(celulas(brasil, 30.0) > MAX_CELULAS);
         assert!(celulas(brasil, 500.0) < MAX_CELULAS_PADRAO);
+    }
+
+    const SERGIPE: [f64; 4] = [-38.245, -11.5681, -36.3959, -9.515];
+    const MINAS: [f64; 4] = [-51.0461, -22.9228, -39.8568, -14.2333];
+    const BRASIL: [f64; 4] = [-73.9831, -33.7439, -32.4026, 5.2673];
+    const VICOSA: [f64; 4] = [-43.004866, -20.838979, -42.753575, -20.654733];
+    const RN: [f64; 4] = [-38.5821, -6.9827, -34.9685, -4.8314];
+
+    #[test]
+    fn as_celulas_no_sistema_sao_as_do_rustgis() {
+        // O que o RustGIS 0.8.0 faz da grade (raster.rasterize dela, com a célula).
+        for (c, epsg, m, n) in [
+            (MINAS, 10857, 250.0, 4800.0 * 4019.0),
+            (BRASIL, 10857, 1000.0, 4740.0 * 4379.0),
+            (VICOSA, 31983, 30.0, 882.0 * 692.0),
+            (RN, 10857, 100.0, 4105.0 * 2642.0),
+        ] {
+            let razao = celulas_no_sistema(c, epsg, m) / n;
+            assert!((0.99..1.02).contains(&razao), "{c:?}: {razao}");
+        }
+        // Na Policônica, perto do meridiano dela, e num sistema qualquer, a conta é parecida.
+        let c = [-55.0, -16.0, -53.0, -14.0];
+        for epsg in [5880, 31982, 32722] {
+            let razao = celulas_no_sistema(c, epsg, 100.0) / celulas(c, 100.0);
+            assert!((0.95..1.2).contains(&razao), "{epsg}: {razao}");
+        }
+    }
+
+    #[test]
+    fn sem_a_imagens_a_grade_padrao_cabe_no_recorte() {
+        for (c, m) in [(SERGIPE, 50.0), (MINAS, 250.0), (BRASIL, 1000.0), (VICOSA, 30.0)] {
+            assert_eq!(celula_sem_imagens(c, Escolha::Automatico, celula_padrao(c)), m, "{c:?}");
+            assert!(celulas_no_sistema(c, sistema(c), m) <= MAX_VALORES_OPERACAO);
+        }
+        // Uma célula que já cabe fica; uma fora da lista do painel sobe para a seguinte.
+        assert_eq!(celula_sem_imagens(SERGIPE, Escolha::Automatico, 250.0), 250.0);
+        assert_eq!(celula_sem_imagens(SERGIPE, Escolha::Automatico, 35.0), 50.0);
+        // Maior que tudo: a maior do painel.
+        assert_eq!(celula_sem_imagens([-180.0, -60.0, 180.0, 60.0], Escolha::Albers, 30.0), 1000.0);
     }
 
     const TERESINA: [f64; 4] = [-42.9707, -5.5866, -42.599, -4.7863];
