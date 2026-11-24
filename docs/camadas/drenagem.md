@@ -4,9 +4,9 @@
 
 Os rios e córregos da Base Cartográfica Contínua do IBGE, com a ordem de Strahler e a drenagem a montante de cada trecho, calculadas pelo BrasilData na rede do país inteiro.
 
-![Mapa exemplo: Drenagem (BC250 2025) em Viçosa (MG)](drenagem.png)
+![Mapa exemplo: Drenagem (BC250 2025) em Minas Gerais](drenagem.png)
 
-*Mapa exemplo: Viçosa (MG), feito com o plugin.*
+*Mapa exemplo: Minas Gerais, com o dado do plugin e a folha feita à parte no RustGIS.*
 
 | | |
 |---|---|

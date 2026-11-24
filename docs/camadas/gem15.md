@@ -4,9 +4,9 @@
 
 Os modelos de elevação do Google a 15 m (GEM-15, experimental): o terreno nu (DTM), a superfície (DSM) ou a altura acima do terreno.
 
-![Mapa exemplo: Elevação a 15 m (Google GEM-15) em Viçosa (MG)](gem15.png)
+![Mapa exemplo: Elevação a 15 m (Google GEM-15) em maciço de Poços de Caldas (MG e SP)](gem15.png)
 
-*Mapa exemplo: Viçosa (MG), feito com o plugin.*
+*Mapa exemplo: maciço de Poços de Caldas (MG e SP), com o dado do plugin e a folha feita à parte no RustGIS.*
 
 | | |
 |---|---|

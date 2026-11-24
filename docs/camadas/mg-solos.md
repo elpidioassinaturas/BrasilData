@@ -4,9 +4,9 @@
 
 O mapa de solos de Minas Gerais: as unidades de mapeamento com a classe de solo dominante, do levantamento da UFV, do Cetec, da UFLA e da Feam.
 
-![Mapa exemplo: Mapa de solos de Minas Gerais (UFV, Cetec, UFLA e Feam, 2010) em Zona da Mata (MG)](mg-solos.png)
+![Mapa exemplo: Mapa de solos de Minas Gerais (UFV, Cetec, UFLA e Feam, 2010) em Minas Gerais](mg-solos.png)
 
-*Mapa exemplo: Zona da Mata (MG), feito com o plugin.*
+*Mapa exemplo: Minas Gerais, com o dado do plugin e a folha feita à parte no RustGIS.*
 
 | | |
 |---|---|

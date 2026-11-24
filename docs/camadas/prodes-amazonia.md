@@ -4,9 +4,9 @@
 
 O desmatamento anual do bioma Amazônia (na Amazônia Legal) mapeado pelo INPE (PRODES): os polígonos de vegetação nativa suprimida a cada ano.
 
-![Mapa exemplo: Desmatamento anual (PRODES Amazônia Legal) em Ji-Paraná (RO)](prodes-amazonia.png)
+![Mapa exemplo: Desmatamento anual (PRODES Amazônia Legal) em Novo Progresso (PA)](prodes-amazonia.png)
 
-*Mapa exemplo: Ji-Paraná (RO), feito com o plugin.*
+*Mapa exemplo: Novo Progresso (PA), com o dado do plugin e a folha feita à parte no RustGIS.*
 
 | | |
 |---|---|

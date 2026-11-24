@@ -6,7 +6,7 @@ Uma propriedade do solo a 30 m do OpenLandMap-soildb (OpenGeoHub): carbono orgâ
 
 ![Mapa exemplo: Propriedades do solo a 30 m (OpenLandMap) em Viçosa (MG)](olm-solo.png)
 
-*Mapa exemplo: Viçosa (MG), feito com o plugin.*
+*Mapa exemplo: Viçosa (MG), com o dado do plugin e a folha feita à parte no RustGIS.*
 
 | | |
 |---|---|

@@ -4,9 +4,9 @@
 
 A diferença das luzes noturnas entre dois anos (o último menos o primeiro), da série PCNL.
 
-![Mapa exemplo: Mudança das luzes noturnas em Minas Gerais](luzes-mudanca.png)
+![Mapa exemplo: Mudança das luzes noturnas em Brasil](luzes-mudanca.png)
 
-*Mapa exemplo: Minas Gerais, feito com o plugin.*
+*Mapa exemplo: Brasil, com o dado do plugin e a folha feita à parte no RustGIS.*
 
 | | |
 |---|---|

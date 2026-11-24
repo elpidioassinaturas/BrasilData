@@ -4,9 +4,9 @@
 
 A cobertura da terra do ESA WorldCover a 10 m: onze classes num mapa mundial, feito com imagens do Sentinel-1 e do Sentinel-2 por um consórcio liderado pela VITO.
 
-![Mapa exemplo: Cobertura da terra a 10 m (ESA WorldCover) em Viçosa (MG)](worldcover.png)
+![Mapa exemplo: Cobertura da terra a 10 m (ESA WorldCover) em Manaus (AM)](worldcover.png)
 
-*Mapa exemplo: Viçosa (MG), feito com o plugin.*
+*Mapa exemplo: Manaus (AM), com o dado do plugin e a folha feita à parte no RustGIS.*
 
 | | |
 |---|---|

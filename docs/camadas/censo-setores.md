@@ -4,9 +4,9 @@
 
 Os setores censitários de 2022 com pessoas e domicílios: a menor unidade do Censo Demográfico.
 
-![Mapa exemplo: Setores censitários (IBGE) em Viçosa (MG)](censo-setores.png)
+![Mapa exemplo: Setores censitários (IBGE) em Belo Horizonte (MG)](censo-setores.png)
 
-*Mapa exemplo: Viçosa (MG), feito com o plugin.*
+*Mapa exemplo: Belo Horizonte (MG), com o dado do plugin e a folha feita à parte no RustGIS.*
 
 | | |
 |---|---|

@@ -4,9 +4,9 @@
 
 As ruas e estradas do OpenStreetMap, pela classe da via (o highway do OSM): autoestradas, vias principais, secundárias e terciárias, ruas, estradas de terra e trilhas.
 
-![Mapa exemplo: Ruas e estradas (OpenStreetMap) em Viçosa (MG)](osm-vias.png)
+![Mapa exemplo: Ruas e estradas (OpenStreetMap) em Belo Horizonte (MG)](osm-vias.png)
 
-*Mapa exemplo: Viçosa (MG), feito com o plugin.*
+*Mapa exemplo: Belo Horizonte (MG), com o dado do plugin e a folha feita à parte no RustGIS.*
 
 | | |
 |---|---|

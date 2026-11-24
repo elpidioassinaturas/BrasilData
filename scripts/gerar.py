@@ -1552,13 +1552,37 @@ AREAS_EXEMPLO = {
     "ceara": ("uf:CE", "Ceará"),
     "nordeste": ("reg:2", "Região Nordeste"),
     "barreiras": ("micro:29001", "microrregião de Barreiras (BA)"),
-    # um retângulo, que não é um nó do painel (só nas folhas feitas à parte)
+    # retângulos, que não são nós do painel (só nas folhas feitas à parte)
     "mantiqueira": ("", "Serra da Mantiqueira (MG, RJ e SP)"),
+    "pocos-de-caldas": ("", "maciço de Poços de Caldas (MG e SP)"),
+    "vale-do-aco": ("", "Vale do Aço (MG)"),
     "brasil": ("br", "Brasil"),
 }
 # Os mapas exemplo com a folha feita à parte no RustGIS (o dado é o do plugin; a folha não é a do botão
 # Layout, e o scripts/mapas_exemplo.py não os refaz).
-FOLHAS_PROPRIAS = {"luzes-noturnas", "nisar-cor", "elevacao", "ana-pivos", "mapbiomas-cobertura", "vento-50m"}
+FOLHAS_PROPRIAS = {
+    "luzes-noturnas",
+    "nisar-cor",
+    "elevacao",
+    "ana-pivos",
+    "mapbiomas-cobertura",
+    "vento-50m",
+    "gem15",
+    "gedtm-relevo",
+    "mg-solos",
+    "olm-solo",
+    "forty-tipologia",
+    "worldcover",
+    "chm-altura",
+    "ctrees-biomassa",
+    "drenagem",
+    "ana-balanco",
+    "censo-setores",
+    "gba-edificacoes",
+    "osm-vias",
+    "prodes-amazonia",
+    "luzes-mudanca",
+}
 # Os comandos que não trazem camada de dados: sem ficha.
 SEM_FICHA = {"area-selecao", "area-desenho", "area-municipio", "grade", "painel", "escolher-area", "layout", "fontes", "atualizacao", "sobre", "sobre-autoria", "sobre-fontes", "sobre-contribuir", "indicadores", "amostra-aleatoria", "amostra-estratificada", "amostra-sistematica"}
 # Onde ficam as fichas no repositório.
