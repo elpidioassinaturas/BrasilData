@@ -1593,7 +1593,7 @@ AREAS_EXEMPLO = {
 }
 # Os mapas exemplo com a folha feita à parte no RustGIS (o dado é o do plugin; a folha não é a do botão
 # Layout, e o scripts/mapas_exemplo.py não os refaz).
-FOLHAS_PROPRIAS = {"luzes-noturnas", "nisar-cor", "elevacao", "ana-pivos", "mapbiomas-cobertura", "vento-50m"}
+FOLHAS_PROPRIAS = {"luzes-noturnas", "nisar-cor", "elevacao", "ana-pivos", "mapbiomas-cobertura", "vento-50m", "metano-tropomi"}
 # Os comandos que não trazem camada de dados: sem ficha.
 SEM_FICHA = {"area-selecao", "area-desenho", "area-municipio", "grade", "painel", "escolher-area", "layout", "fontes", "atualizacao", "sobre", "sobre-autoria", "sobre-fontes", "sobre-contribuir", "indicadores", "amostra-aleatoria", "amostra-estratificada", "amostra-sistematica"}
 # Onde ficam as fichas no repositório.
