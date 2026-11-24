@@ -4,9 +4,9 @@
 
 Os pivôs centrais de irrigação mapeados pela ANA e pela Embrapa em imagens de satélite.
 
-![Mapa exemplo: Pivôs centrais mapeados (ANA) em Luís Eduardo Magalhães (BA)](ana-pivos.png)
+![Mapa exemplo: Pivôs centrais mapeados (ANA) em microrregião de Barreiras (BA)](ana-pivos.png)
 
-*Mapa exemplo: Luís Eduardo Magalhães (BA), feito com o plugin.*
+*Mapa exemplo: microrregião de Barreiras (BA), com o dado do plugin e a folha feita à parte no RustGIS.*
 
 | | |
 |---|---|

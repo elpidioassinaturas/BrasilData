@@ -6,7 +6,7 @@ O uso e a cobertura da terra do MapBiomas: floresta, savana, campo, pastagem, ag
 
 ![Mapa exemplo: Uso e cobertura (MapBiomas) em Viçosa (MG)](mapbiomas-cobertura.png)
 
-*Mapa exemplo: Viçosa (MG), feito com o plugin.*
+*Mapa exemplo: Viçosa (MG), com o dado do plugin e a folha feita à parte no RustGIS.*
 
 | | |
 |---|---|

@@ -4,9 +4,9 @@
 
 O modelo digital de superfície Copernicus GLO-30: a altitude do terreno com a vegetação e as construções.
 
-![Mapa exemplo: Elevação (Copernicus GLO-30) em Viçosa (MG)](elevacao.png)
+![Mapa exemplo: Elevação (Copernicus GLO-30) em Serra da Mantiqueira (MG, RJ e SP)](elevacao.png)
 
-*Mapa exemplo: Viçosa (MG), feito com o plugin.*
+*Mapa exemplo: Serra da Mantiqueira (MG, RJ e SP), com o dado do plugin e a folha feita à parte no RustGIS.*
 
 | | |
 |---|---|

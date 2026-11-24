@@ -4,9 +4,9 @@
 
 A velocidade média do vento a 50 m de altura, da reanálise MERRA-2.
 
-![Mapa exemplo: Vento a 50 m (NASA POWER) em Minas Gerais](vento-50m.png)
+![Mapa exemplo: Vento a 50 m (NASA POWER) em Região Nordeste](vento-50m.png)
 
-*Mapa exemplo: Minas Gerais, feito com o plugin.*
+*Mapa exemplo: Região Nordeste, com o dado do plugin e a folha feita à parte no RustGIS.*
 
 | | |
 |---|---|
