@@ -5,8 +5,9 @@ Copernicus CDS tem 1°). Este script lê as órbitas de metano do ano no Microso
 (coleção `sentinel-5p-l2-netcdf`, sem login), só as variáveis necessárias e só as linhas sobre o
 Brasil (pedidos parciais HTTP, cerca de 8 s por órbita), e acumula numa grade de 0,1° (~11 km):
 
-- `methane_mixing_ratio_bias_corrected` (ppb), dos pixels com `qa_value` ≥ 0,5 (a recomendação do
-  produto), pelo centro do pixel;
+- `methane_mixing_ratio_bias_corrected` (ppb), dos pixels com `qa_value` > 0,5 (a recomendação do
+  produto), pelo centro do pixel; o arquivo guarda o `qa_value` em centésimos (0 a 100, com
+  `scale_factor` 0,01), e o h5py não aplica a escala;
 - a média de cada mês (células com 3 observações ou mais) e a do ano (10 ou mais), e quantas
   observações entraram em cada célula.
 
@@ -81,6 +82,16 @@ def orbitas_do_mes(ano: int, mes: int) -> list[str]:
     return sorted(set(urls))
 
 
+def qualidade(q, a: int, b: int) -> np.ndarray:
+    """O `qa_value` das linhas `a` a `b`, de 0 a 1: o arquivo o guarda em uint8, de 0 a 100."""
+    escala = float(np.ravel(q.attrs["scale_factor"])[0])
+    soma = float(np.ravel(q.attrs["add_offset"])[0])
+    bruto = q[0, a:b]
+    v = bruto.astype(np.float64) * escala + soma
+    vazio = q.attrs.get("_FillValue")
+    return v if vazio is None else np.where(bruto == np.ravel(vazio)[0], 0.0, v)
+
+
 def ler_orbita(url: str, token: str) -> tuple[np.ndarray, np.ndarray, np.ndarray] | None:
     fs = fsspec.filesystem("https", block_size=2**20)
     for tentativa in range(4):
@@ -95,9 +106,9 @@ def ler_orbita(url: str, token: str) -> tuple[np.ndarray, np.ndarray, np.ndarray
                     return None
                 a, b = linhas.min(), linhas.max() + 1
                 ch4 = p["methane_mixing_ratio_bias_corrected"][0, a:b]
-                qa = p["qa_value"][0, a:b]
+                qa = qualidade(p["qa_value"], a, b)
                 lat, lon = lat[a:b], lon[a:b]
-                ok = dentro[a:b] & (qa >= QA_MINIMO) & (ch4 < 1e30) & np.isfinite(ch4)
+                ok = dentro[a:b] & (qa > QA_MINIMO) & (ch4 < 1e30) & np.isfinite(ch4)
                 return lat[ok], lon[ok], ch4[ok].astype(np.float64)
         except Exception as e:
             if tentativa == 3:

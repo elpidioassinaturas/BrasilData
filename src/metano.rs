@@ -19,9 +19,12 @@ pub const MESES: [&str; 12] =
 /// O começo do nome das camadas.
 pub const PREFIXO_CAMADA: &str = "BrasilData: Metano no ar, XCH4 (Sentinel-5P";
 
-/// A faixa das cores (ppb): a coluna de metano sobre o Brasil em 2023 fica quase toda nela (do
-/// percentil 5, 1.712, ao 99, 1.881, com o meio entre 1.800 e 1.880).
-pub const FAIXA: (f64, f64) = (1790.0, 1890.0);
+/// A faixa das cores (ppb): a coluna de metano sobre o Brasil em 2023 fica quase toda nela (na média
+/// do ano, do percentil 1, 1.849, ao 99, 1.909; nos meses, de cerca de 1.830 a 1.915).
+pub const FAIXA: (f64, f64) = (1830.0, 1910.0);
+
+/// O que dizer das células vazias.
+pub const VAZIOS: &str = "As células sem cor não têm observação boa o bastante: são quase toda a Amazônia e, num mês, boa parte do país";
 
 /// A margem (graus) da janela lida em volta da área: um pouco mais que uma célula.
 pub const MARGEM: f64 = 0.15;

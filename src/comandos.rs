@@ -8011,8 +8011,9 @@ fn metano_na_area(req: &Request) -> Result<Value, String> {
         estilo_do_metano(&nome)?;
         sob_as_linhas(&nome)?;
         let texto = format!(
-            "{}: coluna média de metano (XCH4, ppb) do Sentinel-5P/TROPOMI em {periodo}, em células de 0,1° (cerca de 11 km), no Brasil inteiro; {fonte}",
-            nome.trim_start_matches(PREFIXO)
+            "{}: coluna média de metano (XCH4, ppb) do Sentinel-5P/TROPOMI em {periodo}, em células de 0,1° (cerca de 11 km), no Brasil inteiro; {fonte}. {}",
+            nome.trim_start_matches(PREFIXO),
+            metano::VAZIOS
         );
         avisar(&texto);
         return Ok(json!({"layer": nome, "report": texto}));
@@ -8040,8 +8041,9 @@ fn metano_na_area(req: &Request) -> Result<Value, String> {
     estilo_do_metano(&nome)?;
     sob_as_linhas(&nome)?;
     let texto = format!(
-        "{}: coluna média de metano (XCH4, ppb) do Sentinel-5P/TROPOMI em {periodo}, em células de 0,1° (cerca de 11 km), mascarada pelo contorno da área; {fonte}. Mede o metano no ar, não a emissão de cada lugar: o valor cai com a altitude",
-        nome.trim_start_matches(PREFIXO)
+        "{}: coluna média de metano (XCH4, ppb) do Sentinel-5P/TROPOMI em {periodo}, em células de 0,1° (cerca de 11 km), mascarada pelo contorno da área; {fonte}. Mede o metano no ar, não a emissão de cada lugar: o valor cai com a altitude. {}",
+        nome.trim_start_matches(PREFIXO),
+        metano::VAZIOS
     );
     avisar(&texto);
     Ok(json!({"layer": nome, "year": ano, "month": mes, "report": texto}))
