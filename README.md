@@ -46,6 +46,8 @@ comando e mostra embaixo o que ele fez. São eles:
 | Uso e cobertura e Sistemas de irrigação (MapBiomas) | o ano, e no uso e cobertura, se vem só a área |
 | Cobertura da terra 100 m (Copernicus) | o ano, de 2015 a 2019 |
 | Cobertura da terra a 10 m (ESA WorldCover) | o ano, 2020 ou 2021 |
+| Luzes noturnas | o ano, de 1992 a 2024 |
+| Mudança das luzes noturnas | o primeiro e o último ano |
 | Cenas hiperespectrais do EMIT (NASA) | o limite de nuvem da cena e o ano |
 | Índice de vegetação (cubo do INPE) | o satélite (Sentinel-2, Landsat, CBERS-4 WFI ou MODIS), o índice (NDVI ou EVI), o período e o resumo das datas (média, máxima, mínima ou desvio-padrão) |
 | Biomassa acima do solo por ano (CTrees) | o ano e se vem a biomassa ou o erro-padrão dela |

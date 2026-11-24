@@ -103,6 +103,11 @@ pub fn comando_da_camada(nome: &str, fonte: &str) -> Option<&'static str> {
         "anadem"
     } else if crate::metano::da_camada(nome) {
         "metano-tropomi"
+    } else if let Some(l) = crate::luzes::da_camada(nome) {
+        match l {
+            crate::luzes::Camada::Ano(_) => "luzes-noturnas",
+            crate::luzes::Camada::Mudanca(..) => "luzes-mudanca",
+        }
     } else if crate::bdc::satelite_da_camada(nome).is_some() {
         "bdc-indice"
     } else if let Some(v) = crate::jaxa::variavel_da_camada(nome) {
@@ -177,6 +182,8 @@ mod tests {
             ("BrasilData: Elevação do terreno 30 m, m (GEDTM30)", "gedtm-relevo"),
             (crate::anadem::CAMADA, "anadem"),
             ("BrasilData: Metano no ar, XCH4 (Sentinel-5P, março de 2023)", "metano-tropomi"),
+            ("BrasilData: Luzes noturnas 2024 (PCNL, DMSP e VIIRS)", "luzes-noturnas"),
+            ("BrasilData: Mudança das luzes noturnas, 2000 a 2024 (PCNL, DMSP e VIIRS)", "luzes-mudanca"),
             (irrigacao::CAMADA, "irrigacao-gmia"),
             ("BrasilData: Cobertura da terra 2021 (ESA WorldCover, 10 m)", "worldcover"),
         ];

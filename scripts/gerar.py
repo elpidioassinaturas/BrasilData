@@ -1070,6 +1070,35 @@ EM_MENUS = [
         },
     ),
     (
+        "Sociedade e economia",
+        "Economia",
+        {
+            "id": "luzes-noturnas",
+            "label": "Luzes noturnas (1992–2024)",
+            "help": "As luzes da Terra à noite vistas por satélite, num ano de 1992 a 2024, em células de 30 segundos (cerca de 900 m): a série PCNL, que corrige um pelo outro os sensores DMSP (até 2013) e VIIRS (depois). Mostram cidades, estradas e eletrificação, e servem para acompanhar o crescimento urbano e a economia de municípios e regiões. O valor é relativo, sem unidade (0: sem luz). De Li, Cao e outros (2023), CC BY 4.0: a janela da área no recorte do Brasil, posta na grade do projeto e recortada. Sem login.",
+            "icon": "raster_layer",
+            "params": "{\"ano\"?: de 1992 a 2024 (padrão: 2024), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+            "form": [
+                {"name": "ano", "label": "Ano", "kind": "number", "required": True, "default": 2024, "help": "De 1992 a 2024."},
+            ],
+        },
+    ),
+    (
+        "Sociedade e economia",
+        "Economia",
+        {
+            "id": "luzes-mudanca",
+            "label": "Mudança das luzes noturnas",
+            "help": "Quanto a luz à noite mudou entre dois anos, de 1992 a 2024: o último menos o primeiro, célula a célula, das mesmas Luzes noturnas (PCNL, 30 segundos, cerca de 900 m). Laranja: mais luz (a cidade que cresce, a eletrificação rural); roxo: menos. Entre 2013 e 2014 o sensor muda, e parte da diferença pode vir da troca (um aviso diz isso): para o mesmo sensor, fique até 2013 ou a partir de 2014. Precisa da Raster Calculator do GeoLibre, que vem com o RustGIS desde a 0.7.0.",
+            "icon": "raster_layer",
+            "params": "{\"inicio\"?: o primeiro ano, de 1992 a 2023 (padrão: 2014), \"fim\"?: o último, até 2024 (padrão: 2024), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+            "form": [
+                {"name": "inicio", "label": "Primeiro ano", "kind": "number", "required": True, "default": 2014, "help": "De 1992 a 2023. De 2014 em diante é o mesmo sensor."},
+                {"name": "fim", "label": "Último ano", "kind": "number", "required": True, "default": 2024, "help": "Depois do primeiro, até 2024."},
+            ],
+        },
+    ),
+    (
         "Tempo e clima",
         "Atmosfera",
         {

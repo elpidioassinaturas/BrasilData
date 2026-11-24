@@ -49,6 +49,7 @@ pub mod gedtm;
 pub mod gem15;
 pub mod layout;
 pub mod localidades;
+pub mod luzes;
 pub mod malhas;
 pub mod mapbiomas;
 pub mod metano;

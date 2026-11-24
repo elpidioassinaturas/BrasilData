@@ -2,7 +2,7 @@
 
 <!-- Gerado por scripts/gerar.py a partir do fontes.csv e do fichas.csv; não edite à mão. -->
 
-A ficha de cada uma das 169 camadas que os botões da aba BrasilData trazem: o que é, a fonte, o período, a resolução, as unidades, a legenda, a licença, a citação, os cuidados de uso, se funciona no app web, e um mapa exemplo feito com o plugin (o botão Layout). Os mapas exemplo são de Viçosa (MG), ou da Zona da Mata mineira para os produtos de baixa resolução; os temas que não existem lá vêm de outro município, dito em cada ficha. Os mapas saem do `scripts/mapas_exemplo.py`.
+A ficha de cada uma das 171 camadas que os botões da aba BrasilData trazem: o que é, a fonte, o período, a resolução, as unidades, a legenda, a licença, a citação, os cuidados de uso, se funciona no app web, e um mapa exemplo feito com o plugin (o botão Layout). Os mapas exemplo são de Viçosa (MG), ou da Zona da Mata mineira para os produtos de baixa resolução; os temas que não existem lá vêm de outro município, dito em cada ficha. Os mapas saem do `scripts/mapas_exemplo.py`.
 
 ## Território
 
@@ -57,6 +57,8 @@ A ficha de cada uma das 169 camadas que os botões da aba BrasilData trazem: o q
 | [Indicadores de saúde (DATASUS)](indicadores-saude.md) | Sociedade e economia › Saúde | Indicadores de saúde por município, do DATASUS: nascidos vivos e as condições do nascimento (SINASC), óbitos e as causas (SIM), mortalidade infantil e leitos (CNES), por local de residência. |
 | [Todos os indicadores](indicadores-todos.md) | Sociedade e economia | Todos os indicadores por município de uma vez: censos, Censo Agropecuário, agroecologia, Pix, crédito rural, eleições e emprego formal. |
 | [Estabelecimentos de saúde (CNES, DATASUS)](saude-estabelecimentos.md) | Sociedade e economia › Saúde | Os estabelecimentos de saúde ativos do CNES: hospitais, unidades básicas, clínicas, laboratórios... |
+| [Luzes noturnas (1992–2024)](luzes-noturnas.md) | Sociedade e economia › Economia | As luzes da Terra à noite vistas por satélite, num ano, com os sensores DMSP e VIIRS na mesma escala (série PCNL). |
+| [Mudança das luzes noturnas](luzes-mudanca.md) | Sociedade e economia › Economia | A diferença das luzes noturnas entre dois anos (o último menos o primeiro), da série PCNL. |
 
 ## Meio físico
 

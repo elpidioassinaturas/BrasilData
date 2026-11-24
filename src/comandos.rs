@@ -33,6 +33,7 @@ use crate::irrigacao;
 use crate::jaxa;
 use crate::layout;
 use crate::localidades;
+use crate::luzes;
 use crate::malhas;
 use crate::mapbiomas;
 use crate::metano;
@@ -236,6 +237,8 @@ fn executar_comando(req: Request) -> Result<Value, String> {
         "gedtm-relevo" => gedtm_na_area(&req),
         "anadem" => anadem_na_area(&req),
         "metano-tropomi" => metano_na_area(&req),
+        "luzes-noturnas" => luzes_na_area(&req),
+        "luzes-mudanca" => mudanca_das_luzes(&req),
         "bdc-indice" => bdc_indice(&req),
         "bdc-sem-nuvens" => bdc_sem_nuvens(&req),
         "jaxa-chuva" => jaxa_na_area(&req, jaxa::Variavel::Chuva),
@@ -1976,6 +1979,8 @@ fn citacoes() -> Result<(Vec<Value>, String), String> {
             lista.push(json!({"layer": n, "source": nisar::CITACAO, "license": nisar::LICENCA}));
         } else if radar::eh_do_radar(&n) {
             lista.push(json!({"layer": n, "source": radar::CITACAO, "license": radar::LICENCA}));
+        } else if let Some(l) = luzes::da_camada(&n) {
+            lista.push(json!({"layer": n, "source": luzes::citacao(l), "license": luzes::LICENCA}));
         } else if metano::da_camada(&n) {
             lista.push(json!({"layer": n, "source": metano::citacao(&n), "license": metano::LICENCA}));
         } else if sol::eh_do_sol(&n) {
@@ -7380,11 +7385,11 @@ struct LeituraGlobal<'a> {
     servidor: &'a str,
 }
 
-/// A janela da área `c` de um COG global, posta na grade `g`, dividida, recortada pela área e
-/// limpa dos valores fora da faixa, na camada `l.saida`. Devolve o nível de pirâmide lido, a
-/// célula dele em metros e a reamostragem; ou o `pending` de uma leitura que ainda vem (no
-/// desktop, o comando roda de novo quando ela chega).
-fn ler_cog_global(l: &LeituraGlobal, c: [f64; 4], g: &Grade) -> Result<Result<(i32, f64, &'static str), Value>, String> {
+/// Pede a janela da área `c` de um COG global, na camada de passagem, se ela ainda não está no mapa.
+/// Devolve o nível de pirâmide lido; ou o `pending` de uma leitura que ainda vem (no desktop, o
+/// comando roda de novo quando ela chega). Um comando que lê dois arquivos pede as duas janelas
+/// antes de mexer no mapa: depois disso, o RustGIS recusa a nova rodada.
+fn pedir_janela_global(l: &LeituraGlobal, c: [f64; 4], g: &Grade) -> Result<Result<i32, Value>, String> {
     let sem_janela = format!(
         "{} precisa de um RustGIS que leia só a janela da área de um arquivo remoto (depois da 0.5.0): o arquivo é o mundo inteiro",
         l.dado
@@ -7430,7 +7435,19 @@ fn ler_cog_global(l: &LeituraGlobal, c: [f64; 4], g: &Grade) -> Result<Result<(i
             return Err(sem_janela);
         }
     }
-    let lido = a.metros_do_nivel(k, lat);
+    Ok(Ok(k))
+}
+
+/// A janela da área `c` de um COG global, posta na grade `g`, dividida, recortada pela área e
+/// limpa dos valores fora da faixa, na camada `l.saida`. Devolve o nível de pirâmide lido, a
+/// célula dele em metros e a reamostragem; ou o `pending` de uma leitura que ainda vem.
+fn ler_cog_global(l: &LeituraGlobal, c: [f64; 4], g: &Grade) -> Result<Result<(i32, f64, &'static str), Value>, String> {
+    let k = match pedir_janela_global(l, c, g)? {
+        Ok(k) => k,
+        Err(p) => return Ok(Err(p)),
+    };
+    let (a, bruto) = (&l.arquivo, (l.janela)(k));
+    let lido = a.metros_do_nivel(k, (c[1] + c[3]) / 2.0);
     let resampling = if l.classes { forty::reamostragem(g.celula, lido) } else { cog_global::reamostragem(g.celula, lido) };
     let na_unidade = format!("{PREFIXO}OpenGeoHub na unidade");
     let na_grade = format!("{PREFIXO}OpenGeoHub na grade");
@@ -7462,6 +7479,135 @@ fn ler_cog_global(l: &LeituraGlobal, c: [f64; 4], g: &Grade) -> Result<Result<(i
 fn maiuscula(t: &str) -> String {
     let mut c = t.chars();
     c.next().map(|p| p.to_uppercase().chain(c).collect()).unwrap_or_default()
+}
+
+/// As luzes noturnas de um ano ([`luzes`]).
+fn leitura_das_luzes<'a>(ano: i64, saida: String, janela: &'a dyn Fn(i32) -> String) -> LeituraGlobal<'a> {
+    LeituraGlobal {
+        arquivo: luzes::arquivo(ano),
+        janela,
+        saida,
+        divisor: 1.0,
+        faixa: luzes::FAIXA,
+        classes: false,
+        dado: "as luzes noturnas",
+        servidor: "o GitHub, onde ficam os arquivos das luzes noturnas,",
+    }
+}
+
+/// A área e a grade das luzes noturnas.
+fn area_das_luzes(req: &Request) -> Result<([f64; 4], Grade), String> {
+    let celula = req.f64("celula");
+    if let Some(m) = celula {
+        grade::conferir_celula(m)?;
+    }
+    let (c, na_area) = retangulo()?;
+    if !na_area {
+        return Err("escolha a área primeiro (painel Área de trabalho, ou Área: seleção)".into());
+    }
+    Ok((c, grade_para(c, celula)?))
+}
+
+/// As cores da camada `nome`, com a rampa do plugin (ou a `reserva`, se o RustGIS não a aceita) na
+/// `escala`.
+fn cores_das_luzes(nome: &str, (rampa, cores): (&str, &str), reserva: &str, (a, b): (f64, f64)) -> Result<(), String> {
+    let _ = host::run("ramp.add", json!({"text": cores, "format": "gdal", "name": rampa}));
+    if host::run("raster.symbology", json!({"layer": nome, "type": "stretch", "ramp": rampa})).is_err() {
+        host::run("raster.symbology", json!({"layer": nome, "type": "stretch", "ramp": reserva}))?;
+    }
+    let _ = host::run("raster.stretch", json!({"layer": nome, "type": "custom", "min": a, "max": b}));
+    Ok(())
+}
+
+/// O texto da visão lida e da grade, para o aviso.
+fn texto_da_leitura(k: i32, lido: f64, resampling: &str, g: &Grade) -> String {
+    let visao = if k > 0 { format!(", lidas da visão de cerca de {} m do arquivo", lido.round()) } else { String::new() };
+    format!("na grade do projeto, {} ({resampling}){visao}", g.texto())
+}
+
+/// As luzes noturnas de um ano ([`luzes`]): a janela da área no COG do Brasil, posta na grade do
+/// projeto e recortada pela área.
+fn luzes_na_area(req: &Request) -> Result<Value, String> {
+    let ano = req.f64("ano").map(luzes::conferir_ano).transpose()?.unwrap_or(luzes::ULTIMO_ANO);
+    let (c, g) = area_das_luzes(req)?;
+    let janela = |k: i32| luzes::janela_nome(ano, k);
+    let l = leitura_das_luzes(ano, luzes::camada(ano), &janela);
+    let (k, lido, resampling) = match ler_cog_global(&l, c, &g)? {
+        Ok(r) => r,
+        Err(pendente) => return Ok(pendente),
+    };
+    cores_das_luzes(&l.saida, luzes::RAMPA, "Inferno", luzes::ESCALA)?;
+    let sensor = if ano < luzes::PRIMEIRO_DO_VIIRS { "sensor DMSP" } else { "sensor VIIRS, na escala da série" };
+    let texto = format!(
+        "{}: {sensor}, número relativo, sem unidade, {}{}",
+        l.saida,
+        texto_da_leitura(k, lido, resampling, &g),
+        media_na_area(&l.saida, "")
+    );
+    avisar(&texto);
+    Ok(json!({
+        "layer": l.saida, "year": ano, "level": k, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula,
+        "report": texto.trim_start_matches(PREFIXO),
+    }))
+}
+
+/// A mudança das luzes noturnas entre dois anos ([`luzes`]): o mais novo menos o mais antigo, na grade
+/// do projeto.
+fn mudanca_das_luzes(req: &Request) -> Result<Value, String> {
+    let inicio = req.f64("inicio").map(luzes::conferir_ano).transpose()?.unwrap_or(2014);
+    let fim = req.f64("fim").map(luzes::conferir_ano).transpose()?.unwrap_or(luzes::ULTIMO_ANO);
+    if inicio >= fim {
+        return Err(format!("o primeiro ano ({inicio}) vem antes do último ({fim})"));
+    }
+    let (c, g) = area_das_luzes(req)?;
+    let antes = format!("{PREFIXO}luzes antes");
+    let depois = format!("{PREFIXO}luzes depois");
+    let (ja, jb) = (|k: i32| luzes::janela_nome(inicio, k), |k: i32| luzes::janela_nome(fim, k));
+    let (la, lb) = (leitura_das_luzes(inicio, antes.clone(), &ja), leitura_das_luzes(fim, depois.clone(), &jb));
+    // As duas janelas antes de mexer no mapa.
+    let pedidos = [pedir_janela_global(&la, c, &g)?, pedir_janela_global(&lb, c, &g)?];
+    if let Some(p) = pedidos.into_iter().find_map(Result::err) {
+        return Ok(p);
+    }
+    let saida = luzes::camada_mudanca(inicio, fim);
+    remover(&[&saida])?;
+    let feito = (|| -> Result<Result<(i32, f64, &'static str), Value>, String> {
+        if let Err(p) = ler_cog_global(&la, c, &g)? {
+            return Ok(Err(p));
+        }
+        let r = ler_cog_global(&lb, c, &g)?;
+        if r.is_ok() {
+            calculadora(&format!("\"{depois}\" - \"{antes}\""), &saida).map_err(|e| {
+                if sem_nuvens::ferramenta_ausente(&e) {
+                    "a mudança das luzes precisa da ferramenta Raster Calculator do GeoLibre, que vem com o RustGIS desde a 0.7.0; atualize o RustGIS".to_string()
+                } else {
+                    e
+                }
+            })?;
+        }
+        Ok(r)
+    })();
+    remover(&[&antes, &depois])?;
+    let (k, lido, resampling) = match feito? {
+        Ok(r) => r,
+        Err(pendente) => return Ok(pendente),
+    };
+    cores_das_luzes(&saida, luzes::RAMPA_MUDANCA, "PuOr", luzes::ESCALA_MUDANCA)?;
+    let texto = format!(
+        "{saida}: {fim} menos {inicio}, número relativo, sem unidade, {}{}",
+        texto_da_leitura(k, lido, resampling, &g),
+        media_na_area(&saida, "")
+    );
+    avisar(&texto);
+    if luzes::troca_de_sensor(inicio, fim) {
+        avisar(
+            "Luzes noturnas: o período passa de 2013 para 2014, quando o sensor muda do DMSP para o VIIRS: a série os corrige um pelo outro, mas parte da diferença pode vir da troca. Para comparar anos do mesmo sensor, fique até 2013 ou a partir de 2014",
+        );
+    }
+    Ok(json!({
+        "layer": saida, "from": inicio, "to": fim, "level": k, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula,
+        "report": texto.trim_start_matches(PREFIXO),
+    }))
 }
 
 /// Uma propriedade do solo do OpenLandMap-soildb a 30 m ([`olm`]): a janela da área no COG global
