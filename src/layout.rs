@@ -31,6 +31,7 @@ const NOTA_SOL: &str =
     "Células de 1° (cerca de 110 km) do NASA POWER interpoladas para a grade: mostram a variação regional, não detalhes locais.";
 const NOTA_VENTO: &str = "Células de 0,625° × 0,5° (cerca de 55 × 65 km) da reanálise MERRA-2, interpoladas para a grade: mostram a variação regional, não o vento de cada lugar.";
 const NOTA_EMIT: &str = "Contornos das cenas da refletância hiperespectral (60 m) do EMIT, na Estação Espacial Internacional; onde elas se sobrepõem, aparece a menos nublada. A nuvem é a fração da cena inteira, não de cada lugar dela.";
+const NOTA_POWER: &str = "Células de 0,625° × 0,5° (cerca de 55 × 65 km) da reanálise MERRA-2, interpoladas para a grade: mostram a variação regional, não o valor de cada lugar.";
 const NOTA_IRRIGACAO: &str =
     "Porcentagem de cada célula de 5′ (cerca de 9 km) equipada para irrigação por volta de 2005; a área de fato irrigada pode ser menor.";
 const NOTA_AQUEDUCT: &str = "Por sub-bacia (HydroBASINS, nível 6) e unidade administrativa: a retirada anual de água para todos os usos dividida pela oferta renovável de superfície e subterrânea.";
@@ -164,6 +165,20 @@ pub fn receita(nome: &str) -> Option<Receita> {
             barra: Some(("Velocidade do vento (m/s)".into(), 6)),
             legenda: None,
             nota: Some(NOTA_VENTO),
+        });
+    }
+    if let Some((v, anomalia, periodo)) = crate::power::ler_camada(nome) {
+        let quando = match (anomalia, periodo.starts_with("média")) {
+            (true, _) => format!("{periodo}, diferença da média de 2001 a 2025"),
+            (false, true) => format!("{periodo} de 2001 a 2025"),
+            (false, false) => periodo.to_string(),
+        };
+        let (titulo, marcas) = v.barra(anomalia);
+        return Some(Receita {
+            subtitulo: format!("{}, {quando} (NASA POWER, MERRA-2)", v.nome(false)),
+            barra: Some((titulo.into(), marcas)),
+            legenda: None,
+            nota: Some(NOTA_POWER),
         });
     }
     if crate::tempo::eh_da_previsao(nome) {
@@ -657,6 +672,12 @@ mod tests {
         let r = receita(&crate::vento::camada(Some(9))).unwrap();
         assert_eq!(r.barra, Some(("Velocidade do vento (m/s)".into(), 6)));
         assert!(r.subtitulo.contains("média de setembro"));
+        let r = receita("BrasilData: Anomalia da umidade do solo nas raízes, setembro de 2024 (NASA POWER)").unwrap();
+        assert_eq!(r.subtitulo, "Umidade do solo nas raízes, setembro de 2024, diferença da média de 2001 a 2025 (NASA POWER, MERRA-2)");
+        assert_eq!(r.barra, Some(("Diferença da média (fração da saturação)".into(), 5)));
+        let r = receita("BrasilData: Evapotranspiração, média de março (NASA POWER)").unwrap();
+        assert_eq!(r.subtitulo, "Evapotranspiração, média de março de 2001 a 2025 (NASA POWER, MERRA-2)");
+        assert_eq!(r.barra, Some(("Evapotranspiração (mm por dia)".into(), 7)));
         let m = &crate::tempo::DETERMINISTICOS[0];
         let r = receita(&crate::tempo::camada_chuva(m, 5, "14/11", "18/11")).unwrap();
         assert_eq!(r.barra, Some(("Chuva (mm)".into(), 7)));

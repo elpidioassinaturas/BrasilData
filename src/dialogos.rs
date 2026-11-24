@@ -209,6 +209,8 @@ const TROCAS: &[(&str, &str, Escolhas)] = &[
     ("jaxa-temperatura", "turno", &TURNOS_JAXA),
     ("jaxa-evapotranspiracao", "estatistica", &ESTATISTICAS_BDC),
     ("jaxa-seca", "estatistica", &ESTATISTICAS_BDC),
+    ("power-umidade", "medida", &crate::power::ESCOLHAS_MEDIDAS),
+    ("power-evapotranspiracao", "medida", &crate::power::ESCOLHAS_MEDIDAS),
     ("era5-chuva", "resumo", &crate::era5::ESCOLHAS_RESUMOS),
     ("era5-temperatura", "tipo", &ESCOLHAS_TEMPERATURAS),
     ("chuva-prevista", "modelo", &ESCOLHAS_DETERMINISTICOS),
@@ -242,7 +244,7 @@ pub fn normalizar(id: &str, params: &mut Value) {
     }
     match id {
         // O mês pelo nome; a média do ano é a radiação sem mês.
-        "risco-fogo" | "sol-radiacao" | "vento-50m" => {
+        "risco-fogo" | "sol-radiacao" | "vento-50m" | "power-umidade" | "power-evapotranspiracao" => {
             let mes = p.get("mes").and_then(Value::as_str).map(str::to_string);
             if let Some(m) = mes {
                 if m == MEDIA_DO_ANO {
@@ -351,6 +353,14 @@ mod tests {
         assert_eq!(norm("emit-cenas", json!({"nuvem": "até 30%", "ano": "2024"})), json!({"nuvem": 30.0, "ano": 2024.0}));
         assert_eq!(norm("emit-cenas", json!({"nuvem": "todas as cenas", "ano": " "})), json!({"nuvem": 100.0}));
         assert_eq!(norm("emit-cenas", json!({"nuvem": 40, "ano": "dois mil"})), json!({"nuvem": 40, "ano": -1.0}));
+        assert_eq!(
+            norm("power-umidade", json!({"medida": "Anomalia de um mês ou ano", "ano": 2024, "mes": "setembro"})),
+            json!({"medida": "anomalia", "ano": 2024, "mes": 9})
+        );
+        assert_eq!(
+            norm("power-evapotranspiracao", json!({"medida": "Média de 2001 a 2025", "ano": 2025, "mes": MEDIA_DO_ANO})),
+            json!({"medida": "media", "ano": 2025})
+        );
         assert_eq!(norm("layout", json!({"perfil": "Folha A3", "estilo": "Pôster"})), json!({"perfil": "a3", "estilo": "poster"}));
         assert_eq!(norm("layout", json!({"perfil": "a2"})), json!({"perfil": "a2"}));
         assert_eq!(norm("layout", json!({"orientacao": "Paisagem (deitada)"})), json!({"orientacao": "paisagem"}));
