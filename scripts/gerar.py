@@ -101,7 +101,9 @@ CAMPOS_POWER = [
     {"name": "mes", "label": "Período", "kind": "choice", "required": True, "choices": [MEDIA_DO_ANO] + MESES, "default": MEDIA_DO_ANO, "help": "O ano inteiro ou um mês."},
 ]
 PARAMS_POWER = "{\"medida\"?: \"media\" | \"valor\" | \"anomalia\" (padrão: media; com o ano, valor), \"ano\"?: de 1981 a 2026 (no valor e na anomalia), \"mes\"?: de 1 a 12 (padrão: o ano), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}"
-FIM_POWER = " Do NASA POWER (reanálise MERRA-2, NASA), em células de 0,625° × 0,5° (cerca de 55 × 65 km), só em terra: as células em volta da área viram um raster, interpolado (bilinear) para a grade do projeto e recortado pela área; o mar não tem dado, e a faixa da costa usa as células de terra. Serve para o país, uma região ou um estado; numa área com menos de umas 10 células, um aviso diz isso. Os meses vão até setembro de 2026: depois o POWER passa do MERRA-2 para o GEOS-IT, outro modelo, que não se compara com ele. Não use a série para medir tendências: os satélites que alimentam o modelo mudaram desde 1981. Sem login. Precisa de um RustGIS com o Polígonos para raster (raster.rasterize, desde a 0.6.0)."
+# Curta de propósito: com três campos, uma ajuda (já com o resumo da ficha) de 1000 caracteres tira o
+# último campo da caixa do RustGIS 0.8.0; com 850, os três cabem.
+FIM_POWER = " Do NASA POWER (reanálise MERRA-2), só em terra: serve para o país, uma região ou um estado, e não para medir tendências. Sem login."
 # As escolhas do OpenLandMap-soildb e do GEDTM30 (as mesmas de src/dialogos.rs).
 PROPRIEDADES_OLM = ["Carbono orgânico (g/kg)", "Densidade de carbono (kg/m³)", "pH em água", "Densidade do solo (g/cm³)", "Argila (%)", "Areia (%)", "Silte (%)"]
 PROFUNDIDADES_OLM = ["0 a 30 cm", "30 a 60 cm", "60 a 100 cm"]
@@ -1337,7 +1339,7 @@ EM_MENUS = [
         {
             "id": "power-umidade",
             "label": "Umidade do solo nas raízes (NASA POWER)",
-            "help": "A umidade do solo na zona das raízes (o primeiro metro), de 0 (seco) a 1 (saturado): a média de 2001 a 2025, o valor de um mês ou ano desde 1981, ou a anomalia (o quanto ele fugiu da média do mesmo mês ou ano), que mostra onde o solo estava mais seco ou mais úmido que o normal." + FIM_POWER,
+            "help": "A umidade do primeiro metro do solo: a média, o valor de um mês ou ano, ou a anomalia (o quanto ele fugiu da média do mesmo mês ou ano)." + FIM_POWER,
             "icon": "classify",
             "params": PARAMS_POWER,
             "form": CAMPOS_POWER,
@@ -1349,7 +1351,7 @@ EM_MENUS = [
         {
             "id": "power-evapotranspiracao",
             "label": "Evapotranspiração (NASA POWER)",
-            "help": "A evapotranspiração da terra (a água que o solo e as plantas devolvem ao ar), em mm por dia: a média de 2001 a 2025, o valor de um mês ou ano desde 1981, ou a anomalia (o quanto ele fugiu da média do mesmo mês ou ano). O aviso traz também o total do mês ou do ano, em mm. Para um dado mais fino (5,5 km), só desde 2025, há a do JAXA." + FIM_POWER,
+            "help": "A evapotranspiração (a água que o solo e as plantas devolvem ao ar): a média, o valor de um mês ou ano, ou a anomalia (o quanto ele fugiu da média do mesmo mês ou ano). O aviso traz o total em mm. A do JAXA é mais fina (5,5 km), mas só desde 2025." + FIM_POWER,
             "icon": "dra",
             "params": PARAMS_POWER,
             "form": CAMPOS_POWER,
