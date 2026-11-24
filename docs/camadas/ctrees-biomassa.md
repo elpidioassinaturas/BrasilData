@@ -4,9 +4,9 @@
 
 A biomassa acima do solo a 100 m, num ano de 2000 a 2025, estimada pela CTrees com um modelo de IA (DenseNet) calibrado com biomassa de lidar aéreo e de parcelas de campo, a partir de séries do Landsat, do radar ALOS PALSAR-2 e das alturas do GEDI e do ICESat-2; ou a incerteza do mapa (o erro-padrão).
 
-![Mapa exemplo: Biomassa acima do solo por ano (CTrees, 100 m) em Viçosa (MG)](ctrees-biomassa.png)
+![Mapa exemplo: Biomassa acima do solo por ano (CTrees, 100 m) em Minas Gerais](ctrees-biomassa.png)
 
-*Mapa exemplo: Viçosa (MG), feito com o plugin.*
+*Mapa exemplo: Minas Gerais, com o dado do plugin e a folha feita à parte no RustGIS.*
 
 | | |
 |---|---|

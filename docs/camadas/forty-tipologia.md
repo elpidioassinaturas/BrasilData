@@ -4,9 +4,9 @@
 
 O tipo de floresta em 2020 a 10 m, do Forest Typology (ForTy): floresta primária, em regeneração natural, plantada, plantio florestal comercial, culturas arbóreas e agrofloresta, e outros usos, por um modelo de IA sobre imagens de satélite (Google DeepMind, WRI e IIASA).
 
-![Mapa exemplo: Tipologia florestal 2020 a 10 m (ForTy) em Viçosa (MG)](forty-tipologia.png)
+![Mapa exemplo: Tipologia florestal 2020 a 10 m (ForTy) em Vale do Aço (MG)](forty-tipologia.png)
 
-*Mapa exemplo: Viçosa (MG), feito com o plugin.*
+*Mapa exemplo: Vale do Aço (MG), com o dado do plugin e a folha feita à parte no RustGIS.*
 
 | | |
 |---|---|

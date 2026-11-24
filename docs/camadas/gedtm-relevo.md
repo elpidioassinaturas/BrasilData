@@ -6,7 +6,7 @@ O terreno global a 30 m do GEDTM30 (OpenGeoHub), feito por aprendizado de máqui
 
 ![Mapa exemplo: Relevo e derivadas (GEDTM30) em Viçosa (MG)](gedtm-relevo.png)
 
-*Mapa exemplo: Viçosa (MG), feito com o plugin.*
+*Mapa exemplo: Viçosa (MG), com o dado do plugin e a folha feita à parte no RustGIS.*
 
 | | |
 |---|---|

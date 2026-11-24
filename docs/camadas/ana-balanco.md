@@ -6,7 +6,7 @@ O balanço hídrico quantitativo por curso d'água: a demanda de água em relaç
 
 ![Mapa exemplo: Balanço hídrico quantitativo por curso d'água (ANA) em Minas Gerais](ana-balanco.png)
 
-*Mapa exemplo: Minas Gerais, feito com o plugin.*
+*Mapa exemplo: Minas Gerais, com o dado do plugin e a folha feita à parte no RustGIS.*
 
 | | |
 |---|---|

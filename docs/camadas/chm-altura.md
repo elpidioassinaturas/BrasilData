@@ -6,7 +6,7 @@ A altura das árvores a cerca de 1 m, estimada por um modelo de IA (DINOv3) sobr
 
 ![Mapa exemplo: Altura do dossel a 1 m (Meta CHMv2) em Viçosa (MG)](chm-altura.png)
 
-*Mapa exemplo: Viçosa (MG), feito com o plugin.*
+*Mapa exemplo: Viçosa (MG), com o dado do plugin e a folha feita à parte no RustGIS.*
 
 | | |
 |---|---|

@@ -6,7 +6,7 @@ O polígono de cada edificação com a altura estimada, do GlobalBuildingAtlas (
 
 ![Mapa exemplo: Edificações e alturas (GlobalBuildingAtlas) em Viçosa (MG)](gba-edificacoes.png)
 
-*Mapa exemplo: Viçosa (MG), feito com o plugin.*
+*Mapa exemplo: Viçosa (MG), com o dado do plugin e a folha feita à parte no RustGIS.*
 
 | | |
 |---|---|
