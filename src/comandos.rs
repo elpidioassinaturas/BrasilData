@@ -21,6 +21,7 @@ use crate::dialogos;
 use crate::dist;
 use crate::drenagem;
 use crate::emit;
+use crate::enderecos;
 use crate::era5;
 use crate::estilo;
 use crate::extensoes;
@@ -239,6 +240,7 @@ fn executar_comando(req: Request) -> Result<Value, String> {
         "chm-amazonia" => chm_amazonia_na_area(&req),
         "gba-edificacoes" => gba_na_area(),
         "osm-vias" => osm_vias(),
+        "enderecos" => enderecos_na_area(),
         "gdo-seca" => gdo_seca(&req),
         "forty-tipologia" => forty_na_area(&req),
         "ctrees-biomassa" => ctrees_na_area(&req),
@@ -1718,8 +1720,90 @@ fn estilo_de_vias(camada: &str, nome: &str, classes: &[rodovias::Classe], campo:
 /// (`subtype = 'road'`), com o estilo por classe, visíveis só de perto e mascarados pela área.
 fn osm_vias() -> Result<Value, String> {
     let (c, na_area) = retangulo()?;
-    // Os arquivos: o catálogo do Overture, a coleção dos segmentos e os itens dos arquivos que
-    // cruzam a área (veja `rodovias::STAC_OVERTURE`). Cada busca pode ficar pendente no app web.
+    let (versao, arquivos) = match arquivos_do_overture(
+        c,
+        rodovias::COLECAO_OSM,
+        "vias",
+        rodovias::MAX_ARQUIVOS_OSM,
+        ", ou use Rodovias e estradas (IBGE BC250)",
+    )? {
+        Ok(a) => a,
+        Err(p) => return Ok(p),
+    };
+    let camadas = match camadas_do_overture(&arquivos, rodovias::camadas_osm(arquivos.len()), rodovias::eh_do_osm)? {
+        Ok(c) => c,
+        Err(p) => return Ok(p),
+    };
+    for nome in &camadas {
+        host::run("layer.definitionQuery", json!({"layer": nome, "where": "subtype = 'road'"}))?;
+        estilo_de_vias(nome, rodovias::ESTILO_OSM, rodovias::CLASSES_OSM, "class", rodovias::filtros_osm())?;
+        host::run("layer.scaleRange", json!({"layer": nome, "min": rodovias::OSM_MAIS_LONGE}))?;
+        if na_area {
+            let _ = host::run("layer.mask", json!({"layer": nome, "mask": AREA}));
+        }
+    }
+    let texto = format!(
+        "{}: vias do OpenStreetMap pelo Overture Maps ({} arquivo(s), versão {versao}), lidas no lugar, só o que a vista mostra; {}. Aparecem de 1:150.000 para perto (de longe, use Rodovias e estradas do IBGE), e de 1:50.000 para perto também as trilhas e as vias de serviço. Os nomes das vias não vêm. © colaboradores do OpenStreetMap (ODbL)",
+        camadas[0].trim_start_matches(PREFIXO),
+        camadas.len(),
+        if na_area { "mascaradas pelo contorno da área, sem recorte" } else { "sem área, as da vista" }
+    );
+    avisar(&texto);
+    Ok(json!({"layers": camadas, "files": camadas.len(), "report": texto}))
+}
+
+/// Os endereços do CNEFE ([`enderecos`]): os pontos do tema de endereços do Overture nos arquivos que
+/// cobrem a área (ou a vista), lidos no lugar, com e sem número, visíveis só de perto, com o número
+/// como rótulo e mascarados pela área.
+fn enderecos_na_area() -> Result<Value, String> {
+    let (c, na_area) = retangulo()?;
+    let (versao, arquivos) = match arquivos_do_overture(c, enderecos::COLECAO, "endereços", enderecos::MAX_ARQUIVOS, "")? {
+        Ok(a) => a,
+        Err(p) => return Ok(p),
+    };
+    let camadas = match camadas_do_overture(&arquivos, enderecos::camadas(arquivos.len()), enderecos::eh_daqui)? {
+        Ok(c) => c,
+        Err(p) => return Ok(p),
+    };
+    for nome in &camadas {
+        // Uma camada que o usuário já estilizou fica como ele a deixou (`com_estilo`).
+        let simples = camada_no_projeto(nome)?.is_none_or(|l| l["renderer"].as_str() == Some("Single Symbol"));
+        let _ = host::run("style.remove", json!({"name": enderecos::ESTILO}));
+        host::run("style.add", json!({"text": enderecos::estilo()}))?;
+        host::run("style.apply", json!({"layer": nome, "name": enderecos::ESTILO}))?;
+        host::run("layer.scaleRange", json!({"layer": nome, "min": enderecos::MAIS_LONGE}))?;
+        host::run("labels.enable", json!({"layer": nome, "on": true}))?;
+        host::run("labels.class.update", json!({"layer": nome, "where": enderecos::rotulados()}))?;
+        host::run("labels.scaleRange", json!({"layer": nome, "min": enderecos::NUMEROS_MAIS_LONGE}))?;
+        host::run("labels.placement", json!({"layer": nome, "position": "right", "otherPositions": true}))?;
+        if na_area {
+            let _ = host::run("layer.mask", json!({"layer": nome, "mask": AREA}));
+        }
+        if simples {
+            let _ = host::run("style.remove", json!({"name": estilo::guardado(nome)}));
+        }
+    }
+    let texto = format!(
+        "{}: um ponto por endereço do Censo 2022 (IBGE), pelo Overture Maps ({} arquivo(s), versão {versao}), com a rua, o número e o CEP, lidos no lugar, só o que a vista mostra; {}. Aparecem de 1:50.000 para perto, e os números, de 1:3.000",
+        camadas[0].trim_start_matches(PREFIXO),
+        camadas.len(),
+        if na_area { "mascarados pelo contorno da área, sem recorte" } else { "sem área, os da vista" }
+    );
+    avisar(&texto);
+    Ok(json!({"layers": camadas, "files": camadas.len(), "report": texto}))
+}
+
+/// A versão do Overture e os GeoParquet da coleção `tema` que cobrem `c` (até `maximo`): do catálogo,
+/// da coleção e dos itens dos arquivos (veja `rodovias::STAC_OVERTURE`). Cada busca pode ficar
+/// pendente no app web: o `Err` de dentro. `o_que` é o que a coleção tem; `ou` completa o aviso de
+/// área grande demais.
+fn arquivos_do_overture(
+    c: [f64; 4],
+    tema: &str,
+    o_que: &str,
+    maximo: usize,
+    ou: &str,
+) -> Result<Result<(String, Vec<String>), Value>, String> {
     let passageira = |e: String| {
         if crate::falha_passageira(&e) || e.contains("timeout") {
             format!("o Overture Maps não respondeu agora: tente de novo daqui a pouco ({e})")
@@ -1729,77 +1813,101 @@ fn osm_vias() -> Result<Value, String> {
     };
     let catalogo = match buscar(&[rodovias::url_catalogo_overture()]).map_err(passageira)? {
         Ok(r) => r,
-        Err(p) => return Ok(p),
+        Err(p) => return Ok(Err(p)),
     };
     let versao =
         catalogo.first().and_then(|r| rodovias::versao_overture(&r["json"])).ok_or("o catálogo do Overture Maps não diz a versão")?;
-    let colecao = match buscar(&[rodovias::url_colecao_overture(&versao)]).map_err(passageira)? {
+    let colecao = match buscar(&[rodovias::url_colecao_overture(&versao, tema)]).map_err(passageira)? {
         Ok(r) => r,
-        Err(p) => return Ok(p),
+        Err(p) => return Ok(Err(p)),
     };
     let itens = colecao.first().map(|r| rodovias::itens_overture(&r["json"], c)).unwrap_or_default();
     if itens.is_empty() {
-        return Err("o Overture Maps não tem vias na área".into());
+        return Err(format!("o Overture Maps não tem {o_que} na área"));
     }
-    if itens.len() > rodovias::MAX_ARQUIVOS_OSM {
+    if itens.len() > maximo {
         return Err(format!(
-            "a área toca {} arquivos do Overture Maps (até {} de uma vez): escolha uma área menor, como um município ou uma microrregião, ou use Rodovias e estradas (IBGE BC250)",
-            itens.len(),
-            rodovias::MAX_ARQUIVOS_OSM
+            "a área toca {} arquivos do Overture Maps (até {maximo} de uma vez): escolha uma área menor, como um município ou uma microrregião{ou}",
+            itens.len()
         ));
     }
     let respostas = match buscar(&itens).map_err(passageira)? {
         Ok(r) => r,
-        Err(p) => return Ok(p),
+        Err(p) => return Ok(Err(p)),
     };
     let arquivos: Vec<String> = respostas.iter().filter_map(|r| rodovias::arquivo_overture(&r["json"])).collect();
     if arquivos.len() != itens.len() {
         return Err("um item do Overture Maps não diz o arquivo GeoParquet dele".into());
     }
-    let camadas = rodovias::camadas_osm(arquivos.len());
-    // As de um clique anterior com outros nomes (outra área, outro número de arquivos) saem; as
-    // que já chegaram (de um clique anterior, ou da volta do RustGIS quando um download chega)
-    // ficam, e só as que faltam são pedidas.
-    let ha = nomes()?;
-    let velhas: Vec<&str> = ha.iter().filter(|n| rodovias::eh_do_osm(n) && !camadas.contains(n)).map(String::as_str).collect();
-    remover(&velhas)?;
+    Ok(Ok((versao, arquivos)))
+}
+
+/// O fim do nome provisório da camada que vai tomar o lugar de outra de mesmo nome.
+const NOVA: &str = " (nova)";
+
+/// Os `arquivos` do Overture abertos no lugar, um por camada das `camadas` (as da família são as que
+/// `eh_daqui` reconhece): as que estão no mapa, ou o `Err(pendente)` de dentro, enquanto abrem.
+fn camadas_do_overture(
+    arquivos: &[String],
+    camadas: Vec<String>,
+    eh_daqui: fn(&str) -> bool,
+) -> Result<Result<Vec<String>, Value>, String> {
+    // As que já são de um destes arquivos (de um clique anterior, ou da volta do RustGIS quando um
+    // download chega) ficam, e só as que faltam são pedidas. As de outros arquivos (outra área, ou
+    // outra versão) só saem depois que todas chegaram: na janela, o comando que fica à espera de um
+    // download volta atrás no que fez, e a camada nova chegaria ao lado da velha, com "(2)" no nome.
+    let mut daqui = Vec::new();
+    for nome in nomes()?.into_iter().filter(|n| eh_daqui(n)) {
+        let fonte = camada_no_projeto(&nome)?.and_then(|l| l["source"].as_str().map(|s| s.split('?').next().unwrap_or(s).to_string()));
+        daqui.push((nome, fonte));
+    }
+    let do_arquivo =
+        |daqui: &[(String, Option<String>)], url: &str| daqui.iter().find(|(_, f)| f.as_deref() == Some(url)).map(|(n, _)| n.clone());
     let mut baixando = 0;
     for (url, nome) in arquivos.iter().zip(&camadas) {
-        if ha.contains(nome) {
+        if do_arquivo(&daqui, url).is_some() {
             continue;
         }
-        let r = host::run("layer.addUrl", json!({"url": url, "name": nome, "zoom": false}))?;
+        let ocupado = daqui.iter().any(|(n, _)| n == nome);
+        let provisorio = if ocupado { format!("{nome}{NOVA}") } else { nome.clone() };
+        let r = host::run("layer.addUrl", json!({"url": url, "name": provisorio, "zoom": false}))?;
         if estilo::esperando(&r) {
             baixando += 1;
+        } else {
+            daqui.push((provisorio, Some(url.clone())));
         }
     }
     if baixando > 0 {
-        avisar("Ruas e estradas (OpenStreetMap): abrindo os arquivos do Overture Maps; a camada vem quando eles chegarem");
-        return Ok(json!({"downloading": camadas[0], "parts": camadas.len()}));
+        let nome = camadas[0].trim_start_matches(PREFIXO).trim_end_matches(" (parte 1)");
+        avisar(&format!("{nome}: abrindo os arquivos do Overture Maps; a camada vem quando eles chegarem"));
+        return Ok(Err(json!({"downloading": camadas[0], "parts": camadas.len()})));
     }
+    let velhas: Vec<&str> =
+        daqui.iter().filter(|(_, f)| f.as_ref().is_none_or(|f| !arquivos.contains(f))).map(|(n, _)| n.as_str()).collect();
+    remover(&velhas)?;
+    // Os nomes por parte, na ordem dos arquivos: primeiro um provisório, porque uma camada que ficou
+    // pode ter o nome que agora é de outra.
     let presentes = nomes()?;
-    let camadas: Vec<String> = camadas.into_iter().filter(|n| presentes.contains(n)).collect();
-    if camadas.is_empty() {
+    let mut trocas = Vec::new();
+    let mut prontas = Vec::new();
+    for (url, nome) in arquivos.iter().zip(camadas) {
+        let Some(atual) = do_arquivo(&daqui, url).filter(|n| presentes.contains(n)) else { continue };
+        if atual != nome {
+            let provisorio = format!("{nome}{NOVA}");
+            if atual != provisorio {
+                host::run("layer.rename", json!({"layer": atual, "name": provisorio}))?;
+            }
+            trocas.push((provisorio, nome.clone()));
+        }
+        prontas.push(nome);
+    }
+    for (provisorio, nome) in trocas {
+        host::run("layer.rename", json!({"layer": provisorio, "name": nome}))?;
+    }
+    if prontas.is_empty() {
         return Err("o Overture Maps não devolveu camada nenhuma para a área".into());
     }
-    for nome in &camadas {
-        host::run("layer.definitionQuery", json!({"layer": nome, "where": "subtype = 'road'"}))?;
-        estilo_de_vias(nome, rodovias::ESTILO_OSM, rodovias::CLASSES_OSM, "class", rodovias::filtros_osm())?;
-        host::run("layer.scaleRange", json!({"layer": nome, "min": rodovias::OSM_MAIS_LONGE}))?;
-        if na_area {
-            let _ = host::run("layer.mask", json!({"layer": nome, "mask": AREA}));
-        }
-    }
-    let ids = &camadas;
-    let versao = format!(", versão {versao}");
-    let texto = format!(
-        "{}: vias do OpenStreetMap pelo Overture Maps ({} arquivo(s){versao}), lidas no lugar, só o que a vista mostra; {}. Aparecem de 1:150.000 para perto (de longe, use Rodovias e estradas do IBGE), e de 1:50.000 para perto também as trilhas e as vias de serviço. Os nomes das vias não vêm. © colaboradores do OpenStreetMap (ODbL)",
-        camadas[0].trim_start_matches(PREFIXO),
-        ids.len(),
-        if na_area { "mascaradas pelo contorno da área, sem recorte" } else { "sem área, as da vista" }
-    );
-    avisar(&texto);
-    Ok(json!({"layers": camadas, "files": ids.len(), "report": texto}))
+    Ok(Ok(prontas))
 }
 
 /// [`tema_proprio`], sem a explicação dos erros.
@@ -2095,6 +2203,8 @@ fn citacoes() -> Result<(Vec<Value>, String), String> {
             lista.push(json!({"layer": n, "source": chm_amazonia::CITACAO, "license": chm_amazonia::LICENCA}));
         } else if gba::eh_do_gba(&n) {
             lista.push(json!({"layer": n, "source": gba::CITACAO, "license": gba::LICENCA}));
+        } else if enderecos::eh_daqui(&n) {
+            lista.push(json!({"layer": n, "source": enderecos::CITACAO, "license": enderecos::LICENCA}));
         } else if rodovias::eh_do_osm(&n) {
             lista.push(json!({"layer": n, "source": rodovias::CITACAO_OSM, "license": rodovias::LICENCA_OSM}));
         } else if gdo::eh_do_gdo(&n) {

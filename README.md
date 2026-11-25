@@ -616,6 +616,8 @@ Fora da tabela, com a citação no comando **Fontes**:
 - **Edificações:** Zhu, X. X. et al. (2025), GlobalBuildingAtlas, Earth System Science Data 17,
   6647, pelo Source Cooperative. CC BY-NC 4.0, sem uso comercial; os polígonos do OpenStreetMap
   seguem a ODbL;
+- **Endereços:** IBGE, Censo 2022, CNEFE, processado pelo AddressForAll e pelo OpenAddresses, pelo tema
+  de endereços do [Overture Maps](https://overturemaps.org) (dados abertos do IBGE, com citação);
 - **Radar NISAR:** NISAR Geocoded Polarimetric Covariance Product, versão 1, da NASA/JPL e da ISRO,
   pelo ASF DAAC (doi:10.5067/NIL2GCOV-V1). Banda L a 20 m, nas polarizações HH e HV, com a razão e
   a composição colorida. Pede o login Earthdata, como o Sentinel-1.

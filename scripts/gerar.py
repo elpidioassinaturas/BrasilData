@@ -37,7 +37,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.72"
+VERSAO = "0.1.73"
 AUTOR = "Elpídio Filho"
 # Como o texto Sobre chama o autor (o manifesto e o README levam o nome completo).
 AUTOR_SOBRE = "Professor Elpídio"
@@ -725,6 +725,17 @@ EM_MENUS = [
             "label": "Edificações e alturas (GlobalBuildingAtlas)",
             "help": "O polígono de cada edificação com a altura estimada, do GlobalBuildingAtlas (Universidade Técnica de Munique; licença CC BY-NC 4.0, sem uso comercial): polígonos do Google, da Microsoft e do OpenStreetMap, e alturas de um modelo de IA sobre imagens PlanetScope de 2019. O RustGIS lê o arquivo do bloco de 5° no lugar, da cópia em GeoParquet do Source Cooperative, e busca só o que a vista mostra: a camada não é recortada pela área. Cores por classe de altura (campo height). A altura é menos precisa na América do Sul. Precisa de um RustGIS que leia GeoParquet no lugar (0.7.0).",
             "icon": "unique",
+            "params": "{}",
+        },
+    ),
+    (
+        "Infraestrutura",
+        "Edificações",
+        {
+            "id": "enderecos",
+            "label": "Endereços (IBGE, CNEFE 2022)",
+            "help": "Um ponto por endereço do Censo 2022, do Cadastro Nacional de Endereços para Fins Estatísticos (CNEFE, IBGE), com a rua, o número e o CEP, pelo tema de endereços do Overture Maps. Duas cores: com número e sem número. O RustGIS lê no lugar os arquivos GeoParquet que cobrem a área e busca só o que a vista mostra: a camada não é recortada, é mascarada pelo contorno da área. Aparece só de 1:50.000 para perto, e os números, de 1:3.000. Precisa de um RustGIS que leia GeoParquet no lugar (0.7.0).",
+            "icon": "point_layer",
             "params": "{}",
         },
     ),

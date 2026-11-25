@@ -27,6 +27,7 @@ pub mod datas;
 pub mod dialogos;
 pub mod dist;
 pub mod emit;
+pub mod enderecos;
 pub mod era5;
 pub mod estilo;
 pub mod extensoes;

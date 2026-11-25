@@ -240,7 +240,12 @@ pub fn filtros_osm() -> Value {
 
 /// O nome da camada do OpenStreetMap de cada um de `n` arquivos.
 pub fn camadas_osm(n: usize) -> Vec<String> {
-    if n <= 1 { vec![CAMADA_OSM.to_string()] } else { (1..=n).map(|i| format!("{CAMADA_OSM} (parte {i})")).collect() }
+    uma_por_arquivo(CAMADA_OSM, n)
+}
+
+/// O nome da camada `nome` de cada um de `n` arquivos: o próprio, ou um por parte.
+pub fn uma_por_arquivo(nome: &str, n: usize) -> Vec<String> {
+    if n <= 1 { vec![nome.to_string()] } else { (1..=n).map(|i| format!("{nome} (parte {i})")).collect() }
 }
 
 /// Se a camada `nome` é das vias do OpenStreetMap.
@@ -280,9 +285,12 @@ pub fn versao_overture(catalogo: &Value) -> Option<String> {
         .max()
 }
 
-/// A coleção dos segmentos de transporte de uma versão.
-pub fn url_colecao_overture(versao: &str) -> String {
-    format!("{STAC_OVERTURE}/{versao}/transportation/segment/collection.json")
+/// A coleção dos segmentos de transporte no catálogo do Overture.
+pub const COLECAO_OSM: &str = "transportation/segment";
+
+/// A coleção `tema` ("tema/tipo") de uma versão.
+pub fn url_colecao_overture(versao: &str, tema: &str) -> String {
+    format!("{STAC_OVERTURE}/{versao}/{tema}/collection.json")
 }
 
 /// Os itens STAC dos arquivos da coleção cujo retângulo cruza `c` (oeste, sul, leste, norte). Os
@@ -332,7 +340,7 @@ mod testes {
         let cat = json!({"links": [{"rel": "child", "href": "https://stac.overturemaps.org/2026-10-22.0/catalog.json"}, {"rel": "child", "href": "https://stac.overturemaps.org/2026-11-18.0/catalog.json"}]});
         assert_eq!(versao_overture(&cat).as_deref(), Some("2026-11-18.0"));
         assert_eq!(versao_overture(&json!({"latest": "2026-11-18.0"})).as_deref(), Some("2026-11-18.0"));
-        assert!(url_colecao_overture("2026-11-18.0").ends_with("/2026-11-18.0/transportation/segment/collection.json"));
+        assert!(url_colecao_overture("2026-11-18.0", COLECAO_OSM).ends_with("/2026-11-18.0/transportation/segment/collection.json"));
         let col = json!({
             "extent": {"spatial": {"bbox": [[-180, -90, 180, 90], [-45, -23, -42, -20], [10, 40, 12, 42]]}},
             "links": [

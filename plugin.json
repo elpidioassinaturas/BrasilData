@@ -1,7 +1,7 @@
 {
   "id": "brasildata",
   "name": "BrasilData",
-  "version": "0.1.72",
+  "version": "0.1.73",
   "description": "Dados públicos do Brasil para a área do usuário (IBGE, MMA, ICMBio, INPE, CEMADEN, ANA, ANEEL, ANP, SFB/CAR, INCRA, FUNAI, IBAMA, ANM, DNIT, Ministério da Saúde, Copernicus, NASA/ASF, FAO, WRI, Open-Meteo, CHIRPS, Google DeepMind): só o que cruza a área, recortado por ela, com a fonte e a licença de cada camada.",
   "author": "Elpídio Filho",
   "homepage": "https://github.com/elpidioassinaturas/BrasilData",
@@ -1132,6 +1132,13 @@
       "label": "Edificações e alturas (GlobalBuildingAtlas)",
       "help": "O polígono de cada edificação com a altura estimada, do GlobalBuildingAtlas (Universidade Técnica de Munique; licença CC BY-NC 4.0, sem uso comercial): polígonos do Google, da Microsoft e do OpenStreetMap, e alturas de um modelo de IA sobre imagens PlanetScope de 2019. O RustGIS lê o arquivo do bloco de 5° no lugar, da cópia em GeoParquet do Source Cooperative, e busca só o que a vista mostra: a camada não é recortada pela área. Cores por classe de altura (campo height). A altura é menos precisa na América do Sul. Precisa de um RustGIS que leia GeoParquet no lugar (0.7.0). Período: 2019 (imagens PlanetScope; 2018 onde faltou imagem sem nuvem). Resolução ou escala: o polígono de cada edificação; alturas de imagens de 3 m. Unidades: metros (campo height); var é a variância da altura. Licença: CC BY-NC 4.0 (sem uso comercial); os polígonos do OpenStreetMap, ODbL. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/gba-edificacoes.md",
       "icon": "unique",
+      "params": "{}"
+    },
+    {
+      "id": "enderecos",
+      "label": "Endereços (IBGE, CNEFE 2022)",
+      "help": "Um ponto por endereço do Censo 2022, do Cadastro Nacional de Endereços para Fins Estatísticos (CNEFE, IBGE), com a rua, o número e o CEP, pelo tema de endereços do Overture Maps. Duas cores: com número e sem número. O RustGIS lê no lugar os arquivos GeoParquet que cobrem a área e busca só o que a vista mostra: a camada não é recortada, é mascarada pelo contorno da área. Aparece só de 1:50.000 para perto, e os números, de 1:3.000. Precisa de um RustGIS que leia GeoParquet no lugar (0.7.0). Período: Censo Demográfico 2022, na versão mais recente do tema de endereços do Overture Maps (as versões saem todo mês). Resolução ou escala: um ponto por endereço (coordenada do CNEFE). Unidades: sem unidade (pontos). Licença: dados abertos do IBGE, com citação da fonte (a página de atribuição do Overture diz CC0). Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/enderecos.md",
+      "icon": "point_layer",
       "params": "{}"
     },
     {
@@ -2610,7 +2617,7 @@
     {
       "id": "sobre",
       "label": "Sobre",
-      "help": "BrasilData 0.1.72, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nAs fontes dos dados e como contribuir estão nas abas do fim do painel Área de trabalho: basta clicar nelas. Para lê-las aqui, marque a caixa e clique em Executar. A janela fica aberta até o X do canto de cima.",
+      "help": "BrasilData 0.1.73, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nAs fontes dos dados e como contribuir estão nas abas do fim do painel Área de trabalho: basta clicar nelas. Para lê-las aqui, marque a caixa e clique em Executar. A janela fica aberta até o X do canto de cima.",
       "icon": "about",
       "params": "{\"completo\"?: true para as fontes e como contribuir | \"parte\"?: \"tudo\" (padrão) | \"autoria\" | \"fontes\" | \"contribuir\"}",
       "form": [
@@ -2778,7 +2785,7 @@
         "kind": "text",
         "id": "sobre",
         "label": "Sobre o BrasilData: Autoria",
-        "text": "BrasilData 0.1.72, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData"
+        "text": "BrasilData 0.1.73, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData"
       }
     ]
   },
@@ -3214,7 +3221,8 @@
             "menu": "Edificações",
             "icon": "unique",
             "items": [
-              "gba-edificacoes"
+              "gba-edificacoes",
+              "enderecos"
             ]
           }
         ]
