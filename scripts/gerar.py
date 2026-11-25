@@ -37,7 +37,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.71"
+VERSAO = "0.1.72"
 AUTOR = "Elpídio Filho"
 # Como o texto Sobre chama o autor (o manifesto e o README levam o nome completo).
 AUTOR_SOBRE = "Professor Elpídio"
@@ -422,7 +422,7 @@ FIM = [
 # licença e o repositório são os do manifesto.
 # As fontes fora do fontes.csv, depois dos órgãos das camadas vetoriais.
 OUTRAS_FONTES = [
-    "Copernicus DEM GLO-30 (DLR e Airbus, pelo espelho da OpenTopography)",
+    "Copernicus DEM GLO-30 (DLR e Airbus, pelo Planetary Computer)",
     "Banco Central (Pix e crédito rural)",
     "TSE",
     "Novo CAGED (IPEA Data)",
@@ -1468,7 +1468,7 @@ EM_MENUS = [
         {
             "id": "elevacao",
             "label": "Elevação (Copernicus GLO-30)",
-            "help": "Copernicus GLO-30 recortado pela área e posto na grade do projeto (Grade do projeto, no grupo Área). Sem grade, o primeiro clique cria a padrão: células de 30 m no UTM SIRGAS 2000 do fuso da área, ou no Albers do IBGE quando a área passa de um fuso.",
+            "help": "Copernicus GLO-30 recortado pela área e posto na grade do projeto (Grade do projeto, no grupo Área). Só a área, lida de cada tile de 1° que ela toca (até 250 por clique: um estado), sem login. Sem grade, o primeiro clique cria a padrão da área. No app web, que ainda não lê só a área, tiles inteiros (até 4).",
             "icon": "relief",
             "params": "{\"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30); com grade, só o da grade é aceito}",
         },

@@ -1,5 +1,7 @@
 //! Os comandos do plugin: o que fala com o RustGIS.
 
+use std::collections::HashMap;
+
 use rustgis_plugin::{Request, Value, geojson, host, json};
 
 use crate::amostragem::{self, Candidato, Sorteio};
@@ -12,6 +14,7 @@ use crate::chm;
 use crate::chm_amazonia;
 use crate::clms;
 use crate::cog_global;
+use crate::copdem;
 use crate::ctrees;
 use crate::datas::{self, Data};
 use crate::dialogos;
@@ -57,9 +60,7 @@ use crate::worldcover;
 use crate::zoom;
 // A Chuva agora (PARDIG) fica em comandos/agora.rs.
 mod agora;
-use crate::{
-    AREA, PREFIXO, TEMAS, Tema, falha_passageira, pedido_de_feicoes, tema_da_camada, tile_inexistente, tiles, tiles_que_nao_vieram,
-};
+use crate::{AREA, PREFIXO, TEMAS, Tema, falha_passageira, pedido_de_feicoes, tema_da_camada, tile_inexistente, tiles_que_nao_vieram};
 
 /// Os nomes das camadas dos censos, depois de [`PREFIXO`].
 const INDICADORES: &str = "Indicadores por município";
@@ -73,9 +74,6 @@ const ARVORE: &str = "limites";
 
 /// A camada em que o usuário desenha a área, até usar o desenho.
 const DESENHO: &str = "BrasilData: área (desenho)";
-
-/// Mais tiles do Copernicus que isto (cerca de 59 MB cada) é área grande demais para baixá-los inteiros.
-const MAX_TILES: usize = 4;
 
 /// Um comando do plugin, com o estilo que o usuário deu às camadas do BrasilData guardado: um tema
 /// buscado de novo (outra área, outra vista) troca a camada por uma nova, e a nova fica com a
@@ -223,7 +221,7 @@ fn executar_comando(req: Request) -> Result<Value, String> {
         "area-desenho" => area_desenho(),
         "painel" => painel(&req),
         "escolher-area" => escolher_area(&req),
-        "elevacao" => elevacao(req.f64("celula")),
+        "elevacao" => elevacao(&req),
         "sol-radiacao" => sol_na_area(&req),
         "vento-50m" => vento_na_area(&req),
         "emit-cenas" => cenas_do_emit(&req),
@@ -328,6 +326,14 @@ fn remover(alvo: &[&str]) -> Result<(), String> {
         host::run("layer.remove", json!({"layer": fora}))?;
     }
     Ok(())
+}
+
+/// Tira do mapa camadas que o comando acabou de pôr, sem ler a lista de camadas antes ([`remover`]):
+/// com as janelas de um estado no mapa, cada leitura dela gasta boa parte da cota de instruções.
+fn tirar_as_de_passagem(nomes: &[&str]) {
+    if !nomes.is_empty() {
+        let _ = host::run("layer.remove", json!({"layer": nomes}));
+    }
 }
 
 /// Tira do mapa as camadas com os nomes `antigas`, menos a que uma chamada acaba de responder
@@ -671,6 +677,22 @@ fn extensao(nome: &str) -> Result<Option<[f64; 4]>, String> {
         let e = l["extent"].as_array()?;
         Some([e.first()?.as_f64()?, e.get(1)?.as_f64()?, e.get(2)?.as_f64()?, e.get(3)?.as_f64()?])
     }))
+}
+
+/// O retângulo `[oeste, sul, leste, norte]` de cada camada com `nome` no nome, num pedido só: um por
+/// camada ([`extensao`]) gasta a cota de instruções do comando quando são muitas.
+fn extensoes_das(nome: &str) -> Result<HashMap<String, [f64; 4]>, String> {
+    let info = host::run("info.project", json!({"nameFilter": nome}))?;
+    Ok(info["layers"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|l| {
+            let e = l["extent"].as_array()?;
+            let n = |i: usize| e.get(i)?.as_f64();
+            Some((l["name"].as_str()?.to_string(), [n(0)?, n(1)?, n(2)?, n(3)?]))
+        })
+        .collect())
 }
 
 /// O retângulo `[oeste, sul, leste, norte]` das feições de `fc`.
@@ -2173,27 +2195,83 @@ const FONTES: &str = "BrasilData: fontes";
 /// O nome da camada de elevação.
 const ELEVACAO: &str = "BrasilData: Elevação (Copernicus GLO-30)";
 
-/// A citação da elevação: a do Copernicus DEM, que a licença dele pede, e a da OpenTopography,
-/// de onde vêm os tiles (os termos dela pedem que seja citada junto com a fonte).
-const CITACAO_ELEVACAO: &str = "Copernicus DEM GLO-30, produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved. Tiles do espelho da OpenTopography (opentopography.org), com apoio da National Science Foundation";
+/// A citação da elevação: a do Copernicus DEM, que a licença dele pede, e de onde vêm os tiles.
+const CITACAO_ELEVACAO: &str = "Copernicus DEM GLO-30, produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved. Lido do Microsoft Planetary Computer";
 
-/// O Copernicus GLO-30 na área, na grade do projeto (sem grade, a padrão, com `celula` ou 30 m).
-fn elevacao(celula: Option<f64>) -> Result<Value, String> {
-    if let Some(m) = celula {
-        grade::conferir_celula(m)?;
+/// O erro de [`janelas_da_elevacao`] num RustGIS que não lê só a janela de um arquivo remoto.
+const ELEVACAO_SEM_JANELA: &str = "este RustGIS não lê só a janela da área de um arquivo remoto";
+
+/// O Copernicus GLO-30 na área, na grade do projeto ([`copdem`]): a janela da área em cada tile de 1°
+/// que ela toca, lida do Planetary Computer; as janelas se juntam na rede de células do arquivo, e o
+/// mosaico vai para a grade e é recortado pela área. Onde o RustGIS não lê janelas (o app web), os
+/// tiles inteiros ([`elevacao_inteira`]).
+fn elevacao(req: &Request) -> Result<Value, String> {
+    let (c, g) = area_e_grade(req)?;
+    // Antes de ler os tiles: sem a Imagens, o recorte de uma grade maior pararia no fim.
+    let celulas = grade::celulas_no_sistema(c, g.epsg, g.celula);
+    if celulas > grade::MAX_VALORES_OPERACAO && sem_imagens() {
+        return Err(format!(
+            "com células de {} a grade desta área tem cerca de {} milhões de células, e com a extensão Imagens do RustGIS desligada o recorte vai até 32 milhões: ligue a Imagens (Plugins › Extensões), ou use uma célula maior (Grade do projeto) ou uma área menor",
+            grade::texto_da_celula(g.celula),
+            (celulas / 1e6).round()
+        ));
     }
-    let (c, na_area) = retangulo()?;
-    if !na_area {
-        return Err("escolha a área primeiro (Área: seleção ou Área: município)".into());
+    let (arquivo, lat) = (copdem::arquivo(), (c[1] + c[3]) / 2.0);
+    let k = arquivo.nivel(g.celula, lat);
+    let m = copdem::margem(k, g.celula);
+    let ts = tiles_no_contorno(copdem::tiles(c, m), m)?;
+    if ts.is_empty() {
+        return Err("o Copernicus não tem dados na área".into());
     }
-    let g = grade_para(c, celula)?;
-    let urls = tiles(c);
-    if urls.len() > MAX_TILES {
-        return Err(format!("a área pede {} tiles do Copernicus (cerca de 59 MB cada); o limite desta prova é {MAX_TILES}", urls.len()));
+    let janelas = if le_janela_remota()? { janelas_da_elevacao(&ts, k) } else { Err(ELEVACAO_SEM_JANELA.into()) };
+    let lidas = match janelas {
+        Ok(Ok(l)) => l,
+        Ok(Err(pendente)) => return Ok(pendente),
+        Err(e) if e == ELEVACAO_SEM_JANELA => return elevacao_inteira(&copdem::inteiros(&ts, c), &g),
+        Err(e) => return Err(e),
+    };
+    if lidas.is_empty() {
+        return Err("o Copernicus não tem dados na área".into());
     }
-    let nome = ELEVACAO;
-    remover(&[nome])?;
-    // Os tiles já baixados, de um clique anterior: rasters no mapa com o nome do tile.
+    let lido = arquivo.metros_do_nivel(k, lat);
+    let resampling = cog_global::reamostragem(g.celula, lido);
+    remover(&[ELEVACAO])?;
+    let mut temporarias = Vec::new();
+    let feito = juntar_elevacao(&lidas, c, &g, (k, m, resampling), &mut temporarias);
+    tirar_as_de_passagem(&lidas.iter().map(|(n, _)| n.as_str()).collect::<Vec<_>>());
+    let t: Vec<&str> = temporarias.iter().map(String::as_str).collect();
+    remover(&t)?;
+    let r = feito?;
+    let texto = format!("{}: {} tile(s), {}", ELEVACAO.trim_start_matches(PREFIXO), ts.len(), texto_da_leitura(k, lido, resampling, &g));
+    avisar(&texto);
+    Ok(json!({
+        "layer": ELEVACAO, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula, "tiles": ts.len(), "level": k,
+        "width": r["width"], "height": r["height"], "corner": r["corner"], "report": texto,
+    }))
+}
+
+/// O token anônimo que lê os tiles da Elevação. `Err(pendente)` dentro do `Ok` enquanto ele não vem.
+fn token_do_copdem() -> Result<Result<String, Value>, String> {
+    let r = match buscar_varios(&[copdem::URL_DO_TOKEN.to_string()])? {
+        Ok(r) => r,
+        Err(p) => return Ok(Err(p)),
+    };
+    let token = radar_pc::token(&r[0]).ok_or("o serviço de tokens do Planetary Computer não deu um token: tente de novo daqui a pouco")?;
+    Ok(Ok(token))
+}
+
+/// A Elevação dos tiles `ts` baixados inteiros (cerca de 45 MB cada), para o app web: juntos,
+/// recortados pela área e postos na grade `g`.
+fn elevacao_inteira(ts: &[copdem::Tile], g: &Grade) -> Result<Value, String> {
+    if ts.len() > copdem::MAX_INTEIROS {
+        return Err(format!(
+            "{ELEVACAO_SEM_JANELA} (o app web ainda não lê), e a área pede {} tiles inteiros do Copernicus (cerca de 45 MB cada; o limite é {}): escolha uma área menor, ou use o RustGIS do desktop",
+            ts.len(),
+            copdem::MAX_INTEIROS
+        ));
+    }
+    remover(&[ELEVACAO])?;
+    // Os tiles já baixados: rasters no mapa com o nome do tile.
     let rasters: Vec<String> = host::layers()?
         .as_array()
         .into_iter()
@@ -2201,68 +2279,263 @@ fn elevacao(celula: Option<f64>) -> Result<Value, String> {
         .filter(|l| l["raster"].as_bool() == Some(true))
         .filter_map(|l| l["name"].as_str().map(str::to_string))
         .collect();
+    let token = match token_do_copdem()? {
+        Ok(t) => t,
+        Err(p) => return Ok(p),
+    };
     let mut partes: Vec<String> = Vec::new();
     let mut baixando = 0;
     let mut falhas: Vec<(String, String)> = Vec::new();
-    for (i, (url, aws)) in urls.iter().enumerate() {
-        let p = format!("BrasilData: tile {i}");
-        if rasters.contains(&p) {
-            partes.push(p);
+    for t in ts {
+        let nome = format!("{PREFIXO}tile {}", t.rotulo());
+        if rasters.contains(&nome) {
+            partes.push(nome);
             continue;
         }
-        let pedir = |u: &str| host::run("layer.addUrl", json!({"url": u, "name": p, "whole": true, "zoom": false}));
-        // O espelho da OpenTopography; se ele falhar onde o RustGIS espera o download (o
-        // `rustgis-cli`), o bucket da AWS. Onde não espera, a falha só se vê depois.
-        match pedir(url).or_else(|e| pedir(aws).map_err(|e2| format!("{e}; {e2}"))) {
-            // A janela do RustGIS (e o app web) não espera o download: o tile chega depois, como
-            // camada com este nome, e o próximo clique o encontra.
-            Ok(r) if r.get("pending").and_then(Value::as_bool) == Some(true) => baixando += 1,
-            Ok(_) => partes.push(p),
+        let url = t.url();
+        match host::run("layer.addUrl", json!({"url": radar_pc::assinar(&url, &token), "name": nome, "whole": true, "zoom": false})) {
+            Ok(r) if pendente(&r) => baixando += 1,
+            Ok(_) => partes.push(nome),
             // Mar: o Copernicus não tem tile ali. Um tile que existe e não veio não é mar.
-            Err(e) if tile_inexistente(&e) => host::log(&format!("sem tile em {url}: {e}")),
-            Err(e) => falhas.push((url.clone(), e)),
+            Err(e) if tile_inexistente(&e) => host::log(&format!("sem tile em {url}")),
+            Err(e) => falhas.push((t.rotulo(), e.replace(&format!("?{token}"), ""))),
         }
     }
     if baixando > 0 {
-        let tiles = if baixando == 1 { "1 tile".to_string() } else { format!("{baixando} tiles") };
         avisar(&format!(
-            "Elevação: baixando {tiles} do Copernicus (cerca de 59 MB cada). Quando aparecerem no mapa como \"BrasilData: tile\", clique em Elevação de novo"
+            "Elevação: baixando {baixando} tile(s) do Copernicus (cerca de 45 MB cada). Se a camada não vier quando eles aparecerem no mapa, clique em Elevação de novo"
         ));
-        return Ok(json!({"pending": baixando, "tiles": urls.len()}));
+        return Ok(json!({"pending": baixando, "tiles": ts.len()}));
     }
     if !falhas.is_empty() {
-        return Err(tiles_que_nao_vieram(&falhas, urls.len()));
+        return Err(tiles_que_nao_vieram(&falhas, ts.len()));
     }
     if partes.is_empty() {
         return Err("o Copernicus não tem dados na área".into());
     }
-    let mut temporarias: Vec<String> = partes.clone();
-    let mosaico = if partes.len() == 1 {
-        partes[0].clone()
+    let mut temporarias = partes.clone();
+    let mosaico = if let [um] = partes.as_slice() {
+        um.clone()
     } else {
-        let m = "BrasilData: mosaico".to_string();
+        let m = format!("{PREFIXO}mosaico");
         mosaicar(&partes, &m)?;
         temporarias.push(m.clone());
         m
     };
-    let recorte = "BrasilData: recorte".to_string();
+    let recorte = format!("{PREFIXO}recorte");
     recortar(&mosaico, AREA, &recorte)?;
     temporarias.push(recorte.clone());
-    // O Copernicus tem ~30 m: para células maiores, a média dos pixels; senão, bilinear.
-    let resampling = if g.celula > 45.0 { "average" } else { "bilinear" };
-    // O retângulo da grade como extensão e a origem padrão, [0, 0]: todo raster na grade tem as
-    // mesmas linhas e colunas.
+    let resampling = cog_global::reamostragem(g.celula, copdem::arquivo().metros_do_nivel(0, 0.0));
     let r = host::run(
         "raster.project",
-        json!({"layer": recorte, "crs": g.epsg, "cellSize": g.celula, "extent": GRADE, "resampling": resampling, "name": nome}),
+        json!({"layer": recorte, "crs": g.epsg, "cellSize": g.celula, "extent": GRADE, "resampling": resampling, "name": ELEVACAO}),
     )?;
-    let t: Vec<&str> = temporarias.iter().map(String::as_str).collect();
-    remover(&t)?;
-    avisar(&format!("{nome}: na grade do projeto, {} ({resampling})", g.texto()));
+    remover(&temporarias.iter().map(String::as_str).collect::<Vec<_>>())?;
+    let texto = format!(
+        "{}: {} tile(s) inteiros, na grade do projeto, {} ({resampling})",
+        ELEVACAO.trim_start_matches(PREFIXO),
+        ts.len(),
+        g.texto()
+    );
+    avisar(&texto);
     Ok(json!({
-        "layer": nome, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula, "tiles": urls.len(),
-        "width": r["width"], "height": r["height"], "corner": r["corner"],
+        "layer": ELEVACAO, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula, "tiles": ts.len(), "level": 0,
+        "width": r["width"], "height": r["height"], "corner": r["corner"], "report": texto,
     }))
+}
+
+/// A camada temporária dos retângulos dos tiles da Elevação. O nome não começa como o das janelas.
+const CONTORNOS_ELEVACAO: &str = "BrasilData: contornos da elevação";
+
+/// Dos tiles `ts`, os do retângulo da área, só os que o contorno toca, com a margem `m`. Quem compara é
+/// o RustGIS: ler o contorno de um estado aqui gastaria a cota de instruções. Se ele não comparar, vão
+/// todos, que só custam leituras à toa. Mais que [`copdem::MAX_TILES`] é área grande demais.
+fn tiles_no_contorno(ts: Vec<(copdem::Tile, [f64; 4])>, m: f64) -> Result<Vec<(copdem::Tile, [f64; 4])>, String> {
+    let conferir = |n: usize| {
+        if n <= copdem::MAX_TILES {
+            return Ok(());
+        }
+        Err(format!(
+            "a área toca {n} tiles de 1° do Copernicus; o limite de um clique é {}: escolha uma área menor, ou o Terreno da América do Sul (ANADEM), que é um arquivo só",
+            copdem::MAX_TILES
+        ))
+    };
+    if ts.len() < 2 {
+        return Ok(ts);
+    }
+    let selecao = host::add_layer(CONTORNOS_ELEVACAO, copdem::contornos(&ts, m)).and_then(|_| {
+        let r = host::run("gp.run", json!({"tool": "selectByLocation", "params": {"input": CONTORNOS_ELEVACAO, "select": AREA}}));
+        // Os de uma área grande demais (o Brasil) não se leem: gastariam a cota de instruções.
+        let quantos = r.as_ref().ok().and_then(|r| r["selected"].as_u64()).map_or(0, |n| n as usize);
+        let cabem = conferir(quantos);
+        let r = r.and_then(|_| if cabem.is_ok() { host::features(CONTORNOS_ELEVACAO, true) } else { Ok(Value::Null) });
+        tirar_as_de_passagem(&[CONTORNOS_ELEVACAO]);
+        r.map(|fc| (fc, cabem))
+    });
+    match selecao {
+        Ok((fc, cabem)) => {
+            cabem?;
+            let mut indices: Vec<usize> =
+                fc["features"].as_array().into_iter().flatten().filter_map(|f| Some(f["properties"]["i"].as_u64()? as usize)).collect();
+            // Na ordem de `ts`, a das linhas e colunas dos tiles.
+            indices.sort_unstable();
+            host::log(&format!("elevação: o contorno toca {} dos {} tiles do retângulo", indices.len(), ts.len()));
+            Ok(indices.into_iter().filter_map(|i| ts.get(i).copied()).collect())
+        }
+        Err(e) => {
+            host::log(&format!("elevação: todos os tiles do retângulo, sem a escolha pelo contorno ({e})"));
+            conferir(ts.len()).map(|()| ts)
+        }
+    }
+}
+
+/// Uma janela de tile que está no mapa: a camada e a parte do tile que ela tem.
+type JanelaDeTile = (String, [f64; 4]);
+
+/// As janelas dos tiles `ts` no nível `k`, as que faltam lidas agora. `Err(pendente)` dentro do `Ok`
+/// quando o app ficou esperando as leituras.
+fn janelas_da_elevacao(ts: &[(copdem::Tile, [f64; 4])], k: i32) -> Result<Result<Vec<JanelaDeTile>, Value>, String> {
+    // As janelas de um clique anterior servem se cobrem a parte (no desktop, o comando roda de novo
+    // quando cada uma chega).
+    let ha = nomes()?;
+    let onde = extensoes_das(copdem::JANELAS)?;
+    let mosaicos = mosaicos_no_mapa()?;
+    let mut lidas: Vec<JanelaDeTile> = Vec::new();
+    let mut faltam = Vec::new();
+    for (t, parte) in ts {
+        let nome = t.nome_da_janela(k);
+        if ha.contains(&nome)
+            && let Some(e) = onde.get(&nome)
+            && retangulo_cabe(*parte, *e)
+        {
+            lidas.push((nome, *parte));
+        } else {
+            faltam.push((t, *parte, nome));
+        }
+    }
+    if faltam.is_empty() {
+        return Ok(Ok(lidas));
+    }
+    let token = match token_do_copdem()? {
+        Ok(t) => t,
+        Err(p) => return Ok(Err(p)),
+    };
+    let mut lendo = 0;
+    let mut falhas: Vec<(String, String)> = Vec::new();
+    for (t, parte, nome) in faltam {
+        if lendo >= crate::FILA_DO_APP {
+            break;
+        }
+        if ha.contains(&nome) || mosaicos.contains(&nome) {
+            tirar_janela(&nome)?;
+        }
+        let url = t.url();
+        let mut p = json!({"url": radar_pc::assinar(&url, &token), "name": nome, "bbox": parte, "zoom": false});
+        if k > 0 {
+            p["cellSize"] = json!(cog_global::celula_pedida(copdem::arquivo().graus_do_nivel(k)));
+        }
+        let pedir = || host::run("layer.addUrl", p.clone());
+        // De novo, até duas vezes, se a conexão caiu (onde o RustGIS espera a leitura).
+        let de_novo = |e: String| if tile_inexistente(&e) || crate::fila_cheia(&e) { Err(e) } else { pedir() };
+        let resposta = pedir();
+        // O app web não lê janelas: pedir de novo daria o mesmo.
+        if resposta.as_ref().is_err_and(|e| copdem::sem_janela(e)) {
+            return Err(ELEVACAO_SEM_JANELA.into());
+        }
+        match resposta.or_else(de_novo).or_else(de_novo) {
+            Ok(r) if pendente(&r) => lendo += 1,
+            Ok(r) if r.get("inPlace").and_then(Value::as_bool) == Some(true) || r.get("window").is_none() => {
+                tirar_janela(&nome)?;
+                return Err(ELEVACAO_SEM_JANELA.into());
+            }
+            Ok(_) => lidas.push((nome, parte)),
+            Err(e) if crate::fila_cheia(&e) && lendo > 0 => break,
+            // Mar: o Copernicus não tem tile ali. Um tile que existe e não veio não é mar.
+            Err(e) if tile_inexistente(&e) => host::log(&format!("sem tile em {url}")),
+            Err(e) => falhas.push((t.rotulo(), e.replace(&format!("?{token}"), ""))),
+        }
+    }
+    if lendo > 0 {
+        avisar(&format!(
+            "Elevação: lendo a área em {lendo} tile(s) do Copernicus; a camada vem quando chegarem (se não vier, clique de novo)"
+        ));
+        return Ok(Err(json!({"pending": lendo, "tiles": ts.len()})));
+    }
+    if !falhas.is_empty() {
+        return Err(tiles_que_nao_vieram(&falhas, ts.len()));
+    }
+    Ok(Ok(lidas))
+}
+
+/// As janelas `lidas` juntas, na grade `g` e recortadas pela área `c`, na camada [`ELEVACAO`]: em uma
+/// faixa ou em várias ([`copdem::faixas`]). O nível lido, a margem e a reamostragem vêm em `leitura`;
+/// as camadas de passagem vão para `temporarias`, que quem chama tira.
+fn juntar_elevacao(
+    lidas: &[JanelaDeTile],
+    c: [f64; 4],
+    g: &Grade,
+    leitura: (i32, f64, &str),
+    temporarias: &mut Vec<String>,
+) -> Result<Value, String> {
+    let (k, m, resampling) = leitura;
+    let faixas = copdem::faixas(c, k, m);
+    let mut na_grade = Vec::new();
+    let mut passo = |o_que: &str, i: usize| {
+        let n = format!("{PREFIXO}Elevação {o_que} {i}");
+        temporarias.push(n.clone());
+        n
+    };
+    for (i, f) in faixas.iter().enumerate() {
+        let j = copdem::janela_da_faixa(c, *f, m);
+        let dela: Vec<&String> = lidas.iter().filter(|(_, parte)| copdem::na_faixa(*parte, j, k)).map(|(n, _)| n).collect();
+        let junta = match dela.as_slice() {
+            [] => continue,
+            [uma] => (*uma).clone(),
+            [primeira, ..] => {
+                let (base, junta) = (passo("rede", i), passo("junta", i));
+                host::run("raster.project", copdem::estender(primeira, j, k, &base))?;
+                let entradas: Vec<String> = std::iter::once(base.clone()).chain(dela.iter().skip(1).map(|n| (*n).clone())).collect();
+                juntar_na_grade(&entradas, &junta, "first")?;
+                tirar_as_de_passagem(&[&base]);
+                junta
+            }
+        };
+        let posta = passo("na grade", i);
+        host::run(
+            "raster.project",
+            json!({"layer": junta, "crs": g.epsg, "cellSize": g.celula, "extent": GRADE, "resampling": resampling, "name": posta}),
+        )?;
+        if dela.len() > 1 {
+            tirar_as_de_passagem(&[&junta]);
+        }
+        if faixas.len() == 1 {
+            na_grade.push(posta);
+            continue;
+        }
+        // A sobra da faixa, que existe para a reamostragem da divisa, sai.
+        let (corte, cortada) = (passo("divisa", i), passo("cortada", i));
+        host::add_layer(&corte, copdem::corte(c, *f))?;
+        recortar(&posta, &corte, &cortada)?;
+        tirar_as_de_passagem(&[&posta, &corte]);
+        na_grade.push(cortada);
+    }
+    let inteira = match na_grade.as_slice() {
+        [] => return Err("o Copernicus não tem dados na área".into()),
+        [uma] => uma.clone(),
+        varias => {
+            let n = passo("inteira", 0);
+            mosaicar(varias, &n)?;
+            n
+        }
+    };
+    let recorte = passo("recorte", 0);
+    recortar(&inteira, AREA, &recorte)?;
+    // O recorte da Imagens deixa só o retângulo do contorno: de volta à grade inteira, nas mesmas
+    // células, para que todo raster na grade tenha as mesmas linhas e colunas.
+    host::run(
+        "raster.project",
+        json!({"layer": recorte, "crs": g.epsg, "cellSize": g.celula, "extent": GRADE, "resampling": "nearest", "name": ELEVACAO}),
+    )
 }
 
 /// A camada temporária dos contornos dos recortes do radar.
@@ -2903,7 +3176,7 @@ fn mosaicar_com(entradas: &[String], nome: &str, stat: &str) -> Result<(), Strin
 /// sem valor fora de si): o `cube.reduce` com `stat`, que toma o que falta (NaN) como falta. O
 /// GeoLibre não serve aí: ele não toma NaN por sem-dado, e o `geolibre:mosaic` de entradas de mesma
 /// extensão sai igual à primeira (o GEM-15 de Viçosa vinha só com a faixa de uma célula, média de
-/// 639 m em vez de 717). Rasters de extensões diferentes (os tiles do Copernicus, baixados inteiros):
+/// 639 m em vez de 717). Rasters de extensões diferentes (como tiles baixados inteiros):
 /// postos antes na janela da área ([`recorte::tiles_na_janela`]), e só se isso não der (uma janela
 /// acima do limite do `cube.reduce`) o `geolibre:mosaic`, com o aviso de que ele os desloca.
 fn mosaico_sem_imagens(entradas: &[String], nome: &str, stat: &str) -> Result<(), String> {

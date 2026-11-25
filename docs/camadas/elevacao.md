@@ -11,15 +11,15 @@ O modelo digital de superfície Copernicus GLO-30: a altitude do terreno com a v
 | | |
 |---|---|
 | **Onde na aba** | Meio físico › Relevo |
-| **Fonte** | Copernicus (DLR e Airbus), pela OpenTopography. |
+| **Fonte** | Copernicus (DLR e Airbus), pelo Planetary Computer da Microsoft. |
 | **Período** | dados do TanDEM-X de 2011 a 2015 |
-| **Resolução ou escala** | 1″ (cerca de 30 m) |
+| **Resolução ou escala** | 1″ (cerca de 30 m); numa grade mais grossa, a visão reduzida do arquivo (médias de 60, 120 ou 240 m). |
 | **Unidades** | metros, no geoide EGM2008 |
 | **Legenda** | Escala contínua de cores (com relevo sombreado no layout). |
 | **Cuidados de uso** | É um modelo de superfície: em mata, a altitude é a das copas. Erros maiores em vales encaixados e áreas de sombra do radar. |
 | **Licença** | licença do Copernicus DEM: uso livre e gratuito, com esta citação. |
 | **Citação** | Copernicus DEM GLO-30, © DLR e.V. 2010-2014 e © Airbus Defence and Space GmbH 2014-2018, provided under COPERNICUS by the European Union and ESA. |
 | **App desktop** | sim |
-| **App web** | não: o servidor dos tiles não aceita pedidos do app web. |
+| **App web** | ainda não testado no web: até 4 tiles, baixados inteiros (cerca de 45 MB cada), porque o app web não lê só a janela da área. |
 
 [Todas as camadas](README.md)

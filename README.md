@@ -401,8 +401,9 @@ Algumas camadas só abrem num dos aplicativos, e a ajuda de cada botão diz quan
 
 Fora da tabela, com a citação no comando **Fontes**:
 - **Elevação:** Copernicus DEM GLO-30 (© DLR e.V. e © Airbus Defence and Space GmbH, sob o
-  programa Copernicus da União Europeia e da ESA), baixado do espelho da
-  [OpenTopography](https://opentopography.org), que abre também no app web;
+  programa Copernicus da União Europeia e da ESA), lido do
+  [Planetary Computer](https://planetarycomputer.microsoft.com/dataset/cop-dem-glo-30) da Microsoft,
+  só a janela da área de cada tile de 1°, sem login; no app web, até 4 tiles inteiros;
 - **Elevação a 15 m:** GEM-15, Near-Global Surface and Terrain Elevation Models at 15 m, v1, do
   Google Research (experimental; preprint no EarthArXiv,
   [doi:10.31223/X55N75](https://doi.org/10.31223/X55N75)), licença CC-BY 4.0, lido dos COGs públicos

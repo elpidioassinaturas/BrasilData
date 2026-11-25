@@ -6,10 +6,9 @@
 //! (`bbox`): o RustGIS lê o WFS, pagina, e põe a longitude primeiro (opengeos/RustGIS#1053,
 //! corrigido no #1071). Depois, `gp.run clip` recorta pelo polígono da área.
 //!
-//! A elevação (Copernicus GLO-30) é a da prova de conceito: os tiles de 1° que cobrem a área,
-//! baixados inteiros, juntados (`raster.mosaic`), recortados (`raster.process clip`) e postos
-//! na grade do projeto (`raster.project`, módulo [`grade`]): por padrão, o UTM SIRGAS 2000 do
-//! fuso da área, com células de 30 m.
+//! A elevação (Copernicus GLO-30, módulo [`copdem`]) vem das janelas da área nos tiles de 1° que
+//! ela toca, juntadas, postas na grade do projeto (`raster.project`, módulo [`grade`]: por padrão,
+//! o UTM SIRGAS 2000 do fuso da área, com células de 30 m) e recortadas pela área.
 
 pub mod amostragem;
 pub mod anadem;
@@ -22,6 +21,7 @@ pub mod chm;
 pub mod chm_amazonia;
 pub mod clms;
 pub mod cog_global;
+pub mod copdem;
 pub mod ctrees;
 pub mod datas;
 pub mod dialogos;
@@ -364,29 +364,8 @@ pub fn sistema(c: [f64; 4]) -> u32 {
     if fuso(c[0]) == fuso(c[2]) { 31960 + fuso((c[0] + c[2]) / 2.0) as u32 } else { 10857 }
 }
 
-/// Os tiles de 1° do Copernicus GLO-30 que cobrem `c`: o endereço no espelho da OpenTopography,
-/// que manda o cabeçalho CORS e por isso abre também no app web, e o do bucket da AWS, que não
-/// manda, para quando o primeiro falha e o RustGIS espera o download.
-pub fn tiles(c: [f64; 4]) -> Vec<(String, String)> {
-    let mut out = Vec::new();
-    // Uma borda exatamente num grau inteiro não puxa o tile vizinho.
-    let (s, n) = (c[1].floor() as i32, (c[3] - 1e-9).floor() as i32);
-    let (w, e) = (c[0].floor() as i32, (c[2] - 1e-9).floor() as i32);
-    for lat in s..=n {
-        for lon in w..=e {
-            let ns = if lat < 0 { format!("S{:02}", -lat) } else { format!("N{lat:02}") };
-            let ew = if lon < 0 { format!("W{:03}", -lon) } else { format!("E{lon:03}") };
-            let ot = format!("https://opentopography.s3.sdsc.edu/raster/COP30/COP30_hh/Copernicus_DSM_10_{ns}_00_{ew}_00_DEM.tif");
-            let id = format!("Copernicus_DSM_COG_10_{ns}_00_{ew}_00_DEM");
-            out.push((ot, format!("https://copernicus-dem-30m.s3.amazonaws.com/{id}/{id}.tif")));
-        }
-    }
-    out
-}
-
 /// Se o erro de um tile do Copernicus diz que ele não existe (o mar, que o Copernicus não tem): o
-/// 404, como o desktop ("http status: 404") e o app web ("HTTP 404") o dizem. Vale o de um dos dois
-/// servidores: no app web, o da AWS não responde nem isso (CORS).
+/// 404, como o desktop ("http status: 404") e o app web ("HTTP 404") o dizem.
 pub fn tile_inexistente(erro: &str) -> bool {
     erro.contains("http status: 404") || erro.contains("HTTP 404")
 }
@@ -396,20 +375,15 @@ pub fn tile_inexistente(erro: &str) -> bool {
 /// Sem eles, a camada sairia com um buraco, como se ali fosse mar.
 ///
 /// Args:
-///     falhas: o endereço e o erro de cada tile que não veio.
+///     falhas: o rótulo ("S21 W043") e o erro de cada tile que não veio.
 ///     total: quantos tiles a área pede.
 ///
 /// Returns:
 ///     A mensagem a mostrar.
 pub fn tiles_que_nao_vieram(falhas: &[(String, String)], total: usize) -> String {
-    let quais: Vec<String> = falhas
-        .iter()
-        .map(|(url, e)| {
-            let tile = url.rsplit('/').next().unwrap_or(url).trim_start_matches("Copernicus_DSM_10_").trim_end_matches("_DEM.tif");
-            let motivo = e.rsplit(".tif: ").next().unwrap_or(e);
-            format!("{}: {motivo}", tile.replace("_00", "").replace('_', " "))
-        })
-        .collect();
+    // O RustGIS põe o endereço na frente, sem o token (".tif[query omitted]: io: …").
+    let motivo = |e: &str| e.split_once(".tif").and_then(|(_, r)| r.split_once(": ")).map_or(e, |(_, m)| m).to_string();
+    let quais: Vec<String> = falhas.iter().map(|(tile, e)| format!("{tile}: {}", motivo(e))).collect();
     format!(
         "tiles do Copernicus que não vieram: {} de {total} ({}). A elevação sairia com um buraco: veja a conexão e clique em Elevação de novo",
         falhas.len(),
@@ -423,13 +397,14 @@ mod tests {
 
     #[test]
     fn so_o_404_e_mar() {
-        let ot = "https://opentopography.s3.sdsc.edu/raster/COP30/COP30_hh/Copernicus_DSM_10_S21_00_W043_00_DEM.tif";
-        assert!(tile_inexistente(&format!("{ot}: http status: 404; https://x.tif: http status: 404")));
-        assert!(tile_inexistente(&format!("{ot}: HTTP 404; https://x.tif: Failed to fetch")));
-        let rede = format!("{ot}: timeout: global; https://x/Copernicus_DSM_COG_10_S21_00_W043_00_DEM.tif: io: Este host não é conhecido.");
-        assert!(!tile_inexistente(&rede) && !tile_inexistente(&format!("{ot}: http status: 503")));
-        let t = tiles_que_nao_vieram(&[(ot.to_string(), rede)], 4);
+        let url = "https://x/Copernicus_DSM_COG_10_S21_00_W043_00_DEM.tif";
+        assert!(tile_inexistente(&format!("{url}: http status: 404")) && tile_inexistente(&format!("{url}: HTTP 404")));
+        let rede = format!("{url}: io: Este host não é conhecido.");
+        assert!(!tile_inexistente(&rede) && !tile_inexistente(&format!("{url}: http status: 503")));
+        let t = tiles_que_nao_vieram(&[("S21 W043".to_string(), rede)], 4);
         assert!(t.contains("não vieram: 1 de 4") && t.contains("(S21 W043: io: Este host não é conhecido.)"), "{t}");
+        let t = tiles_que_nao_vieram(&[("S06 W067".to_string(), format!("{url}[query omitted]: timeout: global"))], 9);
+        assert!(t.contains("(S06 W067: timeout: global)"), "{t}");
     }
 
     #[test]
@@ -439,17 +414,11 @@ mod tests {
     }
 
     #[test]
-    fn teresina_cai_no_fuso_23_e_em_dois_tiles() {
+    fn teresina_cai_no_fuso_23() {
         let teresina = [-42.9707, -5.5866, -42.599, -4.7863];
         assert_eq!(sistema(teresina), 31983);
-        let t = tiles(teresina);
-        assert_eq!(t.len(), 2);
-        assert!(t[0].0.contains("S06_00_W043") && t[1].0.contains("S05_00_W043"), "{t:?}");
-        assert!(t[0].0.starts_with("https://opentopography.s3.sdsc.edu/") && t[0].1.contains("copernicus-dem-30m"), "{t:?}");
         // Dois fusos: o Albers do IBGE.
         assert_eq!(sistema([-46.0, -10.0, -40.0, -3.0]), 10857);
-        // Um grau inteiro como borda não puxa o vizinho.
-        assert_eq!(tiles([-43.0, -6.0, -42.0, -5.0]).len(), 1);
     }
 
     #[test]
