@@ -61,6 +61,7 @@ NOMES = {
     "censo-setores": "BrasilData: Setores censitários 2022 (MG)",
     "cemaden-alertas": "BrasilData: Alertas vigentes (CEMADEN)",
     "osm-vias": "BrasilData: Ruas e estradas (OpenStreetMap, Overture)",
+    "solo-pontos": "BrasilData: Argila a 10 cm (SoilData)",
     **{i: "BrasilData: Indicadores por município" for i in ("censo-municipios", "censo-agro", "censo-agroecologia", "indicadores-pix", "indicadores-credito", "indicadores-tse", "indicadores-caged", "indicadores-todos")},
 }
 

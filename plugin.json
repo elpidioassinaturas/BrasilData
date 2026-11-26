@@ -1,7 +1,7 @@
 {
   "id": "brasildata",
   "name": "BrasilData",
-  "version": "0.1.75",
+  "version": "0.1.76",
   "description": "Dados públicos do Brasil para a área do usuário (IBGE, MMA, ICMBio, INPE, CEMADEN, ANA, ANEEL, ANP, SFB/CAR, INCRA, FUNAI, IBAMA, ANM, DNIT, Ministério da Saúde, Copernicus, NASA/ASF, FAO, WRI, Open-Meteo, CHIRPS, Google DeepMind): só o que cruza a área, recortado por ela, com a fonte e a licença de cada camada.",
   "author": "Elpídio Filho",
   "homepage": "https://github.com/elpidioassinaturas/BrasilData",
@@ -2495,6 +2495,48 @@
       ]
     },
     {
+      "id": "solo-pontos",
+      "label": "Pontos de solo: análises de laboratório (SoilData)",
+      "help": "As camadas de solo descritas e analisadas nos levantamentos e pesquisas publicados no SoilData, o Repositório Brasileiro de Dados do Solo (UTFPR e MapBiomas), pelo Brazilian Soil Dataset 2024 (Samuel-Rosa e Horst; 47 mil camadas de 14 mil perfis com coordenada, de 1958 a 2024): a argila, a areia, o silte, o carbono orgânico, a CTC, o pH ou a densidade do solo da camada que contém a profundidade escolhida, ou a classe do solo (a ordem do SiBCS) de cada perfil. Medidas de laboratório, não previsões, mas espalhadas de modo desigual: muitas em Rondônia e no Rio Grande do Sul, poucas em outros lugares. Cada ponto tem a licença do conjunto de origem: 40% das camadas são CC BY-NC 4.0 (sem uso comercial). Na janela, o RustGIS baixa o arquivo do Brasil (19,8 MB, uns segundos) e o comando continua sozinho quando ele chega. Período: coletas de 1958 a 2024 (mediana 1997); um ano por conjunto, quando o levantamento o diz. Resolução ou escala: pontos: um perfil ou uma amostra; a precisão da coordenada (campo coord_precisao, em metros) vai de 1 m a mais de 1 km e falta em 40% das camadas. Unidades: g/kg (argila, areia, silte e carbono orgânico), cmolc/kg (CTC), pH, g/cm³ (densidade do solo). Licença: CC BY 4.0 (o arquivo); cada ponto com a licença do conjunto de origem: CC BY 4.0 ou CC BY-NC 4.0 (sem uso comercial). Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/solo-pontos.md",
+      "icon": "point_layer",
+      "params": "{\"atributo\"?: \"argila\" (padrão) | \"areia\" | \"silte\" | \"carbono\" | \"ctc\" | \"ph\" | \"densidade\" | \"classe\", \"profundidade\"?: 5, 10 (padrão), 30, 50 ou 100 cm (a camada que contém essa profundidade; a classe não usa)}",
+      "form": [
+        {
+          "name": "atributo",
+          "label": "Atributo",
+          "kind": "choice",
+          "required": true,
+          "choices": [
+            "Argila (g/kg)",
+            "Areia (g/kg)",
+            "Silte (g/kg)",
+            "Carbono orgânico (g/kg)",
+            "CTC (cmolc/kg)",
+            "pH",
+            "Densidade do solo (g/cm³)",
+            "Classe do solo (ordem do SiBCS, um ponto por perfil)"
+          ],
+          "default": "Argila (g/kg)",
+          "help": "O que colore os pontos. A argila em classes de textura do SiBCS; o pH nas classes de reação da Embrapa; a classe do solo pela ordem do SiBCS, com os nomes antigos (Podzólico, Terra Roxa...) postos na ordem atual mais próxima."
+        },
+        {
+          "name": "profundidade",
+          "label": "Profundidade",
+          "kind": "choice",
+          "required": true,
+          "choices": [
+            "5 cm",
+            "10 cm",
+            "30 cm",
+            "50 cm",
+            "100 cm"
+          ],
+          "default": "10 cm",
+          "help": "A camada do perfil que contém essa profundidade, a partir da superfície. A classe do solo não usa."
+        }
+      ]
+    },
+    {
       "id": "amostra-aleatoria",
       "label": "Aleatória simples",
       "help": "Amostragem aleatória simples: pontos para ir a campo, sorteados dentro da área de trabalho, todos com a mesma chance, na camada BrasilData: amostragem aleatória (rótulo, método, sorteio, longitude e latitude SIRGAS 2000). O número de pontos, o sorteio e o arquivo de pontos vêm da janela do comando; num RustGIS sem janelas de plugin, do painel Área de trabalho.",
@@ -2680,7 +2722,7 @@
     {
       "id": "sobre",
       "label": "Sobre",
-      "help": "BrasilData 0.1.75, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nAs fontes dos dados e como contribuir estão nas abas do fim do painel Área de trabalho: basta clicar nelas. Para lê-las aqui, marque a caixa e clique em Executar. A janela fica aberta até o X do canto de cima.",
+      "help": "BrasilData 0.1.76, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nAs fontes dos dados e como contribuir estão nas abas do fim do painel Área de trabalho: basta clicar nelas. Para lê-las aqui, marque a caixa e clique em Executar. A janela fica aberta até o X do canto de cima.",
       "icon": "about",
       "params": "{\"completo\"?: true para as fontes e como contribuir | \"parte\"?: \"tudo\" (padrão) | \"autoria\" | \"fontes\" | \"contribuir\"}",
       "form": [
@@ -2848,7 +2890,7 @@
         "kind": "text",
         "id": "sobre",
         "label": "Sobre o BrasilData: Autoria",
-        "text": "BrasilData 0.1.75, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData"
+        "text": "BrasilData 0.1.76, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData"
       }
     ]
   },
@@ -3028,6 +3070,7 @@
               "mg-zee-erosao",
               "mg-zee-risco-erosao",
               "olm-solo",
+              "solo-pontos",
               "gdo-seca",
               "emit-cenas"
             ]

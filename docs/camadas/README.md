@@ -2,7 +2,7 @@
 
 <!-- Gerado por scripts/gerar.py a partir do fontes.csv e do fichas.csv; não edite à mão. -->
 
-A ficha de cada uma das 177 camadas que os botões da aba BrasilData trazem: o que é, a fonte, o período, a resolução, as unidades, a legenda, a licença, a citação, os cuidados de uso, se funciona no app web, e um mapa exemplo feito com o plugin (o botão Layout). Os mapas exemplo são de Viçosa (MG), ou da Zona da Mata mineira para os produtos de baixa resolução; os temas que não existem lá vêm de outro município, dito em cada ficha. Os mapas saem do `scripts/mapas_exemplo.py`.
+A ficha de cada uma das 178 camadas que os botões da aba BrasilData trazem: o que é, a fonte, o período, a resolução, as unidades, a legenda, a licença, a citação, os cuidados de uso, se funciona no app web, e um mapa exemplo feito com o plugin (o botão Layout). Os mapas exemplo são de Viçosa (MG), ou da Zona da Mata mineira para os produtos de baixa resolução; os temas que não existem lá vêm de outro município, dito em cada ficha. Os mapas saem do `scripts/mapas_exemplo.py`.
 
 ## Território
 
@@ -84,6 +84,7 @@ A ficha de cada uma das 177 camadas que os botões da aba BrasilData trazem: o q
 | [Propriedades do solo a 30 m (OpenLandMap)](olm-solo.md) | Meio físico › Solos | Uma propriedade do solo a 30 m do OpenLandMap-soildb (OpenGeoHub): carbono orgânico, densidade de carbono, pH em água, densidade do solo, argila, areia ou silte, de 0 a 30, de 30 a 60 ou de 60 a 100 cm, prevista por aprendizado de máquina espaço-temporal sobre cerca de 400 mil amostras de solo do mundo inteiro. |
 | [Relevo e derivadas (GEDTM30)](gedtm-relevo.md) | Meio físico › Relevo | O terreno global a 30 m do GEDTM30 (OpenGeoHub), feito por aprendizado de máquina com os pontos de laser do ICESat-2 e do GEDI, e as variáveis derivadas dele: elevação, declividade, índice topográfico de umidade, diferença da elevação média, rugosidade, curvaturas, índice de forma, aberturas, sombreamento, geomorfons e fator LS, algumas também nas escalas de 480 e 960 m. |
 | [Terreno da América do Sul a 30 m (ANADEM)](anadem.md) | Meio físico › Relevo | O modelo digital do terreno da América do Sul a 30 m (ANADEM), da ANA e do IPH/UFRGS: o Copernicus GLO-30 sem o viés da vegetação, removido por aprendizado de máquina calibrado para o continente. |
+| [Pontos de solo: análises de laboratório (SoilData)](solo-pontos.md) | Meio físico › Solos | As camadas de solo descritas e analisadas nos levantamentos e pesquisas publicados no SoilData, o Repositório Brasileiro de Dados do Solo: argila, areia, silte, carbono orgânico, CTC, pH e densidade do solo de cada camada, e a classe do solo de cada perfil, juntados no Brazilian Soil Dataset 2024. |
 
 ## Tempo e clima
 

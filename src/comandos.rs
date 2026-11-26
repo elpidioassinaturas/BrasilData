@@ -55,6 +55,7 @@ use crate::risco_fogo;
 use crate::rodovias;
 use crate::saude;
 use crate::sem_nuvens::{self, Caminho, Composicao, DataNaArea, Valor};
+use crate::soildata;
 use crate::sol;
 use crate::tempo;
 use crate::vento;
@@ -302,6 +303,7 @@ fn executar_comando(req: Request) -> Result<Value, String> {
         "indicadores-seeg" => indicadores(&[Fonte::Seeg]),
         "censo-setores" => censo_setores(),
         "saude-estabelecimentos" => estabelecimentos_de_saude(),
+        "solo-pontos" => pontos_de_solo(&req),
         "cemaden-chuva" => chuva_cemaden(),
         "cemaden-alertas" => alertas_cemaden(),
         id if gedi::Variavel::do_comando(id).is_some() => {
@@ -2157,6 +2159,8 @@ fn citacoes() -> Result<(Vec<Value>, String), String> {
             lista.push(json!({"layer": n, "source": mapbiomas::CITACAO_IRRIGACAO, "license": mapbiomas::LICENCA}));
         } else if n == camada_de_saude() {
             lista.push(json!({"layer": n, "source": saude::CITACAO, "license": saude::LICENCA}));
+        } else if soildata::eh_daqui(&n) {
+            lista.push(json!({"layer": n, "source": soildata::CITACAO, "license": soildata::LICENCA}));
         } else if n == cemaden::CHUVA {
             lista.push(json!({"layer": n, "source": cemaden::CITACAO, "license": cemaden::LICENCA}));
         } else if n == cemaden::ALERTAS {
@@ -4651,6 +4655,76 @@ fn estabelecimentos_de_saude() -> Result<Value, String> {
     }
     avisar(&format!("{nome}: {ficaram} de {lidos} na área ({fora}; Ministério da Saúde, pelo geobr)"));
     Ok(json!({"layer": nome, "read": lidos, "features": ficaram, "inactive": desativados, "personal": de_pessoa}))
+}
+
+/// Os pontos de solo do SoilData na área: as camadas de solo que contêm a profundidade pedida,
+/// coloridas por um atributo, ou a classe do solo de cada perfil. O RustGIS abre o arquivo do
+/// Brasil (19,8 MB), recorta e calcula; na janela, ele baixa o arquivo à parte e roda o comando de
+/// novo quando ele chega (o recorte vem então, sem outro clique).
+fn pontos_de_solo(req: &Request) -> Result<Value, String> {
+    let a = soildata::Atributo::ler(req.str("atributo"))?;
+    let d = soildata::ler_profundidade(req.str("profundidade"), req.f64("profundidade"))?;
+    let (_, na_area) = retangulo()?;
+    if !na_area {
+        return Err("escolha a área primeiro (painel Área de trabalho, ou Área: seleção)".into());
+    }
+    let nome = soildata::camada(a, d);
+    if let Some(r) = ja_no_mapa(&nome, true)? {
+        return Ok(r);
+    }
+    remover(&[&nome])?;
+    if feicoes_da_camada(soildata::BRUTO)?.is_none() {
+        let r = host::run("layer.addUrl", soildata::pedido())?;
+        if estilo::esperando(&r) {
+            avisar(&format!(
+                "Pontos de solo: baixando o arquivo do SoilData do Brasil (19,8 MB); o comando continua quando \"{}\" chegar",
+                soildata::BRUTO
+            ));
+            return Ok(json!({"pending": true}));
+        }
+    }
+    let r = host::run("gp.run", json!({"tool": "clip", "params": {"input": soildata::BRUTO, "clip": AREA}}))?;
+    let recortada = r.get("layer").cloned().ok_or("o clip não disse a camada que fez")?;
+    let temporaria = format!("{nome} (todos)");
+    host::run("layer.rename", json!({"layer": recortada, "name": temporaria}))?;
+    let na_area_toda = feicoes_da_camada(&temporaria)?.unwrap_or(0);
+    let curto = nome.trim_start_matches(PREFIXO);
+    let ficaram =
+        host::run("select.byAttributes", json!({"layer": temporaria, "where": soildata::filtro(a, d)}))?["selected"].as_u64().unwrap_or(0);
+    if ficaram == 0 {
+        remover(&[&temporaria, soildata::BRUTO])?;
+        let o_que = match a {
+            soildata::Atributo::Classe => "nenhum perfil de solo na área".to_string(),
+            _ => format!("nenhuma camada de solo com {} a {d} cm na área", minuscula_inicial(a.nome())),
+        };
+        avisar(&format!("{curto}: {o_que} ({na_area_toda} camadas de solo do SoilData na área)"));
+        return Ok(json!({"layer": null, "read": na_area_toda, "features": 0}));
+    }
+    let r = host::run("select.layerFromSelection", json!({"layer": temporaria}))?;
+    let camada = r.get("layer").cloned().ok_or("a seleção não virou camada")?;
+    host::run("layer.rename", json!({"layer": camada, "name": nome}))?;
+    remover(&[&temporaria, soildata::BRUTO])?;
+    // O RustGIS calcula os campos novos e apaga os outros: o plugin não lê os pontos.
+    for (campo, tipo, expressao) in soildata::campos(a) {
+        host::run("edit.addField", json!({"layer": nome, "name": campo, "type": tipo}))?;
+        host::run("edit.calculateField", json!({"layer": nome, "field": campo, "expression": expressao}))?;
+    }
+    let campos = host::run("layer.fields", json!({"layer": nome}))?;
+    for c in campos.as_array().into_iter().flatten().filter_map(|c| c["name"].as_str()) {
+        if !soildata::fica_o_campo(a, c) {
+            host::run("edit.deleteField", json!({"layer": nome, "field": c}))?;
+        }
+    }
+    let nc = host::run("select.byAttributes", json!({"layer": nome, "where": soildata::NAO_COMERCIAL}))?["selected"].as_u64().unwrap_or(0);
+    let _ = host::run("select.clear", json!({"layer": nome}));
+    estilo_padrao(&nome, &soildata::nome_do_estilo(a), &soildata::estilo(a));
+    let pontos = match a {
+        soildata::Atributo::Classe => format!("{ficaram} perfis"),
+        _ => format!("{ficaram} camadas de solo a {d} cm"),
+    };
+    let licenca = if nc > 0 { format!("{nc} de conjuntos CC BY-NC 4.0, sem uso comercial; ") } else { String::new() };
+    avisar(&format!("{curto}: {pontos} ({licenca}SoilData, Brazilian Soil Dataset 2024)"));
+    Ok(json!({"layer": nome, "read": na_area_toda, "features": ficaram, "nonCommercial": nc}))
 }
 
 /// Mais UFs que isto no retângulo é área grande demais para a chuva do CEMADEN: cada UF é um

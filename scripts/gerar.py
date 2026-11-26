@@ -37,7 +37,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.75"
+VERSAO = "0.1.76"
 AUTOR = "Elpídio Filho"
 # Como o texto Sobre chama o autor (o manifesto e o README levam o nome completo).
 AUTOR_SOBRE = "Professor Elpídio"
@@ -113,6 +113,8 @@ FIM_POWER = " Do NASA POWER (reanálise MERRA-2), só em terra: serve para o pa�
 # As escolhas do OpenLandMap-soildb e do GEDTM30 (as mesmas de src/dialogos.rs).
 PROPRIEDADES_OLM = ["Carbono orgânico (g/kg)", "Densidade de carbono (kg/m³)", "pH em água", "Densidade do solo (g/cm³)", "Argila (%)", "Areia (%)", "Silte (%)"]
 PROFUNDIDADES_OLM = ["0 a 30 cm", "30 a 60 cm", "60 a 100 cm"]
+ATRIBUTOS_SOLO = ["Argila (g/kg)", "Areia (g/kg)", "Silte (g/kg)", "Carbono orgânico (g/kg)", "CTC (cmolc/kg)", "pH", "Densidade do solo (g/cm³)", "Classe do solo (ordem do SiBCS, um ponto por perfil)"]
+PROFUNDIDADES_SOLO = ["5 cm", "10 cm", "30 cm", "50 cm", "100 cm"]
 PERIODOS_OLM = ["2020 a 2022", "2015 a 2020 (só carbono e pH)", "2010 a 2015 (só carbono e pH)", "2005 a 2010 (só carbono e pH)", "2000 a 2005 (só carbono e pH)"]
 VARIAVEIS_GEDTM = [
     "Elevação do terreno (m)",
@@ -1570,6 +1572,21 @@ EM_MENUS = [
                 {"name": "propriedade", "label": "Propriedade", "kind": "choice", "required": True, "choices": PROPRIEDADES_OLM, "default": PROPRIEDADES_OLM[0], "help": "A propriedade do solo, na unidade dela."},
                 {"name": "profundidade", "label": "Profundidade", "kind": "choice", "required": True, "choices": PROFUNDIDADES_OLM, "default": PROFUNDIDADES_OLM[0], "help": "A camada do solo, em cm a partir da superfície."},
                 {"name": "periodo", "label": "Período", "kind": "choice", "required": True, "choices": PERIODOS_OLM, "default": PERIODOS_OLM[0], "help": "O carbono e o pH vêm de 5 em 5 anos: compare dois períodos para ver a perda ou o ganho de carbono. A densidade do solo e a textura só têm 2020–2022."},
+            ],
+        },
+    ),
+    (
+        "Meio físico",
+        "Solos",
+        {
+            "id": "solo-pontos",
+            "label": "Pontos de solo: análises de laboratório (SoilData)",
+            "help": "As camadas de solo descritas e analisadas nos levantamentos e pesquisas publicados no SoilData, o Repositório Brasileiro de Dados do Solo (UTFPR e MapBiomas), pelo Brazilian Soil Dataset 2024 (Samuel-Rosa e Horst; 47 mil camadas de 14 mil perfis com coordenada, de 1958 a 2024): a argila, a areia, o silte, o carbono orgânico, a CTC, o pH ou a densidade do solo da camada que contém a profundidade escolhida, ou a classe do solo (a ordem do SiBCS) de cada perfil. Medidas de laboratório, não previsões, mas espalhadas de modo desigual: muitas em Rondônia e no Rio Grande do Sul, poucas em outros lugares. Cada ponto tem a licença do conjunto de origem: 40% das camadas são CC BY-NC 4.0 (sem uso comercial). Na janela, o RustGIS baixa o arquivo do Brasil (19,8 MB, uns segundos) e o comando continua sozinho quando ele chega.",
+            "icon": "point_layer",
+            "params": "{\"atributo\"?: \"argila\" (padrão) | \"areia\" | \"silte\" | \"carbono\" | \"ctc\" | \"ph\" | \"densidade\" | \"classe\", \"profundidade\"?: 5, 10 (padrão), 30, 50 ou 100 cm (a camada que contém essa profundidade; a classe não usa)}",
+            "form": [
+                {"name": "atributo", "label": "Atributo", "kind": "choice", "required": True, "choices": ATRIBUTOS_SOLO, "default": ATRIBUTOS_SOLO[0], "help": "O que colore os pontos. A argila em classes de textura do SiBCS; o pH nas classes de reação da Embrapa; a classe do solo pela ordem do SiBCS, com os nomes antigos (Podzólico, Terra Roxa...) postos na ordem atual mais próxima."},
+                {"name": "profundidade", "label": "Profundidade", "kind": "choice", "required": True, "choices": PROFUNDIDADES_SOLO, "default": PROFUNDIDADES_SOLO[1], "help": "A camada do perfil que contém essa profundidade, a partir da superfície. A classe do solo não usa."},
             ],
         },
     ),

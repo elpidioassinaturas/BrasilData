@@ -69,6 +69,7 @@ pub mod risco_fogo;
 pub mod rodovias;
 pub mod saude;
 pub mod sem_nuvens;
+pub mod soildata;
 pub mod sol;
 pub mod tempo;
 pub mod vento;

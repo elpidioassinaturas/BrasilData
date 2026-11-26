@@ -186,6 +186,21 @@ pub const NUVENS_EMIT: [(&str, &str); 4] = [("até 10%", "10"), ("até 30%", "30
 /// As escolhas do ano do WorldCover e o `ano` de cada uma.
 pub const ANOS_WORLDCOVER: [(&str, &str); 2] = [("2021 (o mais recente)", "2021"), ("2020 (algoritmo anterior)", "2020")];
 
+/// As escolhas do atributo dos pontos de solo e o `atributo` de cada uma.
+pub const ATRIBUTOS_SOLO: [(&str, &str); 8] = [
+    ("Argila (g/kg)", "argila"),
+    ("Areia (g/kg)", "areia"),
+    ("Silte (g/kg)", "silte"),
+    ("Carbono orgânico (g/kg)", "carbono"),
+    ("CTC (cmolc/kg)", "ctc"),
+    ("pH", "ph"),
+    ("Densidade do solo (g/cm³)", "densidade"),
+    ("Classe do solo (ordem do SiBCS, um ponto por perfil)", "classe"),
+];
+
+/// As escolhas da profundidade dos pontos de solo, em cm.
+pub const PROFUNDIDADES_SOLO: [(&str, &str); 5] = [("5 cm", "5"), ("10 cm", "10"), ("30 cm", "30"), ("50 cm", "50"), ("100 cm", "100")];
+
 /// As escolhas de um parâmetro e o valor de cada uma.
 type Escolhas = &'static [(&'static str, &'static str)];
 
@@ -230,6 +245,8 @@ const TROCAS: &[(&str, &str, Escolhas)] = &[
     ("metano-tropomi", "periodo", &PERIODOS_METANO),
     ("emit-cenas", "nuvem", &NUVENS_EMIT),
     ("worldcover", "ano", &ANOS_WORLDCOVER),
+    ("solo-pontos", "atributo", &ATRIBUTOS_SOLO),
+    ("solo-pontos", "profundidade", &PROFUNDIDADES_SOLO),
 ];
 
 /// O número do mês de nome `nome` (janeiro é 1).
