@@ -1,7 +1,7 @@
 {
   "id": "brasildata",
   "name": "BrasilData",
-  "version": "0.1.73",
+  "version": "0.1.74",
   "description": "Dados públicos do Brasil para a área do usuário (IBGE, MMA, ICMBio, INPE, CEMADEN, ANA, ANEEL, ANP, SFB/CAR, INCRA, FUNAI, IBAMA, ANM, DNIT, Ministério da Saúde, Copernicus, NASA/ASF, FAO, WRI, Open-Meteo, CHIRPS, Google DeepMind): só o que cruza a área, recortado por ela, com a fonte e a licença de cada camada.",
   "author": "Elpídio Filho",
   "homepage": "https://github.com/elpidioassinaturas/BrasilData",
@@ -1124,6 +1124,34 @@
           "label": "Data (dd/mm/aaaa)",
           "kind": "text",
           "help": "Vazio: a mais recente. Vale o decêndio (dias 1, 11 e 21) ou o mês que contém a data."
+        }
+      ]
+    },
+    {
+      "id": "grace-seca",
+      "label": "Seca: umidade do solo e água subterrânea (GRACE, NASA)",
+      "help": "Os indicadores semanais de seca do GRACE, da NASA: quão seca ou úmida está a zona das raízes (o primeiro metro do solo), a água subterrânea ou a superfície do solo, em percentil da distribuição de 1948 a 2012 do mesmo lugar e da mesma época (5 é mais seco que em 95% do tempo). Um modelo assimila as medidas de gravidade dos satélites GRACE e GRACE-FO. Toda segunda-feira desde 03/02/2003, em células de 0,25° (cerca de 28 km), nas cores do mapa da NASA: para o país, o estado ou a bacia, não para um município. A janela da área, lida do arquivo do mundo e mascarada pelo contorno; sem área, o mundo inteiro. Sem login; só no desktop. Período: semanal (toda segunda-feira), de 03/02/2003 à semana mais recente; faltam duas semanas (24/05/2021 e 17/07/2023). Resolução ou escala: 0,25° (cerca de 28 km). Unidades: percentil (0 a 100) da semana na distribuição de 1948 a 2012 do mesmo lugar e época. Licença: CC BY 4.0 no registro de dados abertos da AWS; o GES DISC da NASA o diz aberto e sem restrição, com a citação. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/grace-seca.md",
+      "icon": "classify",
+      "params": "{\"indicador\"?: \"raizes\" (padrão) | \"subterranea\" | \"superficie\", \"data\"?: dd/mm/aaaa ou aaaa-mm-dd (padrão: a semana mais recente)}",
+      "form": [
+        {
+          "name": "indicador",
+          "label": "Indicador",
+          "kind": "choice",
+          "required": true,
+          "choices": [
+            "Umidade na zona das raízes (1 m)",
+            "Água subterrânea",
+            "Umidade na superfície do solo"
+          ],
+          "default": "Umidade na zona das raízes (1 m)",
+          "help": "A zona das raízes fala da seca agrícola; a água subterrânea, da seca longa, nas reservas; a superfície muda em dias, com a chuva."
+        },
+        {
+          "name": "data",
+          "label": "Data (dd/mm/aaaa)",
+          "kind": "text",
+          "help": "Vazio: a semana mais recente. Numa data, vale a última segunda-feira até ela."
         }
       ]
     },
@@ -2617,7 +2645,7 @@
     {
       "id": "sobre",
       "label": "Sobre",
-      "help": "BrasilData 0.1.73, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nAs fontes dos dados e como contribuir estão nas abas do fim do painel Área de trabalho: basta clicar nelas. Para lê-las aqui, marque a caixa e clique em Executar. A janela fica aberta até o X do canto de cima.",
+      "help": "BrasilData 0.1.74, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nAs fontes dos dados e como contribuir estão nas abas do fim do painel Área de trabalho: basta clicar nelas. Para lê-las aqui, marque a caixa e clique em Executar. A janela fica aberta até o X do canto de cima.",
       "icon": "about",
       "params": "{\"completo\"?: true para as fontes e como contribuir | \"parte\"?: \"tudo\" (padrão) | \"autoria\" | \"fontes\" | \"contribuir\"}",
       "form": [
@@ -2785,7 +2813,7 @@
         "kind": "text",
         "id": "sobre",
         "label": "Sobre o BrasilData: Autoria",
-        "text": "BrasilData 0.1.73, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData"
+        "text": "BrasilData 0.1.74, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData"
       }
     ]
   },
@@ -3004,6 +3032,7 @@
             "icon": "brightness",
             "items": [
               "gdo-seca",
+              "grace-seca",
               "sol-radiacao",
               "vento-50m",
               "power-umidade",
@@ -3079,7 +3108,8 @@
               "mg-outorgas",
               "mg-uso-insignificante",
               "mapbiomas-irrigacao",
-              "irrigacao-gmia"
+              "irrigacao-gmia",
+              "grace-seca"
             ]
           }
         ]

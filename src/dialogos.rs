@@ -56,6 +56,10 @@ pub const INDICADORES_GDO: [(&str, &str); 6] = [
     ("SPI de 12 meses (CHIRPS)", "spi12"),
 ];
 
+/// As escolhas do indicador de seca do GRACE e o `indicador` de cada uma.
+pub const INDICADORES_GRACE: [(&str, &str); 3] =
+    [("Umidade na zona das raízes (1 m)", "raizes"), ("Água subterrânea", "subterranea"), ("Umidade na superfície do solo", "superficie")];
+
 /// As escolhas do estilo da folha e o `estilo` de cada uma.
 pub const ESTILOS: [(&str, &str); 6] = [
     ("Clássico", "classic"),
@@ -190,6 +194,7 @@ const TROCAS: &[(&str, &str, Escolhas)] = &[
     ("layout", "estilo", &ESTILOS),
     ("ctrees-biomassa", "camada", &CAMADAS_CTREES),
     ("gdo-seca", "indicador", &INDICADORES_GDO),
+    ("grace-seca", "indicador", &INDICADORES_GRACE),
     ("dist-situacao", "paleta", &PALETAS),
     ("radar-10m", "polarizacao", &POLARIZACOES),
     ("gem15", "modelo", &MODELOS_GEM15),

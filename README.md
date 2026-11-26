@@ -487,6 +487,12 @@ Fora da tabela, com a citação no comando **Fontes**:
   com alguns meses de atraso; o ano, só completo. Por script:
   `plugin:brasildata/power-umidade={"medida": "anomalia", "ano": 2024, "mes": 9}` e
   `plugin:brasildata/power-evapotranspiracao={"ano": 2024}`;
+- **Seca (GRACE):** NASA Goddard Space Flight Center, GRACE-DA-DM Global 3.0, distribuído pelo
+  National Drought Mitigation Center da [Universidade de Nebraska](https://nasagrace.unl.edu) (Li et
+  al. 2019, doi:10.1029/2018WR024618). O percentil semanal, desde 2003, da umidade do primeiro metro do
+  solo, da água subterrânea e da umidade da superfície, em células de 0,25°. Sem login; o servidor não
+  libera a leitura pelo navegador, e o botão funciona no desktop. Por script:
+  `plugin:brasildata/grace-seca={"indicador": "subterranea", "data": "23/11/2026"}`;
 - **Previsão do tempo:** Open-Meteo (Zippenfenig, P. 2023. Open-Meteo.com Weather API,
   doi:10.5281/zenodo.7970649; CC BY 4.0; a API gratuita é para uso não comercial), com os modelos
   IFS e AIFS e os ensembles ENS e AIFS-ENS do ECMWF (CC BY 4.0), o GFS e o GEFS da NOAA/NCEP

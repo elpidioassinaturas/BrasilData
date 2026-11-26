@@ -31,6 +31,7 @@ use crate::gdo;
 use crate::gedi;
 use crate::gedtm;
 use crate::gem15;
+use crate::grace;
 use crate::grade::{self, Escolha, GRADE, Grade};
 use crate::indicadores::{self, Fonte};
 use crate::irrigacao;
@@ -242,6 +243,7 @@ fn executar_comando(req: Request) -> Result<Value, String> {
         "osm-vias" => osm_vias(),
         "enderecos" => enderecos_na_area(),
         "gdo-seca" => gdo_seca(&req),
+        "grace-seca" => grace_na_area(&req),
         "forty-tipologia" => forty_na_area(&req),
         "ctrees-biomassa" => ctrees_na_area(&req),
         "olm-solo" => olm_solo_na_area(&req),
@@ -2169,6 +2171,8 @@ fn citacoes() -> Result<(Vec<Value>, String), String> {
             lista.push(json!({"layer": n, "source": ndvi_cdse::CITACAO, "license": ndvi_cdse::LICENCA}));
         } else if metano::da_camada(&n) {
             lista.push(json!({"layer": n, "source": metano::citacao(&n), "license": metano::LICENCA}));
+        } else if grace::da_camada(&n).is_some() {
+            lista.push(json!({"layer": n, "source": grace::CITACAO, "license": grace::LICENCA}));
         } else if sol::eh_do_sol(&n) {
             lista.push(json!({"layer": n, "source": sol::CITACAO, "license": sol::LICENCA}));
         } else if emit::eh_do_emit(&n) {
@@ -8378,6 +8382,72 @@ fn gedtm_na_area(req: &Request) -> Result<Value, String> {
     }))
 }
 
+/// Os indicadores de seca do GRACE ([`grace`]): o percentil da água nas raízes, no subsolo ou na
+/// superfície do solo, na semana pedida ou na mais recente. Numa área, a janela dela, lida do arquivo do
+/// mundo e mascarada pelo contorno; sem área, o mundo inteiro.
+fn grace_na_area(req: &Request) -> Result<Value, String> {
+    let i = match req.str("indicador") {
+        Some(t) => grace::Indicador::ler(t).ok_or(format!("indicador '{t}': use raizes, subterranea ou superficie"))?,
+        None => grace::Indicador::Raizes,
+    };
+    let pedida = req
+        .str("data")
+        .filter(|t| !t.trim().is_empty())
+        .map(|t| bdc::ler_data(t).ok_or(format!("a data '{t}' não é dd/mm/aaaa")))
+        .transpose()?;
+    let sem_resposta =
+        |e: String| format!("o servidor do GRACE (nasagrace.unl.edu) não respondeu; no app web, ele não libera a leitura ({e})");
+    let r = match buscar(&[grace::BASE.to_string()]).map_err(sem_resposta)? {
+        Ok(r) => r,
+        Err(p) => return Ok(p),
+    };
+    let d = grace::semana(grace::lista(r.first()), pedida)?;
+    let nome = grace::camada(i, d);
+    let na_area = nomes()?.iter().any(|n| n == AREA);
+    let c = if na_area { Some(retangulo()?.0) } else { None };
+    let bruto = format!("{nome} (janela)");
+    let mut pedido = json!({"url": grace::url(i, d), "name": bruto, "zoom": false});
+    if let Some(c) = c
+        && le_janela_remota()?
+    {
+        pedido["bbox"] = json!(grace::janela(c));
+    }
+    // A janela que chegou (o comando roda de novo quando ela vem) serve se cobre a área.
+    let serve = nomes()?.contains(&bruto)
+        && match c {
+            Some(c) => extensao(&bruto)?.is_some_and(|e| retangulo_cabe(c, e)),
+            None => true,
+        };
+    if !serve {
+        tirar_janela(&bruto)?;
+        let r = host::run("layer.addUrl", pedido).map_err(sem_resposta)?;
+        if pendente(&r) {
+            avisar(&format!("Seca do GRACE ({}, {}): lendo o arquivo da semana; a camada vem quando ele chegar", i.nome(), d.texto()));
+            return Ok(json!({"pending": 1}));
+        }
+    }
+    // Mascarada pelo contorno, sem recorte: o recorte guarda só as células com o centro na área, e as de
+    // 28 km deixariam uma faixa vazia na divisa.
+    remover(&[&nome])?;
+    host::run("layer.rename", json!({"layer": bruto, "name": nome}))?;
+    if na_area {
+        let _ = host::run("layer.mask", json!({"layer": nome, "mask": AREA}));
+    }
+    let _ = host::run("style.importQgis", json!({"layer": nome, "text": grace::qml()}));
+    sob_as_linhas(&nome)?;
+    let pequena = c.is_some_and(|c| (c[2] - c[0]).max(c[3] - c[1]) < grace::AREA_PEQUENA);
+    let texto = format!(
+        "{}: {} na semana de {}, em percentil (0 seco, 100 úmido) da distribuição de 1948 a 2012 do mesmo lugar e época, em células de 0,25° (cerca de 28 km), {}. Modelo da NASA que assimila o GRACE e o GRACE-FO{}",
+        nome.trim_start_matches(PREFIXO),
+        i.titulo(),
+        d.texto(),
+        if na_area { "mascarada pelo contorno da área" } else { "no mundo inteiro" },
+        if pequena { ". A área é pequena para as células: vale para o estado ou a bacia, não para um município" } else { "" }
+    );
+    avisar(&texto);
+    Ok(json!({"layer": nome, "week": d.iso(), "report": texto}))
+}
+
 /// O metano no ar ([`metano`]): a coluna média de metano do Sentinel-5P/TROPOMI do período, da
 /// grade de 0,1° do BrasilData. Numa área, só a janela dela, lida do COG e recortada pelo contorno;
 /// sem área, o Brasil inteiro, lido pela vista.
@@ -8739,6 +8809,7 @@ fn layout_do_mapa(req: &Request) -> Result<Value, String> {
         Some(v) => format!("; células do dado: {}", v.resolucao()),
         // O metano fica na grade de 0,1° do arquivo.
         None if metano::da_camada(&principal) => "; células do dado: 0,1° (cerca de 11 km)".into(),
+        None if grace::da_camada(&principal).is_some() => "; células do dado: 0,25° (cerca de 28 km)".into(),
         None => g.as_ref().map(|g| format!("; células de {}", grade::texto_da_celula(g.celula))).unwrap_or_default(),
     };
     let referencia = [

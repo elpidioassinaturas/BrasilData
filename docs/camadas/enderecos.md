@@ -6,7 +6,7 @@ Um ponto por endereço do Censo 2022 (o Cadastro Nacional de Endereços para Fin
 
 ![Mapa exemplo: Endereços (IBGE, CNEFE 2022) em Viçosa (MG)](enderecos.png)
 
-*Mapa exemplo: Viçosa (MG), feito com o plugin.*
+*Mapa exemplo: Viçosa (MG), com o dado do plugin e a folha feita à parte no RustGIS.*
 
 | | |
 |---|---|

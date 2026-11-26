@@ -2,7 +2,7 @@
 
 <!-- Gerado por scripts/gerar.py a partir do fontes.csv e do fichas.csv; não edite à mão. -->
 
-A ficha de cada uma das 175 camadas que os botões da aba BrasilData trazem: o que é, a fonte, o período, a resolução, as unidades, a legenda, a licença, a citação, os cuidados de uso, se funciona no app web, e um mapa exemplo feito com o plugin (o botão Layout). Os mapas exemplo são de Viçosa (MG), ou da Zona da Mata mineira para os produtos de baixa resolução; os temas que não existem lá vêm de outro município, dito em cada ficha. Os mapas saem do `scripts/mapas_exemplo.py`.
+A ficha de cada uma das 176 camadas que os botões da aba BrasilData trazem: o que é, a fonte, o período, a resolução, as unidades, a legenda, a licença, a citação, os cuidados de uso, se funciona no app web, e um mapa exemplo feito com o plugin (o botão Layout). Os mapas exemplo são de Viçosa (MG), ou da Zona da Mata mineira para os produtos de baixa resolução; os temas que não existem lá vêm de outro município, dito em cada ficha. Os mapas saem do `scripts/mapas_exemplo.py`.
 
 ## Território
 
@@ -89,6 +89,7 @@ A ficha de cada uma das 175 camadas que os botões da aba BrasilData trazem: o q
 
 | Camada | Onde na aba | O que é |
 |---|---|---|
+| [Seca: umidade do solo e água subterrânea (GRACE, NASA)](grace-seca.md) | Tempo e clima › Clima | Os indicadores semanais de seca do GRACE (NASA): o percentil da umidade do primeiro metro do solo, da água subterrânea ou da umidade da superfície, de um modelo que assimila as medidas de gravidade dos satélites GRACE e GRACE-FO. |
 | [Seca: umidade do solo, vegetação e SPI (Copernicus GDO)](gdo-seca.md) | Tempo e clima › Clima | Mapas de seca do Global Drought Observatory do Copernicus: a anomalia da umidade do solo (modelo LISFLOOD), a anomalia da vegetação (fAPAR do VIIRS) e o SPI de 1, 3, 6 e 12 meses do CHIRPS. |
 | [Chuva do ERA5 (reanálise, desde 1940)](era5-chuva.md) | Tempo e clima › Clima passado (ERA5) | A chuva de um período passado na reanálise ERA5 do ECMWF: o total do período ou a média por ano. |
 | [Temperatura do ERA5 (reanálise, desde 1940)](era5-temperatura.md) | Tempo e clima › Clima passado (ERA5) | A temperatura do ar a 2 m num período passado na reanálise ERA5 do ECMWF: a média da máxima do dia, da mínima ou da média, ajustada à altitude de cada ponto. |

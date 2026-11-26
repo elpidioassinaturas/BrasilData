@@ -37,7 +37,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.73"
+VERSAO = "0.1.74"
 AUTOR = "Elpídio Filho"
 # Como o texto Sobre chama o autor (o manifesto e o README levam o nome completo).
 AUTOR_SOBRE = "Professor Elpídio"
@@ -76,6 +76,7 @@ PERFIS = [
     "Tese: meia página (160 × 110 mm)",
 ]
 CAMADAS_CTREES = ["Biomassa (Mg/ha)", "Incerteza: erro-padrão (Mg/ha)"]
+INDICADORES_GRACE = ["Umidade na zona das raízes (1 m)", "Água subterrânea", "Umidade na superfície do solo"]
 INDICADORES_GDO = ["Anomalia da umidade do solo", "Anomalia da vegetação (fAPAR)", "SPI de 1 mês (CHIRPS)", "SPI de 3 meses (CHIRPS)", "SPI de 6 meses (CHIRPS)", "SPI de 12 meses (CHIRPS)"]
 ORIENTACOES = ["Automática: a que der o mapa maior", "Retrato (em pé)", "Paisagem (deitada)"]
 ESTILOS = ["Clássico", "Faixa", "Painel", "Editorial", "Modular", "Pôster"]
@@ -714,6 +715,21 @@ EM_MENUS = [
             "form": [
                 {"name": "indicador", "label": "Indicador", "kind": "choice", "required": True, "choices": INDICADORES_GDO, "default": INDICADORES_GDO[0], "help": "A umidade do solo e a vegetação mostram o efeito da seca; o SPI, a falta de chuva no período (1 mês: a seca que começa; 12 meses: a longa)."},
                 {"name": "data", "label": "Data (dd/mm/aaaa)", "kind": "text", "help": "Vazio: a mais recente. Vale o decêndio (dias 1, 11 e 21) ou o mês que contém a data."},
+            ],
+        },
+    ),
+    (
+        "Tempo e clima",
+        "Clima",
+        {
+            "id": "grace-seca",
+            "label": "Seca: umidade do solo e água subterrânea (GRACE, NASA)",
+            "help": "Os indicadores semanais de seca do GRACE, da NASA: quão seca ou úmida está a zona das raízes (o primeiro metro do solo), a água subterrânea ou a superfície do solo, em percentil da distribuição de 1948 a 2012 do mesmo lugar e da mesma época (5 é mais seco que em 95% do tempo). Um modelo assimila as medidas de gravidade dos satélites GRACE e GRACE-FO. Toda segunda-feira desde 03/02/2003, em células de 0,25° (cerca de 28 km), nas cores do mapa da NASA: para o país, o estado ou a bacia, não para um município. A janela da área, lida do arquivo do mundo e mascarada pelo contorno; sem área, o mundo inteiro. Sem login; só no desktop.",
+            "icon": "classify",
+            "params": "{\"indicador\"?: \"raizes\" (padrão) | \"subterranea\" | \"superficie\", \"data\"?: dd/mm/aaaa ou aaaa-mm-dd (padrão: a semana mais recente)}",
+            "form": [
+                {"name": "indicador", "label": "Indicador", "kind": "choice", "required": True, "choices": INDICADORES_GRACE, "default": INDICADORES_GRACE[0], "help": "A zona das raízes fala da seca agrícola; a água subterrânea, da seca longa, nas reservas; a superfície muda em dias, com a chuva."},
+                {"name": "data", "label": "Data (dd/mm/aaaa)", "kind": "text", "help": "Vazio: a semana mais recente. Numa data, vale a última segunda-feira até ela."},
             ],
         },
     ),
@@ -1632,6 +1648,7 @@ FOLHAS_PROPRIAS = {
     "mapbiomas-cobertura",
     "vento-50m",
     "metano-tropomi",
+    "grace-seca",
     "gem15",
     "gedtm-relevo",
     "mg-solos",
@@ -1645,6 +1662,7 @@ FOLHAS_PROPRIAS = {
     "censo-setores",
     "gba-edificacoes",
     "osm-vias",
+    "enderecos",
     "prodes-amazonia",
     "luzes-mudanca",
 }
@@ -1778,8 +1796,9 @@ GRUPOS = list(TOPICOS)
 # Comandos que também aparecem num segundo subtópico: (tópico, subtópico, id). A Agricultura
 # tem o Censo Agropecuário próprio (censo-agro); os censos por município ficam na População. A
 # irrigação do GMIA fica na Água e também na Agricultura, ao lado do Censo Agropecuário. Os mapas de
-# seca do GDO ficam no Clima e também nos Solos (a umidade do solo), e as cenas do EMIT também.
-TAMBEM = [("Sociedade e economia", "Agricultura", "mapbiomas-irrigacao"), ("Sociedade e economia", "Agricultura", "irrigacao-gmia"), ("Tempo e clima", "Clima", "risco-fogo"), ("Meio físico", "Solos", "gdo-seca"), ("Meio físico", "Solos", "emit-cenas")]
+# seca do GDO ficam no Clima e também nos Solos (a umidade do solo), e as cenas do EMIT também. Os do GRACE
+# ficam no Clima e também na Água (a água subterrânea).
+TAMBEM = [("Sociedade e economia", "Agricultura", "mapbiomas-irrigacao"), ("Sociedade e economia", "Agricultura", "irrigacao-gmia"), ("Tempo e clima", "Clima", "risco-fogo"), ("Meio físico", "Solos", "gdo-seca"), ("Meio físico", "Solos", "emit-cenas"), ("Água", "Recursos hídricos", "grace-seca")]
 
 # O ícone de um subtópico, quando um dos ícones do RustGIS diz mais que a geometria da primeira
 # camada (o plugin só pode usar os ícones do RustGIS, pelo nome).
