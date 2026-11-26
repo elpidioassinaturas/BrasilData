@@ -62,6 +62,7 @@ NOMES = {
     "cemaden-alertas": "BrasilData: Alertas vigentes (CEMADEN)",
     "osm-vias": "BrasilData: Ruas e estradas (OpenStreetMap, Overture)",
     "solo-pontos": "BrasilData: Argila a 10 cm (SoilData)",
+    "mapbiomas-solo-pontos": "BrasilData: Carbono orgânico de 0 a 30 cm, pontos de treino (MapBiomas Solo)",
     **{i: "BrasilData: Indicadores por município" for i in ("censo-municipios", "censo-agro", "censo-agroecologia", "indicadores-pix", "indicadores-credito", "indicadores-tse", "indicadores-caged", "indicadores-todos")},
 }
 

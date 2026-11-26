@@ -72,7 +72,7 @@ const FICAM: [&str; 12] = [
 ];
 
 /// Uma classe de valores: o limite de cima (fora dela), o nome na legenda e a cor.
-type Classe = (f64, &'static str, &'static str);
+pub type Classe = (f64, &'static str, &'static str);
 
 /// O atributo que colore os pontos.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -171,7 +171,7 @@ impl Atributo {
     }
 
     /// As classes de valores, do menor ao maior (vazio na classe do solo). A última vai até o fim.
-    fn classes(self) -> &'static [Classe] {
+    pub fn classes(self) -> &'static [Classe] {
         const INF: f64 = f64::INFINITY;
         match self {
             // Os grupos de textura do SiBCS pela argila (a arenosa e a siltosa dependem também da
@@ -288,7 +288,7 @@ fn texto(t: &str) -> String {
 }
 
 /// A expressão da classe de um atributo de valores: o nome da faixa do campo numérico.
-fn expressao_faixas(campo: &str, classes: &[Classe]) -> String {
+pub fn expressao_faixas(campo: &str, classes: &[Classe]) -> String {
     let mut e = String::from("CASE");
     let (ultima, antes) = classes.split_last().expect("um atributo de valores tem classes");
     for (lim, nome, _) in antes {
@@ -389,41 +389,56 @@ fn limite_graduado(lim: f64) -> f64 {
     if lim.is_finite() { lim - 1e-6 } else { 1e9 }
 }
 
-/// O estilo dos pontos, um círculo com borda escura: nos valores, as faixas do atributo pelo campo
-/// numérico (uma classe graduada, que a legenda mostra na ordem, do menor ao maior; as únicas
-/// sairiam em ordem alfabética); na classe do solo, a ordem do SiBCS.
-pub fn estilo(a: Atributo) -> String {
-    let borda = json!([50, 50, 50, 255]);
-    let simbolo = |cor: &str| json!({"fill": rgba(cor), "stroke": borda, "stroke_width": 0.5, "size": 6.0, "marker": "Circle"});
-    let vazio = json!({"fill": [0, 0, 0, 0], "stroke": [120, 120, 120, 255], "stroke_width": 0.8, "size": 5.0, "marker": "Circle"});
-    let renderer = match a.campo() {
-        Some(campo) => {
-            let c = a.classes();
-            let rotulos: serde_json::Map<String, Value> =
-                c.iter().enumerate().map(|(i, (_, nome, _))| (i.to_string(), json!(nome))).collect();
-            json!({"Graduated": {
-                "field": campo,
-                "breaks": c.iter().map(|(lim, _, _)| limite_graduado(*lim)).collect::<Vec<_>>(),
-                "symbols": c.iter().map(|(_, _, cor)| simbolo(cor)).collect::<Vec<_>>(),
-                "ramp": "Ember", "method": "NaturalBreaks", "min": 0.0, "classes": c.len(),
-                "class_labels": rotulos,
-            }})
-        }
-        None => {
-            let mut classes: Vec<Value> = ORDENS.iter().map(|(nome, cor, _)| json!([nome, simbolo(cor)])).collect();
-            classes.push(
-                json!([OUTRA, {"fill": [190, 190, 190, 255], "stroke": borda, "stroke_width": 0.5, "size": 5.0, "marker": "Circle"}]),
-            );
-            classes.push(json!([SEM_CLASSE, vazio]));
-            json!({"Unique": {"field": CAMPO_CLASSE, "classes": classes, "other": vazio, "ramp": "Harbour"}})
-        }
-    };
-    json!([{"name": nome_do_estilo(a), "geometry": "Point",
+/// O símbolo de um ponto: um círculo da cor `cor` com borda escura.
+fn simbolo(cor: &str) -> Value {
+    json!({"fill": rgba(cor), "stroke": [50, 50, 50, 255], "stroke_width": 0.5, "size": 6.0, "marker": "Circle"})
+}
+
+/// O ponto sem classe: um círculo vazio, cinza.
+fn vazio() -> Value {
+    json!({"fill": [0, 0, 0, 0], "stroke": [120, 120, 120, 255], "stroke_width": 0.8, "size": 5.0, "marker": "Circle"})
+}
+
+/// Um estilo de pontos no formato do `style.add`, com o `renderer` dado e os rótulos (desligados)
+/// pelo campo `rotulo`.
+fn estilo_de_pontos(nome: &str, renderer: Value, rotulo: &str) -> String {
+    json!([{"name": nome, "geometry": "Point",
         "renderer": renderer,
-        "labels": {"enabled": false, "field": a.campo().unwrap_or("taxon_sibcs"), "size": 7.5, "color": [40, 40, 40, 255], "halo": true, "bold": false,
+        "labels": {"enabled": false, "field": rotulo, "size": 7.5, "color": [40, 40, 40, 255], "halo": true, "bold": false,
             "min_scale": null, "max_scale": null, "closest": null, "farthest": null, "placement": "Center"},
         "transparency": 0.0}])
     .to_string()
+}
+
+/// O estilo graduado `nome` dos pontos pelo campo numérico `campo`, nas faixas `classes`: a legenda
+/// as mostra na ordem, do menor ao maior (as únicas sairiam em ordem alfabética).
+pub fn estilo_graduado(nome: &str, campo: &str, classes: &[Classe]) -> String {
+    let rotulos: serde_json::Map<String, Value> = classes.iter().enumerate().map(|(i, (_, n, _))| (i.to_string(), json!(n))).collect();
+    let renderer = json!({"Graduated": {
+        "field": campo,
+        "breaks": classes.iter().map(|(lim, _, _)| limite_graduado(*lim)).collect::<Vec<_>>(),
+        "symbols": classes.iter().map(|(_, _, cor)| simbolo(cor)).collect::<Vec<_>>(),
+        "ramp": "Ember", "method": "NaturalBreaks", "min": 0.0, "classes": classes.len(),
+        "class_labels": rotulos,
+    }});
+    estilo_de_pontos(nome, renderer, campo)
+}
+
+/// O estilo dos pontos: nos valores, as faixas do atributo pelo campo numérico
+/// ([`estilo_graduado`]); na classe do solo, a ordem do SiBCS.
+pub fn estilo(a: Atributo) -> String {
+    match a.campo() {
+        Some(campo) => estilo_graduado(&nome_do_estilo(a), campo, a.classes()),
+        None => {
+            let mut classes: Vec<Value> = ORDENS.iter().map(|(nome, cor, _)| json!([nome, simbolo(cor)])).collect();
+            classes.push(
+                json!([OUTRA, {"fill": [190, 190, 190, 255], "stroke": [50, 50, 50, 255], "stroke_width": 0.5, "size": 5.0, "marker": "Circle"}]),
+            );
+            classes.push(json!([SEM_CLASSE, vazio()]));
+            let renderer = json!({"Unique": {"field": CAMPO_CLASSE, "classes": classes, "other": vazio(), "ramp": "Harbour"}});
+            estilo_de_pontos(&nome_do_estilo(a), renderer, "taxon_sibcs")
+        }
+    }
 }
 
 #[cfg(test)]

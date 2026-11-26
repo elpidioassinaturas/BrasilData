@@ -37,7 +37,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.76"
+VERSAO = "0.1.77"
 AUTOR = "Elpídio Filho"
 # Como o texto Sobre chama o autor (o manifesto e o README levam o nome completo).
 AUTOR_SOBRE = "Professor Elpídio"
@@ -115,6 +115,8 @@ PROPRIEDADES_OLM = ["Carbono orgânico (g/kg)", "Densidade de carbono (kg/m³)",
 PROFUNDIDADES_OLM = ["0 a 30 cm", "30 a 60 cm", "60 a 100 cm"]
 ATRIBUTOS_SOLO = ["Argila (g/kg)", "Areia (g/kg)", "Silte (g/kg)", "Carbono orgânico (g/kg)", "CTC (cmolc/kg)", "pH", "Densidade do solo (g/cm³)", "Classe do solo (ordem do SiBCS, um ponto por perfil)"]
 PROFUNDIDADES_SOLO = ["5 cm", "10 cm", "30 cm", "50 cm", "100 cm"]
+DADOS_MBSOLO = ["Carbono orgânico: estoque de 0 a 30 cm (t/ha)", "Argila (g/kg)", "Areia (g/kg)", "Silte (g/kg)", "Fração grossa: cascalho e calhaus (g/kg)"]
+PROFUNDIDADES_MBSOLO = ["5 cm", "10 cm", "30 cm", "50 cm", "90 cm"]
 PERIODOS_OLM = ["2020 a 2022", "2015 a 2020 (só carbono e pH)", "2010 a 2015 (só carbono e pH)", "2005 a 2010 (só carbono e pH)", "2000 a 2005 (só carbono e pH)"]
 VARIAVEIS_GEDTM = [
     "Elevação do terreno (m)",
@@ -1587,6 +1589,21 @@ EM_MENUS = [
             "form": [
                 {"name": "atributo", "label": "Atributo", "kind": "choice", "required": True, "choices": ATRIBUTOS_SOLO, "default": ATRIBUTOS_SOLO[0], "help": "O que colore os pontos. A argila em classes de textura do SiBCS; o pH nas classes de reação da Embrapa; a classe do solo pela ordem do SiBCS, com os nomes antigos (Podzólico, Terra Roxa...) postos na ordem atual mais próxima."},
                 {"name": "profundidade", "label": "Profundidade", "kind": "choice", "required": True, "choices": PROFUNDIDADES_SOLO, "default": PROFUNDIDADES_SOLO[1], "help": "A camada do perfil que contém essa profundidade, a partir da superfície. A classe do solo não usa."},
+            ],
+        },
+    ),
+    (
+        "Meio físico",
+        "Solos",
+        {
+            "id": "mapbiomas-solo-pontos",
+            "label": "Pontos de treino do MapBiomas Solo",
+            "help": "As amostras de solo com que o MapBiomas treinou os mapas da Coleção 3 (beta) do MapBiomas Solo, publicadas no SoilData: o estoque de carbono orgânico de 0 a 30 cm de cada coleta, em t/ha, com o ano (cerca de 11 mil pontos de 1985 a 2024; as amostras do Inventário Florestal Nacional com a correção por quantis do MapBiomas), ou a argila, a areia, o silte ou a fração grossa da camada que contém a profundidade escolhida (até 100 cm), com a licença do conjunto de origem. Ficam de fora as pseudoamostras de rocha e de areia do modelo. São os dados de treino, não os mapas. Na janela, o RustGIS baixa o arquivo do Brasil (2,2 MB no carbono, 10,4 MB na textura) e o comando continua sozinho quando ele chega.",
+            "icon": "point_layer",
+            "params": "{\"dado\"?: \"carbono\" (padrão: estoque de 0 a 30 cm) | \"argila\" | \"areia\" | \"silte\" | \"fracao-grossa\", \"profundidade\"?: 5, 10 (padrão), 30, 50 ou 90 cm (na textura: a camada que contém essa profundidade)}",
+            "form": [
+                {"name": "dado", "label": "Dado", "kind": "choice", "required": True, "choices": DADOS_MBSOLO, "default": DADOS_MBSOLO[0], "help": "O estoque de carbono de 0 a 30 cm de cada coleta (um ponto por coleta, com o ano), ou um dado da textura de uma camada."},
+                {"name": "profundidade", "label": "Profundidade", "kind": "choice", "required": True, "choices": PROFUNDIDADES_MBSOLO, "default": PROFUNDIDADES_MBSOLO[1], "help": "Só na textura: a camada do perfil que contém essa profundidade, a partir da superfície."},
             ],
         },
     ),

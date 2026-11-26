@@ -55,6 +55,7 @@ pub mod localidades;
 pub mod luzes;
 pub mod malhas;
 pub mod mapbiomas;
+pub mod mbsolo;
 pub mod metano;
 pub mod municipios;
 pub mod ndvi_cdse;

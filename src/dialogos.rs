@@ -201,6 +201,18 @@ pub const ATRIBUTOS_SOLO: [(&str, &str); 8] = [
 /// As escolhas da profundidade dos pontos de solo, em cm.
 pub const PROFUNDIDADES_SOLO: [(&str, &str); 5] = [("5 cm", "5"), ("10 cm", "10"), ("30 cm", "30"), ("50 cm", "50"), ("100 cm", "100")];
 
+/// As escolhas do dado dos pontos de treino do MapBiomas Solo e o `dado` de cada uma.
+pub const DADOS_MBSOLO: [(&str, &str); 5] = [
+    ("Carbono orgânico: estoque de 0 a 30 cm (t/ha)", "carbono"),
+    ("Argila (g/kg)", "argila"),
+    ("Areia (g/kg)", "areia"),
+    ("Silte (g/kg)", "silte"),
+    ("Fração grossa: cascalho e calhaus (g/kg)", "fracao-grossa"),
+];
+
+/// As escolhas da profundidade da textura dos pontos de treino, em cm.
+pub const PROFUNDIDADES_MBSOLO: [(&str, &str); 5] = [("5 cm", "5"), ("10 cm", "10"), ("30 cm", "30"), ("50 cm", "50"), ("90 cm", "90")];
+
 /// As escolhas de um parâmetro e o valor de cada uma.
 type Escolhas = &'static [(&'static str, &'static str)];
 
@@ -247,6 +259,8 @@ const TROCAS: &[(&str, &str, Escolhas)] = &[
     ("worldcover", "ano", &ANOS_WORLDCOVER),
     ("solo-pontos", "atributo", &ATRIBUTOS_SOLO),
     ("solo-pontos", "profundidade", &PROFUNDIDADES_SOLO),
+    ("mapbiomas-solo-pontos", "dado", &DADOS_MBSOLO),
+    ("mapbiomas-solo-pontos", "profundidade", &PROFUNDIDADES_MBSOLO),
 ];
 
 /// O número do mês de nome `nome` (janeiro é 1).
