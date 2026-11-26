@@ -1666,6 +1666,7 @@ FOLHAS_PROPRIAS = {
     "vento-50m",
     "metano-tropomi",
     "grace-seca",
+    "bam-previsao",
     "gem15",
     "gedtm-relevo",
     "mg-solos",

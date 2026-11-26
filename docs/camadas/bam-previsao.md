@@ -4,7 +4,9 @@
 
 A chuva somada ou a temperatura média prevista nos próximos dias pelo BAM, o modelo global de previsão do tempo do CPTEC/INPE.
 
-*O mapa exemplo, de Minas Gerais, ainda não foi gerado: rode `scripts/mapas_exemplo.py bam-previsao`.*
+![Mapa exemplo: Previsão do BAM (CPTEC/INPE) em Brasil](bam-previsao.png)
+
+*Mapa exemplo: Brasil, com o dado do plugin e a folha feita à parte no RustGIS.*
 
 | | |
 |---|---|
