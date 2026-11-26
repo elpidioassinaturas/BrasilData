@@ -7,6 +7,7 @@ use rustgis_plugin::{Request, Value, geojson, host, json};
 use crate::amostragem::{self, Candidato, Sorteio};
 use crate::anadem;
 use crate::aqueduct;
+use crate::bam;
 use crate::bdc;
 use crate::cemaden;
 use crate::censo;
@@ -230,6 +231,7 @@ fn executar_comando(req: Request) -> Result<Value, String> {
         "power-umidade" => power_na_area(&req, power::Variavel::Umidade),
         "power-evapotranspiracao" => power_na_area(&req, power::Variavel::Evapotranspiracao),
         "chuva-prevista" => chuva_prevista(&req),
+        "bam-previsao" => bam_previsao(&req),
         "chuva-ensemble" => chuva_do_ensemble(&req),
         "temperatura-prevista" => temperatura_prevista(&req),
         "chirps-mes" => chuva_do_mes(&req),
@@ -2181,6 +2183,8 @@ fn citacoes() -> Result<(Vec<Value>, String), String> {
             lista.push(json!({"layer": n, "source": vento::CITACAO, "license": sol::LICENCA}));
         } else if let Some((v, _, _)) = power::ler_camada(&n) {
             lista.push(json!({"layer": n, "source": v.citacao(), "license": sol::LICENCA}));
+        } else if bam::da_camada(&n).is_some() {
+            lista.push(json!({"layer": n, "source": bam::CITACAO, "license": bam::LICENCA}));
         } else if tempo::eh_da_previsao(&n) {
             lista.push(json!({"layer": n, "source": tempo::citacao_da_camada(&n), "license": tempo::LICENCA}));
         } else if era5::eh_do_era5(&n) {
@@ -5756,6 +5760,248 @@ fn texto_do_limiar(limiar: f64) -> String {
     t.strip_suffix(",0").map(str::to_string).unwrap_or(t)
 }
 
+/// Se o `layer.addUrl` deste RustGIS lê um trecho de um arquivo GRIB (`bytes`, desde a 0.8.0).
+fn le_trecho_grib() -> Result<bool, String> {
+    let lista = host::run("info.commands", json!({}))?;
+    let comandos = lista.get("commands").unwrap_or(&lista);
+    Ok(comandos
+        .as_array()
+        .into_iter()
+        .flatten()
+        .find(|c| c["id"].as_str() == Some("layer.addUrl"))
+        .and_then(|c| c["params"].as_str())
+        .is_some_and(|p| p.contains("\"bytes\"")))
+}
+
+/// O texto de uma página do servidor do CPTEC, ou o pedido pendente.
+fn pagina_do_cptec(url: &str) -> Result<Result<String, Value>, String> {
+    let r = match buscar(&[url.to_string()]).map_err(|e| format!("o servidor de dados do CPTEC não respondeu ({e})"))? {
+        Ok(r) => r,
+        Err(p) => return Ok(Err(p)),
+    };
+    Ok(Ok(r.first().and_then(|r| r["text"].as_str()).unwrap_or("").to_string()))
+}
+
+/// A rodada (00 UTC) da data pedida, se a pasta dela tem os `dias` pedidos; sem data, a mais recente
+/// que os tem (a de hoje pode estar chegando: vale a de ontem).
+fn rodada_do_bam(pedida: Option<Data>, dias: u32) -> Result<Result<Data, Value>, String> {
+    if let Some(d) = pedida {
+        let fora = || {
+            format!(
+                "a rodada do BAM de {} não está no servidor do CPTEC, que guarda as de {} até a mais recente",
+                d.texto(),
+                bam::PRIMEIRA.texto()
+            )
+        };
+        if d < bam::PRIMEIRA {
+            return Err(fora());
+        }
+        let lista = match pagina_do_cptec(&bam::pasta(d)) {
+            Ok(Ok(l)) => l,
+            Ok(Err(p)) => return Ok(Err(p)),
+            Err(e) if e.contains("404") => return Err(fora()),
+            Err(e) => return Err(e),
+        };
+        if !bam::completa(&lista, d, dias) {
+            return Err(format!("a rodada do BAM de {} não está no servidor do CPTEC com {dias} dias de previsão", d.texto()));
+        }
+        return Ok(Ok(d));
+    }
+    let mut candidatas = Vec::new();
+    let anos = match pagina_do_cptec(bam::BASE)? {
+        Ok(l) => bam::pastas(&l),
+        Err(p) => return Ok(Err(p)),
+    };
+    'busca: for &ano in anos.iter().rev().take(2) {
+        let meses = match pagina_do_cptec(&format!("{}{ano}/", bam::BASE))? {
+            Ok(l) => bam::pastas(&l),
+            Err(p) => return Ok(Err(p)),
+        };
+        for &mes in meses.iter().rev().take(2) {
+            let dias_do_mes = match pagina_do_cptec(&format!("{}{ano}/{mes:02}/", bam::BASE))? {
+                Ok(l) => bam::pastas(&l),
+                Err(p) => return Ok(Err(p)),
+            };
+            for &dia in dias_do_mes.iter().rev() {
+                candidatas.push(Data { ano: i64::from(ano), mes, dia });
+                if candidatas.len() == 3 {
+                    break 'busca;
+                }
+            }
+        }
+    }
+    for d in candidatas {
+        let lista = match pagina_do_cptec(&bam::pasta(d))? {
+            Ok(l) => l,
+            Err(p) => return Ok(Err(p)),
+        };
+        if bam::completa(&lista, d, dias) {
+            return Ok(Ok(d));
+        }
+    }
+    Err("o servidor do CPTEC não tem uma rodada recente completa do BAM: tente daqui a pouco".into())
+}
+
+/// A previsão do BAM, o modelo global do CPTEC/INPE ([`bam`]): a chuva somada ou a temperatura média
+/// nos dias pedidos da rodada, de cada registro de 6 horas baixado sozinho (cerca de 4 MB) e cortado
+/// em volta da área, interpolada para a grade do projeto e recortada pela área.
+fn bam_previsao(req: &Request) -> Result<Value, String> {
+    let v = bam::Variavel::ler(req.str("variavel"))?;
+    let dias = req.f64("dias").map_or(bam::DIAS_PADRAO, |d| d.round() as u32);
+    if !(1..=bam::MAX_DIAS).contains(&dias) {
+        return Err(format!("dias: de 1 a {} (o BAM vai a 11 dias)", bam::MAX_DIAS));
+    }
+    let pedida = req
+        .str("rodada")
+        .filter(|t| !t.trim().is_empty())
+        .map(|t| bdc::ler_data(t).ok_or(format!("a data '{t}' não é dd/mm/aaaa")))
+        .transpose()?;
+    let celula = req.f64("celula");
+    if let Some(m) = celula {
+        grade::conferir_celula(m)?;
+    }
+    let (c, na_area) = retangulo()?;
+    if !na_area {
+        return Err("escolha a área primeiro (painel Área de trabalho, ou Área: seleção)".into());
+    }
+    if bam::celulas(c) > bam::MAX_CELULAS {
+        return Err("a área é grande demais para o BAM de um clique: escolha um estado ou uma região".into());
+    }
+    if !le_trecho_grib()? {
+        return Err("o BAM precisa de um RustGIS que baixe só um trecho de um arquivo GRIB (0.8.0 ou depois, no desktop: o app web ainda não lê um trecho de outro site)".into());
+    }
+    let d = match rodada_do_bam(pedida, dias)? {
+        Ok(d) => d,
+        Err(p) => return Ok(p),
+    };
+    let pasta = bam::pasta(d);
+    let prazos = bam::prazos(dias);
+    let invs: Vec<String> = prazos.iter().map(|h| format!("{pasta}{}.inv", bam::arquivo(d, *h))).collect();
+    let respostas = match buscar(&invs).map_err(|e| format!("o servidor de dados do CPTEC não respondeu ({e})"))? {
+        Ok(r) => r,
+        Err(p) => return Ok(p),
+    };
+    let ha = nomes()?;
+    let mut baixando = 0;
+    let mut recortes = Vec::new();
+    for (h, r) in prazos.iter().zip(&respostas) {
+        let (registro, recorte) = bam::registro(v, d, *h);
+        recortes.push(recorte.clone());
+        if ha.contains(&registro) || ha.contains(&recorte) {
+            continue;
+        }
+        let inv = r["text"].as_str().unwrap_or("");
+        let t = bam::trecho(inv, v).ok_or(format!("o inventário do prazo de {h} h do BAM não tem o registro da {}", v.codigo()))?;
+        let url = format!("{pasta}{}.grb", bam::arquivo(d, *h));
+        let r = host::run("layer.addUrl", json!({"url": url, "bytes": t, "format": "grib", "name": registro, "zoom": false}))?;
+        if pendente(&r) {
+            baixando += 1;
+        }
+    }
+    if baixando > 0 {
+        avisar(&format!(
+            "Previsão do BAM: baixando {baixando} registros de cerca de 4 MB da rodada de {}; a camada vem quando eles chegarem",
+            d.texto()
+        ));
+        return Ok(json!({"pending": baixando}));
+    }
+    let saida = bam::camada(v, dias, d);
+    let total = format!("{}soma", bam::PASSAGEM);
+    let ajustada = format!("{}ajustada", bam::PASSAGEM);
+    let na_grade = format!("{}na grade", bam::PASSAGEM);
+    remover(&[&saida, &total, &ajustada, &na_grade])?;
+    let mut registros = Vec::new();
+    let feito = (|| -> Result<Grade, String> {
+        // Cada registro do globo vira o recorte em volta da área, nas células do arquivo.
+        let ha = nomes()?;
+        for h in &prazos {
+            let (registro, recorte) = bam::registro(v, d, *h);
+            registros.push(registro.clone());
+            if !ha.contains(&recorte) {
+                host::run(
+                    "raster.project",
+                    json!({"layer": registro, "crs": 4326, "cellSize": bam::CELULA, "origin": bam::ORIGEM, "extent": bam::recorte(c), "name": recorte}),
+                )?;
+            }
+        }
+        remover(&registros.iter().map(String::as_str).collect::<Vec<_>>())?;
+        let datas: Vec<String> = prazos
+            .iter()
+            .map(|h| format!("{}T{:02}:00:00Z", Data::de_milissegundos((d.dias() + i64::from(*h / 24)) * 86_400_000).iso(), h % 24))
+            .collect();
+        let stat = if v == bam::Variavel::Chuva { "sum" } else { "mean" };
+        host::run("cube.reduce", json!({"layers": recortes, "dates": datas, "stat": stat, "name": total}))?;
+        // A temperatura vem em kelvin no RustGIS 0.8.0 (o GDAL a dá em °C): passa a °C só se vier em kelvin.
+        let em_kelvin = v == bam::Variavel::Temperatura
+            && host::run("raster.info", json!({"layer": total}))?["bands"][0]["mean"].as_f64().is_some_and(|m| m > 150.0);
+        let ultima = if em_kelvin {
+            host::run("raster.function", json!({"layer": total, "function": "bandMath", "expression": "b1 - 273.15", "name": ajustada}))?;
+            ajustada.clone()
+        } else if v == bam::Variavel::Chuva {
+            // mm por dia de cada 6 horas: × 1/4; os negativos do modelo espectral, zerados.
+            host::run(
+                "raster.function",
+                json!({"layer": total, "function": "remap", "ranges": [[-100_000.0, 0.0, 0.0]], "keep": true, "name": ajustada}),
+            )?;
+            let mm = format!("{}mm", bam::PASSAGEM);
+            remover(&[&mm])?;
+            host::run("raster.function", json!({"layer": ajustada, "function": "bandMath", "expression": "b1 * 0.25", "name": mm}))?;
+            remover(&[&ajustada])?;
+            host::run("layer.rename", json!({"layer": mm, "name": ajustada}))?;
+            ajustada.clone()
+        } else {
+            total.clone()
+        };
+        let g = grade_para(c, celula)?;
+        host::run(
+            "raster.project",
+            json!({"layer": ultima, "crs": g.epsg, "cellSize": g.celula, "extent": GRADE, "resampling": "bilinear", "name": na_grade}),
+        )?;
+        recortar(&na_grade, AREA, &saida)?;
+        Ok(g)
+    })();
+    // Só as que existem: um nome que falta faz o `layer.remove` recusar a lista inteira.
+    let mm = format!("{}mm", bam::PASSAGEM);
+    let passagem: Vec<&str> = recortes
+        .iter()
+        .chain(&registros)
+        .map(String::as_str)
+        .chain([total.as_str(), ajustada.as_str(), na_grade.as_str(), mm.as_str()])
+        .collect();
+    remover(&passagem)?;
+    let g = feito?;
+    let (pintura, unidade, o_que);
+    let (rn, rt);
+    match v {
+        bam::Variavel::Chuva => {
+            let max = tempo::escala_chuva(dias as usize);
+            (rn, rt) = tempo::rampa_chuva(max);
+            pintura = Pintura { rampa: (&rn, &rt), reserva: "YlGnBu", escala: (0.0, max), aceitos: (0.0, 5000.0) };
+            (unidade, o_que) = ("mm", "a chuva somada");
+        }
+        bam::Variavel::Temperatura => {
+            pintura =
+                Pintura { rampa: tempo::RAMPA_TEMPERATURA, reserva: "RdYlBu", escala: tempo::ESCALA_TEMPERATURA, aceitos: (-60.0, 60.0) };
+            (unidade, o_que) = ("°C", "a temperatura a 2 m, média das 03h, 09h, 15h e 21h de cada dia,");
+        }
+    }
+    host::run("raster.mask", json!({"layer": saida, "min": pintura.aceitos.0, "max": pintura.aceitos.1}))?;
+    pintar(&saida, &pintura);
+    let (de, ate) = bam::periodo(d, dias);
+    let texto = format!(
+        "{}: {o_que} de {de} a {ate} (horário de Brasília), da rodada de {} 00 UTC do BAM (CPTEC/INPE, células de cerca de 20 km), {} registros de 6 horas, interpolada para a grade do projeto, {}{}",
+        saida.trim_start_matches(PREFIXO),
+        d.texto(),
+        prazos.len(),
+        g.texto(),
+        media_na_area(&saida, unidade)
+    );
+    avisar(&texto);
+    Ok(
+        json!({"layer": saida, "run": d.iso(), "days": dias, "records": prazos.len(), "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula, "report": texto}),
+    )
+}
+
 /// A chuva prevista de um modelo determinístico ([`tempo`]): a soma dos dias pedidos nos nós em
 /// volta da área, interpolada para a grade do projeto e recortada pela área.
 fn chuva_prevista(req: &Request) -> Result<Value, String> {
@@ -8759,7 +9005,8 @@ fn layout_do_mapa(req: &Request) -> Result<Value, String> {
         .flatten()
         .filter(|l| l["visible"].as_bool() != Some(false))
         .filter_map(|l| l["name"].as_str())
-        .filter(|n| n.starts_with(PREFIXO) && ![AREA, GRADE, DESENHO].contains(n))
+        // A tabela do botão Fontes, que vem para cima, não é dado.
+        .filter(|n| n.starts_with(PREFIXO) && ![AREA, GRADE, DESENHO, FONTES].contains(n))
         .map(str::to_string)
         .collect();
     // Os mapas do BrasilData para ver (os mosaicos do MapBiomas) contam depois das camadas.

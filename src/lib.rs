@@ -13,6 +13,7 @@
 pub mod amostragem;
 pub mod anadem;
 pub mod aqueduct;
+pub mod bam;
 pub mod bdc;
 mod catalogo;
 pub mod cemaden;

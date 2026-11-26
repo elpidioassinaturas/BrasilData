@@ -2,7 +2,7 @@
 
 <!-- Gerado por scripts/gerar.py a partir do fontes.csv e do fichas.csv; não edite à mão. -->
 
-A ficha de cada uma das 176 camadas que os botões da aba BrasilData trazem: o que é, a fonte, o período, a resolução, as unidades, a legenda, a licença, a citação, os cuidados de uso, se funciona no app web, e um mapa exemplo feito com o plugin (o botão Layout). Os mapas exemplo são de Viçosa (MG), ou da Zona da Mata mineira para os produtos de baixa resolução; os temas que não existem lá vêm de outro município, dito em cada ficha. Os mapas saem do `scripts/mapas_exemplo.py`.
+A ficha de cada uma das 177 camadas que os botões da aba BrasilData trazem: o que é, a fonte, o período, a resolução, as unidades, a legenda, a licença, a citação, os cuidados de uso, se funciona no app web, e um mapa exemplo feito com o plugin (o botão Layout). Os mapas exemplo são de Viçosa (MG), ou da Zona da Mata mineira para os produtos de baixa resolução; os temas que não existem lá vêm de outro município, dito em cada ficha. Os mapas saem do `scripts/mapas_exemplo.py`.
 
 ## Território
 
@@ -99,6 +99,7 @@ A ficha de cada uma das 176 camadas que os botões da aba BrasilData trazem: o q
 | [Temperatura da superfície (GCOM-C, JAXA)](jaxa-temperatura.md) | Tempo e clima › Satélites do JAXA | A temperatura da superfície da terra, do sensor SGLI (GCOM-C), de dia ou à noite, resumida nos meses do período. |
 | [Evapotranspiração (GCOM-C, JAXA)](jaxa-evapotranspiracao.md) | Tempo e clima › Satélites do JAXA | A evapotranspiração (a água que o solo e as plantas devolvem ao ar), do JASMES com o sensor SGLI (GCOM-C), resumida nos meses do período. |
 | [Índice de seca SPI (GSMaP, JAXA)](jaxa-seca.md) | Tempo e clima › Satélites do JAXA | O índice de precipitação padronizado (SPI) do GSMaP: quanto a chuva do mês fugiu da normal, em desvios-padrão, resumido nos meses do período. |
+| [Previsão do BAM (CPTEC/INPE)](bam-previsao.md) | Tempo e clima › Previsão | A chuva somada ou a temperatura média prevista nos próximos dias pelo BAM, o modelo global de previsão do tempo do CPTEC/INPE. |
 | [Chuva prevista (Open-Meteo)](chuva-prevista.md) | Tempo e clima › Previsão | A chuva prevista somada nos próximos dias por um modelo global de previsão do tempo (ECMWF IFS, ECMWF AIFS, GFS, ICON ou o melhor do Open-Meteo para o lugar). |
 | [Chuva do ensemble: chance e faixa provável (Open-Meteo)](chuva-ensemble.md) | Tempo e clima › Previsão | A chuva dos próximos dias nos membros de um ensemble de previsão (ECMWF ENS, ECMWF AIFS-ENS ou GEFS): a chance de passar de um limiar, a média dos membros ou os cenários seco (P10) e chuvoso (P90). |
 | [Temperatura prevista (Open-Meteo)](temperatura-prevista.md) | Tempo e clima › Previsão | A temperatura do ar a 2 m prevista para os próximos dias por um modelo global: a média da máxima do dia, da mínima ou da média, nos dias pedidos. |

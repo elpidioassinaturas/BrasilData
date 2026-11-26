@@ -76,6 +76,7 @@ PERFIS = [
     "Tese: meia página (160 × 110 mm)",
 ]
 CAMADAS_CTREES = ["Biomassa (Mg/ha)", "Incerteza: erro-padrão (Mg/ha)"]
+VARIAVEIS_BAM = ["Chuva somada (mm)", "Temperatura média (°C)"]
 INDICADORES_GRACE = ["Umidade na zona das raízes (1 m)", "Água subterrânea", "Umidade na superfície do solo"]
 INDICADORES_GDO = ["Anomalia da umidade do solo", "Anomalia da vegetação (fAPAR)", "SPI de 1 mês (CHIRPS)", "SPI de 3 meses (CHIRPS)", "SPI de 6 meses (CHIRPS)", "SPI de 12 meses (CHIRPS)"]
 ORIENTACOES = ["Automática: a que der o mapa maior", "Retrato (em pé)", "Paisagem (deitada)"]
@@ -715,6 +716,22 @@ EM_MENUS = [
             "form": [
                 {"name": "indicador", "label": "Indicador", "kind": "choice", "required": True, "choices": INDICADORES_GDO, "default": INDICADORES_GDO[0], "help": "A umidade do solo e a vegetação mostram o efeito da seca; o SPI, a falta de chuva no período (1 mês: a seca que começa; 12 meses: a longa)."},
                 {"name": "data", "label": "Data (dd/mm/aaaa)", "kind": "text", "help": "Vazio: a mais recente. Vale o decêndio (dias 1, 11 e 21) ou o mês que contém a data."},
+            ],
+        },
+    ),
+    (
+        "Tempo e clima",
+        "Previsão",
+        {
+            "id": "bam-previsao",
+            "label": "Previsão do BAM (CPTEC/INPE)",
+            "help": "A chuva somada ou a temperatura média prevista pelo BAM, o modelo global do CPTEC/INPE, de 1 a 10 dias da rodada mais recente das 00 UTC (21h de Brasília) ou de uma data passada. Cada registro de 6 horas (cerca de 4 MB) vem sozinho do servidor do CPTEC e é cortado em volta da área, posto na grade do projeto e recortado. A temperatura é a média das 03h, 09h, 15h e 21h. Precisa do RustGIS 0.8.0, no desktop",
+            "icon": "time_next",
+            "params": "{\"variavel\"?: \"chuva\" (padrão) | \"temperatura\", \"dias\"?: de 1 a 10 (padrão 3), \"rodada\"?: dd/mm/aaaa, a rodada das 00 UTC desse dia (padrão: a mais recente), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+            "form": [
+                {"name": "variavel", "label": "O que", "kind": "choice", "required": True, "choices": VARIAVEIS_BAM, "default": VARIAVEIS_BAM[0], "help": "A chuva somada nos dias, em mm, ou a temperatura média do ar a 2 m, em °C."},
+                {"name": "dias", "label": "Dias", "kind": "number", "required": True, "default": 3, "help": "De 1 a 10. Cada dia baixa 4 registros de cerca de 4 MB."},
+                {"name": "rodada", "label": "Rodada (dd/mm/aaaa)", "kind": "text", "help": "Vazio: a mais recente completa. Numa data, a rodada das 00 UTC dela, para comparar a previsão com o que aconteceu."},
             ],
         },
     ),

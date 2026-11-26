@@ -29,6 +29,8 @@ pub fn comando_da_camada(nome: &str, fonte: &str) -> Option<&'static str> {
     }
     let id = if n.starts_with("Focos de calor d") && n.ends_with(" (INPE)") {
         "inpe-focos-periodo"
+    } else if crate::bam::da_camada(nome).is_some() {
+        "bam-previsao"
     } else if (n.starts_with("Uso e cobertura ") && n.contains("(MapBiomas")) || mapbiomas::eh_das_classes(nome) {
         "mapbiomas-cobertura"
     } else if mapbiomas::eh_da_irrigacao(nome) {
@@ -181,6 +183,7 @@ mod tests {
             ("BrasilData: Edificações e alturas (GlobalBuildingAtlas)", "gba-edificacoes"),
             ("BrasilData: Seca: Anomalia da umidade do solo (GDO, 01/10/2026)", "gdo-seca"),
             ("BrasilData: Seca (GRACE, NASA): água subterrânea, 23/11/2026", "grace-seca"),
+            ("BrasilData: Previsão do BAM (CPTEC/INPE): chuva em 3 dias, 24/11 21h a 27/11/2026 21h", "bam-previsao"),
             (crate::forty::CAMADA, "forty-tipologia"),
             ("BrasilData: Biomassa acima do solo 2025 (CTrees, 100 m)", "ctrees-biomassa"),
             ("BrasilData: Incerteza da biomassa 2010 (CTrees, 100 m)", "ctrees-biomassa"),

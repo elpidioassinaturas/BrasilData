@@ -1128,6 +1128,41 @@
       ]
     },
     {
+      "id": "bam-previsao",
+      "label": "Previsão do BAM (CPTEC/INPE)",
+      "help": "A chuva somada ou a temperatura média prevista pelo BAM, o modelo global do CPTEC/INPE, de 1 a 10 dias da rodada mais recente das 00 UTC (21h de Brasília) ou de uma data passada. Cada registro de 6 horas (cerca de 4 MB) vem sozinho do servidor do CPTEC e é cortado em volta da área, posto na grade do projeto e recortado. A temperatura é a média das 03h, 09h, 15h e 21h. Precisa do RustGIS 0.8.0, no desktop. Período: de 1 a 10 dias a partir das 00 UTC (21h de Brasília) da rodada mais recente, ou de uma rodada passada (o servidor guarda desde 2025). Resolução ou escala: cerca de 20 km (0,18°, TQ0666), interpolada para a grade do projeto. Unidades: mm (chuva somada) ou °C (temperatura média). Licença: dados públicos do INPE, com a citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/bam-previsao.md",
+      "icon": "time_next",
+      "params": "{\"variavel\"?: \"chuva\" (padrão) | \"temperatura\", \"dias\"?: de 1 a 10 (padrão 3), \"rodada\"?: dd/mm/aaaa, a rodada das 00 UTC desse dia (padrão: a mais recente), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+      "form": [
+        {
+          "name": "variavel",
+          "label": "O que",
+          "kind": "choice",
+          "required": true,
+          "choices": [
+            "Chuva somada (mm)",
+            "Temperatura média (°C)"
+          ],
+          "default": "Chuva somada (mm)",
+          "help": "A chuva somada nos dias, em mm, ou a temperatura média do ar a 2 m, em °C."
+        },
+        {
+          "name": "dias",
+          "label": "Dias",
+          "kind": "number",
+          "required": true,
+          "default": 3,
+          "help": "De 1 a 10. Cada dia baixa 4 registros de cerca de 4 MB."
+        },
+        {
+          "name": "rodada",
+          "label": "Rodada (dd/mm/aaaa)",
+          "kind": "text",
+          "help": "Vazio: a mais recente completa. Numa data, a rodada das 00 UTC dela, para comparar a previsão com o que aconteceu."
+        }
+      ]
+    },
+    {
       "id": "grace-seca",
       "label": "Seca: umidade do solo e água subterrânea (GRACE, NASA)",
       "help": "Os indicadores semanais de seca do GRACE, da NASA: quão seca ou úmida está a zona das raízes (o primeiro metro do solo), a água subterrânea ou a superfície do solo, em percentil da distribuição de 1948 a 2012 do mesmo lugar e da mesma época (5 é mais seco que em 95% do tempo). Um modelo assimila as medidas de gravidade dos satélites GRACE e GRACE-FO. Toda segunda-feira desde 03/02/2003, em células de 0,25° (cerca de 28 km), nas cores do mapa da NASA: para o país, o estado ou a bacia, não para um município. A janela da área, lida do arquivo do mundo e mascarada pelo contorno; sem área, o mundo inteiro. Sem login; só no desktop. Período: semanal (toda segunda-feira), de 03/02/2003 à semana mais recente; faltam duas semanas (24/05/2021 e 17/07/2023). Resolução ou escala: 0,25° (cerca de 28 km). Unidades: percentil (0 a 100) da semana na distribuição de 1948 a 2012 do mesmo lugar e época. Licença: CC BY 4.0 no registro de dados abertos da AWS; o GES DISC da NASA o diz aberto e sem restrição, com a citação. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/grace-seca.md",
@@ -3006,6 +3041,7 @@
             "menu": "Previsão",
             "icon": "time_next",
             "items": [
+              "bam-previsao",
               "chuva-prevista",
               "chuva-ensemble",
               "temperatura-prevista"

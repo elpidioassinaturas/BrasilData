@@ -77,6 +77,8 @@ const NOTA_RADAR_10M_COR: &str = "Vermelho: VV (−15 a −3 dB); verde: VH (−
 const NOTA_RADAR_10M: &str = "A posição não é exata: em oito áreas planas do Brasil, o dado ficou de 13 a 33 m a oeste do Sentinel-2 (mediana de 18 m), e no relevo forte o desvio muda de um lugar para outro.";
 const NOTA_LUZES: &str = "Número relativo, sem unidade. A série usa o satélite DMSP até 2013 e o VIIRS depois, corrigidos um pelo outro: de 2013 para 2014 as células acesas do Brasil sobem 23%, e boa parte disso deve vir da troca.";
 const NOTA_NDVI_COPERNICUS: &str = "Células de cerca de 300 m, com um valor para cada 10 dias. Sem cor: água ou sem dado.";
+const NOTA_BAM: &str = "Previsão de uma rodada do BAM, o modelo global do CPTEC/INPE, em células de cerca de 20 km interpoladas para a grade: mostra a variação regional, não a chuva de uma encosta nem de uma tempestade isolada.";
+
 const NOTA_GRACE: &str = "Percentil (0 seco, 100 úmido) da semana na distribuição de 1948 a 2012 do mesmo lugar e da mesma época: 5 é mais seco que em 95% do tempo. Não é a quantidade de água. Células de 0,25° (cerca de 28 km) de um modelo da NASA que assimila os satélites GRACE e GRACE-FO.";
 
 const NOTA_METANO: &str = "Metano na coluna de ar, não a emissão de cada lugar: o valor cai com a altitude (há menos ar acima) e varia com a estação. Grade de 0,1° (cerca de 11 km) calculada pelo BrasilData dos pixels de boa qualidade do satélite.";
@@ -189,6 +191,16 @@ pub fn receita(nome: &str) -> Option<Receita> {
             legenda: None,
             nota: Some(NOTA_POWER),
         });
+    }
+    if let Some(v) = crate::bam::da_camada(nome) {
+        let barra = match v {
+            crate::bam::Variavel::Chuva => (
+                "Chuva (mm)".to_string(),
+                crate::tempo::marcas_da_chuva(crate::tempo::escala_chuva(crate::bam::dias_da_camada(nome).unwrap_or(3))),
+            ),
+            crate::bam::Variavel::Temperatura => ("Temperatura (°C)".to_string(), 5),
+        };
+        return Some(Receita { subtitulo: n.to_string(), barra: Some(barra), legenda: None, nota: Some(NOTA_BAM) });
     }
     if crate::tempo::eh_da_previsao(nome) {
         let ensemble = n.starts_with("Chance de chuva") || n.starts_with("Chuva do ensemble");

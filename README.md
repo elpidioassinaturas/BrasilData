@@ -487,6 +487,12 @@ Fora da tabela, com a citação no comando **Fontes**:
   com alguns meses de atraso; o ano, só completo. Por script:
   `plugin:brasildata/power-umidade={"medida": "anomalia", "ano": 2024, "mes": 9}` e
   `plugin:brasildata/power-evapotranspiracao={"ano": 2024}`;
+- **Previsão do BAM:** CPTEC/INPE, Modelo Atmosférico Global Brasileiro (BAM, TQ0666L064, cerca de
+  20 km; Figueroa et al. 2016, doi:10.1175/WAF-D-16-0062.1), do
+  [servidor de dados do CPTEC](https://dataserver.cptec.inpe.br/dataserver_modelos/bam/). A chuva somada
+  ou a temperatura média de 1 a 10 dias da rodada das 00 UTC, de registros de 6 horas baixados um a um
+  (cerca de 4 MB cada) de arquivos GRIB do globo. Precisa do RustGIS 0.8.0, no desktop. Por script:
+  `plugin:brasildata/bam-previsao={"variavel": "chuva", "dias": 5}`;
 - **Seca (GRACE):** NASA Goddard Space Flight Center, GRACE-DA-DM Global 3.0, distribuído pelo
   National Drought Mitigation Center da [Universidade de Nebraska](https://nasagrace.unl.edu) (Li et
   al. 2019, doi:10.1029/2018WR024618). O percentil semanal, desde 2003, da umidade do primeiro metro do

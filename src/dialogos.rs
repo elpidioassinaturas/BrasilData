@@ -56,6 +56,9 @@ pub const INDICADORES_GDO: [(&str, &str); 6] = [
     ("SPI de 12 meses (CHIRPS)", "spi12"),
 ];
 
+/// As escolhas do que a previsão do BAM traz e a `variavel` de cada uma.
+pub const VARIAVEIS_BAM: [(&str, &str); 2] = [("Chuva somada (mm)", "chuva"), ("Temperatura média (°C)", "temperatura")];
+
 /// As escolhas do indicador de seca do GRACE e o `indicador` de cada uma.
 pub const INDICADORES_GRACE: [(&str, &str); 3] =
     [("Umidade na zona das raízes (1 m)", "raizes"), ("Água subterrânea", "subterranea"), ("Umidade na superfície do solo", "superficie")];
@@ -195,6 +198,7 @@ const TROCAS: &[(&str, &str, Escolhas)] = &[
     ("ctrees-biomassa", "camada", &CAMADAS_CTREES),
     ("gdo-seca", "indicador", &INDICADORES_GDO),
     ("grace-seca", "indicador", &INDICADORES_GRACE),
+    ("bam-previsao", "variavel", &VARIAVEIS_BAM),
     ("dist-situacao", "paleta", &PALETAS),
     ("radar-10m", "polarizacao", &POLARIZACOES),
     ("gem15", "modelo", &MODELOS_GEM15),
