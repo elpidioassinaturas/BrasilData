@@ -1,7 +1,7 @@
 {
   "id": "brasildata",
   "name": "BrasilData",
-  "version": "0.1.77",
+  "version": "0.1.78",
   "description": "Dados públicos do Brasil para a área do usuário (IBGE, MMA, ICMBio, INPE, CEMADEN, ANA, ANEEL, ANP, SFB/CAR, INCRA, FUNAI, IBAMA, ANM, DNIT, Ministério da Saúde, Copernicus, NASA/ASF, FAO, WRI, Open-Meteo, CHIRPS, Google DeepMind): só o que cruza a área, recortado por ela, com a fonte e a licença de cada camada.",
   "author": "Elpídio Filho",
   "homepage": "https://github.com/elpidioassinaturas/BrasilData",
@@ -1130,7 +1130,7 @@
     {
       "id": "bam-previsao",
       "label": "Previsão do BAM (CPTEC/INPE)",
-      "help": "A chuva somada ou a temperatura média prevista pelo BAM, o modelo global do CPTEC/INPE, de 1 a 10 dias da rodada mais recente das 00 UTC (21h de Brasília) ou de uma data passada. Cada registro de 6 horas (cerca de 4 MB) vem sozinho do servidor do CPTEC e é cortado em volta da área, posto na grade do projeto e recortado. A temperatura é a média das 03h, 09h, 15h e 21h. Precisa do RustGIS 0.8.0, no desktop. Período: de 1 a 10 dias a partir das 00 UTC (21h de Brasília) da rodada mais recente, ou de uma rodada passada (o servidor guarda desde 2025). Resolução ou escala: cerca de 20 km (0,18°, TQ0666), interpolada para a grade do projeto. Unidades: mm (chuva somada) ou °C (temperatura média). Licença: dados públicos do INPE, com a citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/bam-previsao.md",
+      "help": "A chuva somada ou a temperatura média prevista pelo BAM, o modelo global do CPTEC/INPE, de 1 a 10 dias da rodada mais recente das 00 UTC (21h de Brasília) ou de uma data passada. Cada registro de 6 horas (cerca de 4 MB) vem sozinho do servidor do CPTEC e é cortado em volta da área, posto na grade do projeto e recortado. A temperatura é a média das 03h, 09h, 15h e 21h. Precisa do RustGIS 0.8.0, no desktop. No 0.8.0, a janela só volta ao comando uns 10 minutos depois que os registros chegam: quando eles aparecerem no mapa, rode o comando de novo. Período: de 1 a 10 dias a partir das 00 UTC (21h de Brasília) da rodada mais recente, ou de uma rodada passada (o servidor guarda desde 2025). Resolução ou escala: cerca de 20 km (0,18°, TQ0666), interpolada para a grade do projeto. Unidades: mm (chuva somada) ou °C (temperatura média). Licença: dados públicos do INPE, com a citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/bam-previsao.md",
       "icon": "time_next",
       "params": "{\"variavel\"?: \"chuva\" (padrão) | \"temperatura\", \"dias\"?: de 1 a 10 (padrão 3), \"rodada\"?: dd/mm/aaaa, a rodada das 00 UTC desse dia (padrão: a mais recente), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
       "form": [
@@ -2761,7 +2761,7 @@
     {
       "id": "sobre",
       "label": "Sobre",
-      "help": "BrasilData 0.1.77, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nAs fontes dos dados e como contribuir estão nas abas do fim do painel Área de trabalho: basta clicar nelas. Para lê-las aqui, marque a caixa e clique em Executar. A janela fica aberta até o X do canto de cima.",
+      "help": "BrasilData 0.1.78, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nAs fontes dos dados e como contribuir estão nas abas do fim do painel Área de trabalho: basta clicar nelas. Para lê-las aqui, marque a caixa e clique em Executar. A janela fica aberta até o X do canto de cima.",
       "icon": "about",
       "params": "{\"completo\"?: true para as fontes e como contribuir | \"parte\"?: \"tudo\" (padrão) | \"autoria\" | \"fontes\" | \"contribuir\"}",
       "form": [
@@ -2929,7 +2929,7 @@
         "kind": "text",
         "id": "sobre",
         "label": "Sobre o BrasilData: Autoria",
-        "text": "BrasilData 0.1.77, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData"
+        "text": "BrasilData 0.1.78, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData"
       }
     ]
   },

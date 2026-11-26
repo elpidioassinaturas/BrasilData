@@ -37,7 +37,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.77"
+VERSAO = "0.1.78"
 AUTOR = "Elpídio Filho"
 # Como o texto Sobre chama o autor (o manifesto e o README levam o nome completo).
 AUTOR_SOBRE = "Professor Elpídio"
@@ -729,7 +729,7 @@ EM_MENUS = [
         {
             "id": "bam-previsao",
             "label": "Previsão do BAM (CPTEC/INPE)",
-            "help": "A chuva somada ou a temperatura média prevista pelo BAM, o modelo global do CPTEC/INPE, de 1 a 10 dias da rodada mais recente das 00 UTC (21h de Brasília) ou de uma data passada. Cada registro de 6 horas (cerca de 4 MB) vem sozinho do servidor do CPTEC e é cortado em volta da área, posto na grade do projeto e recortado. A temperatura é a média das 03h, 09h, 15h e 21h. Precisa do RustGIS 0.8.0, no desktop",
+            "help": "A chuva somada ou a temperatura média prevista pelo BAM, o modelo global do CPTEC/INPE, de 1 a 10 dias da rodada mais recente das 00 UTC (21h de Brasília) ou de uma data passada. Cada registro de 6 horas (cerca de 4 MB) vem sozinho do servidor do CPTEC e é cortado em volta da área, posto na grade do projeto e recortado. A temperatura é a média das 03h, 09h, 15h e 21h. Precisa do RustGIS 0.8.0, no desktop. No 0.8.0, a janela só volta ao comando uns 10 minutos depois que os registros chegam: quando eles aparecerem no mapa, rode o comando de novo",
             "icon": "time_next",
             "params": "{\"variavel\"?: \"chuva\" (padrão) | \"temperatura\", \"dias\"?: de 1 a 10 (padrão 3), \"rodada\"?: dd/mm/aaaa, a rodada das 00 UTC desse dia (padrão: a mais recente), \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
             "form": [

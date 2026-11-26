@@ -6083,8 +6083,9 @@ fn bam_previsao(req: &Request) -> Result<Value, String> {
     }
     if baixando > 0 {
         avisar(&format!(
-            "Previsão do BAM: baixando {baixando} registros de cerca de 4 MB da rodada de {}; a camada vem quando eles chegarem",
-            d.texto()
+            "Previsão do BAM: baixando {baixando} registros de cerca de 4 MB da rodada de {}. Eles entram no mapa em segundos, como \"{}…\"; no RustGIS 0.8.0, a camada só vem uns 10 minutos depois: rode o comando de novo quando eles aparecerem, e ele usa os que já chegaram",
+            d.texto(),
+            bam::PASSAGEM.trim_start_matches(PREFIXO).trim_end()
         ));
         return Ok(json!({"pending": baixando}));
     }
