@@ -16,7 +16,7 @@ A chuva somada ou a temperatura média prevista nos próximos dias pelo BAM, o m
 | **Resolução ou escala** | cerca de 20 km (0,18°, TQ0666), interpolada para a grade do projeto. |
 | **Unidades** | mm (chuva somada) ou °C (temperatura média). |
 | **Legenda** | A chuva, do branco ao azul, verde, amarelo, vermelho e roxo, nas mesmas cores e escalas da Chuva prevista; a temperatura, de 0 °C (azul-escuro) a 40 °C (vermelho-escuro). |
-| **Cuidados de uso** | É uma rodada de um modelo só: compare com a Chuva prevista do ECMWF e com o ensemble. A grade de 20 km não vê a chuva de uma encosta nem de uma tempestade isolada. A temperatura é a média de quatro horários (03h, 09h, 15h e 21h), não a média das máximas e mínimas. Cada dia baixa quatro registros de cerca de 4 MB do servidor do CPTEC. |
+| **Cuidados de uso** | É uma rodada de um modelo só: compare com a Chuva prevista do ECMWF e com o ensemble. A grade de 20 km não vê a chuva de uma encosta nem de uma tempestade isolada. A temperatura é a média de quatro horários (03h, 09h, 15h e 21h), não a média das máximas e mínimas. Cada dia baixa quatro registros de cerca de 4 MB do servidor do CPTEC. Na janela do RustGIS 0.8.0, o comando só termina uns 10 minutos depois de os registros chegarem, com um aviso em inglês de que a espera acabou; a correção foi enviada ao RustGIS. |
 | **Licença** | dados públicos do INPE, com a citação da fonte. |
 | **Citação** | CPTEC/INPE, Modelo Atmosférico Global Brasileiro (BAM), TQ0666L064; Figueroa, S. N. et al. (2016), Weather and Forecasting 31, 1547–1572, doi:10.1175/WAF-D-16-0062.1. |
 | **App desktop** | sim |

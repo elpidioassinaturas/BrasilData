@@ -491,7 +491,9 @@ Fora da tabela, com a citação no comando **Fontes**:
   20 km; Figueroa et al. 2016, doi:10.1175/WAF-D-16-0062.1), do
   [servidor de dados do CPTEC](https://dataserver.cptec.inpe.br/dataserver_modelos/bam/). A chuva somada
   ou a temperatura média de 1 a 10 dias da rodada das 00 UTC, de registros de 6 horas baixados um a um
-  (cerca de 4 MB cada) de arquivos GRIB do globo. Precisa do RustGIS 0.8.0, no desktop. Por script:
+  (cerca de 4 MB cada) de arquivos GRIB do globo. Precisa do RustGIS 0.8.0, no desktop; na janela do
+  0.8.0, o comando só termina uns 10 minutos depois de os registros chegarem (a correção foi enviada ao
+  RustGIS). Por script:
   `plugin:brasildata/bam-previsao={"variavel": "chuva", "dias": 5}`;
 - **Seca (GRACE):** NASA Goddard Space Flight Center, GRACE-DA-DM Global 3.0, distribuído pelo
   National Drought Mitigation Center da [Universidade de Nebraska](https://nasagrace.unl.edu) (Li et
