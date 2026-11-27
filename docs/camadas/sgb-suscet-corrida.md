@@ -6,7 +6,7 @@ As bacias de drenagem suscetíveis a corridas de massa (fluxos de detritos) das 
 
 ![Mapa exemplo: Bacias suscetíveis a corrida de massa (SGB) em Zona da Mata (MG)](sgb-suscet-corrida.png)
 
-*Mapa exemplo: Zona da Mata (MG), feito com o plugin.*
+*Mapa exemplo: Zona da Mata (MG), com o dado do plugin e a folha feita à parte no RustGIS.*
 
 | | |
 |---|---|

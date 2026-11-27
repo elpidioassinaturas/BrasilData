@@ -4,9 +4,9 @@
 
 O índice das Cartas de Anomalias aerogeofísicas 1:100.000 do SGB, com o link do mapa em PDF e dos dados de cada folha.
 
-![Mapa exemplo: Cartas de anomalias 1:100.000 (SGB) em Minas Gerais](sgb-cartas-anomalia.png)
+![Mapa exemplo: Cartas de anomalias 1:100.000 (SGB) em Brasil](sgb-cartas-anomalia.png)
 
-*Mapa exemplo: Minas Gerais, feito com o plugin.*
+*Mapa exemplo: Brasil, com o dado do plugin e a folha feita à parte no RustGIS.*
 
 | | |
 |---|---|

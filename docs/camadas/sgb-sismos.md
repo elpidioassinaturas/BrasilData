@@ -4,9 +4,9 @@
 
 Os sismos do catálogo do SGB: data, magnitude, profundidade, intensidade e localidade de cada evento sentido ou registrado no Brasil.
 
-![Mapa exemplo: Sismos (SGB, 1720 a 2013) em Minas Gerais](sgb-sismos.png)
+![Mapa exemplo: Sismos (SGB, 1720 a 2013) em Brasil](sgb-sismos.png)
 
-*Mapa exemplo: Minas Gerais, feito com o plugin.*
+*Mapa exemplo: Brasil, com o dado do plugin e a folha feita à parte no RustGIS.*
 
 | | |
 |---|---|

@@ -6,7 +6,7 @@ As áreas dos levantamentos hiperespectrais aerotransportados do SGB, feitos par
 
 ![Mapa exemplo: Levantamentos hiperespectrais (SGB) em Brasil](sgb-hiperespectral.png)
 
-*Mapa exemplo: Brasil, feito com o plugin.*
+*Mapa exemplo: Brasil, com o dado do plugin e a folha feita à parte no RustGIS.*
 
 | | |
 |---|---|

@@ -6,7 +6,7 @@ Os contornos das bacias sedimentares brasileiras, terrestres e marítimas, do SG
 
 ![Mapa exemplo: Bacias sedimentares (SGB) em Brasil](sgb-bacias.png)
 
-*Mapa exemplo: Brasil, feito com o plugin.*
+*Mapa exemplo: Brasil, com o dado do plugin e a folha feita à parte no RustGIS.*
 
 | | |
 |---|---|

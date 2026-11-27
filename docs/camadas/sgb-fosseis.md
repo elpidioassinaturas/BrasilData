@@ -4,9 +4,9 @@
 
 As ocorrências fossilíferas cadastradas pelo SGB, com o táxon, a unidade litoestratigráfica e o ambiente de deposição.
 
-![Mapa exemplo: Ocorrências fossilíferas (SGB) em Minas Gerais](sgb-fosseis.png)
+![Mapa exemplo: Ocorrências fossilíferas (SGB) em Região Nordeste](sgb-fosseis.png)
 
-*Mapa exemplo: Minas Gerais, feito com o plugin.*
+*Mapa exemplo: Região Nordeste, com o dado do plugin e a folha feita à parte no RustGIS.*
 
 | | |
 |---|---|

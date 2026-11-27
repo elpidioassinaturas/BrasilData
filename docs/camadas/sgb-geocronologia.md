@@ -6,7 +6,7 @@ As amostras de rocha com idade medida em laboratório (U-Pb, Sm-Nd, Rb-Sr, Ar-Ar
 
 ![Mapa exemplo: Análises geocronológicas (SGB) em Minas Gerais](sgb-geocronologia.png)
 
-*Mapa exemplo: Minas Gerais, feito com o plugin.*
+*Mapa exemplo: Minas Gerais, com o dado do plugin e a folha feita à parte no RustGIS.*
 
 | | |
 |---|---|

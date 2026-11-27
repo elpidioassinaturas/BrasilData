@@ -6,7 +6,7 @@ As camadas de solo descritas e analisadas nos levantamentos e pesquisas publicad
 
 ![Mapa exemplo: Pontos de solo: análises de laboratório (SoilData) em Minas Gerais](solo-pontos.png)
 
-*Mapa exemplo: Minas Gerais, feito com o plugin.*
+*Mapa exemplo: Minas Gerais, com o dado do plugin e a folha feita à parte no RustGIS.*
 
 | | |
 |---|---|

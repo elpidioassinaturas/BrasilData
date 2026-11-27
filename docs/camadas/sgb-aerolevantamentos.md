@@ -6,7 +6,7 @@ As áreas dos levantamentos aerogeofísicos do Brasil cadastrados pelo SGB (magn
 
 ![Mapa exemplo: Levantamentos aerogeofísicos (SGB) em Minas Gerais](sgb-aerolevantamentos.png)
 
-*Mapa exemplo: Minas Gerais, feito com o plugin.*
+*Mapa exemplo: Minas Gerais, com o dado do plugin e a folha feita à parte no RustGIS.*
 
 | | |
 |---|---|

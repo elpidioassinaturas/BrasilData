@@ -4,9 +4,9 @@
 
 As unidades geológicas (litoestratigráficas) do Serviço Geológico do Brasil: as rochas que afloram, agrupadas em unidades com sigla, nome, hierarquia (grupo, formação, suíte, complexo...), litotipos e idade.
 
-![Mapa exemplo: Geologia do SGB em Viçosa (MG)](geologia-sgb.png)
+![Mapa exemplo: Geologia do SGB em Minas Gerais](geologia-sgb.png)
 
-*Mapa exemplo: Viçosa (MG), feito com o plugin.*
+*Mapa exemplo: Minas Gerais, com o dado do plugin e a folha feita à parte no RustGIS.*
 
 | | |
 |---|---|

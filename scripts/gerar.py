@@ -1775,6 +1775,7 @@ AREAS_EXEMPLO = {
     "parana": ("uf:PR", "Paraná"),
     "rondonia": ("uf:RO", "Rondônia"),
     "sergipe": ("uf:SE", "Sergipe"),
+    "quadrilatero-ferrifero": ("", "Quadrilátero Ferrífero (MG)"),
 }
 # Os mapas exemplo com a folha feita à parte no RustGIS (o dado é o do plugin; a folha não é a do botão
 # Layout, e o scripts/mapas_exemplo.py não os refaz).
@@ -1804,6 +1805,28 @@ FOLHAS_PROPRIAS = {
     "enderecos",
     "prodes-amazonia",
     "luzes-mudanca",
+    "geologia-sgb",
+    "sgb-suscet-movimento",
+    "sgb-aerolevantamentos",
+    "sgb-sismos",
+    "sgb-gama-magneto",
+    "sgb-suscet-inundacao",
+    "sgb-risco",
+    "sgb-gravimetria",
+    "sgb-recursos-minerais",
+    "sgb-geodiversidade",
+    "sgb-siagas",
+    "sgb-magnetotelurico",
+    "sgb-hiperespectral",
+    "sgb-cartas-anomalia",
+    "solo-pontos",
+    "mapbiomas-solo-pontos",
+    "sgb-suscet-corrida",
+    "sgb-afloramentos",
+    "sgb-geocronologia",
+    "sgb-petrografia",
+    "sgb-fosseis",
+    "sgb-bacias",
 }
 # Os comandos que não trazem camada de dados: sem ficha.
 SEM_FICHA = {"area-selecao", "area-desenho", "area-municipio", "grade", "painel", "escolher-area", "layout", "fontes", "atualizacao", "sobre", "sobre-autoria", "sobre-fontes", "sobre-contribuir", "indicadores", "amostra-aleatoria", "amostra-estratificada", "amostra-sistematica"}

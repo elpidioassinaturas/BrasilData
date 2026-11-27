@@ -6,7 +6,7 @@ As amostras de solo com que o MapBiomas treinou os mapas da Coleção 3 (beta) d
 
 ![Mapa exemplo: Pontos de treino do MapBiomas Solo em Minas Gerais](mapbiomas-solo-pontos.png)
 
-*Mapa exemplo: Minas Gerais, feito com o plugin.*
+*Mapa exemplo: Minas Gerais, com o dado do plugin e a folha feita à parte no RustGIS.*
 
 | | |
 |---|---|

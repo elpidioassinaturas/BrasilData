@@ -4,9 +4,9 @@
 
 Os setores de risco geológico alto e muito alto (deslizamento, queda de blocos, inundação, erosão...) mapeados pelo SGB nos municípios, com o número de moradias e de pessoas expostas.
 
-![Mapa exemplo: Setores de risco geológico (SGB) em Viçosa (MG)](sgb-risco.png)
+![Mapa exemplo: Setores de risco geológico (SGB) em Juiz de Fora (MG)](sgb-risco.png)
 
-*Mapa exemplo: Viçosa (MG), feito com o plugin.*
+*Mapa exemplo: Juiz de Fora (MG), com o dado do plugin e a folha feita à parte no RustGIS.*
 
 | | |
 |---|---|

@@ -6,7 +6,7 @@ As lâminas petrográficas descritas pelo SGB: a rocha, o protolito e os minerai
 
 ![Mapa exemplo: Lâminas petrográficas (SGB) em Minas Gerais](sgb-petrografia.png)
 
-*Mapa exemplo: Minas Gerais, feito com o plugin.*
+*Mapa exemplo: Minas Gerais, com o dado do plugin e a folha feita à parte no RustGIS.*
 
 | | |
 |---|---|

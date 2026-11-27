@@ -4,7 +4,9 @@
 
 Os mapas do Brasil 1:1.000.000 do SGB, só para ver: o ternário de gamaespectrometria (potássio, tório e urânio em vermelho, verde e azul) ou a amplitude do sinal analítico magnético.
 
-*Sem mapa exemplo: a camada não chega pelo `rustgis-cli`, que faz os mapas (veja App web).*
+![Mapa exemplo: Mapas de gama e magnetometria do Brasil (SGB) em Minas Gerais](sgb-gama-magneto.png)
+
+*Mapa exemplo: Minas Gerais, com o dado do plugin e a folha feita à parte no RustGIS.*
 
 | | |
 |---|---|

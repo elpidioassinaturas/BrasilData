@@ -4,9 +4,9 @@
 
 As ocorrências, depósitos, garimpos e minas de recursos minerais cadastrados pelo Serviço Geológico do Brasil (base GEOSGB/Recursos Minerais).
 
-![Mapa exemplo: Ocorrências e recursos minerais (SGB) em Zona da Mata (MG)](sgb-recursos-minerais.png)
+![Mapa exemplo: Ocorrências e recursos minerais (SGB) em Minas Gerais](sgb-recursos-minerais.png)
 
-*Mapa exemplo: Zona da Mata (MG), feito com o plugin.*
+*Mapa exemplo: Minas Gerais, com o dado do plugin e a folha feita à parte no RustGIS.*
 
 | | |
 |---|---|

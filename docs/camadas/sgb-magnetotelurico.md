@@ -4,9 +4,9 @@
 
 As estações de sondagem magnetotelúrica (MT) do SGB e de parceiros, que medem a resistividade elétrica da crosta em profundidade.
 
-![Mapa exemplo: Estações magnetotelúricas (SGB) em Minas Gerais](sgb-magnetotelurico.png)
+![Mapa exemplo: Estações magnetotelúricas (SGB) em Brasil](sgb-magnetotelurico.png)
 
-*Mapa exemplo: Minas Gerais, feito com o plugin.*
+*Mapa exemplo: Brasil, com o dado do plugin e a folha feita à parte no RustGIS.*
 
 | | |
 |---|---|

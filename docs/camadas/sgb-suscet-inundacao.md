@@ -4,9 +4,9 @@
 
 As áreas suscetíveis a inundação das Cartas de Suscetibilidade a Movimentos Gravitacionais de Massa e Inundações do SGB, por município.
 
-![Mapa exemplo: Suscetibilidade a inundação (SGB) em Viçosa (MG)](sgb-suscet-inundacao.png)
+![Mapa exemplo: Suscetibilidade a inundação (SGB) em Muriaé (MG)](sgb-suscet-inundacao.png)
 
-*Mapa exemplo: Viçosa (MG), feito com o plugin.*
+*Mapa exemplo: Muriaé (MG), com o dado do plugin e a folha feita à parte no RustGIS.*
 
 | | |
 |---|---|

@@ -4,9 +4,9 @@
 
 Os poços tubulares, cacimbas e fontes do SIAGAS, o Sistema de Informações de Águas Subterrâneas do SGB, com a profundidade, os níveis, a vazão e a qualidade da água.
 
-![Mapa exemplo: Poços do SIAGAS (SGB) em Viçosa (MG)](sgb-siagas.png)
+![Mapa exemplo: Poços do SIAGAS (SGB) em Minas Gerais](sgb-siagas.png)
 
-*Mapa exemplo: Viçosa (MG), feito com o plugin.*
+*Mapa exemplo: Minas Gerais, com o dado do plugin e a folha feita à parte no RustGIS.*
 
 | | |
 |---|---|

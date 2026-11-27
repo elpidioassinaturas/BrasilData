@@ -6,7 +6,7 @@ As áreas suscetíveis a movimentos gravitacionais de massa (deslizamentos) das 
 
 ![Mapa exemplo: Suscetibilidade a movimento de massa (SGB) em Viçosa (MG)](sgb-suscet-movimento.png)
 
-*Mapa exemplo: Viçosa (MG), feito com o plugin.*
+*Mapa exemplo: Viçosa (MG), com o dado do plugin e a folha feita à parte no RustGIS.*
 
 | | |
 |---|---|

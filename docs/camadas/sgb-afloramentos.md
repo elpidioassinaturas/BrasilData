@@ -4,9 +4,9 @@
 
 Os afloramentos de rocha descritos pelos geólogos do SGB nos trabalhos de campo, com as rochas e a descrição.
 
-![Mapa exemplo: Afloramentos descritos em campo (SGB) em Viçosa (MG)](sgb-afloramentos.png)
+![Mapa exemplo: Afloramentos descritos em campo (SGB) em Quadrilátero Ferrífero (MG)](sgb-afloramentos.png)
 
-*Mapa exemplo: Viçosa (MG), feito com o plugin.*
+*Mapa exemplo: Quadrilátero Ferrífero (MG), com o dado do plugin e a folha feita à parte no RustGIS.*
 
 | | |
 |---|---|

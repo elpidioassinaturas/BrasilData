@@ -4,9 +4,9 @@
 
 As unidades geológico-ambientais do Mapa de Geodiversidade do Brasil: a geologia lida pelo comportamento do terreno (relevo, intemperismo, porosidade, aquífero).
 
-![Mapa exemplo: Geodiversidade do Brasil, 1:1.000.000 (SGB) em Zona da Mata (MG)](sgb-geodiversidade.png)
+![Mapa exemplo: Geodiversidade do Brasil, 1:1.000.000 (SGB) em Minas Gerais](sgb-geodiversidade.png)
 
-*Mapa exemplo: Zona da Mata (MG), feito com o plugin.*
+*Mapa exemplo: Minas Gerais, com o dado do plugin e a folha feita à parte no RustGIS.*
 
 | | |
 |---|---|

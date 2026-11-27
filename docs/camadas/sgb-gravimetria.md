@@ -6,7 +6,7 @@ As estações de gravimetria terrestre dos levantamentos do SGB e de parceiros: 
 
 ![Mapa exemplo: Estações gravimétricas (SGB) em Minas Gerais](sgb-gravimetria.png)
 
-*Mapa exemplo: Minas Gerais, feito com o plugin.*
+*Mapa exemplo: Minas Gerais, com o dado do plugin e a folha feita à parte no RustGIS.*
 
 | | |
 |---|---|
