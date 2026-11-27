@@ -1,7 +1,7 @@
 {
   "id": "brasildata",
   "name": "BrasilData",
-  "version": "0.1.79",
+  "version": "0.1.80",
   "description": "Dados públicos do Brasil para a área do usuário (IBGE, MMA, ICMBio, INPE, CEMADEN, ANA, ANEEL, ANP, SFB/CAR, INCRA, FUNAI, IBAMA, ANM, DNIT, Ministério da Saúde, Copernicus, NASA/ASF, FAO, WRI, Open-Meteo, CHIRPS, Google DeepMind): só o que cruza a área, recortado por ela, com a fonte e a licença de cada camada.",
   "author": "Elpídio Filho",
   "homepage": "https://github.com/elpidioassinaturas/BrasilData",
@@ -916,6 +916,34 @@
       "label": "Poços tubulares (SIAGAS/SGB)",
       "help": "Poços do SIAGAS (SGB): os poços tubulares, cacimbas e fontes do SIAGAS, o Sistema de Informações de Águas Subterrâneas do SGB, com a profundidade, os níveis, a vazão e a qualidade da água. Fonte: SGB (Serviço Geológico do Brasil), SIAGAS, Sistema de Informações de Águas Subterrâneas. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Muitos poços têm só parte dos campos preenchida. O cadastro depende do que perfuradores e órgãos informam: não tem todos os poços. Período: cadastro contínuo (data da perfuração e do cadastro de cada poço). Resolução ou escala: pontos: a posição do poço. Unidades: m (profundidade, nível estático nd_m e dinâmico ne_m), m³/h/m (vazão específica), µS/cm (condutividade). Licença: dados abertos do SGB; licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/sgb-siagas.md",
       "icon": "point_layer",
+      "params": "{}"
+    },
+    {
+      "id": "sgb-gravimetria",
+      "label": "Estações gravimétricas (SGB)",
+      "help": "Estações gravimétricas (SGB): as estações de gravimetria terrestre dos levantamentos do SGB e de parceiros: a gravidade medida e as anomalias ar-livre e Bouguer em cada ponto. Fonte: SGB (Serviço Geológico do Brasil), GeoSGB, Levantamentos geofísicos terrestres: gravimetria. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: As estações seguem estradas e trilhas: a cobertura é irregular, e interpolar entre levantamentos de épocas e métodos diferentes pede cuidado. Período: levantamentos de várias décadas (campo Date). Resolução ou escala: pontos: as estações, com o espaçamento de cada levantamento. Unidades: mGal (Gravity, FreeAir, Bouguer, CompBouguer); m (Elevation); g/cm³ (Density, a densidade da correção Bouguer). Licença: dados abertos do SGB; licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/sgb-gravimetria.md",
+      "icon": "point_layer",
+      "params": "{}"
+    },
+    {
+      "id": "sgb-magnetotelurico",
+      "label": "Estações magnetotelúricas (SGB)",
+      "help": "Estações magnetotelúricas (SGB): as estações de sondagem magnetotelúrica (MT) do SGB e de parceiros, que medem a resistividade elétrica da crosta em profundidade. Fonte: SGB (Serviço Geológico do Brasil), GeoSGB, Levantamentos geofísicos terrestres: magnetotelúrico. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: A camada diz onde houve sondagem, não a resistividade: os dados ficam com a instituição (campo DataAvailability). Período: campanhas de várias datas (StartDate, EndDate). Resolução ou escala: pontos: as estações. Unidades: m (Elevation); Hz (SampleFrequency). Licença: dados abertos do SGB; licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/sgb-magnetotelurico.md",
+      "icon": "point_layer",
+      "params": "{}"
+    },
+    {
+      "id": "sgb-hiperespectral",
+      "label": "Levantamentos hiperespectrais (SGB)",
+      "help": "Levantamentos hiperespectrais (SGB): as áreas dos levantamentos hiperespectrais aerotransportados do SGB, feitos para mapear minerais pela assinatura espectral. Fonte: SGB (Serviço Geológico do Brasil), GeoSGB, Levantamentos hiperespectrais aerotransportados. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: A camada mostra onde há imagem, não a imagem: os cubos hiperespectrais ficam com o SGB. Período: levantamentos recentes (campo data). Resolução ou escala: polígonos das áreas levantadas; a resolução espacial e espectral de cada uma nos campos res_espac e res_espect. Unidades: km² (area_km2). Licença: dados abertos do SGB; licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/sgb-hiperespectral.md",
+      "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
+      "id": "sgb-cartas-anomalia",
+      "label": "Cartas de anomalias (SGB)",
+      "help": "Cartas de anomalias 1:100.000 (SGB): o índice das Cartas de Anomalias aerogeofísicas 1:100.000 do SGB, com o link do mapa em PDF e dos dados de cada folha. Fonte: SGB (Serviço Geológico do Brasil), GeoSGB, Cartas de anomalias aerogeofísicas 1:100.000. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: A camada é um índice: as anomalias estão nos mapas em PDF de cada folha. Período: cartas publicadas desde 2015 (campo ano). Resolução ou escala: folhas 1:100.000. Unidades: sem unidade. Licença: dados abertos do SGB; licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/sgb-cartas-anomalia.md",
+      "icon": "polygon_layer",
       "params": "{}"
     },
     {
@@ -2692,6 +2720,41 @@
       ]
     },
     {
+      "id": "sgb-aerolevantamentos",
+      "label": "Levantamentos aerogeofísicos (SGB)",
+      "help": "As áreas dos levantamentos aerogeofísicos do Brasil cadastrados pelo SGB (magnetometria, gamaespectrometria, gravimetria, eletromagnetometria) que cruzam a área, com o ano, a altura de voo, o espaçamento das linhas e onde obter os dados (o link da página do levantamento na GeoSGB, onde o download pede login, ou a instrução de pedir à CBPM, à CNEN, à ANP ou à CODE). O SGB não aceita o recorte no pedido: o RustGIS baixa os 395 do Brasil (3 MB) e o comando continua sozinho quando chegam. Período: levantamentos de 1953 em diante (campo ANO_CONCLUSAO). Resolução ou escala: polígonos das áreas levantadas; o espaçamento das linhas de voo (ESPACAMENTO_LV_M) e a altura de voo (ALTURA_VOO_M) dizem o detalhe. Unidades: m (altura de voo, espaçamento das linhas de voo), km (espaçamento das linhas de controle), km² (área). Licença: dados abertos do SGB; licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/sgb-aerolevantamentos.md",
+      "icon": "unique",
+      "params": "{}"
+    },
+    {
+      "id": "sgb-gama-magneto",
+      "label": "Mapas de gama e magnetometria do Brasil (SGB)",
+      "help": "Os mapas do Brasil 1:1.000.000 do SGB, só para ver, por cima do mapa: o ternário de gamaespectrometria (vermelho, potássio; verde, tório; azul, urânio) ou a amplitude do sinal analítico magnético. Não trazem os valores nem são recortados pela área: os valores estão nos grids de cada levantamento, na GeoSGB, com login. Período: compilação dos levantamentos aerogeofísicos do SGB. Resolução ou escala: escala 1:1.000.000. Unidades: sem unidade: imagens em cores. Licença: dados abertos do SGB; licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/sgb-gama-magneto.md",
+      "icon": "rgb",
+      "params": "{\"mapa\"?: \"ternario\" (padrão) | \"magnetico\"}",
+      "form": [
+        {
+          "name": "mapa",
+          "label": "Mapa",
+          "kind": "choice",
+          "required": true,
+          "choices": [
+            "Ternário de gamaespectrometria (K, eTh, eU)",
+            "Amplitude do sinal analítico magnético"
+          ],
+          "default": "Ternário de gamaespectrometria (K, eTh, eU)",
+          "help": "O ternário de gamaespectrometria (K, eTh, eU) ou a amplitude do sinal analítico magnético."
+        }
+      ]
+    },
+    {
+      "id": "sgb-sismos",
+      "label": "Sismos (SGB, 1720 a 2013)",
+      "help": "Os sismos do catálogo do SGB na área, de 1720 a 2013: a data, a magnitude, a profundidade, a intensidade e a localidade, coloridos pela magnitude. O SGB não aceita o recorte no pedido e corta as respostas em 1.000: o RustGIS baixa o catálogo do Brasil em partes, e o comando continua sozinho quando elas chegam. O boletim atual é o da Rede Sismográfica Brasileira (USP). Período: de 1720 a 2013. Resolução ou escala: pontos: o epicentro, com o erro de localização (os antigos, deduzidos dos relatos). Unidades: magnitude (escala do catálogo, campo magnitude_num); km (PROFUNDIDADE); IO, a intensidade Mercalli no epicentro. Licença: dados abertos do SGB; licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/sgb-sismos.md",
+      "icon": "graduated",
+      "params": "{}"
+    },
+    {
       "id": "amostra-aleatoria",
       "label": "Aleatória simples",
       "help": "Amostragem aleatória simples: pontos para ir a campo, sorteados dentro da área de trabalho, todos com a mesma chance, na camada BrasilData: amostragem aleatória (rótulo, método, sorteio, longitude e latitude SIRGAS 2000). O número de pontos, o sorteio e o arquivo de pontos vêm da janela do comando; num RustGIS sem janelas de plugin, do painel Área de trabalho.",
@@ -2877,7 +2940,7 @@
     {
       "id": "sobre",
       "label": "Sobre",
-      "help": "BrasilData 0.1.79, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nAs fontes dos dados e como contribuir estão nas abas do fim do painel Área de trabalho: basta clicar nelas. Para lê-las aqui, marque a caixa e clique em Executar. A janela fica aberta até o X do canto de cima.",
+      "help": "BrasilData 0.1.80, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nAs fontes dos dados e como contribuir estão nas abas do fim do painel Área de trabalho: basta clicar nelas. Para lê-las aqui, marque a caixa e clique em Executar. A janela fica aberta até o X do canto de cima.",
       "icon": "about",
       "params": "{\"completo\"?: true para as fontes e como contribuir | \"parte\"?: \"tudo\" (padrão) | \"autoria\" | \"fontes\" | \"contribuir\"}",
       "form": [
@@ -3045,7 +3108,7 @@
         "kind": "text",
         "id": "sobre",
         "label": "Sobre o BrasilData: Autoria",
-        "text": "BrasilData 0.1.79, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData"
+        "text": "BrasilData 0.1.80, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData"
       }
     ]
   },
@@ -3211,6 +3274,18 @@
             ]
           },
           {
+            "menu": "Geofísica",
+            "icon": "point_layer",
+            "items": [
+              "sgb-gravimetria",
+              "sgb-magnetotelurico",
+              "sgb-hiperespectral",
+              "sgb-cartas-anomalia",
+              "sgb-aerolevantamentos",
+              "sgb-gama-magneto"
+            ]
+          },
+          {
             "menu": "Riscos geológicos",
             "icon": "polygon_layer",
             "items": [
@@ -3218,7 +3293,8 @@
               "sgb-suscet-inundacao",
               "sgb-suscet-movimento",
               "sgb-suscet-enxurrada",
-              "sgb-suscet-corrida"
+              "sgb-suscet-corrida",
+              "sgb-sismos"
             ]
           },
           {

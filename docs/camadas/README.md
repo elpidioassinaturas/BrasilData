@@ -2,7 +2,7 @@
 
 <!-- Gerado por scripts/gerar.py a partir do fontes.csv e do fichas.csv; não edite à mão. -->
 
-A ficha de cada uma das 193 camadas que os botões da aba BrasilData trazem: o que é, a fonte, o período, a resolução, as unidades, a legenda, a licença, a citação, os cuidados de uso, se funciona no app web, e um mapa exemplo feito com o plugin (o botão Layout). Os mapas exemplo são de Viçosa (MG), ou da Zona da Mata mineira para os produtos de baixa resolução; os temas que não existem lá vêm de outro município, dito em cada ficha. Os mapas saem do `scripts/mapas_exemplo.py`.
+A ficha de cada uma das 200 camadas que os botões da aba BrasilData trazem: o que é, a fonte, o período, a resolução, as unidades, a legenda, a licença, a citação, os cuidados de uso, se funciona no app web, e um mapa exemplo feito com o plugin (o botão Layout). Os mapas exemplo são de Viçosa (MG), ou da Zona da Mata mineira para os produtos de baixa resolução; os temas que não existem lá vêm de outro município, dito em cada ficha. Os mapas saem do `scripts/mapas_exemplo.py`.
 
 ## Território
 
@@ -99,6 +99,13 @@ A ficha de cada uma das 193 camadas que os botões da aba BrasilData trazem: o q
 | [Bacias suscetíveis a enxurrada (SGB)](sgb-suscet-enxurrada.md) | Meio físico › Riscos geológicos | As bacias de drenagem suscetíveis a enxurrada das Cartas de Suscetibilidade do SGB. |
 | [Bacias suscetíveis a corrida de massa (SGB)](sgb-suscet-corrida.md) | Meio físico › Riscos geológicos | As bacias de drenagem suscetíveis a corridas de massa (fluxos de detritos) das Cartas de Suscetibilidade do SGB. |
 | [Geologia do SGB](geologia-sgb.md) | Meio físico › Geologia e recursos minerais | As unidades geológicas (litoestratigráficas) do Serviço Geológico do Brasil: as rochas que afloram, agrupadas em unidades com sigla, nome, hierarquia (grupo, formação, suíte, complexo...), litotipos e idade. |
+| [Estações gravimétricas (SGB)](sgb-gravimetria.md) | Meio físico › Geofísica | As estações de gravimetria terrestre dos levantamentos do SGB e de parceiros: a gravidade medida e as anomalias ar-livre e Bouguer em cada ponto. |
+| [Estações magnetotelúricas (SGB)](sgb-magnetotelurico.md) | Meio físico › Geofísica | As estações de sondagem magnetotelúrica (MT) do SGB e de parceiros, que medem a resistividade elétrica da crosta em profundidade. |
+| [Levantamentos hiperespectrais (SGB)](sgb-hiperespectral.md) | Meio físico › Geofísica | As áreas dos levantamentos hiperespectrais aerotransportados do SGB, feitos para mapear minerais pela assinatura espectral. |
+| [Cartas de anomalias 1:100.000 (SGB)](sgb-cartas-anomalia.md) | Meio físico › Geofísica | O índice das Cartas de Anomalias aerogeofísicas 1:100.000 do SGB, com o link do mapa em PDF e dos dados de cada folha. |
+| [Levantamentos aerogeofísicos (SGB)](sgb-aerolevantamentos.md) | Meio físico › Geofísica | As áreas dos levantamentos aerogeofísicos do Brasil cadastrados pelo SGB (magnetometria, gamaespectrometria, gravimetria, eletromagnetometria), com onde obter os dados de cada um. |
+| [Sismos (SGB, 1720 a 2013)](sgb-sismos.md) | Meio físico › Riscos geológicos | Os sismos do catálogo do SGB: data, magnitude, profundidade, intensidade e localidade de cada evento sentido ou registrado no Brasil. |
+| [Mapas de gama e magnetometria do Brasil (SGB)](sgb-gama-magneto.md) | Meio físico › Geofísica | Os mapas do Brasil 1:1.000.000 do SGB, só para ver: o ternário de gamaespectrometria (potássio, tório e urânio em vermelho, verde e azul) ou a amplitude do sinal analítico magnético. |
 
 ## Tempo e clima
 

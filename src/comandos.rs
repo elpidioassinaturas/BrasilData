@@ -308,6 +308,9 @@ fn executar_comando(req: Request) -> Result<Value, String> {
         "solo-pontos" => pontos_de_solo(&req),
         "mapbiomas-solo-pontos" => pontos_de_treino_mapbiomas(&req),
         "geologia-sgb" => geologia_sgb(&req),
+        "sgb-aerolevantamentos" => aerolevantamentos_sgb(),
+        "sgb-sismos" => sismos_sgb(),
+        "sgb-gama-magneto" => mapa_geofisico_sgb(&req),
         "cemaden-chuva" => chuva_cemaden(),
         "cemaden-alertas" => alertas_cemaden(),
         id if gedi::Variavel::do_comando(id).is_some() => {
@@ -2173,6 +2176,14 @@ fn citacoes() -> Result<(Vec<Value>, String), String> {
             lista.push(json!({"layer": n, "source": soildata::CITACAO, "license": soildata::LICENCA}));
         } else if let Some(e) = sgb::escala_da_camada(&n) {
             lista.push(json!({"layer": n, "source": e.tema().fonte, "license": e.tema().licenca}));
+        } else if n == sgb::CAMADA_AERO {
+            lista.push(
+                json!({"layer": n, "source": sgb::CITACAO_AERO, "license": "dados abertos do SGB; licença não declarada no serviço"}),
+            );
+        } else if n == sgb::CAMADA_SISMOS {
+            lista.push(
+                json!({"layer": n, "source": sgb::CITACAO_SISMOS, "license": "dados abertos do SGB; licença não declarada no serviço"}),
+            );
         } else if mbsolo::eh_do_carbono(&n) {
             lista.push(json!({"layer": n, "source": mbsolo::CITACAO_CARBONO, "license": mbsolo::LICENCA_CARBONO}));
         } else if mbsolo::eh_daqui(&n) {
@@ -4745,6 +4756,96 @@ fn geologia_sgb(req: &Request) -> Result<Value, String> {
     Ok(r)
 }
 
+/// Os levantamentos aerogeofísicos do SGB na área ([`sgb`]): a área de cada um, com os métodos, o
+/// ano, a altura de voo e o espaçamento das linhas, e onde obter os dados. A camada do SGB recusa o
+/// retângulo: as 395 áreas vêm de uma vez (3 MB) e são recortadas pela área.
+fn aerolevantamentos_sgb() -> Result<Value, String> {
+    let fica = sgb::fica_aero;
+    let ficaram = |n: u64| if n == 1 { "1 levantamento".to_string() } else { format!("{n} levantamentos") };
+    let r = pontos_recortados(&PontosDeArquivo {
+        nome: sgb::CAMADA_AERO.to_string(),
+        bruto: sgb::BRUTO_AERO,
+        pedidos: vec![sgb::pedido_aero()],
+        baixando: format!(
+            "Levantamentos aerogeofísicos (SGB): baixando os 395 do Brasil (3 MB); o comando continua quando \"{}\" chegar",
+            sgb::BRUTO_AERO
+        ),
+        validas: None,
+        filtro: "\"TITULO\" IS NOT NULL OR \"TITULO\" IS NULL".to_string(),
+        campos: sgb::campos_aero(),
+        fica: &fica,
+        nao_comercial: None,
+        estilo: sgb::estilo_aero(),
+        nada: "nenhum levantamento aerogeofísico do SGB na área".to_string(),
+        ficaram: &ficaram,
+        fonte: "SGB, GeoSGB; os grids e o XYZ ficam na página de cada levantamento (o campo onde_obter), e o download lá pede login",
+    })?;
+    Ok(r)
+}
+
+/// Os sismos do catálogo do SGB na área (1720 a 2013): o serviço corta as respostas em 1.000 e não
+/// pagina nem aceita o retângulo; o plugin pede o maior ID e as faixas de 1.000 IDs, junta e
+/// recorta.
+fn sismos_sgb() -> Result<Value, String> {
+    let (_, na_area) = retangulo()?;
+    if !na_area {
+        return Err("escolha a área primeiro (painel Área de trabalho, ou Área: seleção)".into());
+    }
+    let pedidos = if feicoes_da_camada(sgb::BRUTO_SISMOS)?.is_some() {
+        Vec::new()
+    } else {
+        let r = match buscar(&[sgb::url_ids_sismos()]).map_err(|e| format!("o ArcGIS do SGB não respondeu ({e})"))? {
+            Ok(r) => r,
+            Err(p) => return Ok(p),
+        };
+        let j =
+            r[0].get("json").cloned().or_else(|| r[0]["text"].as_str().and_then(|s| serde_json::from_str(s).ok())).unwrap_or(Value::Null);
+        let (menor, maior) = sgb::ids_sismos(&j).ok_or("o ArcGIS do SGB não disse os IDs dos sismos")?;
+        sgb::pedidos_sismos(menor, maior)
+    };
+    let fica = sgb::fica_sismos;
+    let ficaram = |n: u64| if n == 1 { "1 sismo".to_string() } else { format!("{n} sismos") };
+    let classes: Vec<soildata::Classe> = sgb::CLASSES_SISMOS.to_vec();
+    pontos_recortados(&PontosDeArquivo {
+        nome: sgb::CAMADA_SISMOS.to_string(),
+        bruto: sgb::BRUTO_SISMOS,
+        pedidos,
+        baixando: "Sismos (SGB): baixando o catálogo do Brasil em partes de 1.000; o comando continua quando elas chegarem".to_string(),
+        validas: None,
+        filtro: "\"ID\" > 0".to_string(),
+        campos: sgb::campos_sismos(),
+        fica: &fica,
+        nao_comercial: None,
+        estilo: (
+            "BrasilData: sismos do SGB".to_string(),
+            soildata::estilo_graduado("BrasilData: sismos do SGB", "magnitude_num", &classes),
+        ),
+        nada: "nenhum sismo do catálogo do SGB na área".to_string(),
+        ficaram: &ficaram,
+        fonte: "SGB, catálogo de sismos, 1720 a 2013; o boletim atual é o da RSBR (USP)",
+    })
+}
+
+/// Um mapa do Brasil do SGB só para ver ([`sgb::MapaGeofisico`]): imagens do MapServer, sem os
+/// valores e sem recorte.
+fn mapa_geofisico_sgb(req: &Request) -> Result<Value, String> {
+    let m = sgb::MapaGeofisico::ler(req.str("mapa"))?;
+    let nome = m.nome();
+    if mosaicos_no_mapa()?.iter().any(|n| n == nome) {
+        host::run("map.removeTiles", json!({"name": nome}))?;
+    }
+    host::run(
+        "map.addTiles",
+        json!({"url": m.url(), "kind": "raster", "name": nome, "overlay": true, "opacity": 0.85, "attribution": "SGB (Serviço Geológico do Brasil)"}),
+    )?;
+    avisar(&format!(
+        "{}: mapa para ver, do Brasil 1:1.000.000; {}. Não traz os valores (eles estão nos grids de cada levantamento, na GeoSGB, com login) e não é recortado pela área",
+        nome.trim_start_matches(PREFIXO),
+        m.leitura()
+    ));
+    Ok(json!({"tiles": nome}))
+}
+
 /// Pontos de um arquivo de texto do Brasil inteiro, recortados pela área: o que muda entre os
 /// pontos do SoilData e os de treino do MapBiomas Solo.
 struct PontosDeArquivo<'a> {
@@ -4752,8 +4853,10 @@ struct PontosDeArquivo<'a> {
     nome: String,
     /// A camada com o arquivo inteiro, que sai no fim.
     bruto: &'a str,
-    /// O pedido do arquivo ao `layer.addUrl`.
-    pedido: Value,
+    /// Os pedidos do arquivo ao `layer.addUrl`, cada um com o nome da sua camada: um só (com o nome
+    /// `bruto`), ou as partes de um serviço que corta as respostas (os sismos do SGB), juntadas em
+    /// `bruto` quando todas chegam.
+    pedidos: Vec<Value>,
     /// O aviso enquanto o arquivo desce, na janela ("Pontos de solo: baixando o arquivo ...").
     baixando: String,
     /// As linhas com coordenadas que valem, antes do recorte, quando o arquivo tem coordenadas
@@ -4791,10 +4894,23 @@ fn pontos_recortados(p: &PontosDeArquivo) -> Result<Value, String> {
     }
     remover(&[nome])?;
     if feicoes_da_camada(p.bruto)?.is_none() {
-        let r = host::run("layer.addUrl", p.pedido.clone())?;
-        if estilo::esperando(&r) {
+        let partes: Vec<String> = p.pedidos.iter().map(|q| q["name"].as_str().unwrap_or(p.bruto).to_string()).collect();
+        let ha = nomes()?;
+        let mut baixando = 0;
+        for (q, parte) in p.pedidos.iter().zip(&partes) {
+            if ha.contains(parte) {
+                continue;
+            }
+            if estilo::esperando(&host::run("layer.addUrl", q.clone())?) {
+                baixando += 1;
+            }
+        }
+        if baixando > 0 {
             avisar(&p.baixando);
             return Ok(json!({"pending": true}));
+        }
+        if partes.len() > 1 || partes.first().map(String::as_str) != Some(p.bruto) {
+            juntar(&partes, p.bruto)?;
         }
     }
     let validas = format!("{nome} (coordenadas válidas)");
@@ -4861,7 +4977,7 @@ fn pontos_de_solo(req: &Request) -> Result<Value, String> {
     pontos_recortados(&PontosDeArquivo {
         nome: soildata::camada(a, d),
         bruto: soildata::BRUTO,
-        pedido: soildata::pedido(),
+        pedidos: vec![soildata::pedido()],
         baixando: format!(
             "Pontos de solo: baixando o arquivo do SoilData do Brasil (19,8 MB); o comando continua quando \"{}\" chegar",
             soildata::BRUTO
@@ -4897,7 +5013,7 @@ fn pontos_de_treino_mapbiomas(req: &Request) -> Result<Value, String> {
     pontos_recortados(&PontosDeArquivo {
         nome: mbsolo::camada(dado, prof),
         bruto: mbsolo::bruto(dado),
-        pedido: mbsolo::pedido(dado),
+        pedidos: vec![mbsolo::pedido(dado)],
         baixando: format!(
             "Pontos de treino do MapBiomas Solo: baixando o arquivo do Brasil ({tamanho}); o comando continua quando \"{}\" chegar",
             mbsolo::bruto(dado)

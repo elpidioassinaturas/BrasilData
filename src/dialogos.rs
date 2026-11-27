@@ -223,6 +223,10 @@ pub const ESCALAS_SGB: [(&str, &str); 6] = [
     ("1:25.000", "25k"),
 ];
 
+/// As escolhas do mapa de geofísica do Brasil do SGB e o `mapa` de cada uma.
+pub const MAPAS_SGB: [(&str, &str); 2] =
+    [("Ternário de gamaespectrometria (K, eTh, eU)", "ternario"), ("Amplitude do sinal analítico magnético", "magnetico")];
+
 /// As escolhas de um parâmetro e o valor de cada uma.
 type Escolhas = &'static [(&'static str, &'static str)];
 
@@ -272,6 +276,7 @@ const TROCAS: &[(&str, &str, Escolhas)] = &[
     ("mapbiomas-solo-pontos", "dado", &DADOS_MBSOLO),
     ("mapbiomas-solo-pontos", "profundidade", &PROFUNDIDADES_MBSOLO),
     ("geologia-sgb", "escala", &ESCALAS_SGB),
+    ("sgb-gama-magneto", "mapa", &MAPAS_SGB),
 ];
 
 /// O número do mês de nome `nome` (janeiro é 1).

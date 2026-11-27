@@ -344,6 +344,205 @@ pub fn teto(id: &str) -> Option<u64> {
     }
 }
 
+// --- Geofísica (etapa 3): o ArcGIS Server do SGB, que devolve a origem do pedido no CORS. ---
+
+/// Os serviços de mapa do SGB.
+pub const ARCGIS: &str = "https://geoportal.sgb.gov.br/server/rest/services";
+
+pub const CITACAO_AERO: &str = "SGB (Serviço Geológico do Brasil), GeoSGB, Levantamentos aerogeofísicos (geofisica/aerogeofisica)";
+pub const CITACAO_SISMOS: &str = "SGB (Serviço Geológico do Brasil), catálogo de sismos do Brasil (geofisica/sismos), 1720 a 2013";
+pub const CITACAO_MAPAS: &str = "SGB (Serviço Geológico do Brasil), Mapas do Brasil 1:1.000.000 de gamaespectrometria (ternário K, eTh, eU) e de amplitude do sinal analítico magnético (Mapas_Tern_Mag_MIL1)";
+
+/// A camada do arquivo inteiro dos levantamentos, que sai no fim.
+pub const BRUTO_AERO: &str = "BrasilData: SGB, levantamentos aerogeofísicos (sem recorte)";
+/// O nome dos levantamentos na área.
+pub const CAMADA_AERO: &str = "BrasilData: Levantamentos aerogeofísicos (SGB)";
+
+/// Os campos dos levantamentos que vêm do serviço.
+const CAMPOS_AERO: [&str; 11] = [
+    "TITULO",
+    "METODOS",
+    "ANO_CONCLUSAO",
+    "ALTURA_VOO_M",
+    "ESPACAMENTO_LV_M",
+    "ESPACAMENTO_LC_KM",
+    "DIRECAO_LV",
+    "AREA_LEVANTADA_KM2",
+    "CONTRATANTE",
+    "SITUACAO",
+    "IMAGENS",
+];
+
+/// O pedido dos 395 levantamentos de uma vez (3 MB): a camada recusa o retângulo ("Unable to
+/// complete operation", conferido em 27/11/2026), e o plugin os recorta pela área.
+pub fn pedido_aero() -> Value {
+    let url =
+        format!("{ARCGIS}/geofisica/aerogeofisica/MapServer/0/query?where=1%3D1&outFields={}&outSR=4326&f=geojson", CAMPOS_AERO.join(","));
+    json!({"url": url, "name": BRUTO_AERO, "zoom": false})
+}
+
+/// O campo do método, para o estilo, e as classes dele, na ordem da legenda.
+pub const CAMPO_METODO: &str = "metodo";
+pub const METODOS: [(&str, &str); 5] = [
+    ("Magnetometria e gamaespectrometria", "#d7301f"),
+    ("Gamaespectrometria", "#fc8d59"),
+    ("Magnetometria", "#2b8cbe"),
+    ("Com gravimetria", "#31a354"),
+    ("Com eletromagnetometria", "#756bb1"),
+];
+
+/// Os campos novos dos levantamentos: o método resumido e onde obter os dados (o link, quando o
+/// SGB dá um; senão o que ele diz, como "SOLICITACAO DIRETAMENTE A CBPM").
+pub fn campos_aero() -> Vec<(&'static str, &'static str, String)> {
+    let gama = "(\"METODOS\" LIKE '%Gama%' OR \"METODOS\" LIKE '%Cintil%')";
+    let metodo = format!(
+        "CASE WHEN {gama} AND \"METODOS\" LIKE '%Magn%' THEN '{}' WHEN {gama} THEN '{}' WHEN \"METODOS\" LIKE '%Grav%' THEN '{}' WHEN \"METODOS\" LIKE '%Eletromag%' OR \"METODOS\" LIKE '%VLF%' THEN '{}' ELSE '{}' END",
+        METODOS[0].0, METODOS[1].0, METODOS[3].0, METODOS[4].0, METODOS[2].0
+    );
+    let onde = "CASE WHEN \"IMAGENS\" IS NULL OR trim(\"IMAGENS\") = '' THEN 'sem informação no SGB' ELSE \"IMAGENS\" END".to_string();
+    vec![(CAMPO_METODO, "text", metodo), ("onde_obter", "text", onde)]
+}
+
+/// Se um campo dos levantamentos fica (o link vai para `onde_obter`).
+pub fn fica_aero(c: &str) -> bool {
+    c == CAMPO_METODO || c == "onde_obter" || (CAMPOS_AERO.contains(&c) && c != "IMAGENS")
+}
+
+/// O estilo dos levantamentos: o contorno, na cor do método.
+pub fn estilo_aero() -> (String, String) {
+    let nome = "BrasilData: levantamentos aerogeofísicos (SGB)".to_string();
+    let classes: Vec<Value> = METODOS
+        .iter()
+        .map(|(m, cor)| {
+            let c = hex(cor).unwrap_or([120, 120, 120]);
+            json!([m, {"fill": [c[0], c[1], c[2], 35], "stroke": [c[0], c[1], c[2], 255], "stroke_width": 1.4, "size": 0.0, "marker": "Circle"}])
+        })
+        .collect();
+    let texto = json!([{"name": nome, "geometry": "Polygon",
+        "renderer": {"Unique": {"field": CAMPO_METODO, "classes": classes, "other": poligono([150, 150, 150], 30), "ramp": "Harbour"}},
+        "labels": {"enabled": false, "field": "TITULO", "size": 7.0, "color": [40, 40, 40, 255], "halo": true, "bold": false,
+            "min_scale": null, "max_scale": null, "closest": null, "farthest": null, "placement": "Center"},
+        "transparency": 0.0}])
+    .to_string();
+    (nome, texto)
+}
+
+/// A camada dos sismos do arquivo inteiro, e o nome na área.
+pub const BRUTO_SISMOS: &str = "BrasilData: SGB, sismos (sem recorte)";
+pub const CAMADA_SISMOS: &str = "BrasilData: Sismos (SGB, 1720 a 2013)";
+
+/// O pedido do menor e do maior `ID` dos sismos (o serviço corta em 1.000 feições e não pagina).
+/// Os IDs não começam em 1 (em 27/11/2026, de 3.964 a 6.077), e uma faixa vazia vem como um
+/// GeoJSON sem feições, que o RustGIS recusa ("unsupported file type").
+pub fn url_ids_sismos() -> String {
+    format!(
+        "{ARCGIS}/geofisica/sismos/MapServer/0/query?where=1%3D1&outStatistics=%5B%7B%22statisticType%22%3A%22min%22%2C%22onStatisticField%22%3A%22ID%22%2C%22outStatisticFieldName%22%3A%22menor%22%7D%2C%7B%22statisticType%22%3A%22max%22%2C%22onStatisticField%22%3A%22ID%22%2C%22outStatisticFieldName%22%3A%22maior%22%7D%5D&f=json"
+    )
+}
+
+/// O menor e o maior `ID` na resposta a [`url_ids_sismos`] (o ArcGIS devolve os nomes em
+/// maiúsculas).
+pub fn ids_sismos(r: &Value) -> Option<(u64, u64)> {
+    let a = &r["features"][0]["attributes"];
+    let v = |n: &str| a.get(n).or_else(|| a.get(n.to_uppercase().as_str())).and_then(Value::as_f64).map(|v| v as u64);
+    let (menor, maior) = (v("menor")?, v("maior")?);
+    (menor >= 1 && maior >= menor).then_some((menor, maior))
+}
+
+/// Os pedidos dos sismos em faixas de 1.000 IDs, de `menor` a `maior`: cada um cabe no corte do
+/// serviço, e o primeiro começa no menor ID.
+pub fn pedidos_sismos(menor: u64, maior: u64) -> Vec<Value> {
+    let inicio = menor - 1;
+    let n = (maior - inicio).div_ceil(1000).max(1);
+    (0..n)
+        .map(|i| {
+            let (de, ate) = (inicio + i * 1000, inicio + (i + 1) * 1000);
+            let nome = if n == 1 { BRUTO_SISMOS.to_string() } else { format!("{BRUTO_SISMOS} (parte {} de {n})", i + 1) };
+            let url = format!(
+                "{ARCGIS}/geofisica/sismos/MapServer/0/query?where=ID+%3E+{de}+AND+ID+%3C%3D+{ate}&outFields=ID,ANO,DIA_MES,MAGNITUDE,PROFUNDIDADE,CATEGORIA,IO,LOCALIDADE,UF,FONTE&outSR=4326&f=geojson"
+            );
+            json!({"url": url, "name": nome, "zoom": false})
+        })
+        .collect()
+}
+
+/// Os campos novos dos sismos: o ano e a magnitude como números (vêm como texto, a magnitude com
+/// vírgula: "2,3").
+pub fn campos_sismos() -> Vec<(&'static str, &'static str, String)> {
+    vec![
+        ("ano_evento", "double", "to_real(\"ANO\")".to_string()),
+        ("magnitude_num", "double", "to_real(replace(\"MAGNITUDE\", ',', '.'))".to_string()),
+    ]
+}
+
+/// Se um campo dos sismos fica.
+pub fn fica_sismos(c: &str) -> bool {
+    matches!(c, "ano_evento" | "magnitude_num" | "DIA_MES" | "PROFUNDIDADE" | "CATEGORIA" | "IO" | "LOCALIDADE" | "UF" | "FONTE")
+}
+
+/// As faixas de magnitude dos sismos.
+pub const CLASSES_SISMOS: [(f64, &str, &str); 5] = [
+    (2.0, "menos de 2", "#fee5d9"),
+    (3.0, "2 a 3", "#fcae91"),
+    (4.0, "3 a 4", "#fb6a4a"),
+    (5.0, "4 a 5", "#de2d26"),
+    (f64::INFINITY, "5 ou mais", "#a50f15"),
+];
+
+/// Um mapa do Brasil do SGB, só para ver: o ternário de gamaespectrometria ou a amplitude do sinal
+/// analítico magnético, que o SGB só serve como imagem (o `export` do MapServer; não há WMS).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum MapaGeofisico {
+    Ternario,
+    Magnetico,
+}
+
+impl MapaGeofisico {
+    pub fn ler(t: Option<&str>) -> Result<MapaGeofisico, String> {
+        match t.map(|t| t.trim().to_lowercase()).as_deref() {
+            None | Some("") | Some("ternario") | Some("gama") => Ok(MapaGeofisico::Ternario),
+            Some("magnetico") | Some("magnetometria") | Some("amplitude") => Ok(MapaGeofisico::Magnetico),
+            Some(o) => Err(format!("mapa '{o}': use ternario ou magnetico")),
+        }
+    }
+
+    /// A camada do MapServer (`TERN_Brasil.tif` é a 0; `AM_Brasil.tif`, a 1).
+    fn camada(self) -> u8 {
+        match self {
+            MapaGeofisico::Ternario => 0,
+            MapaGeofisico::Magnetico => 1,
+        }
+    }
+
+    /// O nome do mapa no projeto.
+    pub fn nome(self) -> &'static str {
+        match self {
+            MapaGeofisico::Ternario => "BrasilData: Ternário de gamaespectrometria do Brasil (SGB)",
+            MapaGeofisico::Magnetico => "BrasilData: Amplitude do sinal analítico magnético do Brasil (SGB)",
+        }
+    }
+
+    /// O endereço das imagens, no modelo que o RustGIS preenche com o retângulo de cada tile.
+    pub fn url(self) -> String {
+        format!(
+            "{ARCGIS}/Mapas_Tern_Mag_MIL1/MapServer/export?bbox={{bbox-epsg-3857}}&bboxSR=3857&imageSR=3857&size=256,256&format=png32&transparent=true&f=image&layers=show:{}",
+            self.camada()
+        )
+    }
+
+    /// Como ler as cores.
+    pub fn leitura(self) -> &'static str {
+        match self {
+            MapaGeofisico::Ternario => {
+                "as cores somam os três radioelementos: vermelho é potássio (K), verde é tório (eTh) e azul é urânio (eU); branco, altos nos três; preto, baixos nos três"
+            }
+            MapaGeofisico::Magnetico => {
+                "as cores quentes marcam a amplitude alta do sinal analítico magnético, sobre as bordas dos corpos magnéticos; as frias, a baixa"
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod testes {
     use super::*;
@@ -408,6 +607,34 @@ mod testes {
         );
         assert!(u.contains("&count=1000&startIndex=2000") && u.contains("bbox=-43.000000,-20.900000,-42.750000,-20.600000,EPSG:4674"));
         assert_eq!(onde_sigla("PP4_gamma'b"), "\"sigla\" = 'PP4_gamma''b'");
+    }
+
+    #[test]
+    fn a_geofisica() {
+        let p = pedido_aero();
+        assert!(
+            p["url"].as_str().unwrap().contains("aerogeofisica/MapServer/0/query?where=1%3D1&outFields=TITULO,") && p["name"] == BRUTO_AERO
+        );
+        assert!(fica_aero("onde_obter") && fica_aero("TITULO") && !fica_aero("IMAGENS") && !fica_aero("OBJECTID"));
+        let c = campos_aero();
+        assert!(c[0].2.starts_with("CASE WHEN (\"METODOS\" LIKE '%Gama%'") && c[0].2.contains("'Com gravimetria'"));
+        let (_, e) = estilo_aero();
+        let s: Value = serde_json::from_str(&e).unwrap();
+        assert_eq!(s[0]["renderer"]["Unique"]["classes"].as_array().unwrap().len(), 5);
+        assert_eq!(s[0]["labels"]["enabled"], false);
+        assert_eq!(ids_sismos(&json!({"features": [{"attributes": {"MENOR": 3964.0, "MAIOR": 6077.0}}]})), Some((3964, 6077)));
+        assert_eq!(ids_sismos(&json!({"features": [{"attributes": {"MAIOR": 6077.0}}]})), None);
+        let ps = pedidos_sismos(3964, 6077);
+        assert_eq!(ps.len(), 3);
+        assert!(ps[0]["url"].as_str().unwrap().contains("where=ID+%3E+3963+AND+ID+%3C%3D+4963"));
+        assert!(ps[2]["url"].as_str().unwrap().contains("ID+%3E+5963+AND+ID+%3C%3D+6963"));
+        assert_eq!(ps[2]["name"], format!("{BRUTO_SISMOS} (parte 3 de 3)"));
+        assert_eq!(pedidos_sismos(1, 900)[0]["name"], BRUTO_SISMOS);
+        assert!(fica_sismos("magnitude_num") && !fica_sismos("MAGNITUDE") && !fica_sismos("ID"));
+        assert_eq!(MapaGeofisico::ler(Some("magnetico")), Ok(MapaGeofisico::Magnetico));
+        assert!(MapaGeofisico::ler(Some("gravimetria")).is_err());
+        assert!(MapaGeofisico::Ternario.url().ends_with("&layers=show:0") && MapaGeofisico::Magnetico.url().ends_with("&layers=show:1"));
+        assert!(MapaGeofisico::Ternario.url().contains("export?bbox={bbox-epsg-3857}&bboxSR=3857"));
     }
 
     #[test]

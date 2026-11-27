@@ -296,7 +296,7 @@ Algumas camadas só abrem num dos aplicativos, e a ajuda de cada botão diz quan
 ## Fontes
 
 <!-- fontes: início (gerado por scripts/gerar.py a partir do fontes.csv; não edite à mão) -->
-113 camadas de 17 fontes, na ordem do `fontes.csv`. *App web*: se o servidor permite pedidos do navegador (CORS); *Recorte*: se a camada é recortada pela área. A ficha de cada camada (o que é, período, escala, unidades, legenda, cuidados de uso) e um mapa exemplo estão em [docs/camadas](docs/camadas/README.md).
+117 camadas de 17 fontes, na ordem do `fontes.csv`. *App web*: se o servidor permite pedidos do navegador (CORS); *Recorte*: se a camada é recortada pela área. A ficha de cada camada (o que é, período, escala, unidades, legenda, cuidados de uso) e um mapa exemplo estão em [docs/camadas](docs/camadas/README.md).
 
 | Grupo | Camada | Fonte | Serviço | Licença | App web | Recorte |
 |---|---|---|---|---|---|---|
@@ -413,6 +413,10 @@ Algumas camadas só abrem num dos aplicativos, e a ajuda de cada botão diz quan
 | Meio físico › Riscos geológicos | Bacias suscetíveis a enxurrada (SGB) | SGB (Serviço Geológico do Brasil), GeoSGB, Cartas de suscetibilidade a movimentos gravitacionais de massa e inundações | [WFS](https://geoservicos.sgb.gov.br/geoserver/ows) `gestao-territorial:suscet_enxurrada` | dados abertos do SGB; licença não declarada no serviço | sim | sim |
 | Meio físico › Riscos geológicos | Bacias suscetíveis a corrida de massa (SGB) | SGB (Serviço Geológico do Brasil), GeoSGB, Cartas de suscetibilidade a movimentos gravitacionais de massa e inundações | [WFS](https://geoservicos.sgb.gov.br/geoserver/ows) `gestao-territorial:suscet_corrida_de_massa` | dados abertos do SGB; licença não declarada no serviço | sim | sim |
 | Água › Recursos hídricos | Poços do SIAGAS (SGB) | SGB (Serviço Geológico do Brasil), SIAGAS, Sistema de Informações de Águas Subterrâneas | [WFS](https://geoservicos.sgb.gov.br/geoserver/ows) `hidrogeologia:siagas` | dados abertos do SGB; licença não declarada no serviço | sim | sim |
+| Meio físico › Geofísica | Estações gravimétricas (SGB) | SGB (Serviço Geológico do Brasil), GeoSGB, Levantamentos geofísicos terrestres: gravimetria | [ArcGIS REST](https://geoportal.sgb.gov.br/server/rest/services/geofisica/geofisica_terrestre/MapServer) `1` | dados abertos do SGB; licença não declarada no serviço | sim | sim |
+| Meio físico › Geofísica | Estações magnetotelúricas (SGB) | SGB (Serviço Geológico do Brasil), GeoSGB, Levantamentos geofísicos terrestres: magnetotelúrico | [ArcGIS REST](https://geoportal.sgb.gov.br/server/rest/services/geofisica/geofisica_terrestre/MapServer) `2` | dados abertos do SGB; licença não declarada no serviço | sim | sim |
+| Meio físico › Geofísica | Levantamentos hiperespectrais (SGB) | SGB (Serviço Geológico do Brasil), GeoSGB, Levantamentos hiperespectrais aerotransportados | [ArcGIS REST](https://geoportal.sgb.gov.br/server/rest/services/geofisica/levantamento_hiperespectral/MapServer) `0` | dados abertos do SGB; licença não declarada no serviço | sim | sim |
+| Meio físico › Geofísica | Cartas de anomalias 1:100.000 (SGB) | SGB (Serviço Geológico do Brasil), GeoSGB, Cartas de anomalias aerogeofísicas 1:100.000 | [ArcGIS REST](https://geoportal.sgb.gov.br/server/rest/services/Cartas_de_Anomalia/MapServer) `0` | dados abertos do SGB; licença não declarada no serviço | sim | sim |
 <!-- fontes: fim -->
 
 Fora da tabela, com a citação no comando **Fontes**:

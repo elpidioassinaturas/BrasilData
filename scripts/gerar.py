@@ -37,7 +37,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.79"
+VERSAO = "0.1.80"
 AUTOR = "Elpídio Filho"
 # Como o texto Sobre chama o autor (o manifesto e o README levam o nome completo).
 AUTOR_SOBRE = "Professor Elpídio"
@@ -118,6 +118,7 @@ PROFUNDIDADES_SOLO = ["5 cm", "10 cm", "30 cm", "50 cm", "100 cm"]
 DADOS_MBSOLO = ["Carbono orgânico: estoque de 0 a 30 cm (t/ha)", "Argila (g/kg)", "Areia (g/kg)", "Silte (g/kg)", "Fração grossa: cascalho e calhaus (g/kg)"]
 PROFUNDIDADES_MBSOLO = ["5 cm", "10 cm", "30 cm", "50 cm", "90 cm"]
 ESCALAS_SGB = ["1:1.000.000 (Brasil)", "Mapa do estado", "1:250.000", "1:100.000", "1:50.000", "1:25.000"]
+MAPAS_SGB = ["Ternário de gamaespectrometria (K, eTh, eU)", "Amplitude do sinal analítico magnético"]
 PERIODOS_OLM = ["2020 a 2022", "2015 a 2020 (só carbono e pH)", "2010 a 2015 (só carbono e pH)", "2005 a 2010 (só carbono e pH)", "2000 a 2005 (só carbono e pH)"]
 VARIAVEIS_GEDTM = [
     "Elevação do terreno (m)",
@@ -1622,6 +1623,42 @@ EM_MENUS = [
             ],
         },
     ),
+    (
+        "Meio físico",
+        "Geofísica",
+        {
+            "id": "sgb-aerolevantamentos",
+            "label": "Levantamentos aerogeofísicos (SGB)",
+            "help": "As áreas dos levantamentos aerogeofísicos do Brasil cadastrados pelo SGB (magnetometria, gamaespectrometria, gravimetria, eletromagnetometria) que cruzam a área, com o ano, a altura de voo, o espaçamento das linhas e onde obter os dados (o link da página do levantamento na GeoSGB, onde o download pede login, ou a instrução de pedir à CBPM, à CNEN, à ANP ou à CODE). O SGB não aceita o recorte no pedido: o RustGIS baixa os 395 do Brasil (3 MB) e o comando continua sozinho quando chegam.",
+            "icon": "unique",
+            "params": "{}",
+        },
+    ),
+    (
+        "Meio físico",
+        "Geofísica",
+        {
+            "id": "sgb-gama-magneto",
+            "label": "Mapas de gama e magnetometria do Brasil (SGB)",
+            "help": "Os mapas do Brasil 1:1.000.000 do SGB, só para ver, por cima do mapa: o ternário de gamaespectrometria (vermelho, potássio; verde, tório; azul, urânio) ou a amplitude do sinal analítico magnético. Não trazem os valores nem são recortados pela área: os valores estão nos grids de cada levantamento, na GeoSGB, com login.",
+            "icon": "rgb",
+            "params": "{\"mapa\"?: \"ternario\" (padrão) | \"magnetico\"}",
+            "form": [
+                {"name": "mapa", "label": "Mapa", "kind": "choice", "required": True, "choices": MAPAS_SGB, "default": MAPAS_SGB[0], "help": "O ternário de gamaespectrometria (K, eTh, eU) ou a amplitude do sinal analítico magnético."},
+            ],
+        },
+    ),
+    (
+        "Meio físico",
+        "Riscos geológicos",
+        {
+            "id": "sgb-sismos",
+            "label": "Sismos (SGB, 1720 a 2013)",
+            "help": "Os sismos do catálogo do SGB na área, de 1720 a 2013: a data, a magnitude, a profundidade, a intensidade e a localidade, coloridos pela magnitude. O SGB não aceita o recorte no pedido e corta as respostas em 1.000: o RustGIS baixa o catálogo do Brasil em partes, e o comando continua sozinho quando elas chegam. O boletim atual é o da Rede Sismográfica Brasileira (USP).",
+            "icon": "graduated",
+            "params": "{}",
+        },
+    ),
 ]
 # Os comandos das abas Sobre, só nos botões do fim do painel (fora da aba do RustGIS).
 SOBRE_ABAS = [
@@ -1853,7 +1890,7 @@ TOPICOS = {
     "Área": ["Amostragem"],
     "Território": ["Limites", "Recortes especiais", "Cadastro fundiário", "Terras indígenas"],
     "Sociedade e economia": ["População", "Economia", "Agricultura", "Eleições", "Saúde"],
-    "Meio físico": ["Geologia e recursos minerais", "Riscos geológicos", "Relevo", "Solos"],
+    "Meio físico": ["Geologia e recursos minerais", "Geofísica", "Riscos geológicos", "Relevo", "Solos"],
     "Tempo e clima": ["Previsão", "Chuva observada", "Desastres", "Clima", "Clima passado (ERA5)", "Satélites do JAXA", "Atmosfera"],
     "Água": ["Hidrografia", "Bacias", "Recursos hídricos"],
     "Vegetação e meio ambiente": ["Vegetação", "Cubo de dados do INPE", "Uso e cobertura", "Desmatamento", "Queimadas", "Áreas protegidas", "Fiscalização"],
