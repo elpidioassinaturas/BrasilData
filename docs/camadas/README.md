@@ -2,7 +2,7 @@
 
 <!-- Gerado por scripts/gerar.py a partir do fontes.csv e do fichas.csv; não edite à mão. -->
 
-A ficha de cada uma das 200 camadas que os botões da aba BrasilData trazem: o que é, a fonte, o período, a resolução, as unidades, a legenda, a licença, a citação, os cuidados de uso, se funciona no app web, e um mapa exemplo feito com o plugin (o botão Layout). Os mapas exemplo são de Viçosa (MG), ou da Zona da Mata mineira para os produtos de baixa resolução; os temas que não existem lá vêm de outro município, dito em cada ficha. Os mapas saem do `scripts/mapas_exemplo.py`.
+A ficha de cada uma das 201 camadas que os botões da aba BrasilData trazem: o que é, a fonte, o período, a resolução, as unidades, a legenda, a licença, a citação, os cuidados de uso, se funciona no app web, e um mapa exemplo feito com o plugin (o botão Layout). Os mapas exemplo são de Viçosa (MG), ou da Zona da Mata mineira para os produtos de baixa resolução; os temas que não existem lá vêm de outro município, dito em cada ficha. Os mapas saem do `scripts/mapas_exemplo.py`.
 
 ## Território
 
@@ -82,6 +82,7 @@ A ficha de cada uma das 200 camadas que os botões da aba BrasilData trazem: o q
 | [Elevação (Copernicus GLO-30)](elevacao.md) | Meio físico › Relevo | O modelo digital de superfície Copernicus GLO-30: a altitude do terreno com a vegetação e as construções. |
 | [Elevação a 15 m (Google GEM-15)](gem15.md) | Meio físico › Relevo | Os modelos de elevação do Google a 15 m (GEM-15, experimental): o terreno nu (DTM), a superfície (DSM) ou a altura acima do terreno. |
 | [Propriedades do solo a 30 m (OpenLandMap)](olm-solo.md) | Meio físico › Solos | Uma propriedade do solo a 30 m do OpenLandMap-soildb (OpenGeoHub): carbono orgânico, densidade de carbono, pH em água, densidade do solo, argila, areia ou silte, de 0 a 30, de 30 a 60 ou de 60 a 100 cm, prevista por aprendizado de máquina espaço-temporal sobre cerca de 400 mil amostras de solo do mundo inteiro. |
+| [Propriedades do solo a 250 m (SoilGrids)](soilgrids-solo.md) | Meio físico › Solos | Uma propriedade do solo a 250 m do SoilGrids 2.0 (ISRIC – World Soil Information): argila, areia, silte, carbono orgânico, densidade e estoque de carbono, pH em água, CTC a pH 7, nitrogênio, densidade do solo, fragmentos grossos e água retida a 10, 33 e 1500 kPa, em seis camadas de 0 a 200 cm, prevista por florestas aleatórias de quantis sobre os perfis do WoSIS, com a média, a mediana, os quantis de 5 e 95% e a incerteza. |
 | [Relevo e derivadas (GEDTM30)](gedtm-relevo.md) | Meio físico › Relevo | O terreno global a 30 m do GEDTM30 (OpenGeoHub), feito por aprendizado de máquina com os pontos de laser do ICESat-2 e do GEDI, e as variáveis derivadas dele: elevação, declividade, índice topográfico de umidade, diferença da elevação média, rugosidade, curvaturas, índice de forma, aberturas, sombreamento, geomorfons e fator LS, algumas também nas escalas de 480 e 960 m. |
 | [Terreno da América do Sul a 30 m (ANADEM)](anadem.md) | Meio físico › Relevo | O modelo digital do terreno da América do Sul a 30 m (ANADEM), da ANA e do IPH/UFRGS: o Copernicus GLO-30 sem o viés da vegetação, removido por aprendizado de máquina calibrado para o continente. |
 | [Pontos de solo: análises de laboratório (SoilData)](solo-pontos.md) | Meio físico › Solos | As camadas de solo descritas e analisadas nos levantamentos e pesquisas publicados no SoilData, o Repositório Brasileiro de Dados do Solo: argila, areia, silte, carbono orgânico, CTC, pH e densidade do solo de cada camada, e a classe do solo de cada perfil, juntados no Brazilian Soil Dataset 2024. |
@@ -167,10 +168,10 @@ A ficha de cada uma das 200 camadas que os botões da aba BrasilData trazem: o q
 | Camada | Onde na aba | O que é |
 |---|---|---|
 | [Vegetação (BDiA 1:250.000)](vegetacao.md) | Vegetação e meio ambiente › Vegetação | A vegetação: as regiões fitoecológicas (Floresta Estacional Semidecidual, Savana...) e as áreas de uso antrópico. |
-| [Unidades de conservação (CNUC 07/2026)](ucs.md) | Vegetação e meio ambiente › Áreas protegidas | As unidades de conservação federais, estaduais e municipais do Cadastro Nacional de Unidades de Conservação. |
+| [Unidades de conservação (CNUC)](ucs.md) | Vegetação e meio ambiente › Áreas protegidas | As unidades de conservação federais, estaduais e municipais do Cadastro Nacional de Unidades de Conservação (CNUC), do MMA. |
 | [Unidades de conservação estaduais de MG (IEF)](mg-ucs-estaduais.md) | Vegetação e meio ambiente › Áreas protegidas | As unidades de conservação estaduais de Minas Gerais, sob a gestão do Instituto Estadual de Florestas (IEF). |
 | [Unidades de conservação municipais de MG (IEF)](mg-ucs-municipais.md) | Vegetação e meio ambiente › Áreas protegidas | As unidades de conservação municipais de Minas Gerais registradas pelo IEF. |
-| [Unidades de conservação federais (ICMBio)](ucs-federais.md) | Vegetação e meio ambiente › Áreas protegidas | Os limites das unidades de conservação federais, publicados pelo ICMBio. |
+| [Unidades de conservação federais (CNUC)](ucs-federais.md) | Vegetação e meio ambiente › Áreas protegidas | As unidades de conservação federais, geridas pelo ICMBio, do Cadastro Nacional de Unidades de Conservação (CNUC). |
 | [Desmatamento anual (PRODES Cerrado)](prodes-cerrado.md) | Vegetação e meio ambiente › Desmatamento | O desmatamento anual do bioma Cerrado mapeado pelo INPE (PRODES): os polígonos de vegetação nativa suprimida a cada ano. |
 | [Desmatamento anual (PRODES Caatinga)](prodes-caatinga.md) | Vegetação e meio ambiente › Desmatamento | O desmatamento anual do bioma Caatinga mapeado pelo INPE (PRODES): os polígonos de vegetação nativa suprimida a cada ano. |
 | [Desmatamento anual (PRODES Amazônia Legal)](prodes-amazonia.md) | Vegetação e meio ambiente › Desmatamento | O desmatamento anual do bioma Amazônia (na Amazônia Legal) mapeado pelo INPE (PRODES): os polígonos de vegetação nativa suprimida a cada ano. |

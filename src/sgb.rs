@@ -480,6 +480,11 @@ pub fn fica_sismos(c: &str) -> bool {
     matches!(c, "ano_evento" | "magnitude_num" | "DIA_MES" | "PROFUNDIDADE" | "CATEGORIA" | "IO" | "LOCALIDADE" | "UF" | "FONTE")
 }
 
+/// Os sismos que ficam: sem a categoria E, os de fora do Brasil sentidos aqui (67 em 27/11/2026,
+/// como o do Chile de 1906, Ms 8,4), que o catálogo põe na cidade brasileira onde foram sentidos,
+/// com a magnitude da origem.
+pub const FILTRO_SISMOS: &str = "\"ID\" > 0 AND (\"CATEGORIA\" IS NULL OR \"CATEGORIA\" <> 'E')";
+
 /// As faixas de magnitude dos sismos.
 pub const CLASSES_SISMOS: [(f64, &str, &str); 5] = [
     (2.0, "menos de 2", "#fee5d9"),
@@ -528,6 +533,16 @@ impl MapaGeofisico {
             "{ARCGIS}/Mapas_Tern_Mag_MIL1/MapServer/export?bbox={{bbox-epsg-3857}}&bboxSR=3857&imageSR=3857&size=256,256&format=png32&transparent=true&f=image&layers=show:{}",
             self.camada()
         )
+    }
+
+    /// Como o RustGIS junta o mapa ao que está embaixo: o magnético vem com o branco opaco onde
+    /// não houve voo (alfa 255 em todo pixel, mesmo com `transparent=true`; conferido em 27/11/2026),
+    /// e "multiply" o deixa transparente; o ternário já vem transparente.
+    pub fn mistura(self) -> &'static str {
+        match self {
+            MapaGeofisico::Ternario => "normal",
+            MapaGeofisico::Magnetico => "multiply",
+        }
     }
 
     /// Como ler as cores.
@@ -635,6 +650,8 @@ mod testes {
         assert!(MapaGeofisico::ler(Some("gravimetria")).is_err());
         assert!(MapaGeofisico::Ternario.url().ends_with("&layers=show:0") && MapaGeofisico::Magnetico.url().ends_with("&layers=show:1"));
         assert!(MapaGeofisico::Ternario.url().contains("export?bbox={bbox-epsg-3857}&bboxSR=3857"));
+        assert_eq!(MapaGeofisico::Magnetico.mistura(), "multiply");
+        assert!(FILTRO_SISMOS.contains("<> 'E'"));
     }
 
     #[test]

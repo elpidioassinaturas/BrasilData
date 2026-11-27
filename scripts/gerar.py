@@ -37,7 +37,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.80"
+VERSAO = "0.1.81"
 AUTOR = "Elpídio Filho"
 # Como o texto Sobre chama o autor (o manifesto e o README levam o nome completo).
 AUTOR_SOBRE = "Professor Elpídio"
@@ -113,6 +113,10 @@ FIM_POWER = " Do NASA POWER (reanálise MERRA-2), só em terra: serve para o pa�
 # As escolhas do OpenLandMap-soildb e do GEDTM30 (as mesmas de src/dialogos.rs).
 PROPRIEDADES_OLM = ["Carbono orgânico (g/kg)", "Densidade de carbono (kg/m³)", "pH em água", "Densidade do solo (g/cm³)", "Argila (%)", "Areia (%)", "Silte (%)"]
 PROFUNDIDADES_OLM = ["0 a 30 cm", "30 a 60 cm", "60 a 100 cm"]
+# As escolhas do SoilGrids (as mesmas de src/dialogos.rs).
+PROPRIEDADES_SOILGRIDS = ["Argila (%)", "Areia (%)", "Silte (%)", "Carbono orgânico (g/kg)", "Densidade de carbono (kg/m³)", "Estoque de carbono, 0 a 30 cm (t/ha)", "pH em água", "CTC a pH 7 (cmolc/kg)", "Nitrogênio total (g/kg)", "Densidade do solo (g/cm³)", "Fragmentos grossos (% do volume)", "Água retida a 10 kPa (% do volume)", "Água retida a 33 kPa, capacidade de campo (% do volume)", "Água retida a 1500 kPa, ponto de murcha (% do volume)"]
+PROFUNDIDADES_SOILGRIDS = ["0 a 5 cm", "5 a 15 cm", "15 a 30 cm", "30 a 60 cm", "60 a 100 cm", "100 a 200 cm"]
+ESTATISTICAS_SOILGRIDS = ["Média", "Mediana", "Quantil de 5% (o valor baixo provável)", "Quantil de 95% (o valor alto provável)", "Incerteza (intervalo de 90% pela mediana)"]
 ATRIBUTOS_SOLO = ["Argila (g/kg)", "Areia (g/kg)", "Silte (g/kg)", "Carbono orgânico (g/kg)", "CTC (cmolc/kg)", "pH", "Densidade do solo (g/cm³)", "Classe do solo (ordem do SiBCS, um ponto por perfil)"]
 PROFUNDIDADES_SOLO = ["5 cm", "10 cm", "30 cm", "50 cm", "100 cm"]
 DADOS_MBSOLO = ["Carbono orgânico: estoque de 0 a 30 cm (t/ha)", "Argila (g/kg)", "Areia (g/kg)", "Silte (g/kg)", "Fração grossa: cascalho e calhaus (g/kg)"]
@@ -1583,6 +1587,22 @@ EM_MENUS = [
         "Meio físico",
         "Solos",
         {
+            "id": "soilgrids-solo",
+            "label": "Propriedades do solo a 250 m (SoilGrids)",
+            "help": "Uma propriedade do solo do SoilGrids 2.0 (ISRIC; licença CC BY 4.0), prevista a 250 m sobre os perfis do WoSIS: a textura, o carbono, o pH, a CTC, o nitrogênio, a densidade, os fragmentos grossos e a água retida a 10, 33 e 1500 kPa, em seis camadas até 2 m, com a média, a mediana, os quantis de 5 e 95% ou a incerteza. Completa o OpenLandMap (30 m) com a CTC, o nitrogênio, a água, o fundo do perfil e a incerteza. Só a área, pedida ao serviço do ISRIC, posta na grade e recortada pelo contorno; numa área grande, mais grossa. Previsões de um modelo, não análises.",
+            "icon": "stretch",
+            "params": "{\"propriedade\"?: \"argila\" (padrão) | \"areia\" | \"silte\" | \"carbono\" | \"densidade-carbono\" | \"estoque-carbono\" (só 0-30 cm) | \"ph\" | \"ctc\" | \"nitrogenio\" | \"densidade\" | \"cascalho\" | \"agua-10kpa\" | \"agua-33kpa\" | \"agua-1500kpa\", \"profundidade\"?: \"0-5\" (padrão) | \"5-15\" | \"15-30\" | \"30-60\" | \"60-100\" | \"100-200\", \"estatistica\"?: \"media\" (padrão) | \"mediana\" | \"q05\" | \"q95\" | \"incerteza\", \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+            "form": [
+                {"name": "propriedade", "label": "Propriedade", "kind": "choice", "required": True, "choices": PROPRIEDADES_SOILGRIDS, "default": PROPRIEDADES_SOILGRIDS[0], "help": "A propriedade do solo, na unidade dela. A água retida a 33 e a 1500 kPa dá a capacidade de campo e o ponto de murcha."},
+                {"name": "profundidade", "label": "Profundidade", "kind": "choice", "required": True, "choices": PROFUNDIDADES_SOILGRIDS, "default": PROFUNDIDADES_SOILGRIDS[0], "help": "A camada do solo, em cm a partir da superfície. O estoque de carbono só vem de 0 a 30 cm."},
+                {"name": "estatistica", "label": "Estatística", "kind": "choice", "required": True, "choices": ESTATISTICAS_SOILGRIDS, "default": ESTATISTICAS_SOILGRIDS[0], "help": "A média da previsão, ou a mediana e os quantis de 5 e 95% (o intervalo de 90%), ou a incerteza: a largura desse intervalo dividida pela mediana (acima de 1, a previsão vale pouco)."},
+            ],
+        },
+    ),
+    (
+        "Meio físico",
+        "Solos",
+        {
             "id": "solo-pontos",
             "label": "Pontos de solo: análises de laboratório (SoilData)",
             "help": "As camadas de solo descritas e analisadas nos levantamentos e pesquisas publicados no SoilData, o Repositório Brasileiro de Dados do Solo (UTFPR e MapBiomas), pelo Brazilian Soil Dataset 2024 (Samuel-Rosa e Horst; 47 mil camadas de 14 mil perfis com coordenada, de 1958 a 2024): a argila, a areia, o silte, o carbono orgânico, a CTC, o pH ou a densidade do solo da camada que contém a profundidade escolhida, ou a classe do solo (a ordem do SiBCS) de cada perfil. Medidas de laboratório, não previsões, mas espalhadas de modo desigual: muitas em Rondônia e no Rio Grande do Sul, poucas em outros lugares. Cada ponto tem a licença do conjunto de origem: 40% das camadas são CC BY-NC 4.0 (sem uso comercial). Na janela, o RustGIS baixa o arquivo do Brasil (19,8 MB, uns segundos) e o comando continua sozinho quando ele chega.",
@@ -1654,7 +1674,7 @@ EM_MENUS = [
         {
             "id": "sgb-sismos",
             "label": "Sismos (SGB, 1720 a 2013)",
-            "help": "Os sismos do catálogo do SGB na área, de 1720 a 2013: a data, a magnitude, a profundidade, a intensidade e a localidade, coloridos pela magnitude. O SGB não aceita o recorte no pedido e corta as respostas em 1.000: o RustGIS baixa o catálogo do Brasil em partes, e o comando continua sozinho quando elas chegam. O boletim atual é o da Rede Sismográfica Brasileira (USP).",
+            "help": "Os sismos do catálogo do SGB na área, de 1720 a 2013: a data, a magnitude, a profundidade, a intensidade e a localidade, coloridos pela magnitude, sem os de fora do Brasil sentidos aqui (a categoria E do catálogo, que os põe na cidade onde foram sentidos com a magnitude da origem). O SGB não aceita o recorte no pedido e corta as respostas em 1.000: o RustGIS baixa o catálogo do Brasil em partes, e o comando continua sozinho quando elas chegam. O boletim atual é o da Rede Sismográfica Brasileira (USP).",
             "icon": "graduated",
             "params": "{}",
         },

@@ -103,6 +103,8 @@ pub fn comando_da_camada(nome: &str, fonte: &str) -> Option<&'static str> {
         "ctrees-biomassa"
     } else if crate::olm::da_camada(nome).is_some() {
         "olm-solo"
+    } else if crate::soilgrids::da_camada(nome).is_some() {
+        "soilgrids-solo"
     } else if crate::gedtm::da_camada(nome).is_some() {
         "gedtm-relevo"
     } else if nome == crate::anadem::CAMADA {
@@ -189,6 +191,8 @@ mod tests {
             ("BrasilData: Incerteza da biomassa 2010 (CTrees, 100 m)", "ctrees-biomassa"),
             ("BrasilData: pH do solo em água 0–30 cm, 2010–2015 (OpenLandMap)", "olm-solo"),
             ("BrasilData: Argila 60–100 cm, 2020–2022 (OpenLandMap)", "olm-solo"),
+            ("BrasilData: CTC do solo a pH 7 0–5 cm (SoilGrids)", "soilgrids-solo"),
+            ("BrasilData: Água retida a 33 kPa 30–60 cm, incerteza (SoilGrids)", "soilgrids-solo"),
             ("BrasilData: Declividade 30 m, graus (GEDTM30)", "gedtm-relevo"),
             ("BrasilData: Geomorfons 240 m (GEDTM30)", "gedtm-relevo"),
             ("BrasilData: Elevação do terreno 30 m, m (GEDTM30)", "gedtm-relevo"),

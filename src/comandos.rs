@@ -58,6 +58,7 @@ use crate::saude;
 use crate::sem_nuvens::{self, Caminho, Composicao, DataNaArea, Valor};
 use crate::sgb;
 use crate::soildata;
+use crate::soilgrids;
 use crate::sol;
 use crate::tempo;
 use crate::vento;
@@ -252,6 +253,7 @@ fn executar_comando(req: Request) -> Result<Value, String> {
         "forty-tipologia" => forty_na_area(&req),
         "ctrees-biomassa" => ctrees_na_area(&req),
         "olm-solo" => olm_solo_na_area(&req),
+        "soilgrids-solo" => soilgrids_na_area(&req),
         "gedtm-relevo" => gedtm_na_area(&req),
         "anadem" => anadem_na_area(&req),
         "metano-tropomi" => metano_na_area(&req),
@@ -2254,6 +2256,8 @@ fn citacoes() -> Result<(Vec<Value>, String), String> {
             lista.push(json!({"layer": n, "source": ctrees::citacao(v, ano), "license": ctrees::LICENCA}));
         } else if let Some((p, prof, per)) = olm::da_camada(&n) {
             lista.push(json!({"layer": n, "source": olm::citacao(p, prof, per), "license": olm::LICENCA}));
+        } else if let Some((p, prof, e)) = soilgrids::da_camada(&n) {
+            lista.push(json!({"layer": n, "source": soilgrids::citacao(p, prof, e), "license": soilgrids::LICENCA}));
         } else if n == anadem::CAMADA {
             lista.push(json!({"layer": n, "source": anadem::CITACAO, "license": anadem::LICENCA}));
         } else if let Some((v, e)) = gedtm::da_camada(&n) {
@@ -4713,12 +4717,9 @@ fn geologia_sgb(req: &Request) -> Result<Value, String> {
             json!({"layer": null, "features": 0, "scales": sgb::ESCALAS.iter().zip(&n).map(|(x, k)| json!({"scale": x.texto(), "features": k})).collect::<Vec<_>>()}),
         );
     }
-    let r = tema_proprio(t)?;
-    let Some(nome) = r["layer"].as_str().map(str::to_string) else { return Ok(r) };
-    if r.get("pending").is_some() || r.get("downloading").is_some() {
-        return Ok(r);
-    }
-    // As unidades do retângulo (só a sigla e o nome, sem a geometria), para a legenda.
+    // As unidades do retângulo (só a sigla e o nome, sem a geometria), para a legenda: pedidas antes
+    // dos polígonos, porque as buscas de uma chamada do plugin têm um tempo só, e um estado inteiro
+    // (8 páginas de polígonos) o gastava antes delas.
     let pedidos: Vec<String> = crate::paginas(n[i], 10_000).into_iter().flatten().map(|p| sgb::pedido_das_unidades(e, c, p)).collect();
     let respostas = match buscar(&pedidos).map_err(|e| format!("o GeoServer do SGB não deu as unidades ({e})"))? {
         Ok(r) => r,
@@ -4728,8 +4729,14 @@ fn geologia_sgb(req: &Request) -> Result<Value, String> {
     for r in &respostas {
         sgb::unidades_csv(r["text"].as_str().unwrap_or(""), &mut unidades);
     }
-    // Só as que ficaram depois do recorte pela área (o retângulo pega vizinhas).
-    if unidades.len() <= 600 {
+    let r = tema_proprio(t)?;
+    let Some(nome) = r["layer"].as_str().map(str::to_string) else { return Ok(r) };
+    if r.get("pending").is_some() || r.get("downloading").is_some() {
+        return Ok(r);
+    }
+    // Só as que ficaram depois do recorte pela área (o retângulo pega vizinhas: em Minas Gerais, a
+    // 1:1.000.000, 748 no retângulo e 444 no estado).
+    if unidades.len() <= 5_000 {
         let mut ficam = std::collections::BTreeMap::new();
         for (sigla, nome_da_unidade) in unidades {
             let onde = sgb::onde_sigla(&sigla);
@@ -4812,7 +4819,7 @@ fn sismos_sgb() -> Result<Value, String> {
         pedidos,
         baixando: "Sismos (SGB): baixando o catálogo do Brasil em partes de 1.000; o comando continua quando elas chegarem".to_string(),
         validas: None,
-        filtro: "\"ID\" > 0".to_string(),
+        filtro: sgb::FILTRO_SISMOS.to_string(),
         campos: sgb::campos_sismos(),
         fica: &fica,
         nao_comercial: None,
@@ -4822,7 +4829,7 @@ fn sismos_sgb() -> Result<Value, String> {
         ),
         nada: "nenhum sismo do catálogo do SGB na área".to_string(),
         ficaram: &ficaram,
-        fonte: "SGB, catálogo de sismos, 1720 a 2013; o boletim atual é o da RSBR (USP)",
+        fonte: "SGB, catálogo de sismos, 1720 a 2013, sem os de fora do Brasil sentidos aqui (categoria E); o boletim atual é o da RSBR (USP)",
     })
 }
 
@@ -4836,7 +4843,7 @@ fn mapa_geofisico_sgb(req: &Request) -> Result<Value, String> {
     }
     host::run(
         "map.addTiles",
-        json!({"url": m.url(), "kind": "raster", "name": nome, "overlay": true, "opacity": 0.85, "attribution": "SGB (Serviço Geológico do Brasil)"}),
+        json!({"url": m.url(), "kind": "raster", "name": nome, "overlay": true, "opacity": 0.85, "blend": m.mistura(), "attribution": "SGB (Serviço Geológico do Brasil)"}),
     )?;
     avisar(&format!(
         "{}: mapa para ver, do Brasil 1:1.000.000; {}. Não traz os valores (eles estão nos grids de cada levantamento, na GeoSGB, com login) e não é recortado pela área",
@@ -8925,6 +8932,103 @@ fn olm_solo_na_area(req: &Request) -> Result<Value, String> {
     Ok(json!({
         "layer": l.saida, "property": p.valor(), "depth": format!("{}-{}", prof.0, prof.1), "period": format!("{}-{}", per.0, per.1),
         "level": k, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula, "report": texto.trim_start_matches(PREFIXO),
+    }))
+}
+
+/// Uma propriedade do solo do SoilGrids 2.0 a 250 m ([`soilgrids`]): a área pedida ao WCS do ISRIC
+/// (reduzida numa área grande), na unidade, posta na grade do projeto e recortada pela área.
+fn soilgrids_na_area(req: &Request) -> Result<Value, String> {
+    let p = soilgrids::Propriedade::ler(req.str("propriedade"))?;
+    let (prof, trocou) = soilgrids::ler_profundidade(req.str("profundidade"), p)?;
+    let e = soilgrids::Estatistica::ler(req.str("estatistica"))?;
+    let (c, g) = area_e_grade(req)?;
+    let k = soilgrids::reducao(c, g.celula);
+    let bruto = soilgrids::janela_nome(p, prof, e, k);
+    let sem_resposta = |e: String| {
+        if falha_passageira(&e) || e.contains("timeout") {
+            format!("o servidor do ISRIC (maps.isric.org) não respondeu agora: tente de novo daqui a pouco ({e})")
+        } else {
+            e
+        }
+    };
+    // A imagem de um clique anterior (ou a que chegou: no app web, o comando roda de novo) serve se
+    // cobre a área.
+    let serve = nomes()?.contains(&bruto) && extensao(&bruto)?.is_some_and(|x| retangulo_cabe(c, x));
+    if !serve {
+        tirar_janela(&bruto)?;
+        let url = soilgrids::url(p, prof, e, soilgrids::janela(c, k), k);
+        let r = host::run("layer.addUrl", json!({"url": url, "name": bruto, "zoom": false})).map_err(sem_resposta)?;
+        if pendente(&r) {
+            avisar(&format!("{} (SoilGrids): pedindo a área ao ISRIC; a camada vem quando chegar", p.nome()));
+            return Ok(json!({"pending": 1}));
+        }
+        // Um erro do servidor (um XML no lugar da imagem) não vira camada.
+        if !nomes()?.contains(&bruto) {
+            return Err("o servidor do ISRIC (maps.isric.org) não devolveu a imagem: tente de novo daqui a pouco".into());
+        }
+    }
+    let soilgrids::Leitura { divisor, unidade, faixa, escala, rampa } = soilgrids::leitura(p, e);
+    let saida = soilgrids::camada(p, prof, e);
+    let lido = soilgrids::CELULA * f64::from(k);
+    let resampling = cog_global::reamostragem(g.celula, lido);
+    let limpo = format!("{PREFIXO}SoilGrids sem o 0");
+    let na_unidade = format!("{PREFIXO}SoilGrids na unidade");
+    let na_grade = format!("{PREFIXO}SoilGrids na grade");
+    remover(&[&saida])?;
+    let feito = (|| -> Result<(), String> {
+        // O 0 das cidades e da água vira sem dado antes da reprojeção, para não entrar na média das
+        // bordas nem na da área: o remap leva a 0 o que não vale, e o 0 / 0 da divisão o apaga.
+        let (fonte, conta) = match soilgrids::sem_valor(p, e) {
+            Some(faixas) => {
+                host::run("raster.function", json!({"layer": bruto, "function": "remap", "ranges": faixas, "keep": true, "name": limpo}))?;
+                (limpo.as_str(), format!("b1 / (b1 / b1) / {divisor}"))
+            }
+            None => (bruto.as_str(), format!("b1 / {divisor}")),
+        };
+        host::run("raster.function", json!({"layer": fonte, "function": "bandMath", "expression": conta, "name": na_unidade}))?;
+        host::run(
+            "raster.project",
+            json!({"layer": na_unidade, "crs": g.epsg, "cellSize": g.celula, "extent": GRADE, "resampling": resampling, "name": na_grade}),
+        )?;
+        recortar(&na_grade, AREA, &saida)?;
+        host::run("raster.mask", json!({"layer": saida, "min": faixa.0, "max": faixa.1}))?;
+        Ok(())
+    })();
+    remover(&[&bruto, &limpo, &na_unidade, &na_grade])?;
+    feito?;
+    cores_na_escala(&saida, rampa, "YlOrBr", escala)?;
+    let media = media_na_area(&saida, if unidade == "pH" { "" } else { unidade });
+    let o_que = if e == soilgrids::Estatistica::Incerteza {
+        format!("incerteza de {} (a largura do intervalo de 90% dividida pela mediana)", minuscula_inicial(p.nome()))
+    } else {
+        let em = if unidade.is_empty() || unidade == "pH" { String::new() } else { format!(" em {unidade}") };
+        let est = if e == soilgrids::Estatistica::Media { String::new() } else { format!(", {}", e.nome()) };
+        format!("{}{em}{est}", minuscula_inicial(p.nome()))
+    };
+    let reduzida = if k > 1 {
+        format!(", lida a cada {k} células do SoilGrids (cerca de {} m, pelo vizinho mais próximo: a área é grande)", lido.round())
+    } else {
+        String::new()
+    };
+    let texto = format!(
+        "{saida}: {o_que} de {}–{} cm (SoilGrids 2.0, ISRIC), na grade do projeto, {} ({resampling}){reduzida}{media}",
+        prof.0,
+        prof.1,
+        g.texto()
+    );
+    avisar(&texto);
+    if trocou {
+        avisar("SoilGrids: o estoque de carbono só vem de 0 a 30 cm: a profundidade pedida não vale para ele");
+    }
+    if k == 1
+        && let Some(a) =
+            grade::aviso_de_reamostragem(&format!("{} do SoilGrids", minuscula_inicial(p.nome())), soilgrids::CELULA, g.celula, "é a média")
+    {
+        avisar(&a);
+    }
+    Ok(json!({
+        "layer": saida, "property": p.valor(), "depth": format!("{}-{}", prof.0, prof.1), "statistic": e.valor(),
+        "reduction": k, "crs": format!("EPSG:{}", g.epsg), "cellSize": g.celula, "report": texto.trim_start_matches(PREFIXO),
     }))
 }
 

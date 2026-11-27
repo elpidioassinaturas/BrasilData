@@ -1,7 +1,7 @@
 {
   "id": "brasildata",
   "name": "BrasilData",
-  "version": "0.1.80",
+  "version": "0.1.81",
   "description": "Dados públicos do Brasil para a área do usuário (IBGE, MMA, ICMBio, INPE, CEMADEN, ANA, ANEEL, ANP, SFB/CAR, INCRA, FUNAI, IBAMA, ANM, DNIT, Ministério da Saúde, Copernicus, NASA/ASF, FAO, WRI, Open-Meteo, CHIRPS, Google DeepMind): só o que cruza a área, recortado por ela, com a fonte e a licença de cada camada.",
   "author": "Elpídio Filho",
   "homepage": "https://github.com/elpidioassinaturas/BrasilData",
@@ -409,15 +409,15 @@
     },
     {
       "id": "ucs",
-      "label": "Unidades de conservação (MMA)",
-      "help": "Unidades de conservação (CNUC 07/2026): as unidades de conservação federais, estaduais e municipais do Cadastro Nacional de Unidades de Conservação. Fonte: MMA, Cadastro Nacional de Unidades de Conservação (CNUC), 07/2026. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Os limites são os declarados pelos gestores; APAs podem cobrir cidades inteiras. Confira o ato de criação para uso legal. Período: CNUC, julho de 2026. Resolução ou escala: limites legais digitalizados (escala variável). Unidades: área em ha (ha_total). Licença: não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/ucs.md",
+      "label": "Unidades de conservação (CNUC)",
+      "help": "Unidades de conservação (CNUC): as unidades de conservação federais, estaduais e municipais do Cadastro Nacional de Unidades de Conservação (CNUC), do MMA. Fonte: MMA, Cadastro Nacional de Unidades de Conservação (CNUC), na cópia publicada pela Infra S.A. (geo.infrasa.gov.br); a do MMA e do ICMBio, na INDE (geoservicos.inde.gov.br), está fora do ar desde 26/11/2026. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Os limites são os declarados pelos gestores; APAs podem cobrir cidades inteiras. Confira o ato de criação para uso legal. O serviço do MMA na INDE está fora do ar desde 26/11/2026: a camada vem da cópia do CNUC publicada pela Infra S.A., que pode estar alguns meses atrás do MMA. Período: CNUC na cópia publicada pela Infra S.A. (criações até 2024). Resolução ou escala: limites legais digitalizados (escala variável). Unidades: área em ha (ha_total). Licença: não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/ucs.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
     {
       "id": "ucs-federais",
-      "label": "UCs federais (ICMBio)",
-      "help": "Unidades de conservação federais (ICMBio): os limites das unidades de conservação federais, publicados pelo ICMBio. Fonte: ICMBio, Limites das Unidades de Conservação Federais, 08/2026. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Só as federais; as estaduais e municipais estão no CNUC. Período: ICMBio, agosto de 2026. Resolução ou escala: limites legais digitalizados. Unidades: área em ha. Licença: não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/ucs-federais.md",
+      "label": "UCs federais (CNUC)",
+      "help": "Unidades de conservação federais (CNUC): as unidades de conservação federais, geridas pelo ICMBio, do Cadastro Nacional de Unidades de Conservação (CNUC). Fonte: MMA, Cadastro Nacional de Unidades de Conservação (CNUC), as de esfera federal (geridas pelo ICMBio), na cópia publicada pela Infra S.A.; a do MMA e do ICMBio, na INDE (geoservicos.inde.gov.br), está fora do ar desde 26/11/2026. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Só as federais; as estaduais e municipais estão em Unidades de conservação (CNUC). Os limites oficiais do ICMBio, na INDE, estão fora do ar desde 26/11/2026: a camada vem da cópia do CNUC publicada pela Infra S.A. Período: CNUC na cópia publicada pela Infra S.A. (criações até 2024). Resolução ou escala: limites legais digitalizados. Unidades: área em ha (ha_total). Licença: não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/ucs-federais.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
@@ -2614,6 +2614,70 @@
       ]
     },
     {
+      "id": "soilgrids-solo",
+      "label": "Propriedades do solo a 250 m (SoilGrids)",
+      "help": "Uma propriedade do solo do SoilGrids 2.0 (ISRIC; licença CC BY 4.0), prevista a 250 m sobre os perfis do WoSIS: a textura, o carbono, o pH, a CTC, o nitrogênio, a densidade, os fragmentos grossos e a água retida a 10, 33 e 1500 kPa, em seis camadas até 2 m, com a média, a mediana, os quantis de 5 e 95% ou a incerteza. Completa o OpenLandMap (30 m) com a CTC, o nitrogênio, a água, o fundo do perfil e a incerteza. Só a área, pedida ao serviço do ISRIC, posta na grade e recortada pelo contorno; numa área grande, mais grossa. Previsões de um modelo, não análises. Período: sem data: os perfis do WoSIS vão dos anos 1950 a 2010 (no Brasil, quase todos dos anos 1970 e 1980); SoilGrids 2.0 de 2020 (a água retida, de 2023). Resolução ou escala: 250 m (na projeção Homolosine de Goode); numa área grande, o serviço reduz a imagem pelo vizinho mais próximo (500 m, 750 m...). Unidades: % (argila, areia e silte), g/kg (carbono e nitrogênio), kg/m³ (densidade de carbono), t/ha (estoque de carbono de 0 a 30 cm), pH, cmolc/kg (CTC), g/cm³ (densidade do solo) e % do volume (fragmentos grossos e água retida); a incerteza não tem unidade. Licença: CC BY 4.0. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/soilgrids-solo.md",
+      "icon": "stretch",
+      "params": "{\"propriedade\"?: \"argila\" (padrão) | \"areia\" | \"silte\" | \"carbono\" | \"densidade-carbono\" | \"estoque-carbono\" (só 0-30 cm) | \"ph\" | \"ctc\" | \"nitrogenio\" | \"densidade\" | \"cascalho\" | \"agua-10kpa\" | \"agua-33kpa\" | \"agua-1500kpa\", \"profundidade\"?: \"0-5\" (padrão) | \"5-15\" | \"15-30\" | \"30-60\" | \"60-100\" | \"100-200\", \"estatistica\"?: \"media\" (padrão) | \"mediana\" | \"q05\" | \"q95\" | \"incerteza\", \"celula\"?: sem grade, o tamanho das células da grade que ela cria, em metros (padrão 30)}",
+      "form": [
+        {
+          "name": "propriedade",
+          "label": "Propriedade",
+          "kind": "choice",
+          "required": true,
+          "choices": [
+            "Argila (%)",
+            "Areia (%)",
+            "Silte (%)",
+            "Carbono orgânico (g/kg)",
+            "Densidade de carbono (kg/m³)",
+            "Estoque de carbono, 0 a 30 cm (t/ha)",
+            "pH em água",
+            "CTC a pH 7 (cmolc/kg)",
+            "Nitrogênio total (g/kg)",
+            "Densidade do solo (g/cm³)",
+            "Fragmentos grossos (% do volume)",
+            "Água retida a 10 kPa (% do volume)",
+            "Água retida a 33 kPa, capacidade de campo (% do volume)",
+            "Água retida a 1500 kPa, ponto de murcha (% do volume)"
+          ],
+          "default": "Argila (%)",
+          "help": "A propriedade do solo, na unidade dela. A água retida a 33 e a 1500 kPa dá a capacidade de campo e o ponto de murcha."
+        },
+        {
+          "name": "profundidade",
+          "label": "Profundidade",
+          "kind": "choice",
+          "required": true,
+          "choices": [
+            "0 a 5 cm",
+            "5 a 15 cm",
+            "15 a 30 cm",
+            "30 a 60 cm",
+            "60 a 100 cm",
+            "100 a 200 cm"
+          ],
+          "default": "0 a 5 cm",
+          "help": "A camada do solo, em cm a partir da superfície. O estoque de carbono só vem de 0 a 30 cm."
+        },
+        {
+          "name": "estatistica",
+          "label": "Estatística",
+          "kind": "choice",
+          "required": true,
+          "choices": [
+            "Média",
+            "Mediana",
+            "Quantil de 5% (o valor baixo provável)",
+            "Quantil de 95% (o valor alto provável)",
+            "Incerteza (intervalo de 90% pela mediana)"
+          ],
+          "default": "Média",
+          "help": "A média da previsão, ou a mediana e os quantis de 5 e 95% (o intervalo de 90%), ou a incerteza: a largura desse intervalo dividida pela mediana (acima de 1, a previsão vale pouco)."
+        }
+      ]
+    },
+    {
       "id": "solo-pontos",
       "label": "Pontos de solo: análises de laboratório (SoilData)",
       "help": "As camadas de solo descritas e analisadas nos levantamentos e pesquisas publicados no SoilData, o Repositório Brasileiro de Dados do Solo (UTFPR e MapBiomas), pelo Brazilian Soil Dataset 2024 (Samuel-Rosa e Horst; 47 mil camadas de 14 mil perfis com coordenada, de 1958 a 2024): a argila, a areia, o silte, o carbono orgânico, a CTC, o pH ou a densidade do solo da camada que contém a profundidade escolhida, ou a classe do solo (a ordem do SiBCS) de cada perfil. Medidas de laboratório, não previsões, mas espalhadas de modo desigual: muitas em Rondônia e no Rio Grande do Sul, poucas em outros lugares. Cada ponto tem a licença do conjunto de origem: 40% das camadas são CC BY-NC 4.0 (sem uso comercial). Na janela, o RustGIS baixa o arquivo do Brasil (19,8 MB, uns segundos) e o comando continua sozinho quando ele chega. Período: coletas de 1958 a 2024 (mediana 1997); um ano por conjunto, quando o levantamento o diz. Resolução ou escala: pontos: um perfil ou uma amostra; a precisão da coordenada (campo coord_precisao, em metros) vai de 1 m a mais de 1 km e falta em 40% das camadas. Unidades: g/kg (argila, areia, silte e carbono orgânico), cmolc/kg (CTC), pH, g/cm³ (densidade do solo). Licença: CC BY 4.0 (o arquivo); cada ponto com a licença do conjunto de origem: CC BY 4.0 ou CC BY-NC 4.0 (sem uso comercial). Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/solo-pontos.md",
@@ -2750,7 +2814,7 @@
     {
       "id": "sgb-sismos",
       "label": "Sismos (SGB, 1720 a 2013)",
-      "help": "Os sismos do catálogo do SGB na área, de 1720 a 2013: a data, a magnitude, a profundidade, a intensidade e a localidade, coloridos pela magnitude. O SGB não aceita o recorte no pedido e corta as respostas em 1.000: o RustGIS baixa o catálogo do Brasil em partes, e o comando continua sozinho quando elas chegam. O boletim atual é o da Rede Sismográfica Brasileira (USP). Período: de 1720 a 2013. Resolução ou escala: pontos: o epicentro, com o erro de localização (os antigos, deduzidos dos relatos). Unidades: magnitude (escala do catálogo, campo magnitude_num); km (PROFUNDIDADE); IO, a intensidade Mercalli no epicentro. Licença: dados abertos do SGB; licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/sgb-sismos.md",
+      "help": "Os sismos do catálogo do SGB na área, de 1720 a 2013: a data, a magnitude, a profundidade, a intensidade e a localidade, coloridos pela magnitude, sem os de fora do Brasil sentidos aqui (a categoria E do catálogo, que os põe na cidade onde foram sentidos com a magnitude da origem). O SGB não aceita o recorte no pedido e corta as respostas em 1.000: o RustGIS baixa o catálogo do Brasil em partes, e o comando continua sozinho quando elas chegam. O boletim atual é o da Rede Sismográfica Brasileira (USP). Período: de 1720 a 2013. Resolução ou escala: pontos: o epicentro, com o erro de localização (os antigos, deduzidos dos relatos). Unidades: magnitude (escala do catálogo, campo magnitude_num); km (PROFUNDIDADE); IO, a intensidade Mercalli no epicentro. Licença: dados abertos do SGB; licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/sgb-sismos.md",
       "icon": "graduated",
       "params": "{}"
     },
@@ -2940,7 +3004,7 @@
     {
       "id": "sobre",
       "label": "Sobre",
-      "help": "BrasilData 0.1.80, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nAs fontes dos dados e como contribuir estão nas abas do fim do painel Área de trabalho: basta clicar nelas. Para lê-las aqui, marque a caixa e clique em Executar. A janela fica aberta até o X do canto de cima.",
+      "help": "BrasilData 0.1.81, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nAs fontes dos dados e como contribuir estão nas abas do fim do painel Área de trabalho: basta clicar nelas. Para lê-las aqui, marque a caixa e clique em Executar. A janela fica aberta até o X do canto de cima.",
       "icon": "about",
       "params": "{\"completo\"?: true para as fontes e como contribuir | \"parte\"?: \"tudo\" (padrão) | \"autoria\" | \"fontes\" | \"contribuir\"}",
       "form": [
@@ -3108,7 +3172,7 @@
         "kind": "text",
         "id": "sobre",
         "label": "Sobre o BrasilData: Autoria",
-        "text": "BrasilData 0.1.80, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData"
+        "text": "BrasilData 0.1.81, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData"
       }
     ]
   },
@@ -3320,6 +3384,7 @@
               "mg-zee-erosao",
               "mg-zee-risco-erosao",
               "olm-solo",
+              "soilgrids-solo",
               "solo-pontos",
               "mapbiomas-solo-pontos",
               "gdo-seca",

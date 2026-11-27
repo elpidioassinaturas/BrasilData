@@ -127,6 +127,43 @@ pub const PROPRIEDADES_OLM: [(&str, &str); 7] = [
     ("Silte (%)", "silte"),
 ];
 
+/// As escolhas da propriedade do solo do SoilGrids e a `propriedade` de cada uma.
+pub const PROPRIEDADES_SOILGRIDS: [(&str, &str); 14] = [
+    ("Argila (%)", "argila"),
+    ("Areia (%)", "areia"),
+    ("Silte (%)", "silte"),
+    ("Carbono orgânico (g/kg)", "carbono"),
+    ("Densidade de carbono (kg/m³)", "densidade-carbono"),
+    ("Estoque de carbono, 0 a 30 cm (t/ha)", "estoque-carbono"),
+    ("pH em água", "ph"),
+    ("CTC a pH 7 (cmolc/kg)", "ctc"),
+    ("Nitrogênio total (g/kg)", "nitrogenio"),
+    ("Densidade do solo (g/cm³)", "densidade"),
+    ("Fragmentos grossos (% do volume)", "cascalho"),
+    ("Água retida a 10 kPa (% do volume)", "agua-10kpa"),
+    ("Água retida a 33 kPa, capacidade de campo (% do volume)", "agua-33kpa"),
+    ("Água retida a 1500 kPa, ponto de murcha (% do volume)", "agua-1500kpa"),
+];
+
+/// As escolhas da profundidade do SoilGrids e a `profundidade` de cada uma.
+pub const PROFUNDIDADES_SOILGRIDS: [(&str, &str); 6] = [
+    ("0 a 5 cm", "0-5"),
+    ("5 a 15 cm", "5-15"),
+    ("15 a 30 cm", "15-30"),
+    ("30 a 60 cm", "30-60"),
+    ("60 a 100 cm", "60-100"),
+    ("100 a 200 cm", "100-200"),
+];
+
+/// As escolhas da estatística do SoilGrids e a `estatistica` de cada uma.
+pub const ESTATISTICAS_SOILGRIDS: [(&str, &str); 5] = [
+    ("Média", "media"),
+    ("Mediana", "mediana"),
+    ("Quantil de 5% (o valor baixo provável)", "q05"),
+    ("Quantil de 95% (o valor alto provável)", "q95"),
+    ("Incerteza (intervalo de 90% pela mediana)", "incerteza"),
+];
+
 /// As escolhas da profundidade e a `profundidade` de cada uma.
 pub const PROFUNDIDADES_OLM: [(&str, &str); 3] = [("0 a 30 cm", "0-30"), ("30 a 60 cm", "30-60"), ("60 a 100 cm", "60-100")];
 
@@ -246,6 +283,9 @@ const TROCAS: &[(&str, &str, Escolhas)] = &[
     ("olm-solo", "propriedade", &PROPRIEDADES_OLM),
     ("olm-solo", "profundidade", &PROFUNDIDADES_OLM),
     ("olm-solo", "periodo", &PERIODOS_OLM),
+    ("soilgrids-solo", "propriedade", &PROPRIEDADES_SOILGRIDS),
+    ("soilgrids-solo", "profundidade", &PROFUNDIDADES_SOILGRIDS),
+    ("soilgrids-solo", "estatistica", &ESTATISTICAS_SOILGRIDS),
     ("gedtm-relevo", "variavel", &VARIAVEIS_GEDTM),
     ("gedtm-relevo", "escala", &ESCALAS_GEDTM),
     ("bdc-indice", "satelite", &SATELITES_BDC),

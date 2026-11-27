@@ -48,6 +48,7 @@ const NOTA_CTREES: &str = "Biomassa estimada por um modelo de IA calibrado com l
 const NOTA_FORTY: &str = "Códigos da legenda: 1 floresta primária, 2 em regeneração natural, 3 plantada, 4 plantio florestal comercial, 5 culturas arbóreas e agrofloresta, 6 outros usos. Classes de um modelo de IA sobre imagens de 2020, alinhadas à FAO e ao EUDR.";
 const NOTA_WORLDCOVER: &str = "Códigos da legenda: 10 árvores, 20 arbustos, 30 campo e pastagem, 40 cultivos anuais, 50 área construída, 60 solo exposto ou vegetação esparsa, 80 água, 90 área úmida herbácea, 95 manguezal. Mapa mundial feito com o Sentinel-1 e o Sentinel-2; os de 2020 e 2021 usam versões diferentes do algoritmo e não se subtraem.";
 const NOTA_OLM: &str = "Propriedade do solo prevista a 30 m por aprendizado de máquina sobre amostras de solo do mundo inteiro (OpenLandMap-soildb): mostra padrões, não substitui a análise de laboratório; o Brasil tem menos amostras que a Europa e os Estados Unidos.";
+const NOTA_SOILGRIDS: &str = "Propriedade do solo prevista a 250 m pelo SoilGrids 2.0 (ISRIC) sobre os perfis do WoSIS: mostra padrões regionais, não substitui a análise de laboratório; no Brasil há poucos perfis por área, quase todos dos anos 1970 e 1980. Sem valor nas cidades e na água.";
 const NOTA_GEDTM: &str = "Derivada do GEDTM30, um modelo do terreno a 30 m feito por aprendizado de máquina com os pontos de laser do ICESat-2 e do GEDI: sob a mata o terreno é estimado, não medido.";
 const NOTA_GEOMORFONS: &str = "Códigos da legenda: 1 plano, 2 pico, 3 crista, 4 ombro, 5 esporão, 6 encosta, 7 concavidade, 8 sopé, 9 vale, 10 depressão. Formas do relevo do GEDTM30 (OpenGeoHub), um terreno feito por aprendizado de máquina com o laser do ICESat-2 e do GEDI.";
 const NOTA_ANADEM: &str = "Terreno nu: o Copernicus GLO-30 sem o viés da vegetação, removido por aprendizado de máquina calibrado para a América do Sul (ANA e IPH/UFRGS). Altitudes em metros.";
@@ -342,6 +343,22 @@ pub fn receita(nome: &str) -> Option<Receita> {
             barra: Some((format!("{}{un}", p.nome()), 5)),
             legenda: None,
             nota: Some(NOTA_OLM),
+        });
+    }
+    if let Some((p, prof, e)) = crate::soilgrids::da_camada(nome) {
+        let est = if e == crate::soilgrids::Estatistica::Media { String::new() } else { format!(", {}", e.nome()) };
+        let barra = if e == crate::soilgrids::Estatistica::Incerteza {
+            "Incerteza (intervalo de 90% / mediana)".to_string()
+        } else if p == crate::soilgrids::Propriedade::Ph {
+            p.nome().to_string()
+        } else {
+            format!("{} ({})", p.nome(), p.unidade())
+        };
+        return Some(Receita {
+            subtitulo: format!("{} de {} a {} cm{est}, a 250 m (SoilGrids 2.0, ISRIC)", p.nome(), prof.0, prof.1),
+            barra: Some((barra, 5)),
+            legenda: None,
+            nota: Some(NOTA_SOILGRIDS),
         });
     }
     if nome == crate::anadem::CAMADA {

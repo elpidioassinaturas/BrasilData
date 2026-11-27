@@ -72,6 +72,7 @@ pub mod saude;
 pub mod sem_nuvens;
 pub mod sgb;
 pub mod soildata;
+pub mod soilgrids;
 pub mod sol;
 pub mod tempo;
 pub mod vento;
