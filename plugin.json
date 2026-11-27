@@ -1,7 +1,7 @@
 {
   "id": "brasildata",
   "name": "BrasilData",
-  "version": "0.1.78",
+  "version": "0.1.79",
   "description": "Dados públicos do Brasil para a área do usuário (IBGE, MMA, ICMBio, INPE, CEMADEN, ANA, ANEEL, ANP, SFB/CAR, INCRA, FUNAI, IBAMA, ANM, DNIT, Ministério da Saúde, Copernicus, NASA/ASF, FAO, WRI, Open-Meteo, CHIRPS, Google DeepMind): só o que cruza a área, recortado por ela, com a fonte e a licença de cada camada.",
   "author": "Elpídio Filho",
   "homepage": "https://github.com/elpidioassinaturas/BrasilData",
@@ -825,6 +825,97 @@
       "label": "Favelas e comunidades urbanas (IBGE, 2022)",
       "help": "Favelas e comunidades urbanas (IBGE, Censo 2022): as favelas e comunidades urbanas do Censo 2022 (antes chamadas aglomerados subnormais). Fonte: IBGE, Censo Demográfico 2022, malha de setores e agregados. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista. Cuidados: Delimitação do IBGE para o Censo; os nomes e limites locais podem diferir. Período: malha do Censo Demográfico 2022. Resolução ou escala: escala cadastral dos setores censitários. Unidades: sem unidade. Licença: uso livre com citação da fonte. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/favelas.md",
       "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
+      "id": "sgb-recursos-minerais",
+      "label": "Ocorrências minerais (SGB)",
+      "help": "Ocorrências e recursos minerais (SGB): as ocorrências, depósitos, garimpos e minas de recursos minerais cadastrados pelo Serviço Geológico do Brasil (base GEOSGB/Recursos Minerais). Fonte: SGB (Serviço Geológico do Brasil), GeoSGB, Ocorrências e recursos minerais. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Uma ocorrência não é uma jazida em lavra nem um direito minerário: para os processos e títulos, use Processos minerários ativos (ANM). A posição de muitos pontos vem de cartas, com erro de centenas de metros (campo metodo_geoposicionamento). Período: cadastro contínuo, de levantamentos de várias décadas (data do cadastro de cada ponto). Resolução ou escala: pontos: a posição da ocorrência, com o método de posicionamento (GPS, carta 1:25.000, 1:100.000...). Unidades: sem unidade. Licença: domínio público (opendata.sgb.gov.br: livre para uso). Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/sgb-recursos-minerais.md",
+      "icon": "point_layer",
+      "params": "{}"
+    },
+    {
+      "id": "sgb-afloramentos",
+      "label": "Afloramentos (SGB)",
+      "help": "Afloramentos descritos em campo (SGB): os afloramentos de rocha descritos pelos geólogos do SGB nos trabalhos de campo, com as rochas e a descrição. Fonte: SGB (Serviço Geológico do Brasil), GeoSGB, Afloramentos. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Mostra onde houve trabalho de campo, não a geologia de toda a área: para isso, use Geologia do SGB. A posição de muitos pontos vem de cartas (campo metodo_geoposicionamento). Período: levantamentos de campo de várias décadas (data do cadastro de cada ponto). Resolução ou escala: pontos: a posição do afloramento, com o método de posicionamento. Unidades: sem unidade. Licença: dados abertos do SGB; licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/sgb-afloramentos.md",
+      "icon": "point_layer",
+      "params": "{}"
+    },
+    {
+      "id": "sgb-geocronologia",
+      "label": "Geocronologia (SGB)",
+      "help": "Análises geocronológicas (SGB): as amostras de rocha com idade medida em laboratório (U-Pb, Sm-Nd, Rb-Sr, Ar-Ar...), da base de geocronologia do SGB. Fonte: SGB (Serviço Geológico do Brasil), GeoSGB, Geocronologia. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: A camada diz onde há análise e por qual método, não a idade: os resultados de algumas amostras são de acesso restrito (campo nivel_acesso). A posição de muitas amostras vem de mapas de escala pequena (até 1:2.500.000). Período: análises de várias décadas. Resolução ou escala: pontos: o local da amostra, com o método de posicionamento e o erro locacional. Unidades: sem unidade (as idades estão nos relatórios de cada análise). Licença: dados abertos do SGB; licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/sgb-geocronologia.md",
+      "icon": "point_layer",
+      "params": "{}"
+    },
+    {
+      "id": "sgb-petrografia",
+      "label": "Petrografia (SGB)",
+      "help": "Lâminas petrográficas (SGB): as lâminas petrográficas descritas pelo SGB: a rocha, o protolito e os minerais identificados ao microscópio. Fonte: SGB (Serviço Geológico do Brasil), GeoSGB, Petrografia. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Uma lâmina descreve uma amostra, não a unidade inteira. Os nomes dos petrógrafos ficam de fora. Período: descrições de várias décadas. Resolução ou escala: pontos: o afloramento de onde veio a amostra. Unidades: sem unidade. Licença: dados abertos do SGB; licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/sgb-petrografia.md",
+      "icon": "point_layer",
+      "params": "{}"
+    },
+    {
+      "id": "sgb-fosseis",
+      "label": "Ocorrências fossilíferas (SGB)",
+      "help": "Ocorrências fossilíferas (SGB): as ocorrências fossilíferas cadastradas pelo SGB, com o táxon, a unidade litoestratigráfica e o ambiente de deposição. Fonte: SGB (Serviço Geológico do Brasil), GeoSGB, Ocorrências fossilíferas. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Os nomes de coletores e analistas ficam de fora. Sítios fossilíferos são protegidos por lei (Decreto-Lei 4.146/1942): a coleta pede autorização da ANM. Período: cadastro contínuo (campo data_atualizacao). Resolução ou escala: pontos: o local da ocorrência. Unidades: sem unidade. Licença: dados abertos do SGB; licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/sgb-fosseis.md",
+      "icon": "point_layer",
+      "params": "{}"
+    },
+    {
+      "id": "sgb-bacias",
+      "label": "Bacias sedimentares (SGB)",
+      "help": "Bacias sedimentares (SGB): os contornos das bacias sedimentares brasileiras, terrestres e marítimas, do SGB. Fonte: SGB (Serviço Geológico do Brasil), GeoSGB, Bacias sedimentares. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Contornos de síntese, para a visão regional. As bacias de exploração de petróleo da ANP (Bacias sedimentares (ANP)) usam outros limites. Período: compilação atual do SGB. Resolução ou escala: escala de síntese nacional. Unidades: sem unidade. Licença: dados abertos do SGB; licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/sgb-bacias.md",
+      "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
+      "id": "sgb-geodiversidade",
+      "label": "Geodiversidade (SGB)",
+      "help": "Geodiversidade do Brasil, 1:1.000.000 (SGB): as unidades geológico-ambientais do Mapa de Geodiversidade do Brasil: a geologia lida pelo comportamento do terreno (relevo, intemperismo, porosidade, aquífero). Fonte: SGB (Serviço Geológico do Brasil), GeoSGB, Mapa de Geodiversidade do Brasil, 1:1.000.000. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Escala de síntese: para um município, use a geodiversidade estadual ou os mapas de detalhe do SGB. Período: Mapa de Geodiversidade do Brasil (SGB), escala 1:1.000.000. Resolução ou escala: escala 1:1.000.000. Unidades: sem unidade. Licença: dados abertos do SGB; licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/sgb-geodiversidade.md",
+      "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
+      "id": "sgb-risco",
+      "label": "Áreas de risco geológico (SGB)",
+      "help": "Setores de risco geológico (SGB): os setores de risco geológico alto e muito alto (deslizamento, queda de blocos, inundação, erosão...) mapeados pelo SGB nos municípios, com o número de moradias e de pessoas expostas. Fonte: SGB (Serviço Geológico do Brasil), GeoSGB, Setorização de áreas de risco geológico. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Um setor retrata o dia do levantamento: obras e ocupações posteriores mudam o risco. A defesa civil do município tem a versão atual. Período: setorizações de 2011 em diante (campo data_setor). Resolução ou escala: polígonos dos setores, em escala de detalhe. Unidades: número de edificações, domicílios e pessoas no setor. Licença: dados abertos do SGB; licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/sgb-risco.md",
+      "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
+      "id": "sgb-suscet-inundacao",
+      "label": "Suscetibilidade a inundação (SGB)",
+      "help": "Suscetibilidade a inundação (SGB): as áreas suscetíveis a inundação das Cartas de Suscetibilidade a Movimentos Gravitacionais de Massa e Inundações do SGB, por município. Fonte: SGB (Serviço Geológico do Brasil), GeoSGB, Cartas de suscetibilidade a movimentos gravitacionais de massa e inundações. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Suscetibilidade não é risco: diz onde o terreno favorece o processo, sem considerar a ocupação. Só há carta nos municípios mapeados. Período: cartas de 2013 em diante (campo ano). Resolução ou escala: escala 1:25.000. Unidades: área em km² (area_km2). Licença: dados abertos do SGB; licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/sgb-suscet-inundacao.md",
+      "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
+      "id": "sgb-suscet-movimento",
+      "label": "Suscetibilidade a movimento de massa (SGB)",
+      "help": "Suscetibilidade a movimento de massa (SGB): as áreas suscetíveis a movimentos gravitacionais de massa (deslizamentos) das Cartas de Suscetibilidade do SGB, por município. Fonte: SGB (Serviço Geológico do Brasil), GeoSGB, Cartas de suscetibilidade a movimentos gravitacionais de massa e inundações. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Suscetibilidade não é risco: diz onde o terreno favorece o processo, sem considerar a ocupação. Os polígonos são muitos e pequenos: o plugin traz até 20 mil, a área de um município. Período: cartas de 2013 em diante (campo ano). Resolução ou escala: escala 1:25.000. Unidades: área em km² (area_km2). Licença: dados abertos do SGB; licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/sgb-suscet-movimento.md",
+      "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
+      "id": "sgb-suscet-enxurrada",
+      "label": "Bacias suscetíveis a enxurrada (SGB)",
+      "help": "Bacias suscetíveis a enxurrada (SGB): as bacias de drenagem suscetíveis a enxurrada das Cartas de Suscetibilidade do SGB. Fonte: SGB (Serviço Geológico do Brasil), GeoSGB, Cartas de suscetibilidade a movimentos gravitacionais de massa e inundações. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Mostra só as bacias suscetíveis, não as outras. Suscetibilidade não é risco. Período: cartas de 2013 em diante (campo ano). Resolução ou escala: bacias de drenagem, escala 1:25.000. Unidades: área em km² (area_km2); índice de Melton (ind_melton). Licença: dados abertos do SGB; licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/sgb-suscet-enxurrada.md",
+      "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
+      "id": "sgb-suscet-corrida",
+      "label": "Bacias suscetíveis a corrida de massa (SGB)",
+      "help": "Bacias suscetíveis a corrida de massa (SGB): as bacias de drenagem suscetíveis a corridas de massa (fluxos de detritos) das Cartas de Suscetibilidade do SGB. Fonte: SGB (Serviço Geológico do Brasil), GeoSGB, Cartas de suscetibilidade a movimentos gravitacionais de massa e inundações. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Mostra só as bacias suscetíveis, não as outras. Suscetibilidade não é risco. Período: cartas de 2013 em diante (campo ano). Resolução ou escala: bacias de drenagem, escala 1:25.000. Unidades: área em km² (area_km2); índice de Melton (ind_melton). Licença: dados abertos do SGB; licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/sgb-suscet-corrida.md",
+      "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
+      "id": "sgb-siagas",
+      "label": "Poços tubulares (SIAGAS/SGB)",
+      "help": "Poços do SIAGAS (SGB): os poços tubulares, cacimbas e fontes do SIAGAS, o Sistema de Informações de Águas Subterrâneas do SGB, com a profundidade, os níveis, a vazão e a qualidade da água. Fonte: SGB (Serviço Geológico do Brasil), SIAGAS, Sistema de Informações de Águas Subterrâneas. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Muitos poços têm só parte dos campos preenchida. O cadastro depende do que perfuradores e órgãos informam: não tem todos os poços. Período: cadastro contínuo (data da perfuração e do cadastro de cada poço). Resolução ou escala: pontos: a posição do poço. Unidades: m (profundidade, nível estático nd_m e dinâmico ne_m), m³/h/m (vazão específica), µS/cm (condutividade). Licença: dados abertos do SGB; licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/sgb-siagas.md",
+      "icon": "point_layer",
       "params": "{}"
     },
     {
@@ -2576,6 +2667,31 @@
       ]
     },
     {
+      "id": "geologia-sgb",
+      "label": "Geologia do SGB",
+      "help": "As unidades geológicas (litoestratigráficas) do Serviço Geológico do Brasil na área, nas cores oficiais do SGB, com a sigla, o nome, a hierarquia, os litotipos, a legenda e a idade: o mapa 1:1.000.000 do Brasil, o mapa geológico do estado ou as cartas 1:250.000, 1:100.000, 1:50.000 e 1:25.000, que só existem onde houve mapeamento. Quando a escala escolhida não tem mapa na área, o aviso diz as que têm. A legenda mostra só as unidades da área. Período: mapeamentos do SGB de várias décadas, compilados no GeoSGB; o campo mapa diz a carta de origem. Resolução ou escala: a escala escolhida: 1:1.000.000 (Brasil), mapas estaduais (1:500.000 a 1:1.000.000), ou as cartas 1:250.000, 1:100.000, 1:50.000 e 1:25.000 onde existem. Unidades: idades em milhões de anos (idade_min, idade_max). Licença: dados abertos do SGB; licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/geologia-sgb.md",
+      "icon": "unique",
+      "params": "{\"escala\"?: \"1m\" (padrão: 1:1.000.000) | \"estado\" | \"250k\" | \"100k\" | \"50k\" | \"25k\"}",
+      "form": [
+        {
+          "name": "escala",
+          "label": "Escala",
+          "kind": "choice",
+          "required": true,
+          "choices": [
+            "1:1.000.000 (Brasil)",
+            "Mapa do estado",
+            "1:250.000",
+            "1:100.000",
+            "1:50.000",
+            "1:25.000"
+          ],
+          "default": "1:1.000.000 (Brasil)",
+          "help": "A escala do mapeamento: a 1:1.000.000 cobre o Brasil; as outras, só onde houve mapeamento (o aviso diz as que têm mapa na área)."
+        }
+      ]
+    },
+    {
       "id": "amostra-aleatoria",
       "label": "Aleatória simples",
       "help": "Amostragem aleatória simples: pontos para ir a campo, sorteados dentro da área de trabalho, todos com a mesma chance, na camada BrasilData: amostragem aleatória (rótulo, método, sorteio, longitude e latitude SIRGAS 2000). O número de pontos, o sorteio e o arquivo de pontos vêm da janela do comando; num RustGIS sem janelas de plugin, do painel Área de trabalho.",
@@ -2761,7 +2877,7 @@
     {
       "id": "sobre",
       "label": "Sobre",
-      "help": "BrasilData 0.1.78, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nAs fontes dos dados e como contribuir estão nas abas do fim do painel Área de trabalho: basta clicar nelas. Para lê-las aqui, marque a caixa e clique em Executar. A janela fica aberta até o X do canto de cima.",
+      "help": "BrasilData 0.1.79, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nAs fontes dos dados e como contribuir estão nas abas do fim do painel Área de trabalho: basta clicar nelas. Para lê-las aqui, marque a caixa e clique em Executar. A janela fica aberta até o X do canto de cima.",
       "icon": "about",
       "params": "{\"completo\"?: true para as fontes e como contribuir | \"parte\"?: \"tudo\" (padrão) | \"autoria\" | \"fontes\" | \"contribuir\"}",
       "form": [
@@ -2929,7 +3045,7 @@
         "kind": "text",
         "id": "sobre",
         "label": "Sobre o BrasilData: Autoria",
-        "text": "BrasilData 0.1.78, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData"
+        "text": "BrasilData 0.1.79, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData"
       }
     ]
   },
@@ -3083,7 +3199,26 @@
               "anm-reservas",
               "anm-barragens",
               "mg-barragens",
-              "mapbiomas-mineracao"
+              "mapbiomas-mineracao",
+              "sgb-recursos-minerais",
+              "sgb-afloramentos",
+              "sgb-geocronologia",
+              "sgb-petrografia",
+              "sgb-fosseis",
+              "sgb-bacias",
+              "sgb-geodiversidade",
+              "geologia-sgb"
+            ]
+          },
+          {
+            "menu": "Riscos geológicos",
+            "icon": "polygon_layer",
+            "items": [
+              "sgb-risco",
+              "sgb-suscet-inundacao",
+              "sgb-suscet-movimento",
+              "sgb-suscet-enxurrada",
+              "sgb-suscet-corrida"
             ]
           },
           {
@@ -3226,6 +3361,7 @@
               "aqueduct-estresse",
               "mg-outorgas",
               "mg-uso-insignificante",
+              "sgb-siagas",
               "mapbiomas-irrigacao",
               "irrigacao-gmia",
               "grace-seca"

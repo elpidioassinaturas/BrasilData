@@ -56,6 +56,7 @@ use crate::risco_fogo;
 use crate::rodovias;
 use crate::saude;
 use crate::sem_nuvens::{self, Caminho, Composicao, DataNaArea, Valor};
+use crate::sgb;
 use crate::soildata;
 use crate::sol;
 use crate::tempo;
@@ -306,6 +307,7 @@ fn executar_comando(req: Request) -> Result<Value, String> {
         "saude-estabelecimentos" => estabelecimentos_de_saude(),
         "solo-pontos" => pontos_de_solo(&req),
         "mapbiomas-solo-pontos" => pontos_de_treino_mapbiomas(&req),
+        "geologia-sgb" => geologia_sgb(&req),
         "cemaden-chuva" => chuva_cemaden(),
         "cemaden-alertas" => alertas_cemaden(),
         id if gedi::Variavel::do_comando(id).is_some() => {
@@ -1420,6 +1422,12 @@ const MAX_FEICOES_EM_PAGINAS: u64 = 300_000;
 /// as páginas chegam depois; um segundo clique junta e recorta.
 fn tema_proprio(t: &Tema) -> Result<Value, String> {
     let r = tema_proprio_de(t).map_err(crate::explicar)?;
+    // As camadas que o SGB pinta por classe vêm com as cores dele.
+    if let (Some((estilo, texto)), Some(nome)) = (sgb::estilo_do_tema(t.id), r["layer"].as_str())
+        && r.get("already").is_none()
+    {
+        estilo_padrao(nome, &estilo, &texto);
+    }
     if let (Some(campo), Some(nome)) = (zoom::campo(t), r["layer"].as_str()) {
         por_zoom(campo, nome, &r)?;
     }
@@ -1981,7 +1989,7 @@ fn tema_proprio_de(t: &Tema) -> Result<Value, String> {
         avisar(&format!("{nome}: nenhuma feição {onde} ({})", t.fonte));
         return Ok(json!({"layer": null, "features": 0}));
     }
-    let teto = if t.pagina > 0 { MAX_FEICOES_EM_PAGINAS } else { MAX_FEICOES };
+    let teto = sgb::teto(t.id).unwrap_or(if t.pagina > 0 { MAX_FEICOES_EM_PAGINAS } else { MAX_FEICOES });
     if total > teto {
         return Err(format!("{nome}: {total} feições {onde}; o plugin traz até {teto}: escolha uma área menor"));
     }
@@ -2163,6 +2171,8 @@ fn citacoes() -> Result<(Vec<Value>, String), String> {
             lista.push(json!({"layer": n, "source": saude::CITACAO, "license": saude::LICENCA}));
         } else if soildata::eh_daqui(&n) {
             lista.push(json!({"layer": n, "source": soildata::CITACAO, "license": soildata::LICENCA}));
+        } else if let Some(e) = sgb::escala_da_camada(&n) {
+            lista.push(json!({"layer": n, "source": e.tema().fonte, "license": e.tema().licenca}));
         } else if mbsolo::eh_do_carbono(&n) {
             lista.push(json!({"layer": n, "source": mbsolo::CITACAO_CARBONO, "license": mbsolo::LICENCA_CARBONO}));
         } else if mbsolo::eh_daqui(&n) {
@@ -4661,6 +4671,78 @@ fn estabelecimentos_de_saude() -> Result<Value, String> {
     }
     avisar(&format!("{nome}: {ficaram} de {lidos} na área ({fora}; Ministério da Saúde, pelo geobr)"));
     Ok(json!({"layer": nome, "read": lidos, "features": ficaram, "inactive": desativados, "personal": de_pessoa}))
+}
+
+/// A geologia do SGB na área, na escala pedida ([`sgb`]): as unidades litoestratigráficas,
+/// recortadas pela área e pintadas com as cores do SGB. Quando a escala não tem mapa ali, o aviso
+/// diz as que têm.
+fn geologia_sgb(req: &Request) -> Result<Value, String> {
+    let e = sgb::Escala::ler(req.str("escala"))?;
+    let t = e.tema();
+    let (c, area) = retangulo()?;
+    let onde = if area { "na área" } else { "na vista" };
+    let contagens: Vec<String> = sgb::ESCALAS.iter().map(|x| crate::pedido_de_contagem(x.tema(), x.tema().camada, c)).collect();
+    let respostas = match buscar(&contagens).map_err(|e| format!("o GeoServer do SGB não respondeu ({e})"))? {
+        Ok(r) => r,
+        Err(p) => return Ok(p),
+    };
+    let n: Vec<u64> = respostas.iter().map(|r| crate::contagem(r.get("json"), r["text"].as_str()).unwrap_or(0)).collect();
+    let i = sgb::ESCALAS.iter().position(|x| *x == e).unwrap_or(0);
+    if n[i] == 0 {
+        let ha: Vec<String> =
+            sgb::ESCALAS.iter().zip(&n).filter(|(_, k)| **k > 0).map(|(x, k)| format!("{} ({})", x.texto(), feicoes(*k))).collect();
+        let perto = if area { "no retângulo da área" } else { "na vista" };
+        let resto = if ha.is_empty() {
+            "nenhuma escala do SGB tem mapa aqui".to_string()
+        } else {
+            format!("há mapa {perto} em: {}", ha.join("; "))
+        };
+        avisar(&format!("Geologia do SGB, {}: nenhuma unidade {onde}; {resto}", e.texto()));
+        return Ok(
+            json!({"layer": null, "features": 0, "scales": sgb::ESCALAS.iter().zip(&n).map(|(x, k)| json!({"scale": x.texto(), "features": k})).collect::<Vec<_>>()}),
+        );
+    }
+    let r = tema_proprio(t)?;
+    let Some(nome) = r["layer"].as_str().map(str::to_string) else { return Ok(r) };
+    if r.get("pending").is_some() || r.get("downloading").is_some() {
+        return Ok(r);
+    }
+    // As unidades do retângulo (só a sigla e o nome, sem a geometria), para a legenda.
+    let pedidos: Vec<String> = crate::paginas(n[i], 10_000).into_iter().flatten().map(|p| sgb::pedido_das_unidades(e, c, p)).collect();
+    let respostas = match buscar(&pedidos).map_err(|e| format!("o GeoServer do SGB não deu as unidades ({e})"))? {
+        Ok(r) => r,
+        Err(p) => return Ok(p),
+    };
+    let mut unidades = std::collections::BTreeMap::new();
+    for r in &respostas {
+        sgb::unidades_csv(r["text"].as_str().unwrap_or(""), &mut unidades);
+    }
+    // Só as que ficaram depois do recorte pela área (o retângulo pega vizinhas).
+    if unidades.len() <= 600 {
+        let mut ficam = std::collections::BTreeMap::new();
+        for (sigla, nome_da_unidade) in unidades {
+            let onde = sgb::onde_sigla(&sigla);
+            let k = host::run("select.byAttributes", json!({"layer": nome, "where": onde}))?["selected"].as_u64().unwrap_or(0);
+            if k > 0 {
+                ficam.insert(sigla, nome_da_unidade);
+            }
+        }
+        let _ = host::run("select.clear", json!({"layer": nome}));
+        unidades = ficam;
+    }
+    let (texto, sem_cor) = sgb::estilo_da_geologia(e, &unidades);
+    estilo_padrao(&nome, &sgb::nome_do_estilo(e), &texto);
+    let cinza = if sem_cor > 0 { format!("; {sem_cor} sem cor no estilo do SGB, em cinza") } else { String::new() };
+    let quantas = r["features"].as_u64().map_or(String::new(), |k| format!("{}, ", feicoes(k)));
+    avisar(&format!(
+        "{}: {quantas}{} unidades {onde}, nas cores do SGB{cinza} ({})",
+        nome.trim_start_matches(PREFIXO),
+        unidades.len(),
+        t.fonte
+    ));
+    let mut r = r;
+    r["units"] = json!(unidades.len());
+    Ok(r)
 }
 
 /// Pontos de um arquivo de texto do Brasil inteiro, recortados pela área: o que muda entre os

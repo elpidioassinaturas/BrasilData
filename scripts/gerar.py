@@ -37,7 +37,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.78"
+VERSAO = "0.1.79"
 AUTOR = "Elpídio Filho"
 # Como o texto Sobre chama o autor (o manifesto e o README levam o nome completo).
 AUTOR_SOBRE = "Professor Elpídio"
@@ -117,6 +117,7 @@ ATRIBUTOS_SOLO = ["Argila (g/kg)", "Areia (g/kg)", "Silte (g/kg)", "Carbono org�
 PROFUNDIDADES_SOLO = ["5 cm", "10 cm", "30 cm", "50 cm", "100 cm"]
 DADOS_MBSOLO = ["Carbono orgânico: estoque de 0 a 30 cm (t/ha)", "Argila (g/kg)", "Areia (g/kg)", "Silte (g/kg)", "Fração grossa: cascalho e calhaus (g/kg)"]
 PROFUNDIDADES_MBSOLO = ["5 cm", "10 cm", "30 cm", "50 cm", "90 cm"]
+ESCALAS_SGB = ["1:1.000.000 (Brasil)", "Mapa do estado", "1:250.000", "1:100.000", "1:50.000", "1:25.000"]
 PERIODOS_OLM = ["2020 a 2022", "2015 a 2020 (só carbono e pH)", "2010 a 2015 (só carbono e pH)", "2005 a 2010 (só carbono e pH)", "2000 a 2005 (só carbono e pH)"]
 VARIAVEIS_GEDTM = [
     "Elevação do terreno (m)",
@@ -1607,6 +1608,20 @@ EM_MENUS = [
             ],
         },
     ),
+    (
+        "Meio físico",
+        "Geologia e recursos minerais",
+        {
+            "id": "geologia-sgb",
+            "label": "Geologia do SGB",
+            "help": "As unidades geológicas (litoestratigráficas) do Serviço Geológico do Brasil na área, nas cores oficiais do SGB, com a sigla, o nome, a hierarquia, os litotipos, a legenda e a idade: o mapa 1:1.000.000 do Brasil, o mapa geológico do estado ou as cartas 1:250.000, 1:100.000, 1:50.000 e 1:25.000, que só existem onde houve mapeamento. Quando a escala escolhida não tem mapa na área, o aviso diz as que têm. A legenda mostra só as unidades da área.",
+            "icon": "unique",
+            "params": "{\"escala\"?: \"1m\" (padrão: 1:1.000.000) | \"estado\" | \"250k\" | \"100k\" | \"50k\" | \"25k\"}",
+            "form": [
+                {"name": "escala", "label": "Escala", "kind": "choice", "required": True, "choices": ESCALAS_SGB, "default": ESCALAS_SGB[0], "help": "A escala do mapeamento: a 1:1.000.000 cobre o Brasil; as outras, só onde houve mapeamento (o aviso diz as que têm mapa na área)."},
+            ],
+        },
+    ),
 ]
 # Os comandos das abas Sobre, só nos botões do fim do painel (fora da aba do RustGIS).
 SOBRE_ABAS = [
@@ -1838,7 +1853,7 @@ TOPICOS = {
     "Área": ["Amostragem"],
     "Território": ["Limites", "Recortes especiais", "Cadastro fundiário", "Terras indígenas"],
     "Sociedade e economia": ["População", "Economia", "Agricultura", "Eleições", "Saúde"],
-    "Meio físico": ["Geologia e recursos minerais", "Relevo", "Solos"],
+    "Meio físico": ["Geologia e recursos minerais", "Riscos geológicos", "Relevo", "Solos"],
     "Tempo e clima": ["Previsão", "Chuva observada", "Desastres", "Clima", "Clima passado (ERA5)", "Satélites do JAXA", "Atmosfera"],
     "Água": ["Hidrografia", "Bacias", "Recursos hídricos"],
     "Vegetação e meio ambiente": ["Vegetação", "Cubo de dados do INPE", "Uso e cobertura", "Desmatamento", "Queimadas", "Áreas protegidas", "Fiscalização"],

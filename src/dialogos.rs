@@ -213,6 +213,16 @@ pub const DADOS_MBSOLO: [(&str, &str); 5] = [
 /// As escolhas da profundidade da textura dos pontos de treino, em cm.
 pub const PROFUNDIDADES_MBSOLO: [(&str, &str); 5] = [("5 cm", "5"), ("10 cm", "10"), ("30 cm", "30"), ("50 cm", "50"), ("90 cm", "90")];
 
+/// As escolhas da escala da geologia do SGB e a `escala` de cada uma.
+pub const ESCALAS_SGB: [(&str, &str); 6] = [
+    ("1:1.000.000 (Brasil)", "1m"),
+    ("Mapa do estado", "estado"),
+    ("1:250.000", "250k"),
+    ("1:100.000", "100k"),
+    ("1:50.000", "50k"),
+    ("1:25.000", "25k"),
+];
+
 /// As escolhas de um parâmetro e o valor de cada uma.
 type Escolhas = &'static [(&'static str, &'static str)];
 
@@ -261,6 +271,7 @@ const TROCAS: &[(&str, &str, Escolhas)] = &[
     ("solo-pontos", "profundidade", &PROFUNDIDADES_SOLO),
     ("mapbiomas-solo-pontos", "dado", &DADOS_MBSOLO),
     ("mapbiomas-solo-pontos", "profundidade", &PROFUNDIDADES_MBSOLO),
+    ("geologia-sgb", "escala", &ESCALAS_SGB),
 ];
 
 /// O número do mês de nome `nome` (janeiro é 1).

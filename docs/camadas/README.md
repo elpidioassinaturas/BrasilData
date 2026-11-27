@@ -2,7 +2,7 @@
 
 <!-- Gerado por scripts/gerar.py a partir do fontes.csv e do fichas.csv; não edite à mão. -->
 
-A ficha de cada uma das 179 camadas que os botões da aba BrasilData trazem: o que é, a fonte, o período, a resolução, as unidades, a legenda, a licença, a citação, os cuidados de uso, se funciona no app web, e um mapa exemplo feito com o plugin (o botão Layout). Os mapas exemplo são de Viçosa (MG), ou da Zona da Mata mineira para os produtos de baixa resolução; os temas que não existem lá vêm de outro município, dito em cada ficha. Os mapas saem do `scripts/mapas_exemplo.py`.
+A ficha de cada uma das 193 camadas que os botões da aba BrasilData trazem: o que é, a fonte, o período, a resolução, as unidades, a legenda, a licença, a citação, os cuidados de uso, se funciona no app web, e um mapa exemplo feito com o plugin (o botão Layout). Os mapas exemplo são de Viçosa (MG), ou da Zona da Mata mineira para os produtos de baixa resolução; os temas que não existem lá vêm de outro município, dito em cada ficha. Os mapas saem do `scripts/mapas_exemplo.py`.
 
 ## Território
 
@@ -86,6 +86,19 @@ A ficha de cada uma das 179 camadas que os botões da aba BrasilData trazem: o q
 | [Terreno da América do Sul a 30 m (ANADEM)](anadem.md) | Meio físico › Relevo | O modelo digital do terreno da América do Sul a 30 m (ANADEM), da ANA e do IPH/UFRGS: o Copernicus GLO-30 sem o viés da vegetação, removido por aprendizado de máquina calibrado para o continente. |
 | [Pontos de solo: análises de laboratório (SoilData)](solo-pontos.md) | Meio físico › Solos | As camadas de solo descritas e analisadas nos levantamentos e pesquisas publicados no SoilData, o Repositório Brasileiro de Dados do Solo: argila, areia, silte, carbono orgânico, CTC, pH e densidade do solo de cada camada, e a classe do solo de cada perfil, juntados no Brazilian Soil Dataset 2024. |
 | [Pontos de treino do MapBiomas Solo](mapbiomas-solo-pontos.md) | Meio físico › Solos | As amostras de solo com que o MapBiomas treinou os mapas da Coleção 3 (beta) do MapBiomas Solo, publicadas no SoilData: o estoque de carbono orgânico de 0 a 30 cm de cada coleta, de 1985 a 2024, e a argila, a areia, o silte e a fração grossa das camadas até 100 cm. |
+| [Ocorrências e recursos minerais (SGB)](sgb-recursos-minerais.md) | Meio físico › Geologia e recursos minerais | As ocorrências, depósitos, garimpos e minas de recursos minerais cadastrados pelo Serviço Geológico do Brasil (base GEOSGB/Recursos Minerais). |
+| [Afloramentos descritos em campo (SGB)](sgb-afloramentos.md) | Meio físico › Geologia e recursos minerais | Os afloramentos de rocha descritos pelos geólogos do SGB nos trabalhos de campo, com as rochas e a descrição. |
+| [Análises geocronológicas (SGB)](sgb-geocronologia.md) | Meio físico › Geologia e recursos minerais | As amostras de rocha com idade medida em laboratório (U-Pb, Sm-Nd, Rb-Sr, Ar-Ar...), da base de geocronologia do SGB. |
+| [Lâminas petrográficas (SGB)](sgb-petrografia.md) | Meio físico › Geologia e recursos minerais | As lâminas petrográficas descritas pelo SGB: a rocha, o protolito e os minerais identificados ao microscópio. |
+| [Ocorrências fossilíferas (SGB)](sgb-fosseis.md) | Meio físico › Geologia e recursos minerais | As ocorrências fossilíferas cadastradas pelo SGB, com o táxon, a unidade litoestratigráfica e o ambiente de deposição. |
+| [Bacias sedimentares (SGB)](sgb-bacias.md) | Meio físico › Geologia e recursos minerais | Os contornos das bacias sedimentares brasileiras, terrestres e marítimas, do SGB. |
+| [Geodiversidade do Brasil, 1:1.000.000 (SGB)](sgb-geodiversidade.md) | Meio físico › Geologia e recursos minerais | As unidades geológico-ambientais do Mapa de Geodiversidade do Brasil: a geologia lida pelo comportamento do terreno (relevo, intemperismo, porosidade, aquífero). |
+| [Setores de risco geológico (SGB)](sgb-risco.md) | Meio físico › Riscos geológicos | Os setores de risco geológico alto e muito alto (deslizamento, queda de blocos, inundação, erosão...) mapeados pelo SGB nos municípios, com o número de moradias e de pessoas expostas. |
+| [Suscetibilidade a inundação (SGB)](sgb-suscet-inundacao.md) | Meio físico › Riscos geológicos | As áreas suscetíveis a inundação das Cartas de Suscetibilidade a Movimentos Gravitacionais de Massa e Inundações do SGB, por município. |
+| [Suscetibilidade a movimento de massa (SGB)](sgb-suscet-movimento.md) | Meio físico › Riscos geológicos | As áreas suscetíveis a movimentos gravitacionais de massa (deslizamentos) das Cartas de Suscetibilidade do SGB, por município. |
+| [Bacias suscetíveis a enxurrada (SGB)](sgb-suscet-enxurrada.md) | Meio físico › Riscos geológicos | As bacias de drenagem suscetíveis a enxurrada das Cartas de Suscetibilidade do SGB. |
+| [Bacias suscetíveis a corrida de massa (SGB)](sgb-suscet-corrida.md) | Meio físico › Riscos geológicos | As bacias de drenagem suscetíveis a corridas de massa (fluxos de detritos) das Cartas de Suscetibilidade do SGB. |
+| [Geologia do SGB](geologia-sgb.md) | Meio físico › Geologia e recursos minerais | As unidades geológicas (litoestratigráficas) do Serviço Geológico do Brasil: as rochas que afloram, agrupadas em unidades com sigla, nome, hierarquia (grupo, formação, suíte, complexo...), litotipos e idade. |
 
 ## Tempo e clima
 
@@ -140,6 +153,7 @@ A ficha de cada uma das 179 camadas que os botões da aba BrasilData trazem: o q
 | [Estresse hídrico de referência (Aqueduct 4.0, WRI)](aqueduct-estresse.md) | Água › Recursos hídricos | O estresse hídrico de referência do Aqueduct 4.0 (WRI): a retirada de água sobre a oferta renovável, por sub-bacia. |
 | [Sistemas de irrigação (MapBiomas)](mapbiomas-irrigacao.md) | Água › Recursos hídricos | Os sistemas de irrigação mapeados pelo MapBiomas: pivô central, inundação (arroz) e outros sistemas. |
 | [Área equipada para irrigação (GMIA v5, FAO)](irrigacao-gmia.md) | Água › Recursos hídricos | A porcentagem de cada célula equipada para irrigação, do Global Map of Irrigation Areas versão 5 (FAO e Universidade de Bonn). |
+| [Poços do SIAGAS (SGB)](sgb-siagas.md) | Água › Recursos hídricos | Os poços tubulares, cacimbas e fontes do SIAGAS, o Sistema de Informações de Águas Subterrâneas do SGB, com a profundidade, os níveis, a vazão e a qualidade da água. |
 
 ## Vegetação e meio ambiente
 
