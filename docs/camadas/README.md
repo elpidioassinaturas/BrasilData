@@ -2,7 +2,7 @@
 
 <!-- Gerado por scripts/gerar.py a partir do fontes.csv e do fichas.csv; não edite à mão. -->
 
-A ficha de cada uma das 201 camadas que os botões da aba BrasilData trazem: o que é, a fonte, o período, a resolução, as unidades, a legenda, a licença, a citação, os cuidados de uso, se funciona no app web, e um mapa exemplo feito com o plugin (o botão Layout). Os mapas exemplo são de Viçosa (MG), ou da Zona da Mata mineira para os produtos de baixa resolução; os temas que não existem lá vêm de outro município, dito em cada ficha. Os mapas saem do `scripts/mapas_exemplo.py`.
+A ficha de cada uma das 209 camadas que os botões da aba BrasilData trazem: o que é, a fonte, o período, a resolução, as unidades, a legenda, a licença, a citação, os cuidados de uso, se funciona no app web, e um mapa exemplo feito com o plugin (o botão Layout). Os mapas exemplo são de Viçosa (MG), ou da Zona da Mata mineira para os produtos de baixa resolução; os temas que não existem lá vêm de outro município, dito em cada ficha. Os mapas saem do `scripts/mapas_exemplo.py`.
 
 ## Território
 
@@ -36,7 +36,13 @@ A ficha de cada uma das 201 camadas que os botões da aba BrasilData trazem: o q
 | [Concentrações urbanas (IBGE 2025)](concentracoes-urbanas.md) | Território › Recortes especiais | As concentrações urbanas do IBGE: os arranjos populacionais e os municípios isolados com mais de 100 mil habitantes. |
 | [Arranjos populacionais (IBGE 2025)](arranjos-populacionais.md) | Território › Recortes especiais | Os arranjos populacionais do IBGE: municípios integrados pelo deslocamento para trabalho e estudo e pela contiguidade urbana. |
 | [Hierarquia urbana das cidades (IBGE 2025)](hierarquia-urbana.md) | Território › Recortes especiais | A hierarquia urbana das cidades do estudo REGIC (Regiões de Influência das Cidades) do IBGE: metrópole, capital regional, centro sub-regional, centro de zona e centro local. |
-| [Zonas ecológico-econômicas (ZEE-MG)](mg-zee-zonas.md) | Território › Recortes especiais | As zonas ecológico-econômicas de Minas Gerais: o cruzamento da potencialidade social com a vulnerabilidade natural, síntese do ZEE-MG. |
+| [Zonas ecológico-econômicas (ZEE-MG)](mg-zee-zonas.md) | Território › Zoneamento ecológico-econômico | As zonas ecológico-econômicas de Minas Gerais: o cruzamento da potencialidade social com a vulnerabilidade natural, síntese do ZEE-MG. |
+| [Zoneamento ecológico-econômico do DF (subzonas)](zee-df.md) | Território › Zoneamento ecológico-econômico | As subzonas do Zoneamento Ecológico-Econômico do Distrito Federal (ZEE-DF): as 7 subzonas da Zona de Diversificação Produtiva e Serviços Ecossistêmicos (SZSE) e as 7 da Zona de Dinamização Produtiva com Equidade (SZDPE). |
+| [Zoneamento ecológico-econômico do Paraná](zee-pr.md) | Território › Zoneamento ecológico-econômico | As 12 zonas do Zoneamento Ecológico-Econômico do Paraná (ZEE-PR), na etapa de prognóstico, do Instituto Água e Terra (IAT). |
+| [Zoneamento ecológico-econômico do Litoral do Paraná](zee-pr-litoral.md) | Território › Zoneamento ecológico-econômico | As zonas do Zoneamento Ecológico-Econômico do Litoral do Paraná (prognóstico): urbana, de desenvolvimento, de expansão de unidades de conservação e protegidas por lei. |
+| [Zoneamento ecológico-econômico costeiro de Sergipe (marítimo)](zee-se-maritimo.md) | Território › Zoneamento ecológico-econômico | As zonas marítimas do Zoneamento Ecológico-Econômico Costeiro de Sergipe (ZEEC-SE): proteção dos recifes de corais, para pesca e de recursos marítimos, uso sustentável e especial. |
+| [Zoneamento socioeconômico-ecológico de Rondônia](zee-ro.md) | Território › Zoneamento ecológico-econômico | As subzonas do Zoneamento Socioeconômico-Ecológico de Rondônia (ZSEE-RO), 2ª aproximação: zona 1 (uso e ocupação), zona 2 (uso especial) e zona 3 (áreas institucionais: unidades de conservação e terras indígenas). |
+| [ZEE do estado da área](zee-estado.md) | Território › Zoneamento ecológico-econômico | As zonas do Zoneamento Ecológico-Econômico do estado (ou dos estados) da área, pela fonte aberta de cada um: DF, PR (estadual e litoral), SE (o costeiro, só as zonas marítimas), MG e RO. Nos outros estados, o aviso diz o que existe e por que não vem. |
 
 ## Sociedade e economia
 
@@ -239,3 +245,5 @@ A ficha de cada uma das 201 camadas que os botões da aba BrasilData trazem: o q
 | [Endereços (IBGE, CNEFE 2022)](enderecos.md) | Infraestrutura › Edificações | Um ponto por endereço do Censo 2022 (o Cadastro Nacional de Endereços para Fins Estatísticos do IBGE), com a rua, o número e o CEP: 89,9 milhões no país. |
 | [Ruas e estradas (OpenStreetMap)](osm-vias.md) | Infraestrutura › Transportes | As ruas e estradas do OpenStreetMap, pela classe da via (o highway do OSM): autoestradas, vias principais, secundárias e terciárias, ruas, estradas de terra e trilhas. |
 | [Edificações e alturas (GlobalBuildingAtlas)](gba-edificacoes.md) | Infraestrutura › Edificações | O polígono de cada edificação com a altura estimada, do GlobalBuildingAtlas (Universidade Técnica de Munique): polígonos do Google, da Microsoft e do OpenStreetMap, alturas de um modelo de IA sobre imagens PlanetScope. |
+| [Aeroportos e aeródromos públicos (ANAC)](aeroportos.md) | Infraestrutura › Transportes | Os aeroportos e aeródromos públicos do Brasil, do Cadastro de Aeródromos da ANAC: os com voos internacionais, os com voos regulares, os concedidos e os demais aeródromos públicos (505 no país). |
+| [Portos e terminais (ANTAQ)](portos.md) | Infraestrutura › Transportes | As instalações portuárias do Brasil cadastradas na ANTAQ: os portos organizados (públicos), os terminais de uso privado (TUP), as estações de transbordo de carga (ETC) e as instalações portuárias de pequeno porte (IP4) dos rios. |

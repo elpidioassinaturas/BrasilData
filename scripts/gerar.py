@@ -37,7 +37,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VERSAO = "0.1.81"
+VERSAO = "0.1.82"
 AUTOR = "Elpídio Filho"
 # Como o texto Sobre chama o autor (o manifesto e o README levam o nome completo).
 AUTOR_SOBRE = "Professor Elpídio"
@@ -494,6 +494,17 @@ LOGIN_EARTHDATA = {
 LOGIN_COPERNICUS = {"ndvi-copernicus"}
 
 EM_MENUS = [
+    (
+        "Território",
+        "Zoneamento ecológico-econômico",
+        {
+            "id": "zee-estado",
+            "label": "ZEE do estado da área",
+            "help": "As zonas do Zoneamento Ecológico-Econômico (ZEE) do estado ou dos estados que a área cruza, pela fonte aberta de cada um: o Distrito Federal (SISDIA), o Paraná (o ZEE estadual e o do litoral, do IAT), Sergipe (o costeiro, do SIGERCO), Minas Gerais (IDE-Sisema) e Rondônia (SEDAM, só no desktop). Cada zona numa cor, com a sigla ou o código. Para os outros estados, o aviso diz o que existe (a lei, a escala) e por que não vem: servidor fora do ar, fechado com senha, só em PDF ou zoneamento não instituído.",
+            "icon": "polygon_layer",
+            "params": "{}",
+        },
+    ),
     (
         "Sociedade e economia",
         "População",
@@ -1760,6 +1771,10 @@ AREAS_EXEMPLO = {
     "pocos-de-caldas": ("", "maciço de Poços de Caldas (MG e SP)"),
     "vale-do-aco": ("", "Vale do Aço (MG)"),
     "brasil": ("br", "Brasil"),
+    "distrito-federal": ("uf:DF", "Distrito Federal"),
+    "parana": ("uf:PR", "Paraná"),
+    "rondonia": ("uf:RO", "Rondônia"),
+    "sergipe": ("uf:SE", "Sergipe"),
 }
 # Os mapas exemplo com a folha feita à parte no RustGIS (o dado é o do plugin; a folha não é a do botão
 # Layout, e o scripts/mapas_exemplo.py não os refaz).
@@ -1908,7 +1923,7 @@ def texto_da_ficha(nome: str, fi: dict) -> str:
 # aqui, ou que ficou vazio, para o gerar.py.
 TOPICOS = {
     "Área": ["Amostragem"],
-    "Território": ["Limites", "Recortes especiais", "Cadastro fundiário", "Terras indígenas"],
+    "Território": ["Limites", "Recortes especiais", "Zoneamento ecológico-econômico", "Cadastro fundiário", "Terras indígenas"],
     "Sociedade e economia": ["População", "Economia", "Agricultura", "Eleições", "Saúde"],
     "Meio físico": ["Geologia e recursos minerais", "Geofísica", "Riscos geológicos", "Relevo", "Solos"],
     "Tempo e clima": ["Previsão", "Chuva observada", "Desastres", "Clima", "Clima passado (ERA5)", "Satélites do JAXA", "Atmosfera"],
@@ -1930,6 +1945,7 @@ MENU_ICONES = {
     "Amostragem": "point_tool",
     "Limites": "map",
     "Recortes especiais": "clip",
+    "Zoneamento ecológico-econômico": "polygon_layer",
     "Cadastro fundiário": "measure_area",
     "População": "proportional",
     "Economia": "chart",

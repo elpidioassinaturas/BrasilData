@@ -61,9 +61,11 @@ use crate::soildata;
 use crate::soilgrids;
 use crate::sol;
 use crate::tempo;
+use crate::transportes;
 use crate::vento;
 use crate::versao;
 use crate::worldcover;
+use crate::zee;
 use crate::zoom;
 // A Chuva agora (PARDIG) fica em comandos/agora.rs.
 mod agora;
@@ -253,6 +255,7 @@ fn executar_comando(req: Request) -> Result<Value, String> {
         "forty-tipologia" => forty_na_area(&req),
         "ctrees-biomassa" => ctrees_na_area(&req),
         "olm-solo" => olm_solo_na_area(&req),
+        "zee-estado" => zee_do_estado(),
         "soilgrids-solo" => soilgrids_na_area(&req),
         "gedtm-relevo" => gedtm_na_area(&req),
         "anadem" => anadem_na_area(&req),
@@ -1421,6 +1424,61 @@ const MAX_FEICOES: u64 = 100_000;
 /// de memória.
 const MAX_FEICOES_EM_PAGINAS: u64 = 300_000;
 
+/// As zonas do ZEE dos estados que a área cruza ([`zee`]): os temas de cada UF com fonte aberta,
+/// um depois do outro, e um aviso para cada UF sem fonte.
+fn zee_do_estado() -> Result<Value, String> {
+    let (c, na_area) = retangulo()?;
+    if !na_area {
+        return Err("escolha a área primeiro (painel Área de trabalho, ou Área: seleção)".into());
+    }
+    let ufs = match ufs_da_area(c)? {
+        Ok(u) => u,
+        Err(p) => return Ok(p),
+    };
+    if ufs.is_empty() {
+        return Err("nenhuma UF do IBGE na área".into());
+    }
+    let mut camadas = Vec::new();
+    let mut sem_fonte = Vec::new();
+    for uf in &ufs {
+        let temas = zee::temas_da_uf(uf);
+        if temas.is_empty() {
+            sem_fonte.push(format!("{uf}: {}", zee::situacao(uf)));
+            continue;
+        }
+        if let Some(n) = zee::nota(uf) {
+            sem_fonte.push(n.to_string());
+        }
+        for id in temas {
+            let t = TEMAS.iter().find(|t| t.id == *id).ok_or_else(|| format!("o catálogo não tem {id}"))?;
+            // A fonte de um estado que falha não leva as dos outros junto.
+            let r = match tema(t) {
+                Ok(r) => r,
+                Err(e) => {
+                    let porque = if e.contains("certificate") {
+                        "o certificado do servidor não é aceito por esta versão do RustGIS; no 0.8.0 ou mais novo ele abre".to_string()
+                    } else {
+                        e
+                    };
+                    sem_fonte.push(format!("{uf}: {} não veio ({porque})", t.nome));
+                    continue;
+                }
+            };
+            // No app web, a camada vem depois: o comando roda de novo quando ela chega.
+            if r.get("pending").is_some() || r.get("downloading").is_some() {
+                return Ok(r);
+            }
+            if let Some(n) = r["layer"].as_str() {
+                camadas.push(n.to_string());
+            }
+        }
+    }
+    if !sem_fonte.is_empty() {
+        avisar(&format!("ZEE: o que não veio. {}", sem_fonte.join(". ")));
+    }
+    Ok(json!({"layers": camadas, "ufs": ufs, "withoutSource": sem_fonte}))
+}
+
 /// Um tema que o plugin pede ele mesmo (com filtro, campos, páginas ou uma camada por UF):
 /// conta as feições de cada camada no retângulo, baixa as páginas com `layer.addUrl` (o RustGIS
 /// baixa fora do plugin), junta-as (`gp.run merge`) e termina como os outros temas. No app web
@@ -1432,6 +1490,17 @@ fn tema_proprio(t: &Tema) -> Result<Value, String> {
         && r.get("already").is_none()
     {
         estilo_padrao(nome, &estilo, &texto);
+    }
+    // As zonas do ZEE, cada uma numa cor e com a sigla; os aeroportos e os portos, pelo tipo.
+    if let (Some((estilo, texto)), Some(nome)) =
+        (zee::estilo_do_tema(t.id).or_else(|| transportes::estilo_do_tema(t.id)), r["layer"].as_str())
+        && r.get("already").is_none()
+    {
+        estilo_padrao(nome, &estilo, &texto);
+        // O nome ao lado do ponto, não em cima do símbolo.
+        if transportes::estilo_do_tema(t.id).is_some() {
+            let _ = host::run("labels.placement", json!({"layer": nome, "position": "aboveRight", "otherPositions": true}));
+        }
     }
     if let (Some(campo), Some(nome)) = (zoom::campo(t), r["layer"].as_str()) {
         por_zoom(campo, nome, &r)?;

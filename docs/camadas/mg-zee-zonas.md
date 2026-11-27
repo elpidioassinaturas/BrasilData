@@ -10,7 +10,7 @@ As zonas ecológico-econômicas de Minas Gerais: o cruzamento da potencialidade 
 
 | | |
 |---|---|
-| **Onde na aba** | Território › Recortes especiais |
+| **Onde na aba** | Território › Zoneamento ecológico-econômico. |
 | **Fonte** | IDE-Sisema |
 | **Período** | ZEE-MG, elaborado de 2005 a 2008 |
 | **Resolução ou escala** | grade regular convertida em polígonos (escala estadual). |

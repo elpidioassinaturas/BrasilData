@@ -75,10 +75,12 @@ pub mod soildata;
 pub mod soilgrids;
 pub mod sol;
 pub mod tempo;
+pub mod transportes;
 pub mod vento;
 pub mod versao;
 pub mod vista;
 pub mod worldcover;
+pub mod zee;
 pub mod zoom;
 
 pub use catalogo::{FICHAS, SOBRE, SOBRE_AVISO, TEMAS};

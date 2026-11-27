@@ -1,7 +1,7 @@
 {
   "id": "brasildata",
   "name": "BrasilData",
-  "version": "0.1.81",
+  "version": "0.1.82",
   "description": "Dados públicos do Brasil para a área do usuário (IBGE, MMA, ICMBio, INPE, CEMADEN, ANA, ANEEL, ANP, SFB/CAR, INCRA, FUNAI, IBAMA, ANM, DNIT, Ministério da Saúde, Copernicus, NASA/ASF, FAO, WRI, Open-Meteo, CHIRPS, Google DeepMind): só o que cruza a área, recortado por ela, com a fonte e a licença de cada camada.",
   "author": "Elpídio Filho",
   "homepage": "https://github.com/elpidioassinaturas/BrasilData",
@@ -716,6 +716,20 @@
       "params": "{}"
     },
     {
+      "id": "aeroportos",
+      "label": "Aeroportos e aeródromos públicos (ANAC)",
+      "help": "Aeroportos e aeródromos públicos (ANAC): os aeroportos e aeródromos públicos do Brasil, do Cadastro de Aeródromos da ANAC: os com voos internacionais, os com voos regulares, os concedidos e os demais aeródromos públicos (505 no país). Fonte: ANAC, Cadastro de Aeródromos Civis Públicos (com os concedidos), na cópia publicada pela Infra S.A. (geo.infrasa.gov.br). Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Só os públicos: os aeródromos privados (milhares de pistas de fazendas) não entram. Para o movimento de passageiros e de carga, os anuários da ANAC. Período: o cadastro na cópia da Infra S.A. (consultada em 27/11/2026). Resolução ou escala: pontos (a posição do aeródromo). Unidades: sem unidade. Licença: não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/aeroportos.md",
+      "icon": "point_layer",
+      "params": "{}"
+    },
+    {
+      "id": "portos",
+      "label": "Portos e terminais (ANTAQ)",
+      "help": "Portos e terminais (ANTAQ): as instalações portuárias do Brasil cadastradas na ANTAQ: os portos organizados (públicos), os terminais de uso privado (TUP), as estações de transbordo de carga (ETC) e as instalações portuárias de pequeno porte (IP4) dos rios. Fonte: ANTAQ, Instalações Portuárias (portos organizados, terminais de uso privado, estações de transbordo de carga e instalações de pequeno porte), na cópia publicada pela Infra S.A. (geo.infrasa.gov.br). Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Um porto organizado é um ponto só, embora tenha vários terminais e berços. A movimentação de carga está no Estatístico Aquaviário da ANTAQ. Período: a base da ANTAQ (atualizada a cada trimestre) na cópia da Infra S.A. (consultada em 27/11/2026). Resolução ou escala: pontos (a posição da instalação). Unidades: sem unidade. Licença: não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/portos.md",
+      "icon": "point_layer",
+      "params": "{}"
+    },
+    {
       "id": "mapbiomas-mineracao",
       "label": "Área minerada (MapBiomas)",
       "help": "Área minerada por ano (MapBiomas, 1985–2024): a área minerada mapeada pelo MapBiomas em imagens Landsat, com o ano em que a mineração apareceu. Fonte: MapBiomas, Monitor da Mineração, área minerada, 1985 a 2024 (campos: ano, substância, se está num processo do SIGMINE, se está em área restrita e área). Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Mapeamento automático: inclui garimpo e mineração industrial, e pode confundir solo exposto de outras origens. Período: 1985 a 2024. Resolução ou escala: 30 m (mapeado em imagens Landsat), entregue como polígonos. Unidades: área em ha. Licença: CC BY 4.0, pelos termos do MapBiomas; não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/mapbiomas-mineracao.md",
@@ -796,6 +810,41 @@
       "id": "mg-zee-zonas",
       "label": "Zonas ecológico-econômicas (ZEE-MG)",
       "help": "Zonas ecológico-econômicas (ZEE-MG): as zonas ecológico-econômicas de Minas Gerais: o cruzamento da potencialidade social com a vulnerabilidade natural, síntese do ZEE-MG. Fonte: IDE-Sisema, Zoneamento Ecológico-Econômico de Minas Gerais (UFLA e Sisema, 2005 a 2008). Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: Instrumento de planejamento, não de licenciamento; os dados de base são de 2005 a 2008. Período: ZEE-MG, elaborado de 2005 a 2008. Resolução ou escala: grade regular convertida em polígonos (escala estadual). Unidades: sem unidade. Licença: licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/mg-zee-zonas.md",
+      "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
+      "id": "zee-df",
+      "label": "ZEE do Distrito Federal (subzonas)",
+      "help": "Zoneamento ecológico-econômico do DF (subzonas): as subzonas do Zoneamento Ecológico-Econômico do Distrito Federal (ZEE-DF): as 7 subzonas da Zona de Diversificação Produtiva e Serviços Ecossistêmicos (SZSE) e as 7 da Zona de Dinamização Produtiva com Equidade (SZDPE). Fonte: SEMA-DF, Zoneamento Ecológico-Econômico do Distrito Federal (Lei Distrital 6.269/2019, 1:100.000), mapa 1 do anexo, pelo SISDIA. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: É o zoneamento dos planos estaduais, não uma restrição por si: para o uso legal, confira a lei ou o decreto e o mapa oficial do anexo. As cores são do BrasilData, não as do mapa oficial. O SISDIA tem também os riscos ecológicos do ZEE (erosão, perda de cerrado, recarga e contaminação de aquíferos). Período: Lei Distrital 6.269, de 29/01/2019. Resolução ou escala: 1:100.000. Unidades: sem unidade. Licença: licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/zee-df.md",
+      "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
+      "id": "zee-pr",
+      "label": "ZEE do Paraná (zonas)",
+      "help": "Zoneamento ecológico-econômico do Paraná: as 12 zonas do Zoneamento Ecológico-Econômico do Paraná (ZEE-PR), na etapa de prognóstico, do Instituto Água e Terra (IAT). Fonte: IAT, Zoneamento Ecológico-Econômico do Paraná (prognóstico, 1:250.000, 2018; ainda sem regulamentação), pelo GeoPR. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: É o zoneamento dos planos estaduais, não uma restrição por si: para o uso legal, confira a lei ou o decreto e o mapa oficial do anexo. As cores são do BrasilData, não as do mapa oficial. O ZEE-PR estadual ainda não foi regulamentado; o do Litoral é a camada ZEE do Litoral do Paraná. Período: relatório de 2018; ainda sem regulamentação. Resolução ou escala: 1:250.000. Unidades: sem unidade. Licença: licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/zee-pr.md",
+      "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
+      "id": "zee-pr-litoral",
+      "label": "ZEE do Litoral do Paraná",
+      "help": "Zoneamento ecológico-econômico do Litoral do Paraná: as zonas do Zoneamento Ecológico-Econômico do Litoral do Paraná (prognóstico): urbana, de desenvolvimento, de expansão de unidades de conservação e protegidas por lei. Fonte: IAT, Zoneamento Ecológico-Econômico do Litoral do Paraná (Decretos 4.996/2016 e 5.793/2016, 1:50.000), pelo GeoPR. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: É o zoneamento dos planos estaduais, não uma restrição por si: para o uso legal, confira a lei ou o decreto e o mapa oficial do anexo. As cores são do BrasilData, não as do mapa oficial. Período: Decretos 4.996/2016 e 5.793/2016. Resolução ou escala: 1:50.000. Unidades: sem unidade. Licença: licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/zee-pr-litoral.md",
+      "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
+      "id": "zee-se-maritimo",
+      "label": "ZEE Costeiro de Sergipe (marítimo)",
+      "help": "Zoneamento ecológico-econômico costeiro de Sergipe (marítimo): as zonas marítimas do Zoneamento Ecológico-Econômico Costeiro de Sergipe (ZEEC-SE): proteção dos recifes de corais, para pesca e de recursos marítimos, uso sustentável e especial. Fonte: SEMAC-SE, Zoneamento Ecológico-Econômico Costeiro de Sergipe (Leis 8.980, 9.146 e 9.147/2022), zonas marítimas, pelo SIGERCO. Só o que cruza a área, inteiro, no retângulo da área; sem área, o que está na vista. Cuidados: É o zoneamento dos planos estaduais, não uma restrição por si: para o uso legal, confira a lei ou o decreto e o mapa oficial do anexo. As cores são do BrasilData, não as do mapa oficial. As zonas ficam no mar: a camada vem inteira, sem o recorte pela área (que é em terra). As zonas terrestres do mesmo ZEEC não vêm: são 6 polígonos dissolvidos com o litoral inteiro, mais de 130 MB, pesados demais para o plugin. Período: Leis 8.980, 9.146 e 9.147/2022. Resolução ou escala: mapa geral 1:420.000. Unidades: área em km² (Area_km2). Licença: licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/zee-se-maritimo.md",
+      "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
+      "id": "zee-ro",
+      "label": "ZSEE de Rondônia (subzonas)",
+      "help": "Zoneamento socioeconômico-ecológico de Rondônia: as subzonas do Zoneamento Socioeconômico-Ecológico de Rondônia (ZSEE-RO), 2ª aproximação: zona 1 (uso e ocupação), zona 2 (uso especial) e zona 3 (áreas institucionais: unidades de conservação e terras indígenas). Fonte: SEDAM-RO, Zoneamento Socioeconômico-Ecológico de Rondônia, 2ª aproximação (LC 233/2000 e LC 312/2005, 1:250.000). Só o que cruza a área, recortado pela área; sem área, o que está na vista. Só no app desktop: o servidor não aceita pedidos do app web. Cuidados: É o zoneamento dos planos estaduais, não uma restrição por si: para o uso legal, confira a lei ou o decreto e o mapa oficial do anexo. As cores são do BrasilData, não as do mapa oficial. Período: LC 233/2000, retificada pela LC 312/2005 (a atualização de 2020 foi vetada). Resolução ou escala: 1:250.000. Unidades: sem unidade. Licença: licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/zee-ro.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
@@ -943,6 +992,13 @@
       "id": "sgb-cartas-anomalia",
       "label": "Cartas de anomalias (SGB)",
       "help": "Cartas de anomalias 1:100.000 (SGB): o índice das Cartas de Anomalias aerogeofísicas 1:100.000 do SGB, com o link do mapa em PDF e dos dados de cada folha. Fonte: SGB (Serviço Geológico do Brasil), GeoSGB, Cartas de anomalias aerogeofísicas 1:100.000. Só o que cruza a área, recortado pela área; sem área, o que está na vista. Cuidados: A camada é um índice: as anomalias estão nos mapas em PDF de cada folha. Período: cartas publicadas desde 2015 (campo ano). Resolução ou escala: folhas 1:100.000. Unidades: sem unidade. Licença: dados abertos do SGB; licença não declarada no serviço. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/sgb-cartas-anomalia.md",
+      "icon": "polygon_layer",
+      "params": "{}"
+    },
+    {
+      "id": "zee-estado",
+      "label": "ZEE do estado da área",
+      "help": "As zonas do Zoneamento Ecológico-Econômico (ZEE) do estado ou dos estados que a área cruza, pela fonte aberta de cada um: o Distrito Federal (SISDIA), o Paraná (o ZEE estadual e o do litoral, do IAT), Sergipe (o costeiro, do SIGERCO), Minas Gerais (IDE-Sisema) e Rondônia (SEDAM, só no desktop). Cada zona numa cor, com a sigla ou o código. Para os outros estados, o aviso diz o que existe (a lei, a escala) e por que não vem: servidor fora do ar, fechado com senha, só em PDF ou zoneamento não instituído. Período: o de cada estado (DF 2019, PR 2016 e 2018, SE 2022, MG 2008, RO 2005). Resolução ou escala: de 1:50.000 a 1:250.000, conforme o estado. Unidades: sem unidade. Licença: não declarada nos serviços. Ficha completa e mapa exemplo: https://github.com/elpidioassinaturas/BrasilData/blob/main/docs/camadas/zee-estado.md",
       "icon": "polygon_layer",
       "params": "{}"
     },
@@ -3004,7 +3060,7 @@
     {
       "id": "sobre",
       "label": "Sobre",
-      "help": "BrasilData 0.1.81, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nAs fontes dos dados e como contribuir estão nas abas do fim do painel Área de trabalho: basta clicar nelas. Para lê-las aqui, marque a caixa e clique em Executar. A janela fica aberta até o X do canto de cima.",
+      "help": "BrasilData 0.1.82, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData\n\nAs fontes dos dados e como contribuir estão nas abas do fim do painel Área de trabalho: basta clicar nelas. Para lê-las aqui, marque a caixa e clique em Executar. A janela fica aberta até o X do canto de cima.",
       "icon": "about",
       "params": "{\"completo\"?: true para as fontes e como contribuir | \"parte\"?: \"tudo\" (padrão) | \"autoria\" | \"fontes\" | \"contribuir\"}",
       "form": [
@@ -3172,7 +3228,7 @@
         "kind": "text",
         "id": "sobre",
         "label": "Sobre o BrasilData: Autoria",
-        "text": "BrasilData 0.1.81, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData"
+        "text": "BrasilData 0.1.82, plugin do RustGIS que traz dados públicos do Brasil para a área de trabalho.\n\nAutor: Professor Elpídio, do Laboratório de Geoprocessamento e Pedometria (LABGEO) da Universidade Federal de Viçosa (UFV).\nLicença: MIT, a do código. Os dados são dos órgãos que os publicam, cada um com a sua licença: o botão Fontes põe a citação e a licença de cada camada do mapa na tabela BrasilData: fontes.\nRepositório: https://github.com/elpidioassinaturas/BrasilData"
       }
     ]
   },
@@ -3235,8 +3291,20 @@
               "aglomeracoes-urbanas",
               "concentracoes-urbanas",
               "arranjos-populacionais",
-              "hierarquia-urbana",
-              "mg-zee-zonas"
+              "hierarquia-urbana"
+            ]
+          },
+          {
+            "menu": "Zoneamento ecológico-econômico",
+            "icon": "polygon_layer",
+            "items": [
+              "mg-zee-zonas",
+              "zee-df",
+              "zee-pr",
+              "zee-pr-litoral",
+              "zee-se-maritimo",
+              "zee-ro",
+              "zee-estado"
             ]
           },
           {
@@ -3640,6 +3708,8 @@
             "items": [
               "rodovias",
               "dnit-snv",
+              "aeroportos",
+              "portos",
               "osm-vias"
             ]
           },
