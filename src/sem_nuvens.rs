@@ -364,6 +364,164 @@ pub fn cube_reduce_com_mascara(s: Satelite, banda: &str, c: [f64; 4], inicio: Da
     }))
 }
 
+// --- As cenas (resolução cheia): o comando "cenas-sem-nuvens" ---------------------------------
+//
+// As coleções de cenas do STAC do INPE (as "ARD": reflectância de superfície, cena a cena), em vez
+// dos cubos de 16 dias: o Sentinel-2 L2A (`S2_L2A-1`, desde 2018, com a máscara SCL) e o Landsat
+// Coleção 2 nível 2 (`landsat-2`, desde 1985, com o `qa_pixel`). O `cube.reduce` com `mask` e
+// `stat: "first"` (opengeos/RustGIS#2596, RustGIS 0.8.0) dá a cada célula a primeira cena limpa,
+// na ordem da parte limpa na área; a cena da véspera já entra, sem esperar o composto de 16 dias.
+// Os arquivos abrem pelo navegador (CORS), mas a junção das bandas é a Composite Bands do GeoLibre.
+
+/// O período mais longo de um clique nas cenas, em dias (cerca de 4 meses: umas 25 cenas do
+/// Sentinel-2 e 10 do Landsat numa área; cada banda lê todas).
+pub const MAX_DIAS_CENAS: i64 = 123;
+
+/// O dia em que o Sentinel-2 L2A passou a vir com o deslocamento de −1000 (o processamento 04.00):
+/// desde ele, a reflectância é o número × 0,0001 − 0,1. O STAC do INPE só declara a escala 0,0001,
+/// que o RustGIS aplica; o −0,1 fica com o plugin.
+pub const DESCONTO_DO_S2: Data = Data { ano: 2022, mes: 1, dia: 25 };
+
+/// Os satélites das cenas.
+pub const SATELITES_DAS_CENAS: [Satelite; 2] = [Satelite::Sentinel2, Satelite::Landsat];
+
+/// A coleção de cenas do satélite `s` no STAC do INPE.
+pub fn colecao_das_cenas(s: Satelite) -> Option<&'static str> {
+    match s {
+        Satelite::Sentinel2 => Some("S2_L2A-1"),
+        Satelite::Landsat => Some("landsat-2"),
+        _ => None,
+    }
+}
+
+/// O primeiro dia das cenas do satélite `s` no STAC do INPE.
+pub fn inicio_das_cenas(s: Satelite) -> Data {
+    match s {
+        Satelite::Landsat => Data { ano: 1985, mes: 1, dia: 7 },
+        _ => Data { ano: 2018, mes: 1, dia: 2 },
+    }
+}
+
+/// O lado das células das cenas, em metros.
+pub fn celula_das_cenas(s: Satelite) -> f64 {
+    match s {
+        Satelite::Landsat => 30.0,
+        _ => 10.0,
+    }
+}
+
+/// A máscara das cenas, como o `mask` do `cube.reduce`: no Sentinel-2, o SCL nas classes limpas
+/// (as mesmas do cubo); no Landsat, o `qa_pixel` sem os bits de sem dado (0), nuvem dilatada (1),
+/// cirro (2), nuvem (3) e sombra de nuvem (4).
+pub fn mascara_das_cenas(s: Satelite) -> Option<Value> {
+    match s {
+        Satelite::Sentinel2 => Some(json!({"asset": "SCL", "keep": SCL_LIMPAS})),
+        Satelite::Landsat => Some(json!({"asset": "qa_pixel", "bits": {"unset": [0, 1, 2, 3, 4]}})),
+        _ => None,
+    }
+}
+
+/// A conta que passa o valor lido à reflectância (de 0 a 1), na `bandMath`: no Landsat, o número
+/// cru × 0,0000275 − 0,2; no Sentinel-2 desde [`DESCONTO_DO_S2`], −0,1 (o RustGIS já multiplicou
+/// por 0,0001); antes dele, nada. Um período que cruza aquele dia mistura as duas contas: recusado.
+pub fn conta_das_cenas(s: Satelite, inicio: Data, fim: Data) -> Result<Option<&'static str>, String> {
+    match s {
+        Satelite::Landsat => Ok(Some("b1 * 0.0000275 - 0.2")),
+        Satelite::Sentinel2 if inicio >= DESCONTO_DO_S2 => Ok(Some("b1 - 0.1")),
+        Satelite::Sentinel2 if fim < DESCONTO_DO_S2 => Ok(None),
+        Satelite::Sentinel2 => Err(format!(
+            "o período cruza {}: o Sentinel-2 mudou o processamento nesse dia, e as cenas de antes e de depois têm escalas diferentes. Escolha um período antes ou depois dele",
+            DESCONTO_DO_S2.texto()
+        )),
+        _ => Err("as cenas são só do Sentinel-2 e do Landsat".into()),
+    }
+}
+
+/// Confere o período pedido às cenas do satélite `s`.
+pub fn conferir_periodo_das_cenas(s: Satelite, inicio: Data, fim: Data) -> Result<(), String> {
+    if fim < inicio {
+        return Err(format!("o fim ({}) vem antes do início ({})", fim.texto(), inicio.texto()));
+    }
+    if inicio < inicio_das_cenas(s) {
+        return Err(format!("as cenas do {} no INPE começam em {}", s.nome(), inicio_das_cenas(s).texto()));
+    }
+    if fim.dias() - inicio.dias() > MAX_DIAS_CENAS {
+        return Err("o período passa de 4 meses: escolha um mais curto (cada banda lê todas as cenas do período)".into());
+    }
+    conta_das_cenas(s, inicio, fim).map(|_| ())
+}
+
+/// Os parâmetros do `cube.reduce` de uma banda das cenas: a máscara de cada cena e a primeira
+/// cena limpa, na ordem da parte limpa na área.
+pub fn cube_reduce_das_cenas(s: Satelite, banda: &str, c: [f64; 4], inicio: Data, fim: Data, nome: &str) -> Option<Value> {
+    let celula = celula_das_cenas(s).max(celula_de_leitura(s, c));
+    Some(json!({
+        "url": STAC, "collection": colecao_das_cenas(s)?, "asset": banda, "bbox": c, "start": inicio.iso(), "end": fim.iso(),
+        "cellSize": celula, "mask": mascara_das_cenas(s)?, "stat": "first", "order": "clear", "name": nome,
+    }))
+}
+
+/// A camada da imagem das cenas: "BrasilData: Imagem sem nuvens das cenas em cor verdadeira de
+/// 01/06/2025 a 31/08/2025 (Sentinel-2, cubo do INPE)" (o "cubo do INPE" é o Brazil Data Cube,
+/// onde as cenas estão).
+pub fn camada_das_cenas(s: Satelite, c: Composicao, inicio: Data, fim: Data) -> String {
+    format!("{PREFIXO}Imagem sem nuvens das cenas em {} de {} a {} ({}{FIM}", c.nome(), inicio.texto(), fim.texto(), s.nome())
+}
+
+/// Se a camada é uma imagem das cenas ou a data de origem dela (e não do cubo).
+pub fn eh_das_cenas(nome: &str) -> bool {
+    nome.starts_with(&format!("{PREFIXO}Imagem sem nuvens das cenas "))
+        || nome.starts_with(&format!("{PREFIXO}Data de origem da imagem sem nuvens das cenas "))
+}
+
+/// Se o `cube.reduce` deste RustGIS tem o `stat: "firstDate"` (opengeos/RustGIS#3182, depois da
+/// 0.8.0): a data de onde veio cada célula do "first". Com ele, a imagem das cenas vem com a camada
+/// da data de origem.
+pub fn tem_data_de_origem(parametros_do_cube_reduce: &str) -> bool {
+    parametros_do_cube_reduce.contains("\"firstDate\"")
+}
+
+/// Os parâmetros do `cube.reduce` da data de origem das cenas: os da banda `banda` em
+/// [`cube_reduce_das_cenas`], com `stat: "firstDate"`. Cada célula recebe os dias desde
+/// 01/01/1970 da cena que o "first" escolhe nela: a mesma máscara e a mesma ordem, portanto a
+/// mesma cena da imagem.
+pub fn cube_reduce_da_data_das_cenas(s: Satelite, banda: &str, c: [f64; 4], inicio: Data, fim: Data, nome: &str) -> Option<Value> {
+    let mut p = cube_reduce_das_cenas(s, banda, c, inicio, fim, nome)?;
+    p["stat"] = json!("firstDate");
+    Some(p)
+}
+
+/// A camada da data de origem da imagem das cenas: "BrasilData: Data de origem da imagem sem
+/// nuvens das cenas de 01/06/2025 a 31/08/2025 (Sentinel-2, cubo do INPE)".
+pub fn camada_da_data_das_cenas(s: Satelite, inicio: Data, fim: Data) -> String {
+    format!("{PREFIXO}Data de origem da imagem sem nuvens das cenas de {} a {} ({}{FIM}", inicio.texto(), fim.texto(), s.nome())
+}
+
+/// O estilo da data de origem das cenas, como estilo do QGIS (renderizador "paletted"). Cada data
+/// de `datas`, da mais antiga à mais recente, tem como valor os dias desde 01/01/1970 (o
+/// `firstDate`), a cor da vez e a data como rótulo.
+pub fn qml_da_data_em_dias(datas: &[Data]) -> String {
+    let mut q = String::from(r#"<qgis><pipe><rasterrenderer type="paletted" band="1" opacity="1"><colorPalette>"#);
+    for (k, d) in datas.iter().enumerate() {
+        let cor = CORES_DAS_DATAS[k % CORES_DAS_DATAS.len()];
+        q.push_str(&format!(r#"<paletteEntry value="{}" color="{cor}" alpha="255" label="{}"/>"#, d.dias(), d.texto()));
+    }
+    q.push_str("</colorPalette></rasterrenderer></pipe></qgis>");
+    q
+}
+
+/// A citação das cenas do satélite `s`.
+pub fn citacao_das_cenas(s: Satelite) -> String {
+    let origem = match s {
+        Satelite::Landsat => "cenas Landsat Coleção 2 nível 2 (USGS)",
+        _ => "cenas Sentinel-2/MSI nível 2A (Copernicus, ESA)",
+    };
+    format!(
+        "Brazil Data Cube (INPE), coleção {} (https://data.inpe.br/bdc/), de {origem}; Ferreira, K. R. et al., Earth Observation Data Cubes for Brazil: Requirements, Methodology and Products, Remote Sensing 12(24), 4033, 2020, doi:10.3390/rs12244033",
+        colecao_das_cenas(s).unwrap_or("")
+    )
+}
+
 #[cfg(test)]
 mod testes {
     use super::*;
@@ -525,5 +683,53 @@ mod testes {
         let l = cube_reduce_com_mascara(Satelite::Landsat, "red", [0.0; 4], d(2025, 6, 1), d(2025, 8, 31), "x").unwrap();
         assert_eq!(l["mask"], json!({"asset": "CLEAROB", "drop": [0]}));
         assert!(cube_reduce_com_mascara(Satelite::Modis, "NDVI", [0.0; 4], d(2025, 6, 1), d(2025, 8, 31), "x").is_none());
+    }
+
+    #[test]
+    fn cenas_data_de_origem() {
+        assert!(tem_data_de_origem(r#"..."first" (the value...)|"firstDate" (the date of the value first takes...)|"mode"..."#));
+        assert!(!tem_data_de_origem(r#"..."first" (the value at the cell's first date with one, in "order": the best pixel)|"mode"..."#));
+        let p =
+            cube_reduce_da_data_das_cenas(Satelite::Sentinel2, "B04", [-42.92, -20.8, -42.83, -20.72], d(2025, 6, 1), d(2025, 8, 31), "x")
+                .unwrap();
+        assert_eq!((p["stat"].as_str(), p["order"].as_str(), p["mask"]["asset"].as_str()), (Some("firstDate"), Some("clear"), Some("SCL")));
+        let n = camada_da_data_das_cenas(Satelite::Sentinel2, d(2025, 6, 1), d(2025, 8, 31));
+        assert_eq!(n, "BrasilData: Data de origem da imagem sem nuvens das cenas de 01/06/2025 a 31/08/2025 (Sentinel-2, cubo do INPE)");
+        assert!(eh_das_cenas(&n) && eh_sem_nuvens(&n));
+        // O valor é o do firstDate: os dias desde 01/01/1970 (14/07/2025 é o dia 20283).
+        let q = qml_da_data_em_dias(&[d(2025, 7, 14), d(2025, 8, 2)]);
+        assert!(q.contains(r##"value="20283" color="#1f77b4" alpha="255" label="14/07/2025""##), "{q}");
+        assert!(q.contains(r#"label="02/08/2025""#));
+    }
+
+    #[test]
+    fn cenas_colecoes_mascaras_e_contas() {
+        assert_eq!(colecao_das_cenas(Satelite::Sentinel2), Some("S2_L2A-1"));
+        assert_eq!(colecao_das_cenas(Satelite::Landsat), Some("landsat-2"));
+        assert_eq!(colecao_das_cenas(Satelite::Cbers4), None);
+        assert_eq!(mascara_das_cenas(Satelite::Sentinel2).unwrap()["asset"], "SCL");
+        assert_eq!(mascara_das_cenas(Satelite::Landsat).unwrap()["bits"]["unset"], json!([0, 1, 2, 3, 4]));
+        // O Sentinel-2 depois de 25/01/2022 desconta 0,1; antes, nada; cruzando o dia, recusado.
+        assert_eq!(conta_das_cenas(Satelite::Sentinel2, d(2025, 6, 1), d(2025, 8, 31)), Ok(Some("b1 - 0.1")));
+        assert_eq!(conta_das_cenas(Satelite::Sentinel2, d(2021, 6, 1), d(2021, 8, 31)), Ok(None));
+        assert!(conta_das_cenas(Satelite::Sentinel2, d(2021, 12, 1), d(2022, 2, 28)).is_err());
+        assert_eq!(conta_das_cenas(Satelite::Landsat, d(1990, 6, 1), d(1990, 8, 31)), Ok(Some("b1 * 0.0000275 - 0.2")));
+    }
+
+    #[test]
+    fn cenas_periodo_pedido_e_nomes() {
+        assert!(conferir_periodo_das_cenas(Satelite::Sentinel2, d(2025, 6, 1), d(2025, 9, 30)).is_ok());
+        assert!(conferir_periodo_das_cenas(Satelite::Sentinel2, d(2025, 1, 1), d(2025, 12, 31)).unwrap_err().contains("4 meses"));
+        assert!(conferir_periodo_das_cenas(Satelite::Sentinel2, d(2017, 6, 1), d(2017, 8, 31)).unwrap_err().contains("2018"));
+        assert!(conferir_periodo_das_cenas(Satelite::Landsat, d(1986, 6, 1), d(1986, 8, 31)).is_ok());
+        let n = camada_das_cenas(Satelite::Landsat, Composicao::FalsaCor, d(1986, 6, 1), d(1986, 8, 31));
+        assert_eq!(n, "BrasilData: Imagem sem nuvens das cenas em falsa-cor de 01/06/1986 a 31/08/1986 (Landsat, cubo do INPE)");
+        assert!(eh_das_cenas(&n) && eh_sem_nuvens(&n));
+        assert_eq!(crate::bdc::satelite_da_camada(&n), Some(Satelite::Landsat));
+        assert!(!eh_das_cenas(&camada(Satelite::Landsat, Composicao::FalsaCor, d(1986, 6, 1), d(1986, 8, 31))));
+        let p =
+            cube_reduce_das_cenas(Satelite::Sentinel2, "B04", [-42.92, -20.8, -42.83, -20.72], d(2025, 6, 1), d(2025, 8, 31), "x").unwrap();
+        assert_eq!((p["collection"].as_str(), p["stat"].as_str(), p["cellSize"].as_f64()), (Some("S2_L2A-1"), Some("first"), Some(10.0)));
+        assert!(citacao_das_cenas(Satelite::Landsat).contains("landsat-2"));
     }
 }

@@ -2,7 +2,7 @@
 
 <!-- Gerado por scripts/gerar.py a partir do fontes.csv e do fichas.csv; não edite à mão. -->
 
-A ficha de cada uma das 209 camadas que os botões da aba BrasilData trazem: o que é, a fonte, o período, a resolução, as unidades, a legenda, a licença, a citação, os cuidados de uso, se funciona no app web, e um mapa exemplo feito com o plugin (o botão Layout). Os mapas exemplo são de Viçosa (MG), ou da Zona da Mata mineira para os produtos de baixa resolução; os temas que não existem lá vêm de outro município, dito em cada ficha. Os mapas saem do `scripts/mapas_exemplo.py`.
+A ficha de cada uma das 210 camadas que os botões da aba BrasilData trazem: o que é, a fonte, o período, a resolução, as unidades, a legenda, a licença, a citação, os cuidados de uso, se funciona no app web, e um mapa exemplo feito com o plugin (o botão Layout). Os mapas exemplo são de Viçosa (MG), ou da Zona da Mata mineira para os produtos de baixa resolução; os temas que não existem lá vêm de outro município, dito em cada ficha. Os mapas saem do `scripts/mapas_exemplo.py`.
 
 ## Território
 
@@ -199,6 +199,7 @@ A ficha de cada uma das 209 camadas que os botões da aba BrasilData trazem: o q
 | [Biomassa acima do solo por ano (CTrees, 100 m)](ctrees-biomassa.md) | Vegetação e meio ambiente › Vegetação | A biomassa acima do solo a 100 m, num ano de 2000 a 2025, estimada pela CTrees com um modelo de IA (DenseNet) calibrado com biomassa de lidar aéreo e de parcelas de campo, a partir de séries do Landsat, do radar ALOS PALSAR-2 e das alturas do GEDI e do ICESat-2; ou a incerteza do mapa (o erro-padrão). |
 | [Índice de vegetação (cubo do INPE)](bdc-indice.md) | Vegetação e meio ambiente › Cubo de dados do INPE | O NDVI ou o EVI do cubo de dados do INPE (Brazil Data Cube), resumido num período: a média, a máxima, a mínima ou o desvio das datas de 16 dias. |
 | [Imagem sem nuvens (cubo do INPE)](bdc-sem-nuvens.md) | Vegetação e meio ambiente › Cubo de dados do INPE | Uma imagem de satélite sem nuvens da área, em cor verdadeira ou em falsa-cor: o melhor pixel das datas de 16 dias de um período, com a data de origem de cada célula. |
+| [Imagem sem nuvens das cenas (Sentinel-2 e Landsat)](cenas-sem-nuvens.md) | Vegetação e meio ambiente › Cubo de dados do INPE | Uma imagem de satélite sem nuvens da área, em cor verdadeira ou em falsa-cor, montada das cenas do Sentinel-2 L2A ou do Landsat Coleção 2 nível 2 do INPE: cada célula vem da primeira cena limpa do período. |
 | [Altura do dossel (GEDI)](gedi-altura.md) | Vegetação e meio ambiente › Vegetação | A altura do dossel (rh98): a altura em que volta 98% da energia do laser do GEDI, perto do topo das copas. |
 | [Biomassa acima do solo (GEDI)](gedi-biomassa.md) | Vegetação e meio ambiente › Vegetação | A densidade de biomassa acima do solo, do modelo do GEDI L4A. |
 | [Cobertura do dossel (GEDI)](gedi-cobertura.md) | Vegetação e meio ambiente › Vegetação | A cobertura do dossel: a fração do chão coberta pelas copas, do GEDI L2B. |

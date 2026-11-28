@@ -151,6 +151,7 @@ ESTATISTICAS_BDC = ["Média das datas", "Máxima", "Mínima", "Desvio-padrão"]
 # As escolhas da imagem sem nuvens (as mesmas de src/dialogos.rs): sem o MODIS, que não tem as bandas de cor.
 SATELITES_SEM_NUVENS = SATELITES_BDC[:3]
 COMPOSICOES = ["Cor verdadeira (vermelho, verde e azul)", "Falsa-cor (infravermelho, vermelho e verde)"]
+SATELITES_DAS_CENAS = ["Sentinel-2 L2A (10 m, desde 2018)", "Landsat Coleção 2 (30 m, desde 1985)"]
 # As partes do texto Sobre (as mesmas de src/dialogos.rs).
 # As abas Sobre do fim do painel: o comando de cada uma e o rótulo (os mesmos de src/lib.rs, ABAS_SOBRE).
 ABAS_SOBRE = [("sobre-autoria", "Autoria"), ("sobre-fontes", "Fontes dos dados"), ("sobre-contribuir", "Como contribuir")]
@@ -697,6 +698,23 @@ EM_MENUS = [
                 {"name": "composicao", "label": "Composição", "kind": "choice", "required": True, "choices": COMPOSICOES, "default": COMPOSICOES[0], "help": "A cor verdadeira mostra a área como o olho a veria; a falsa-cor põe o infravermelho no vermelho: a vegetação viva sai vermelha, a água escura, a cidade e o solo exposto em azul e cinza."},
                 {"name": "inicio", "label": "Início (dd/mm/aaaa)", "kind": "text", "help": "A primeira data. Vazio: 3 meses antes do fim."},
                 {"name": "fim", "label": "Fim (dd/mm/aaaa)", "kind": "text", "help": "A última data. Vazio: a mais recente do cubo. O período vai de 16 dias a 1 ano; mais datas dão mais chance de céu limpo, mas misturam estações."},
+            ],
+        },
+    ),
+    (
+        "Vegetação e meio ambiente",
+        "Cubo de dados do INPE",
+        {
+            "id": "cenas-sem-nuvens",
+            "label": "Imagem sem nuvens das cenas (Sentinel-2 e Landsat)",
+            "help": "Imagem sem nuvens em resolução cheia, das cenas do Sentinel-2 L2A ou do Landsat do INPE: cada célula vem da primeira cena limpa, pela máscara de cada cena, recortada pela área. Até 4 meses; uns 5 minutos num município. Precisa do RustGIS 0.8.0 e do GeoLibre",
+            "icon": "rgb",
+            "params": "{\"satelite\"?: \"sentinel-2\" (padrão) | \"landsat\", \"composicao\"?: \"natural\" (padrão: cor verdadeira) | \"falsa-cor\", \"inicio\"?, \"fim\"?: dd/mm/aaaa ou aaaa-mm-dd (padrão: os 3 meses até a cena mais recente; até 4 meses)}",
+            "form": [
+                {"name": "satelite", "label": "Satélite", "kind": "choice", "required": True, "choices": SATELITES_DAS_CENAS, "default": SATELITES_DAS_CENAS[0], "help": "O Sentinel-2 tem o detalhe (10 m) e passa a cada 5 dias; o Landsat volta até 1985, a 30 m."},
+                {"name": "composicao", "label": "Composição", "kind": "choice", "required": True, "choices": COMPOSICOES, "default": COMPOSICOES[0], "help": "A cor verdadeira mostra a área como o olho a veria; a falsa-cor põe a vegetação viva em vermelho."},
+                {"name": "inicio", "label": "Início (dd/mm/aaaa)", "kind": "text", "help": "A primeira data. Vazio: 3 meses antes do fim."},
+                {"name": "fim", "label": "Fim (dd/mm/aaaa)", "kind": "text", "help": "A última data. Vazio: a cena mais recente. Até 4 meses; no Sentinel-2, sem cruzar 25/01/2022, quando mudou o processamento."},
             ],
         },
     ),

@@ -43,6 +43,7 @@ const NOTA_JAXA: &str =
     "Dados mensais do JAXA Earth na resolução original, em células de 2,8 a 22 km: mostram o padrão regional, não o detalhe de cada lugar.";
 const NOTA_ERA5: &str = "Reanálise ERA5 do ECMWF (Copernicus), em nós de uma grade de 0,25° (cerca de 28 km) ou mais aberta, interpolados para a grade: mostra o clima regional, não o de cada encosta ou vale.";
 const NOTA_SEM_NUVENS: &str = "O melhor pixel das datas de 16 dias do cubo de dados do INPE (Brazil Data Cube): cada célula vem da primeira data limpa, da menos nublada na área para a mais nublada; bordas de nuvem e sombras finas ainda podem aparecer.";
+const NOTA_CENAS: &str = "A primeira cena limpa de cada célula, das cenas do cubo de dados do INPE (Brazil Data Cube), da menos nublada na área para a mais nublada, pela máscara de cada cena; bordas de nuvem e sombras finas ainda podem aparecer.";
 const NOTA_BDC: &str = "Compostos de 16 dias do cubo de dados do INPE (Brazil Data Cube), com o pixel mais limpo de cada período; nuvens e sombras persistentes ainda podem aparecer.";
 const NOTA_CTREES: &str = "Biomassa estimada por um modelo de IA calibrado com lidar aéreo e parcelas de campo, a partir do Landsat, do radar ALOS PALSAR-2 e das alturas do GEDI; a série da CTrees ainda está em pré-publicação, sem revisão por pares.";
 const NOTA_FORTY: &str = "Códigos da legenda: 1 floresta primária, 2 em regeneração natural, 3 plantada, 4 plantio florestal comercial, 5 culturas arbóreas e agrofloresta, 6 outros usos. Classes de um modelo de IA sobre imagens de 2020, alinhadas à FAO e ao EUDR.";
@@ -267,6 +268,20 @@ pub fn receita(nome: &str) -> Option<Receita> {
             barra: Some((format!("{}{unidade}", resumo), 8)),
             legenda: None,
             nota: Some(NOTA_JAXA),
+        });
+    }
+    if let Some(s) = crate::bdc::satelite_da_camada(nome)
+        && crate::sem_nuvens::eh_das_cenas(nome)
+    {
+        // "Imagem sem nuvens das cenas em cor verdadeira de … a …", ou a data de origem dela: as
+        // cenas em resolução cheia, não os compostos de 16 dias.
+        let resumo = resumo_e_periodo(n).0.replacen(" das cenas", "", 1);
+        let origem = resumo.starts_with("Data de origem");
+        return Some(Receita {
+            subtitulo: format!("{resumo} das cenas do {} no cubo de dados do INPE{}", s.nome(), periodo_no_nome(n)),
+            barra: None,
+            legenda: origem.then_some("Data de origem"),
+            nota: Some(NOTA_CENAS),
         });
     }
     if let Some(s) = crate::bdc::satelite_da_camada(nome)
@@ -749,6 +764,22 @@ mod tests {
         assert_eq!(e.barra, Some(("Temperatura máxima do ar, média (°C)".into(), 5)));
         let b = receita("BrasilData: NDVI médio de 01/06/2025 a 31/08/2025 (Sentinel-2, cubo do INPE)").unwrap();
         assert_eq!(b.subtitulo, "NDVI médio pelo cubo de dados do INPE (Sentinel-2, 16 dias), de 01/06/2025 a 31/08/2025");
+        let c = receita("BrasilData: Imagem sem nuvens das cenas em cor verdadeira de 01/06/2025 a 31/08/2025 (Sentinel-2, cubo do INPE)")
+            .unwrap();
+        assert_eq!(
+            c.subtitulo,
+            "Imagem sem nuvens em cor verdadeira das cenas do Sentinel-2 no cubo de dados do INPE, de 01/06/2025 a 31/08/2025"
+        );
+        assert_eq!((c.legenda, c.nota), (None, Some(NOTA_CENAS)));
+        let c = receita("BrasilData: Data de origem da imagem sem nuvens das cenas de 01/06/2025 a 31/08/2025 (Landsat, cubo do INPE)")
+            .unwrap();
+        assert_eq!(
+            c.subtitulo,
+            "Data de origem da imagem sem nuvens das cenas do Landsat no cubo de dados do INPE, de 01/06/2025 a 31/08/2025"
+        );
+        assert_eq!(c.legenda, Some("Data de origem"));
+        let c = receita("BrasilData: Imagem sem nuvens em cor verdadeira de 01/06/2025 a 31/08/2025 (Sentinel-2, cubo do INPE)").unwrap();
+        assert_eq!(c.nota, Some(NOTA_SEM_NUVENS));
         assert_eq!(receita(crate::gem15::Modelo::Altura.camada()).unwrap().barra, Some(("Altura acima do terreno (m)".into(), 5)));
         let r = receita("BrasilData: Radar VV em dB (Sentinel-1, 26/10/2026)").unwrap();
         assert_eq!(r.subtitulo, "Radar VV do Sentinel-1 em 26/10/2026, corrigido do relevo (OPERA RTC-S1)");

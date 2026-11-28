@@ -31,7 +31,7 @@ PASTA = ROOT / gerar.PAGINAS
 LOGS = ROOT / "saida" / "mapas_exemplo"
 # Os parâmetros do comando no mapa exemplo, quando o padrão não serve: o MapBiomas recortado só
 # vai de 2019 a 2024; a radiação solar e a temperatura, em Minas Gerais, numa grade de 1 km.
-PARAMS = {"nisar-tempo": {"passagens": 2}, "mapbiomas-cobertura": {"ano": 2024}, "bdc-sem-nuvens": {"inicio": "01/06/2025", "fim": "31/08/2025"}, "sol-radiacao": {"celula": 1000}, "power-umidade": {"medida": "anomalia", "ano": 2024, "mes": 9}, "temperatura-prevista": {"celula": 1000}, "soilgrids-solo": {"propriedade": "agua-33kpa", "profundidade": "15-30"}}
+PARAMS = {"nisar-tempo": {"passagens": 2}, "mapbiomas-cobertura": {"ano": 2024}, "bdc-sem-nuvens": {"inicio": "01/06/2025", "fim": "31/08/2025"}, "cenas-sem-nuvens": {"inicio": "01/06/2025", "fim": "31/08/2025"}, "sol-radiacao": {"celula": 1000}, "power-umidade": {"medida": "anomalia", "ano": 2024, "mes": 9}, "temperatura-prevista": {"celula": 1000}, "soilgrids-solo": {"propriedade": "agua-33kpa", "profundidade": "15-30"}}
 # Os comandos que pedem o login Earthdata (pelo começo do id).
 EARTHDATA = ("gedi-", "radar-v", "radar-razao", "nisar-", "dist-")
 # A rampa das classes, quando a tab20 (categorias sem ordem) não combina com o tema: os solos em

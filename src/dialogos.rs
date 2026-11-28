@@ -102,6 +102,10 @@ pub const SATELITES_SEM_NUVENS: [(&str, &str); 3] = [
     ("CBERS-4 WFI (64 m, desde 2016)", "cbers-4"),
 ];
 
+/// As escolhas do satélite da imagem sem nuvens das cenas e o `satelite` de cada uma.
+pub const SATELITES_DAS_CENAS: [(&str, &str); 2] =
+    [("Sentinel-2 L2A (10 m, desde 2018)", "sentinel-2"), ("Landsat Coleção 2 (30 m, desde 1985)", "landsat")];
+
 /// As escolhas da composição da imagem sem nuvens e a `composicao` de cada uma.
 pub const COMPOSICOES: [(&str, &str); 2] =
     [("Cor verdadeira (vermelho, verde e azul)", "natural"), ("Falsa-cor (infravermelho, vermelho e verde)", "falsa-cor")];
@@ -293,6 +297,8 @@ const TROCAS: &[(&str, &str, Escolhas)] = &[
     ("bdc-indice", "estatistica", &ESTATISTICAS_BDC),
     ("bdc-sem-nuvens", "satelite", &SATELITES_SEM_NUVENS),
     ("bdc-sem-nuvens", "composicao", &COMPOSICOES),
+    ("cenas-sem-nuvens", "satelite", &SATELITES_DAS_CENAS),
+    ("cenas-sem-nuvens", "composicao", &COMPOSICOES),
     ("jaxa-chuva", "estatistica", &ESTATISTICAS_BDC),
     ("jaxa-umidade", "estatistica", &ESTATISTICAS_BDC),
     ("jaxa-temperatura", "estatistica", &ESTATISTICAS_BDC),

@@ -118,6 +118,10 @@ pub fn comando_da_camada(nome: &str, fonte: &str) -> Option<&'static str> {
             crate::luzes::Camada::Ano(_) => "luzes-noturnas",
             crate::luzes::Camada::Mudanca(..) => "luzes-mudanca",
         }
+    } else if crate::sem_nuvens::eh_das_cenas(nome) {
+        "cenas-sem-nuvens"
+    } else if crate::sem_nuvens::eh_sem_nuvens(nome) {
+        "bdc-sem-nuvens"
     } else if crate::bdc::satelite_da_camada(nome).is_some() {
         "bdc-indice"
     } else if let Some(v) = crate::jaxa::variavel_da_camada(nome) {

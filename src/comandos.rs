@@ -265,6 +265,7 @@ fn executar_comando(req: Request) -> Result<Value, String> {
         "luzes-mudanca" => mudanca_das_luzes(&req),
         "bdc-indice" => bdc_indice(&req),
         "bdc-sem-nuvens" => bdc_sem_nuvens(&req),
+        "cenas-sem-nuvens" => cenas_sem_nuvens(&req),
         "jaxa-chuva" => jaxa_na_area(&req, jaxa::Variavel::Chuva),
         "jaxa-umidade" => jaxa_na_area(&req, jaxa::Variavel::Umidade),
         "jaxa-temperatura" => jaxa_na_area(&req, jaxa::Variavel::Temperatura(turno_do_jaxa(&req)?)),
@@ -2331,6 +2332,8 @@ fn citacoes() -> Result<(Vec<Value>, String), String> {
             lista.push(json!({"layer": n, "source": anadem::CITACAO, "license": anadem::LICENCA}));
         } else if let Some((v, e)) = gedtm::da_camada(&n) {
             lista.push(json!({"layer": n, "source": gedtm::citacao(v, e), "license": gedtm::LICENCA}));
+        } else if let Some(sat) = bdc::satelite_da_camada(&n).filter(|_| sem_nuvens::eh_das_cenas(&n)) {
+            lista.push(json!({"layer": n, "source": sem_nuvens::citacao_das_cenas(sat), "license": sat.licenca()}));
         } else if let Some(sat) = bdc::satelite_da_camada(&n) {
             lista.push(json!({"layer": n, "source": sat.citacao(), "license": sat.licenca()}));
         } else if let Some(v) = jaxa::variavel_da_camada(&n) {
@@ -7444,6 +7447,13 @@ fn pedido_do_bdc(req: &Request) -> Result<Result<PedidoBdc, Value>, String> {
 /// sem período, os últimos 3 meses da coleção (o plugin não tem relógio: a última data vem do STAC
 /// do BDC). `Err(pendente)` dentro do `Ok` quando o STAC ficou para depois (app web).
 fn periodo_do_bdc(req: &Request, s: bdc::Satelite) -> Result<Result<(Data, Data), Value>, String> {
+    periodo_da_colecao(req, s.colecao())
+}
+
+/// O início e o fim de um comando de uma coleção do STAC do INPE: os do script ou da janela; sem
+/// período, os últimos 3 meses da coleção. `Err(pendente)` dentro do `Ok` quando o STAC ficou para
+/// depois (app web).
+fn periodo_da_colecao(req: &Request, colecao: &str) -> Result<Result<(Data, Data), Value>, String> {
     let data = |k: &str| -> Result<Option<Data>, String> {
         req.str(k).map(|t| bdc::ler_data(t).ok_or(format!("a data '{t}' não é dd/mm/aaaa"))).transpose()
     };
@@ -7451,7 +7461,7 @@ fn periodo_do_bdc(req: &Request, s: bdc::Satelite) -> Result<Result<(Data, Data)
     Ok(Ok(match (inicio, fim) {
         (Some(a), Some(b)) => (a, b),
         _ => {
-            let url = format!("{}collections/{}", bdc::STAC, s.colecao());
+            let url = format!("{}collections/{colecao}", bdc::STAC);
             let r = match buscar_varios(&[url])? {
                 Ok(r) => r,
                 Err(p) => return Ok(Err(p)),
@@ -7601,6 +7611,208 @@ fn bdc_sem_nuvens(req: &Request) -> Result<Value, String> {
         },
         r => r,
     }
+}
+
+/// A imagem sem nuvens das cenas do Sentinel-2 L2A ou do Landsat (as coleções de cenas do INPE,
+/// em resolução cheia; [`sem_nuvens::colecao_das_cenas`]): a primeira cena limpa de cada célula
+/// pelo `cube.reduce` com máscara (RustGIS 0.8.0), cada banda passada à reflectância, a junção e
+/// o recorte pelo contorno.
+fn cenas_sem_nuvens(req: &Request) -> Result<Value, String> {
+    let (c, na_area) = retangulo()?;
+    if !na_area {
+        return Err("escolha a área primeiro (painel Área de trabalho, ou Área: seleção)".into());
+    }
+    let parametros = parametros_do_comando("cube.reduce")?.unwrap_or_default();
+    if sem_nuvens::caminho(&parametros, false) != Some(Caminho::PeloCubeReduce) {
+        return Err("a imagem sem nuvens das cenas precisa do RustGIS 0.8.0 ou mais novo (o cube.reduce com máscara de qualidade e a primeira data limpa)".into());
+    }
+    let s = match req.str("satelite") {
+        Some(t) => bdc::Satelite::ler(t)
+            .filter(|s| sem_nuvens::SATELITES_DAS_CENAS.contains(s))
+            .ok_or(format!("satélite '{t}': use sentinel-2 ou landsat"))?,
+        None => bdc::Satelite::Sentinel2,
+    };
+    let comp = match req.str("composicao") {
+        Some(t) => Composicao::ler(t).ok_or(format!("composição '{t}': use natural ou falsa-cor"))?,
+        None => Composicao::Natural,
+    };
+    let colecao = sem_nuvens::colecao_das_cenas(s).ok_or("as cenas são só do Sentinel-2 e do Landsat")?;
+    let (inicio, fim) = match periodo_da_colecao(req, colecao)? {
+        Ok(p) => p,
+        Err(p) => return Ok(p),
+    };
+    sem_nuvens::conferir_periodo_das_cenas(s, inicio, fim)?;
+    let conta = sem_nuvens::conta_das_cenas(s, inicio, fim)?;
+    let bandas = sem_nuvens::bandas(s, comp).ok_or("o satélite não tem as bandas de cor")?;
+    let g = grade_para(c, None)?;
+    let ha = nomes()?;
+    let canais: Vec<String> = bandas.iter().map(|b| sem_nuvens::passo(s, &format!("cena {b}"), inicio, fim)).collect();
+    // A data de origem, quando o cube.reduce tem o firstDate (opengeos/RustGIS#3182): a mesma
+    // máscara e a mesma ordem da primeira banda, portanto a mesma cena de cada célula.
+    let com_data = sem_nuvens::tem_data_de_origem(&parametros);
+    let canal_da_data = sem_nuvens::passo(s, "cenas data", inicio, fim);
+    let mut pedidos = Vec::new();
+    for (b, canal) in bandas.iter().zip(&canais) {
+        pedidos.push((canal, sem_nuvens::cube_reduce_das_cenas(s, b, c, inicio, fim, canal)));
+    }
+    if com_data {
+        pedidos.push((&canal_da_data, sem_nuvens::cube_reduce_da_data_das_cenas(s, bandas[0], c, inicio, fim, &canal_da_data)));
+    }
+    let mut lendo = 0;
+    let mut datas = 0;
+    for (canal, p) in pedidos {
+        if ha.contains(canal) {
+            continue;
+        }
+        let p = p.ok_or("o satélite não tem máscara de nuvem")?;
+        let r = host::run("cube.reduce", p).map_err(|e| {
+            if falha_passageira(&e) || e.contains("timeout") {
+                format!("o STAC do INPE não respondeu agora: tente de novo daqui a pouco ({e})")
+            } else {
+                e
+            }
+        })?;
+        if pendente(&r) {
+            lendo += 1;
+        } else if r["dates"].as_u64() == Some(0) {
+            remover(&[canal])?;
+            return Err(format!("não há cenas do {} na área de {} a {}", s.nome(), inicio.texto(), fim.texto()));
+        } else {
+            datas = datas.max(r["dates"].as_u64().unwrap_or(0));
+        }
+    }
+    if lendo > 0 {
+        avisar(&format!("Imagem sem nuvens das cenas do {}: lendo a área; a imagem vem quando chegar", s.nome()));
+        return Ok(json!({"pending": lendo}));
+    }
+    let refletancia: Vec<String> = canais.iter().map(|k| format!("{k} (reflectância)")).collect();
+    let junto = sem_nuvens::passo(s, "cenas juntas", inicio, fim);
+    let junto_na_grade = format!("{junto} na grade");
+    let nome = sem_nuvens::camada_das_cenas(s, comp, inicio, fim);
+    let celula = sem_nuvens::celula_das_cenas(s).max(sem_nuvens::celula_de_leitura(s, c));
+    let feito = (|| -> Result<(), String> {
+        remover(&[&junto, &junto_na_grade, &nome])?;
+        let mut entradas = Vec::new();
+        for (k, r) in canais.iter().zip(&refletancia) {
+            match conta {
+                Some(e) => {
+                    remover(&[r])?;
+                    host::run("raster.function", json!({"layer": k, "function": "bandMath", "expression": e, "name": r}))?;
+                    entradas.push(r.clone());
+                }
+                None => entradas.push(k.clone()),
+            }
+        }
+        ferramenta("geolibre:composite_bands", json!({"inputs": entradas}), &junto)?;
+        no_sistema_da_grade(&junto, &g, celula, &junto_na_grade)?;
+        recortar(&junto_na_grade, AREA, &nome)?;
+        simbolizar_sem_nuvens(&nome, s, comp)
+    })();
+    // A data de origem só com a imagem feita; sem ela, a imagem fica e o aviso diz por quê.
+    let nome_da_data = sem_nuvens::camada_da_data_das_cenas(s, inicio, fim);
+    let data = match (&feito, com_data) {
+        (Ok(()), true) => Some(data_de_origem_das_cenas(&canal_da_data, &g, celula, &nome_da_data)),
+        _ => None,
+    };
+    let mut fora: Vec<&str> = canais.iter().chain(&refletancia).map(String::as_str).collect();
+    fora.extend([junto.as_str(), junto_na_grade.as_str(), canal_da_data.as_str()]);
+    remover(&fora)?;
+    feito.map_err(|e| if sem_nuvens::ferramenta_ausente(&e) { sem_nuvens::PRECISA_DO_GEOLIBRE.to_string() } else { e })?;
+    let sobre_a_data = match &data {
+        Some(Ok(n)) => {
+            format!(". A camada {} diz de que cena veio cada célula ({n} data(s) na área)", nome_da_data.trim_start_matches(PREFIXO))
+        }
+        Some(Err(e)) => {
+            host::log(&format!("data de origem das cenas: {e}"));
+            let _ = remover(&[&nome_da_data]);
+            format!(". A data de origem não saiu ({e})")
+        }
+        None => ". Um RustGIS mais novo (com o firstDate do cube.reduce) dá também a data de origem de cada célula".to_string(),
+    };
+    let texto = format!(
+        "{}: a primeira cena limpa de cada célula, da menos nublada na área para a mais nublada, das {datas} cena(s) do período na coleção {colecao} do INPE, a {} m, no sistema da grade do projeto, {}. A nuvem vem da máscara de cada cena ({}), sem crescer as bordas{sobre_a_data}",
+        nome.trim_start_matches(PREFIXO),
+        decimal(celula, 0),
+        grade::nome_do_sistema(g.epsg),
+        if s == bdc::Satelite::Landsat {
+            "o qa_pixel: sem nuvem, cirro, borda de nuvem nem sombra"
+        } else {
+            "o SCL: vegetação, solo, água, sombra do terreno e não classificado"
+        },
+    );
+    avisar(&texto);
+    Ok(json!({
+        "layer": nome, "satellite": s.id(), "collection": colecao, "composition": comp.id(), "scenes": datas,
+        "start": inicio.iso(), "end": fim.iso(), "crs": format!("EPSG:{}", g.epsg), "cellSize": celula,
+        "dateLayer": matches!(data, Some(Ok(_))).then_some(nome_da_data),
+    }))
+}
+
+/// A camada `nome` da data de origem das cenas, a partir do `firstDate` lido em `canal`: no
+/// sistema da grade, pelo vizinho mais próximo (as datas não se misturam), recortada pela área e
+/// com uma cor e o rótulo dd/mm/aaaa para cada data presente. Diz quantas datas há na área.
+fn data_de_origem_das_cenas(canal: &str, g: &Grade, celula: f64, nome: &str) -> Result<usize, String> {
+    let na_grade = format!("{canal} na grade");
+    remover(&[&na_grade, nome])?;
+    let feito = (|| {
+        no_sistema_da_grade(canal, g, celula, &na_grade)?;
+        recortar(&na_grade, AREA, nome)?;
+        let presentes = datas_presentes(nome)?;
+        if !presentes.is_empty() {
+            host::run("style.importQgis", json!({"layer": nome, "text": sem_nuvens::qml_da_data_em_dias(&presentes)}))?;
+        }
+        Ok(presentes.len())
+    })();
+    remover(&[&na_grade])?;
+    feito
+}
+
+/// O valor que o teste de [`datas_presentes`] dá aos dias procurados: muito acima de qualquer dia
+/// (os de 2025 são uns 20 000) e exato em f32.
+const MARCA_DA_DATA: f64 = 100_000_000.0;
+
+/// As datas presentes na camada `nome` da data de origem (dias desde 01/01/1970), da mais antiga à
+/// mais recente, por bisseção entre o menor e o maior valor da camada. Um `remap` leva os dias de
+/// um intervalo a [`MARCA_DA_DATA`] e guarda o resto: o intervalo tem células quando o máximo chega
+/// à marca. Só os intervalos com células se dividem: umas 2 × datas × log₂(dias) leituras, e
+/// nenhuma busca no STAC (os itens das cenas são grandes demais para o combustível do plugin).
+fn datas_presentes(nome: &str) -> Result<Vec<Data>, String> {
+    let info = host::run("raster.info", json!({"layer": nome}))?;
+    let banda = &info["bands"][0];
+    let (Some(min), Some(max)) = (banda["min"].as_f64(), banda["max"].as_f64()) else {
+        return Ok(Vec::new());
+    };
+    let (min, max) = (min.round() as i64, max.round() as i64);
+    if max - min > 400 {
+        return Err(format!("os valores vão de {min} a {max}: não parecem dias de um período de até 4 meses"));
+    }
+    let teste = format!("{nome} (teste da data)");
+    let tem = |a: i64, b: i64| -> Result<bool, String> {
+        let r = host::run(
+            "raster.function",
+            json!({"layer": nome, "function": "remap", "ranges": [[a as f64 - 0.5, b as f64 + 0.5, MARCA_DA_DATA]], "keep": true, "name": teste}),
+        )
+        .and_then(|_| host::run("raster.info", json!({"layer": teste})));
+        remover(&[&teste])?;
+        Ok(r?["bands"][0]["max"].as_f64().is_some_and(|m| m >= MARCA_DA_DATA))
+    };
+    let mut achados = Vec::new();
+    let mut pilha = vec![(min, max)];
+    while let Some((a, b)) = pilha.pop() {
+        // O menor e o maior valor da camada estão nela: o intervalo todo não precisa de teste.
+        if !((a, b) == (min, max) || tem(a, b)?) {
+            continue;
+        }
+        if a == b {
+            achados.push(a);
+        } else {
+            let m = a + (b - a) / 2;
+            pilha.push((m + 1, b));
+            pilha.push((a, m));
+        }
+    }
+    achados.sort_unstable();
+    Ok(achados.into_iter().map(|d| Data::de_milissegundos(d * 86_400_000)).collect())
 }
 
 /// A Raster Calculator do GeoLibre com a `expressao`, numa camada nova `nome`. As entradas vão na
